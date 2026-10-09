@@ -3,7 +3,9 @@
  * M4's list body: the groups, their per-person clusters (FR-25.1) and rows,
  * and the leave a packed row makes (FR-25.2). It reads rows through the
  * page's resolvers and reports every act as an event — the writes stay with
- * the page's composables.
+ * the page's composables. M27 renders its list through it too (FR-31.6),
+ * under its own `screen` handle, without the *who* column, and with what a
+ * line needs done in the `#facts` slot under each row's name.
  */
 import { IonIcon, IonList } from '@ionic/vue'
 import { chevronDownOutline } from 'ionicons/icons'
@@ -18,18 +20,30 @@ import { collapseRow } from '@/lib/rowCollapse'
 import type { TripItem, TripParticipant } from '@/types/domain'
 
 import type { ForWhom } from './useForWhom'
-import type { RowFacts } from './useRowFacts'
+import type { ListFacts } from './useRowFacts'
 
-const props = defineProps<{
-  tripId: string
-  groups: PackingGroup[]
-  participants: TripParticipant[]
-  closingPass: boolean
-  facts: RowFacts
-  forWhom: ForWhom
-  /** FR-5.5's press and hold, on a row and on a cluster head. */
-  rowHold: LongPress<TripItem>
-  clusterHold: LongPress<PackingCluster>
+const props = withDefaults(
+  defineProps<{
+    tripId: string
+    groups: PackingGroup[]
+    closingPass: boolean
+    facts: ListFacts
+    /** FR-25.28's *who* column; absent where the list has none (M27). */
+    forWhom?: ForWhom | null
+    /** The roster the *who* strip offers; read only with {@link forWhom}. */
+    participants?: TripParticipant[]
+    /** FR-5.5's press and hold, on a row and on a cluster head. */
+    rowHold: LongPress<TripItem>
+    clusterHold?: LongPress<PackingCluster> | null
+    /** Whose handles the list's `data-testid`s carry, as `PackingRow`'s do. */
+    screen?: 'm4' | 'm27'
+  }>(),
+  { forWhom: null, participants: () => [], clusterHold: null, screen: 'm4' },
+)
+
+defineSlots<{
+  /** Under a row's name, after M4's own notes; `child` marks a traveler's row. */
+  facts?(scope: { item: TripItem; testKey: string; child: boolean }): unknown
 }>()
 
 defineEmits<{
@@ -64,7 +78,7 @@ const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
  */
 function onRowLeave(el: Element, done: () => void) {
   const { forWhomKey: key, rowId } = (el as HTMLElement).dataset
-  if (key !== undefined && props.forWhom.reshaped(key, rowId ?? null)) {
+  if (key !== undefined && props.forWhom?.reshaped(key, rowId ?? null)) {
     done()
     return
   }
@@ -87,7 +101,7 @@ function onRowPress(item: TripItem, event: PointerEvent): void {
       <button
         class="group-head"
         :class="{ shut: group.collapsed }"
-        :data-testid="`m4-group-${group.key || 'none'}`"
+        :data-testid="`${screen === 'm27' ? 'm27-group' : 'm4-group'}-${group.key || 'none'}`"
         @click="$emit('toggleGroup', group.key)"
       >
         <IonIcon :icon="chevronDownOutline" class="caret" />
@@ -125,9 +139,10 @@ function onRowPress(item: TripItem, event: PointerEvent): void {
           <div
             v-if="entry.kind === 'cluster'"
             class="cluster"
-            :data-for-whom-key="forWhom.keyOf(entry)"
+            :data-for-whom-key="forWhom?.keyOf(entry)"
           >
             <ClusterHead
+              :screen="screen"
               :name="entry.name"
               :mode="entry.mode"
               :late="entry.latePacker"
@@ -137,17 +152,17 @@ function onRowPress(item: TripItem, event: PointerEvent): void {
               :collapsed="entry.collapsed"
               :faces="entry.faces"
               :master="facts.clusterMaster(entry)"
-              :seat="forWhom.seatFor(entry)"
+              :seat="forWhom?.seatFor(entry) ?? null"
               @for-whom="$emit('toggleForWhom', entry)"
               @toggle="$emit('toggleCluster', entry.key)"
               @menu="$emit('clusterMenu', entry)"
-              @press-start="(e: PointerEvent) => clusterHold.down(entry, e.clientX, e.clientY)"
-              @press-move="(e: PointerEvent) => clusterHold.move(e.clientX, e.clientY)"
-              @press-end="clusterHold.cancel()"
+              @press-start="(e: PointerEvent) => clusterHold?.down(entry, e.clientX, e.clientY)"
+              @press-move="(e: PointerEvent) => clusterHold?.move(e.clientX, e.clientY)"
+              @press-end="clusterHold?.cancel()"
             />
 
             <ForWhomStrip
-              v-if="forWhom.openOn(entry)"
+              v-if="forWhom?.openOn(entry)"
               :trip-id="tripId"
               :item-id="entry.instanceIds[0] ?? ''"
               :participants="participants"
@@ -158,6 +173,7 @@ function onRowPress(item: TripItem, event: PointerEvent): void {
               <PackingRow
                 v-for="child in entry.children"
                 :key="child.item.id"
+                :screen="screen"
                 variant="child"
                 :item="child.item"
                 :label="child.traveler?.name ?? child.label"
@@ -183,12 +199,22 @@ function onRowPress(item: TripItem, event: PointerEvent): void {
                 @complete="$emit('complete', child.item)"
                 @zero="$emit('zero', child.item)"
                 @toggle="$emit('toggle', child.item)"
-              />
+              >
+                <template v-if="$slots.facts" #facts>
+                  <slot
+                    name="facts"
+                    :item="child.item"
+                    :test-key="`${entry.name}-${child.traveler?.name ?? ''}`"
+                    :child="true"
+                  />
+                </template>
+              </PackingRow>
             </div>
           </div>
 
           <PackingRow
             v-else
+            :screen="screen"
             :item="entry.item"
             :label="entry.label"
             :test-key="entry.item.name"
@@ -202,8 +228,8 @@ function onRowPress(item: TripItem, event: PointerEvent): void {
             :borrowed-by="facts.borrowedBy(entry.item.id)"
             :edge-avatar="facts.edgeAvatarFor(entry.item)"
             :assignable="facts.assignableRow(entry.item)"
-            :seat="forWhom.seatFor(entry)"
-            :data-for-whom-key="forWhom.keyOf(entry)"
+            :seat="forWhom?.seatFor(entry) ?? null"
+            :data-for-whom-key="forWhom?.keyOf(entry)"
             :data-row-id="entry.item.id"
             @for-whom="$emit('toggleForWhom', entry)"
             @assign="$emit('assign', entry.item)"
@@ -219,14 +245,18 @@ function onRowPress(item: TripItem, event: PointerEvent): void {
             @complete="$emit('complete', entry.item)"
             @zero="$emit('zero', entry.item)"
             @toggle="$emit('toggle', entry.item)"
-          />
+          >
+            <template v-if="$slots.facts" #facts>
+              <slot name="facts" :item="entry.item" :test-key="entry.item.name" :child="false" />
+            </template>
+          </PackingRow>
           <!-- FR-25.28: the strip unfolds under the row it belongs to, as a
                line of the same card. Keyed, because a TransitionGroup
                child has to be. -->
           <ForWhomStrip
-            v-if="entry.kind === 'item' && forWhom.openOn(entry)"
+            v-if="entry.kind === 'item' && forWhom?.openOn(entry)"
             key="for-whom"
-            :data-for-whom-key="forWhom.keyOf(entry)"
+            :data-for-whom-key="forWhom?.keyOf(entry)"
             :trip-id="tripId"
             :item-id="entry.item.id"
             :participants="participants"
