@@ -183,9 +183,9 @@ describe('the scale carries the views now (FR-21.5)', () => {
   })
 
   it("names the section's hint line once, where a child component sees it too (G-13)", () => {
-    // Scoped, the line was styled three times — a page's scoped rule does not
-    // reach the section component it renders, so each one copied it, and a
-    // screen that forgot rendered the hint as body copy.
+    // A page's scoped rule does not reach the section component it renders, so
+    // a scoped copy has to be repeated in every child, and a screen that
+    // forgets one renders the hint as body copy.
     const rule = /\.jp-section-hint\s*\{([^}]*)\}/.exec(css)?.[1]
     expect(rule, 'typography.css defines no .jp-section-hint role').toBeTruthy()
     expect(rule).toMatch(/color:\s*var\(--ct-subtext0\)/)
