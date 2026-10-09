@@ -112,6 +112,12 @@ export function setStoredFacet(tripId: string, key: FacetKey, values: readonly s
   if (mounted) mounted.value = facets
 }
 
+/** The grouping a list opens with, and the one a list that cannot draw another falls back to. */
+export const DEFAULT_GROUP_BY: GroupBy = 'category'
+
+/** One list's filter, reveal switches and grouping (FR-25.18). */
+export type PackingFilter = ReturnType<typeof usePackingFilter>
+
 export function usePackingFilter(tripId: string) {
   // Read through globalThis rather than the bare globals so a caller can
   // hand in a throwing or absent storage in a test without stubbing the
@@ -126,7 +132,7 @@ export function usePackingFilter(tripId: string) {
   // late-packer row still has to be packed, so a screen that hid it by
   // itself would be leaving the house without the keys.
   const showLate = ref(true)
-  const groupBy = ref<GroupBy>('category')
+  const groupBy = ref<GroupBy>(DEFAULT_GROUP_BY)
 
   const filterKey = FILTER_PREFIX + tripId
   const groupKey = GROUP_PREFIX + tripId

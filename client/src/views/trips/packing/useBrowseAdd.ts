@@ -1,13 +1,10 @@
 /**
- * The quick-add and its browse-sheet (FR-25.13): what an add writes, what the
- * sheet's verbs do to the rows a master item already has on this trip, and
- * the in-row undo the sheet offers for each.
+ * The quick-add and its browse-sheet (FR-25.13): what an add writes on the
+ * trip. What the sheet's verbs do to the rows a master item already has, and
+ * the in-row undo for each, are `useBrowseVerbs`, shared with an excursion.
  */
-import { computed } from 'vue'
-
 import type { BrowseAddition } from '@/components/global/QuickAddItem.vue'
 import { SPREAD } from '@/app/actions/packing'
-import { browseRowStates } from '@/domain/browseRows'
 import { rowsCarryingContent } from '@/domain/membership'
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
@@ -16,51 +13,17 @@ import { presentToast } from '@/composables/shared/toast'
 import type { AddedItemDecision } from '@/sync/mutations'
 import { STATE_PACKED, type TripItem } from '@/types/domain'
 
+import { useBrowseVerbs } from './useBrowseVerbs'
 import type { PackingCore } from './usePackingCore'
 import type { RowFacts } from './useRowFacts'
 
 /** Builds the quick-add's bindings over the page's core. */
 export function useBrowseAdd(core: PackingCore, facts: RowFacts) {
   const { tripId, tripStore, orchestrator } = core
-
-  /**
-   * FR-25.13c: what the trip already carries — skipped rows included — is
-   * not offered again by the quick-add, and it is the context the composer's
-   * chip rows relate to. Bringing a skipped item back is M4's reveal + undo
-   * path (FR-5.5), not a second add.
-   */
-  const excludeIds = computed(() => [
-    ...new Set(
-      core.allItems.value
-        .map((item) => item.source_item_id)
-        .filter((id): id is string => id !== null),
-    ),
-  ])
-
-  /**
-   * FR-25.13f: what the browse-sheet's two verbs may do, per master item.
-   * Built here rather than in the sheet because only M4 knows the trip's rows
-   * and G-3's holders — the sheet renders the answer and emits the verb.
-   */
-  const browseStates = computed(() =>
-    browseRowStates(
-      core.allItems.value,
-      (item) => (core.locked(item) ? (facts.lockNote(item) ?? t('packing.lockedByUnknown')) : null),
-      core.travelers.value,
-    ),
+  const verbs = useBrowseVerbs(core.port, (item) =>
+    core.locked(item) ? (facts.lockNote(item) ?? t('packing.lockedByUnknown')) : null,
   )
-
-  /**
-   * FR-25.13f: how to take back what the browse-sheet last did, keyed by the
-   * master item its line stands for.
-   *
-   * A plain `Map` rather than the FR-25.2 snackbar's `useRowUndo`: the sheet's
-   * undo lives *in the row* and therefore for as long as the sheet is open,
-   * where the snackbar's lives for three seconds and only ever holds one act.
-   * Each entry replaces the one before it, because the line only ever offers
-   * the way back out of the last thing it did.
-   */
-  const browseUndo = new Map<string, () => void>()
+  const { rowsOfMasterItem, remember } = verbs
 
   /** The master item's own fields, as an add takes them (FR-25.7 defaults). */
   function quickAddOptions(item: BrowseAddition) {
@@ -103,7 +66,7 @@ export function useBrowseAdd(core: PackingCore, facts: RowFacts) {
           [],
           item.travelerIds,
         )
-    browseUndo.set(item.sourceItemId, () => orchestrator.removeAddedItem(tripId, addedId))
+    remember(item.sourceItemId, () => orchestrator.removeAddedItem(tripId, addedId))
     announceCompanions(companions)
   }
 
@@ -141,7 +104,7 @@ export function useBrowseAdd(core: PackingCore, facts: RowFacts) {
     )
     if (item.sourceItemId) {
       const ids = result.ids
-      browseUndo.set(item.sourceItemId, () => {
+      remember(item.sourceItemId, () => {
         for (const id of ids) orchestrator.removeAddedItem(tripId, id)
       })
     }
@@ -172,7 +135,7 @@ export function useBrowseAdd(core: PackingCore, facts: RowFacts) {
     )
     if (item.sourceItemId) {
       const itemId = item.sourceItemId
-      browseUndo.set(itemId, () => {
+      remember(itemId, () => {
         for (const row of rowsOfMasterItem(itemId)) orchestrator.removeAddedItem(tripId, row.id)
       })
     }
@@ -192,7 +155,7 @@ export function useBrowseAdd(core: PackingCore, facts: RowFacts) {
       return
     }
     const restore = result.restore
-    browseUndo.set(itemId, () => orchestrator.restoreMembership(tripId, restore))
+    remember(itemId, () => orchestrator.restoreMembership(tripId, restore))
   }
 
   /** What a delete of these rows would cost beyond the rows (FR-7.1/7.3). */
@@ -215,72 +178,6 @@ export function useBrowseAdd(core: PackingCore, facts: RowFacts) {
     })
   }
 
-  /** Every row the trip carries for one master item (FR-25.21's fan-out). */
-  function rowsOfMasterItem(itemId: string): TripItem[] {
-    return core.allItems.value.filter((row) => row.source_item_id === itemId)
-  }
-
-  /**
-   * FR-25.13f: pack everything this master item stands for on the trip, in one
-   * tap. A row that is packed already is left alone — packing it again would
-   * restamp somebody else's packing record with mine.
-   */
-  function onPack(itemId: string) {
-    const rows = rowsOfMasterItem(itemId).filter((row) => row.state !== 'packed')
-    const records = rows.map((row) => ({
-      itemId: row.id,
-      name: row.name,
-      quantity: row.quantity,
-      packedCount: row.packed_count,
-      state: row.state,
-    }))
-    for (const row of rows) orchestrator.packComplete(row)
-    browseUndo.set(itemId, () => core.restorePacked(records))
-  }
-
-  /**
-   * FR-25.13f: leave everything this master item stands for at home (FR-5.5),
-   * companions included — `skipItem` reports what went along, and the undo
-   * puts back exactly those rows.
-   */
-  function onSkip(itemId: string) {
-    const affected = rowsOfMasterItem(itemId)
-      .filter((row) => row.state !== 'skipped')
-      .flatMap((row) => orchestrator.skipItem(tripId, row))
-    const records = affected.map((row) => ({
-      itemId: row.id,
-      quantity: row.quantity,
-      packedCount: row.packed_count,
-      state: row.state,
-    }))
-    browseUndo.set(itemId, () => orchestrator.restoreSkip(records))
-  }
-
-  /**
-   * FR-25.13i: put every row this master item stands for back on the list,
-   * whoever decided it and whenever.
-   *
-   * Not `onUndo`: that one replays a closure this run recorded, and a
-   * decision from yesterday — or from another device — left none. So this is a
-   * **reset** rather than a restore, and deliberately the same two writes M4's
-   * own row menu makes: a skipped row comes back at amount one (FR-5.5's skip
-   * zeroed it, and only the row's own history knows what it was), a packed one
-   * keeps its amount and loses its packed count.
-   */
-  function onReopen(itemId: string) {
-    for (const row of rowsOfMasterItem(itemId)) {
-      if (row.state === 'skipped') orchestrator.unskipItem(row)
-      else orchestrator.packZero(row)
-    }
-  }
-
-  function onUndo(itemId: string) {
-    const undo = browseUndo.get(itemId)
-    if (!undo) return
-    browseUndo.delete(itemId)
-    undo()
-  }
-
   /**
    * FR-27.10: one tap in the quick-add expands a whole group onto the trip.
    *
@@ -294,16 +191,16 @@ export function useBrowseAdd(core: PackingCore, facts: RowFacts) {
   }
 
   return {
-    excludeIds,
-    browseStates,
+    excludeIds: verbs.excludeIds,
+    browseStates: verbs.browseStates,
     onQuickAdd,
     onAddForAll,
     onAssignForTravelers,
     onSpread,
-    onPack,
-    onSkip,
-    onReopen,
-    onUndo,
+    onPack: verbs.onPack,
+    onSkip: verbs.onSkip,
+    onReopen: verbs.onReopen,
+    onUndo: verbs.onUndo,
     onAddGroup,
   }
 }

@@ -20,6 +20,8 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { TripItem, TripParticipant } from '@/types/domain'
 
+import { actUndoably as actUndoablyOn, type RowPort } from './rowPort'
+
 /** M4's shared state and the undo-armed write helpers its parts share. */
 export type PackingCore = ReturnType<typeof usePackingCore>
 
@@ -131,26 +133,14 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
   const announcer = usePackAnnouncer()
   const { rowUndo, announceAct } = announcer
 
-  /**
-   * FR-25.31: act on one row behind the snackbar's undo. `restore` gets the row
-   * as it is *when the undo fires* and writes back only the field its act
-   * changed — building the write from the row in hand would revert whatever
-   * landed in between (the reason `restorePack` re-reads, too). A row deleted
-   * meanwhile stays deleted.
-   */
+  /** FR-25.31: act on one row behind the snackbar's undo — see `rowPort.actUndoably`. */
   function actUndoably(
     item: TripItem,
     message: string,
     act: () => void,
     restore: (live: TripItem) => void,
   ) {
-    const id = item.id
-    rowUndo.armAction(item.name, () => {
-      const live = liveRow(id)
-      if (live) restore(live)
-    })
-    act()
-    void announceAct(message)
+    actUndoablyOn(port, item, message, act, restore)
   }
 
   /** The same for a fan-out over several rows (FR-25.26): one undo for all. */
@@ -171,7 +161,34 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
     }
   }
 
+  /** The trip's rows as M4's shared row slices act on them (`rowPort.ts`). */
+  const port: RowPort = {
+    rows: allItems,
+    travelers,
+    span: computed(() => ({
+      start: trip.value?.start_date ?? null,
+      end: trip.value?.end_date ?? null,
+    })),
+    liveRow,
+    inert: (row) => closingPass.value || locked(row),
+    setQuantity: (row, quantity) => orchestrator.setQuantity(row, quantity),
+    packIncrement: (row) => orchestrator.packIncrement(row),
+    packDecrement: (row) => orchestrator.packDecrement(row),
+    packComplete: (row) => orchestrator.packComplete(row),
+    packZero: (row) => orchestrator.packZero(row),
+    packToggle: (row) => orchestrator.packToggle(row),
+    skip: (row) => orchestrator.skipItem(tripId, row),
+    unskip: (row) => orchestrator.unskipItem(row),
+    restorePacked,
+    restoreSkip: (records) => orchestrator.restoreSkip(records),
+    rowUndo,
+    announceAct,
+    announcePacked: announcer.announcePacked,
+    announceSkipped: announcer.announceSkipped,
+  }
+
   return {
+    port,
     tripId,
     tripStore,
     masterStore,
