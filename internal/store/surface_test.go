@@ -24,6 +24,7 @@ var storeMethodsWithNoCallerOutside = map[string]string{
 // internal/sync is a leaf and imports nothing; the client is not Go.
 var callersOutsideTheStore = []string{
 	filepath.Join("..", "api"),
+	filepath.Join("..", "notify"),
 	filepath.Join("..", "webui"),
 	filepath.Join("..", "..", "cmd", "jitpackd"),
 	filepath.Join("..", "..", "cmd", "wiregen"),
