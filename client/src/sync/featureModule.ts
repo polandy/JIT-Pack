@@ -26,10 +26,10 @@ import type { MutationFields } from './mutations/context'
  * One module's store, as the orchestrator reads and writes it: its sinks,
  * one per table it holds, each with its table's spec (`sinks.ts`, declared in
  * the module's `rows.ts`). Everything else the kernel needs is derived from
- * them — which tables the module holds,
- * how a pulled change lands, the row a write is painted over, and what a
- * deleted trip or traveller takes from the module (`cascade.ts`), including
- * on another device, which hears of a deleted trip by its tombstone alone.
+ * them — which tables the module holds, how a pulled change lands, the row
+ * a write is painted over, and what a deleted trip or traveller takes from
+ * the module (`cascade.ts`), including on another device, which hears of a
+ * deleted trip by its tombstone alone.
  */
 export interface FeatureStore {
   readonly sinks: RowSinks
