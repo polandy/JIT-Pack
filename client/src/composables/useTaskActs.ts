@@ -81,17 +81,17 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
   function toggleOwn(todo: TripTodo) {
     const live = () => liveTripTodo(todo.id)
     if (todo.task_state === 'open') {
-      orchestrator.resolveTripTodo(todo)
+      orchestrator.comments.resolveTripTodo(todo)
       rowUndo.armAction(todo.body, () => {
         const row = live()
-        if (row?.task_state === 'resolved') orchestrator.reopenTripTodo(row)
+        if (row?.task_state === 'resolved') orchestrator.comments.reopenTripTodo(row)
       })
       void announceTaskDone(todo.body)
     } else {
-      orchestrator.reopenTripTodo(todo)
+      orchestrator.comments.reopenTripTodo(todo)
       rowUndo.armAction(todo.body, () => {
         const row = live()
-        if (row?.task_state === 'open') orchestrator.resolveTripTodo(row)
+        if (row?.task_state === 'open') orchestrator.comments.resolveTripTodo(row)
       })
       void announceAct(t('packing.taskReopenedToast', { body: todo.body }))
     }
@@ -100,17 +100,17 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
   function togglePrep(todo: ItemTodo) {
     const live = () => liveItemTodo(todo.trip_item_id, todo.id)
     if (todo.task_state === 'open') {
-      orchestrator.resolvePrepTodo(todo)
+      orchestrator.comments.resolvePrepTodo(todo)
       rowUndo.armAction(todo.body, () => {
         const row = live()
-        if (row?.task_state === 'resolved') orchestrator.reopenPrepTodo(row)
+        if (row?.task_state === 'resolved') orchestrator.comments.reopenPrepTodo(row)
       })
       void announceTaskDone(todo.body)
     } else {
-      orchestrator.reopenPrepTodo(todo)
+      orchestrator.comments.reopenPrepTodo(todo)
       rowUndo.armAction(todo.body, () => {
         const row = live()
-        if (row?.task_state === 'open') orchestrator.resolvePrepTodo(row)
+        if (row?.task_state === 'open') orchestrator.comments.resolvePrepTodo(row)
       })
       void announceAct(t('packing.taskReopenedToast', { body: todo.body }))
     }
@@ -120,7 +120,7 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
   function added(id: string, body: string, message?: string) {
     rowUndo.armAction(body, () => {
       const live = liveTripTodo(id)
-      if (live) orchestrator.deleteTripTodo(live)
+      if (live) orchestrator.comments.deleteTripTodo(live)
     })
     void announceAct(message ?? t('packing.taskAddedToast', { body }))
   }
@@ -149,8 +149,8 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
   }
 
   function writeAssignee(todo: ItemTodo | TripTodo, userId: string | null) {
-    if ('trip_item_id' in todo) orchestrator.assignPrepTodo(todo, userId)
-    else orchestrator.assignTripTodo(todo, userId)
+    if ('trip_item_id' in todo) orchestrator.comments.assignPrepTodo(todo, userId)
+    else orchestrator.comments.assignTripTodo(todo, userId)
   }
 
   /** Hidden now and deleted when the undo lapses — the confirmed removal's reason. */
@@ -161,7 +161,7 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
       () => removing.value.delete(id),
       () => {
         const live = liveTripTodo(id)
-        if (live) orchestrator.deleteTripTodo(live)
+        if (live) orchestrator.comments.deleteTripTodo(live)
         removing.value.delete(id)
       },
     )
@@ -182,9 +182,9 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     const previous = todo.phase
     rowUndo.armAction(todo.body, () => {
       const live = liveTask(task)
-      if (live) orchestrator.setTaskPhase(live, previous)
+      if (live) orchestrator.comments.setTaskPhase(live, previous)
     })
-    orchestrator.setTaskPhase(todo, phase)
+    orchestrator.comments.setTaskPhase(todo, phase)
     void announceAct(
       t(phase === TASK_PHASE_DURING ? 'tasks.movedToDuring' : 'tasks.movedToBefore', {
         body: todo.body,
@@ -202,9 +202,9 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     const previous = todo.due_date
     rowUndo.armAction(todo.body, () => {
       const live = liveTask(task)
-      if (live) orchestrator.setTaskDueDate(live, previous)
+      if (live) orchestrator.comments.setTaskDueDate(live, previous)
     })
-    orchestrator.setTaskDueDate(todo, dueDate)
+    orchestrator.comments.setTaskDueDate(todo, dueDate)
     void announceAct(
       dueDate === null
         ? t('tasks.dueClearedToast', { body: todo.body })
@@ -237,11 +237,11 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     rowUndo.armAction(todo.body, () => {
       const live = liveTask(task)
       if (!live) return
-      if (movedTag) orchestrator.setTaskTag(live, before.tag)
-      if (movedPhase) orchestrator.setTaskPhase(live, before.phase)
+      if (movedTag) orchestrator.comments.setTaskTag(live, before.tag)
+      if (movedPhase) orchestrator.comments.setTaskPhase(live, before.phase)
     })
-    if (movedTag) orchestrator.setTaskTag(todo, taskTagId)
-    if (movedPhase) orchestrator.setTaskPhase(todo, phase)
+    if (movedTag) orchestrator.comments.setTaskTag(todo, taskTagId)
+    if (movedPhase) orchestrator.comments.setTaskPhase(todo, phase)
     void announceAct(t('tasks.movedToast', { body: todo.body }))
   }
 
@@ -253,7 +253,7 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
   function place(placements: readonly Placement<TripTask>[]) {
     for (const { item, position } of placements) {
       const todo = liveTask(item)
-      if (todo) orchestrator.placeTask(todo, position)
+      if (todo) orchestrator.comments.placeTask(todo, position)
     }
   }
 
@@ -272,7 +272,7 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     return writeBatch(
       tasksToRetag(tasks, taskTagId),
       (todo) => todo.task_tag_id,
-      (todo, value) => orchestrator.setTaskTag(todo, value),
+      (todo, value) => orchestrator.comments.setTaskTag(todo, value),
       taskTagId,
       (n) => t('tasks.bulkRetagged', { n }),
     )
@@ -282,7 +282,7 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     return writeBatch(
       tasksToMove(tasks, phase),
       (todo) => todo.phase,
-      (todo, value) => orchestrator.setTaskPhase(todo, value),
+      (todo, value) => orchestrator.comments.setTaskPhase(todo, value),
       phase,
       (n) =>
         t(phase === TASK_PHASE_DURING ? 'tasks.bulkMovedToDuring' : 'tasks.bulkMovedToBefore', {
@@ -311,7 +311,7 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     return writeBatch(
       tasks.filter((task) => task.due_date !== dueDate),
       (todo) => todo.due_date,
-      (todo, value) => orchestrator.setTaskDueDate(todo, value),
+      (todo, value) => orchestrator.comments.setTaskDueDate(todo, value),
       dueDate,
       (n) =>
         dueDate === null
@@ -352,7 +352,7 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
       () => {
         for (const id of ids) {
           const live = liveTripTodo(id)
-          if (live) orchestrator.deleteTripTodo(live)
+          if (live) orchestrator.comments.deleteTripTodo(live)
           removing.value.delete(id)
         }
       },
@@ -372,9 +372,9 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     const previous = todo.body
     rowUndo.armAction(body, () => {
       const live = liveTask(task)
-      if (live) orchestrator.setTaskBody(live, previous)
+      if (live) orchestrator.comments.setTaskBody(live, previous)
     })
-    orchestrator.setTaskBody(todo, body)
+    orchestrator.comments.setTaskBody(todo, body)
     void announceAct(t('tasks.renamedToast', { body }))
   }
 
@@ -382,10 +382,10 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
   function writeState(todo: ItemTodo | TripTodo, state: TodoState) {
     if (todo.task_state === state) return
     if ('trip_item_id' in todo) {
-      if (state === 'resolved') orchestrator.resolvePrepTodo(todo)
-      else orchestrator.reopenPrepTodo(todo)
-    } else if (state === 'resolved') orchestrator.resolveTripTodo(todo)
-    else orchestrator.reopenTripTodo(todo)
+      if (state === 'resolved') orchestrator.comments.resolvePrepTodo(todo)
+      else orchestrator.comments.reopenPrepTodo(todo)
+    } else if (state === 'resolved') orchestrator.comments.resolveTripTodo(todo)
+    else orchestrator.comments.reopenTripTodo(todo)
   }
 
   function writeBatch<V>(

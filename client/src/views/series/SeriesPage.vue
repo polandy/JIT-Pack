@@ -61,13 +61,13 @@ async function saveName(field: HTMLIonInputElement) {
   const name = String(field.value ?? '').trim()
   const current = series.value
   if (!current || !name || name === current.name) return
-  const taken = orchestrator.seriesNameCollision(name, current.id)
+  const taken = orchestrator.names.seriesNameCollision(name, current.id)
   if (taken) {
     field.value = current.name
     await presentToast({ message: t('series.nameTaken', { name: taken.name }) })
     return
   }
-  orchestrator.updateSeries(current, { name })
+  orchestrator.series.updateSeries(current, { name })
 }
 
 function attribute(key: string): string {
@@ -79,7 +79,7 @@ function saveAttribute(key: string, value: string) {
   const attrs = { ...series.value.default_attributes }
   if (value) attrs[key] = value
   else delete attrs[key]
-  orchestrator.updateSeries(series.value, {
+  orchestrator.series.updateSeries(series.value, {
     default_attributes: Object.keys(attrs).length > 0 ? attrs : null,
   })
 }
@@ -87,10 +87,10 @@ function saveAttribute(key: string, value: string) {
 // --- Destination profile (FR-13.2) ---
 
 function saveNotes(notes: string) {
-  const profileId = orchestrator.ensureDestinationProfile(props.seriesId)
+  const profileId = orchestrator.series.ensureDestinationProfile(props.seriesId)
   const current = master.getDestinationProfile(props.seriesId)
   if (!current || current.id !== profileId) return
-  orchestrator.updateDestinationProfile(current, { notes: notes || null })
+  orchestrator.series.updateDestinationProfile(current, { notes: notes || null })
 }
 
 // --- Destination checklist (FR-13.3) ---
@@ -108,8 +108,8 @@ const newMode = ref<ItemMode>(ITEM_MODE_BUY_LOCAL)
 function addChecklistEntry() {
   const label = newLabel.value.trim()
   if (!label) return
-  const profileId = orchestrator.ensureDestinationProfile(props.seriesId)
-  orchestrator.addChecklistItem(profileId, label, newMode.value)
+  const profileId = orchestrator.series.ensureDestinationProfile(props.seriesId)
+  orchestrator.series.addChecklistItem(profileId, label, newMode.value)
   newLabel.value = ''
 }
 
@@ -235,7 +235,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
               color="medium"
               data-testid="m16-checklist-remove"
               :aria-label="t('series.checklistRemove')"
-              @click="orchestrator.deleteChecklistItem(entry.id)"
+              @click="orchestrator.series.deleteChecklistItem(entry.id)"
             >
               <IonIcon slot="icon-only" :icon="closeOutline" />
             </IonButton>
@@ -292,7 +292,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
               color="medium"
               :data-testid="`m16-detach-${trip.name}`"
               :aria-label="t('series.detach')"
-              @click.stop.prevent="orchestrator.setTripSeries(trip.id, null)"
+              @click.stop.prevent="orchestrator.series.setTripSeries(trip.id, null)"
             >
               <IonIcon slot="icon-only" :icon="closeOutline" />
             </IonButton>
@@ -309,7 +309,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
               :value="''"
               @ionChange="
                 (e: CustomEvent) =>
-                  e.detail.value && orchestrator.setTripSeries(e.detail.value, seriesId)
+                  e.detail.value && orchestrator.series.setTripSeries(e.detail.value, seriesId)
               "
             >
               <IonSelectOption value="">{{ t('wizard.unset') }}</IonSelectOption>

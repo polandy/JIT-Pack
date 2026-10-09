@@ -106,7 +106,7 @@ describe('createTripFromWizard', () => {
     mockPush()
     mockPull()
 
-    const tripId = orch.createTripFromWizard({
+    const tripId = orch.tripCreation.createTripFromWizard({
       name: 'Engadin',
       year: 2026,
       startDate: '2026-08-01',
@@ -145,7 +145,7 @@ describe('createTripFromWizard', () => {
     mockPush()
     mockPull()
 
-    const tripId = orch.createTripFromWizard({
+    const tripId = orch.tripCreation.createTripFromWizard({
       name: 'Engadin',
       year: 2026,
       startDate: null,
@@ -169,7 +169,7 @@ describe('createTripFromWizard', () => {
     mockPush()
     mockPull()
 
-    const tripId = orch.createTripFromWizard({
+    const tripId = orch.tripCreation.createTripFromWizard({
       name: 'Fototour',
       year: 2026,
       startDate: null,
@@ -199,7 +199,7 @@ describe('createTripFromWizard', () => {
     mockPush()
     mockPull()
 
-    const tripId = orch.createTripFromWizard({
+    const tripId = orch.tripCreation.createTripFromWizard({
       name: 'Fototour',
       year: 2026,
       startDate: null,
@@ -237,7 +237,7 @@ describe('createTripFromWizard', () => {
     mockPush()
     mockPull()
 
-    const tripId = orch.createTripFromWizard({
+    const tripId = orch.tripCreation.createTripFromWizard({
       name: 'Fototour',
       year: 2026,
       startDate: null,
@@ -279,7 +279,7 @@ describe('createTripFromWizard', () => {
     mockPush()
     mockPull()
 
-    const tripId = orch.createTripFromWizard({
+    const tripId = orch.tripCreation.createTripFromWizard({
       name: 'Offen',
       year: 2026,
       startDate: null,
@@ -319,8 +319,8 @@ describe('a trip push waits for the master write it refers to', () => {
           })
     })
 
-    const itemId = orch.createMasterItem('Kletterseil')
-    orch.quickAddItem('trip-1', 'Kletterseil', { sourceItemId: itemId }, false)
+    const itemId = orch.masterData.createMasterItem('Kletterseil')
+    orch.packing.quickAddItem('trip-1', 'Kletterseil', { sourceItemId: itemId }, false)
     // The master push is on the wire and held there; under the defect the trip
     // push leaves beside it now, before the item exists on the server.
     await vi.waitFor(() => expect(order).toContain('master push'))

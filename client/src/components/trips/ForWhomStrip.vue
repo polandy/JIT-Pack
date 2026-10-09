@@ -87,7 +87,7 @@ const totalQuantity = computed(() => rows.value.reduce((n, r) => n + r.quantity,
  */
 const claimHolderId = computed(() => {
   for (const row of rows.value) {
-    const holder = orchestrator.lockHolder(props.tripId, row)
+    const holder = orchestrator.claims.lockHolder(props.tripId, row)
     if (holder !== null) return holder
   }
   return null
@@ -129,7 +129,7 @@ function apply(target: MembershipTarget) {
 }
 
 function write(target: MembershipTarget, plan: MembershipPlan) {
-  orchestrator.setMembership(props.tripId, rows.value, target, rowsWithContent.value)
+  orchestrator.packing.setMembership(props.tripId, rows.value, target, rowsWithContent.value)
   if (plan.delete.length > 0) emit('rowsRemoved', plan.delete)
 }
 

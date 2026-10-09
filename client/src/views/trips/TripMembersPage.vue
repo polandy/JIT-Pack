@@ -39,7 +39,7 @@ const props = defineProps<{ tripId: string }>()
 const orchestrator = useOrchestrator()
 const tripStore = useTripStore()
 
-const { directory, myUserId, load: loadIdentity } = useIdentity(orchestrator)
+const { directory, myUserId, load: loadIdentity } = useIdentity(orchestrator.identity)
 
 onMounted(loadIdentity)
 
@@ -57,12 +57,12 @@ const rosterKnown = computed(() => orchestrator.masterDataLoaded())
 
 function addMember(userId: string) {
   if (!userId) return
-  orchestrator.addTripMember(props.tripId, userId, 'editor')
+  orchestrator.membership.addTripMember(props.tripId, userId, 'editor')
 }
 
 function changeRole(memberId: string, role: 'admin' | 'editor') {
   const member = tripStore.getMembers(props.tripId).find((m) => m.id === memberId)
-  if (member) orchestrator.setTripMemberRole(member, role)
+  if (member) orchestrator.membership.setTripMemberRole(member, role)
 }
 
 // ADR-050: the frame renders this page head, above the outlet.
@@ -106,7 +106,7 @@ setHeaderTitle(
             fill="clear"
             color="medium"
             :aria-label="t('members.remove')"
-            @click="orchestrator.removeTripMember(row.member.id)"
+            @click="orchestrator.membership.removeTripMember(row.member.id)"
           >
             <IonIcon slot="icon-only" :icon="closeOutline" />
           </IonButton>

@@ -164,7 +164,7 @@ const { rowUndo, packAnnouncements, announceRemoved, announceAct } = announcer
 
 /** The lines as M4's rows, and M4's row slices over them (`rowPort.ts`). */
 const { port, lineById, lineOf } = useExcursionRowPort({
-  orchestrator,
+  orchestrator: orchestrator.excursions,
   excursion,
   lines,
   participants,
@@ -329,7 +329,7 @@ const { collapsed: headCollapsed, onScroll, onScrollEnd } = useHeadScroll(conten
 
 /** FR-5.8 on a line: off the list, M4's snackbar with its undo. */
 function removeLine(line: ExcursionItem) {
-  const undo = orchestrator.removeLine(line)
+  const undo = orchestrator.excursions.removeLine(line)
   rowUndo.armAction(line.name, undo)
   void announceRemoved(line.name)
 }
@@ -343,8 +343,8 @@ function setMode(line: ExcursionItem, mode: typeof ITEM_MODE_BUY_LOCAL | typeof 
     t(mode === ITEM_MODE_BUY_LOCAL ? 'packing.buyLocalToast' : 'packing.packInsteadToast', {
       name: line.name,
     }),
-    () => orchestrator.setLineMode(line, mode),
-    (live) => orchestrator.updateLine(lineOf(live), before),
+    () => orchestrator.excursions.setLineMode(line, mode),
+    (live) => orchestrator.excursions.updateLine(lineOf(live), before),
   )
 }
 
@@ -360,14 +360,14 @@ function markBought(line: ExcursionItem, bought: boolean) {
     port,
     excursionLineAsRow(line),
     t(bought ? 'excursions.boughtToast' : 'excursions.unboughtToast', { name: line.name }),
-    () => orchestrator.markBought(line, bought),
-    (live) => orchestrator.updateLine(lineOf(live), { bought_at: before }),
+    () => orchestrator.excursions.markBought(line, bought),
+    (live) => orchestrator.excursions.updateLine(lineOf(live), { bought_at: before }),
   )
 }
 
 /** FR-31.13: bought on the spot, kept — with the one undo the act owes. */
 function keep(line: ExcursionItem) {
-  const undo = orchestrator.addToPackingList(props.tripId, line)
+  const undo = orchestrator.excursions.addToPackingList(props.tripId, line)
   if (!undo) return
   rowUndo.armAction(line.name, undo)
   void announceAct(t('excursions.keptToast', { item: line.name }))
@@ -375,7 +375,7 @@ function keep(line: ExcursionItem) {
 
 /** FR-31.14: a line of the excursion alone becomes an inventory item, undoably. */
 function adopt(line: ExcursionItem) {
-  const undo = orchestrator.adoptIntoInventory(props.tripId, line)
+  const undo = orchestrator.excursions.adoptIntoInventory(props.tripId, line)
   if (!undo) return
   rowUndo.armAction(line.name, undo)
   void announceAct(t('excursions.adoptedToast', { item: line.name }))
@@ -521,7 +521,7 @@ async function saveEdit(result: ExcursionSheetResult) {
   editing.value = false
   const ex = excursion.value
   if (!ex) return
-  orchestrator.updateExcursion(ex, {
+  orchestrator.excursions.updateExcursion(ex, {
     name: result.name,
     startsOn: result.startsOn,
     endsOn: result.endsOn,
@@ -536,7 +536,7 @@ async function saveEdit(result: ExcursionSheetResult) {
       before.length === result.travelerIds.length &&
       before.every((id) => result.travelerIds!.includes(id)))
   if (same) return
-  const undo = orchestrator.setParticipants(props.tripId, ex.id, result.travelerIds)
+  const undo = orchestrator.excursions.setParticipants(props.tripId, ex.id, result.travelerIds)
   rowUndo.armAction(ex.name, undo)
   void announceAct(t('excursions.participantsChanged'))
 }
@@ -546,7 +546,7 @@ async function saveAsGroup() {
   if (!ex) return
   // FR-31.14: things the inventory does not know join it only if asked to.
   let includeUnlisted = true
-  const unlisted = orchestrator.unlistedNames(props.tripId, ex.id)
+  const unlisted = orchestrator.excursions.unlistedNames(props.tripId, ex.id)
   if (unlisted.length > 0) {
     const choice = await chooseAction({
       header: t('excursions.unlistedHeader'),
@@ -566,7 +566,7 @@ async function saveAsGroup() {
     testid: 'm27-save-group',
     onConfirm: async (name) => {
       if (!name) return false
-      const id = orchestrator.saveAsGroup(props.tripId, ex.id, name, includeUnlisted)
+      const id = orchestrator.excursions.saveAsGroup(props.tripId, ex.id, name, includeUnlisted)
       if (id === null) {
         await presentToast({ message: t('excursions.nameTaken') })
         return false
@@ -586,14 +586,14 @@ async function remove() {
     testid: 'm27-delete-confirm',
   })
   if (!ok) return
-  orchestrator.deleteExcursion(props.tripId, ex.id)
+  orchestrator.excursions.deleteExcursion(props.tripId, ex.id)
   void router.replace(tripExcursionsPath(props.tripId))
 }
 
 // --- GPX tracks (FR-31.15, ADR-089) ---
 
 const tracksOn = computed(() =>
-  excursion.value ? orchestrator.tracksOf(props.tripId, excursion.value.id) : [],
+  excursion.value ? orchestrator.excursions.tracksOf(props.tripId, excursion.value.id) : [],
 )
 /** FR-31.15: the route folded to a line, as *Der Tag*'s head says it — the first track's distance and climb. */
 const routeSummary = computed(() => tracksSummary(tracksOn.value)?.text ?? null)
@@ -615,12 +615,12 @@ const tracks = useTrackOwner<ExcursionTrack>(() => {
   const ex = excursion.value
   if (!ex) return null
   return {
-    tracks: () => orchestrator.tracksOf(ex.trip_id, ex.id),
-    add: (upload) => orchestrator.addTrack(ex, upload),
-    replace: (track, upload) => orchestrator.replaceTrack(track, upload),
-    update: (track, settings) => orchestrator.updateTrack(track, settings),
-    remove: (track) => orchestrator.removeTrack(track),
-    file: (track) => orchestrator.trackFile(track),
+    tracks: () => orchestrator.excursions.tracksOf(ex.trip_id, ex.id),
+    add: (upload) => orchestrator.excursions.addTrack(ex, upload),
+    replace: (track, upload) => orchestrator.excursions.replaceTrack(track, upload),
+    update: (track, settings) => orchestrator.excursions.updateTrack(track, settings),
+    remove: (track) => orchestrator.excursions.removeTrack(track),
+    file: (track) => orchestrator.excursions.trackFile(track),
   }
 }, FAB_ANCHOR.m27Excursion)
 const trackBusy = tracks.busy

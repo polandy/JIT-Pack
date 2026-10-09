@@ -36,13 +36,15 @@ const orchestratorFake = {
   ...master,
   today: () => '2026-09-19',
   tripDataLoaded: (id: string) => loaded.has(id),
-  assignTag: vi.fn((itemId: string, tagId: string) => `a-${itemId}-${tagId}`),
-  unassignTag: vi.fn(),
-  createTag: vi.fn(() => 't-new'),
-  deleteTag: vi.fn(),
-  deleteMasterItem: vi.fn(),
-  restoreMasterItem: vi.fn(),
-  mergeTags: vi.fn(),
+  masterData: {
+    assignTag: vi.fn((itemId: string, tagId: string) => `a-${itemId}-${tagId}`),
+    unassignTag: vi.fn(),
+    createTag: vi.fn(() => 't-new'),
+    deleteTag: vi.fn(),
+    deleteMasterItem: vi.fn(),
+    restoreMasterItem: vi.fn(),
+    mergeTags: vi.fn(),
+  },
 }
 
 function change(table: string, id: string, row: Record<string, unknown>) {
@@ -142,9 +144,9 @@ describe('M24 — Ohne Tag (FR-24.12)', () => {
     await flushPromises()
 
     await page.get('[data-testid="m24-suggest-Zahnseide"]').trigger('click')
-    expect(orchestratorFake.assignTag).toHaveBeenCalledWith('zs', 't-bad')
+    expect(orchestratorFake.masterData.assignTag).toHaveBeenCalledWith('zs', 't-bad')
     await pressUndo()
-    expect(orchestratorFake.unassignTag).toHaveBeenCalledWith('a-zs-t-bad')
+    expect(orchestratorFake.masterData.unassignTag).toHaveBeenCalledWith('a-zs-t-bad')
   })
 
   it('opens FR-24.9’s sheet without the refiling switch, and creates a missing tag', async () => {
@@ -158,14 +160,14 @@ describe('M24 — Ohne Tag (FR-24.12)', () => {
 
     sheet.vm.$emit('create', { name: 'Spiele', primary: false })
     await flushPromises()
-    expect(orchestratorFake.createTag).toHaveBeenCalledWith('Spiele')
-    expect(orchestratorFake.assignTag).toHaveBeenCalledWith('ks', 't-new')
+    expect(orchestratorFake.masterData.createTag).toHaveBeenCalledWith('Spiele')
+    expect(orchestratorFake.masterData.assignTag).toHaveBeenCalledWith('ks', 't-new')
     expect(page.getComponent(BulkTagSheet).props('isOpen')).toBe(false)
 
     // The tag made for this one item leaves with the undo.
     await pressUndo()
-    expect(orchestratorFake.unassignTag).toHaveBeenCalledWith('a-ks-t-new')
-    expect(orchestratorFake.deleteTag).toHaveBeenCalledWith('t-new')
+    expect(orchestratorFake.masterData.unassignTag).toHaveBeenCalledWith('a-ks-t-new')
+    expect(orchestratorFake.masterData.deleteTag).toHaveBeenCalledWith('t-new')
   })
 
   it('offers to take every suggestion at once only when there are several', async () => {
@@ -177,7 +179,7 @@ describe('M24 — Ohne Tag (FR-24.12)', () => {
     seedItem('zp', 'Zahnpasta')
     await flushPromises()
     await page.get('[data-testid="m24-take-all"]').trigger('click')
-    expect(orchestratorFake.assignTag).toHaveBeenCalledTimes(2)
+    expect(orchestratorFake.masterData.assignTag).toHaveBeenCalledTimes(2)
   })
 })
 
@@ -198,9 +200,9 @@ describe('M24 — Lange nicht gebraucht (FR-24.12)', () => {
 
     expect(page.find('[data-testid="m24-unused-Zelt"]').exists()).toBe(false)
     await page.get('[data-testid="m24-retire-Gaskocher"]').trigger('click')
-    expect(orchestratorFake.deleteMasterItem).toHaveBeenCalledWith('gas')
+    expect(orchestratorFake.masterData.deleteMasterItem).toHaveBeenCalledWith('gas')
     await pressUndo()
-    expect(orchestratorFake.restoreMasterItem).toHaveBeenCalledWith('gas')
+    expect(orchestratorFake.masterData.restoreMasterItem).toHaveBeenCalledWith('gas')
   })
 
   it('keeps an item on this device so the rule stops asking, until undone', async () => {

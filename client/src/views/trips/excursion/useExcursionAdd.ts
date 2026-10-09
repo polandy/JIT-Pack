@@ -38,7 +38,7 @@ export function useExcursionAdd(target: ExcursionAddTarget) {
   }
 
   function addFrom(item: BrowseAddition, lineFor: LineFor) {
-    const written = orchestrator.addLines(
+    const written = orchestrator.excursions.addLines(
       tripId,
       excursionId,
       draftLinesFor(
@@ -65,7 +65,7 @@ export function useExcursionAdd(target: ExcursionAddTarget) {
 
   /** FR-31.14: *Nur für diesen Ausflug* — a line no inventory item names, kept out of the suitcase. */
   function onQuickAddLocal(item: { name: string; travelerIds: string[] }) {
-    orchestrator.addLines(
+    orchestrator.excursions.addLines(
       tripId,
       excursionId,
       draftLinesFor(
@@ -99,7 +99,7 @@ export function useExcursionAdd(target: ExcursionAddTarget) {
       addFrom(item, lineForOf(travelerIds, participants.value.length))
       return
     }
-    const undo = orchestrator.setForWhom(
+    const undo = orchestrator.excursions.setForWhom(
       tripId,
       first,
       lineForOf(travelerIds, participants.value.length),
@@ -112,11 +112,11 @@ export function useExcursionAdd(target: ExcursionAddTarget) {
   function onSpread(itemId: string) {
     const first = linesOfItem(itemId)[0]
     if (!first) return
-    verbs.remember(itemId, orchestrator.setForWhom(tripId, first, { kind: 'all' }))
+    verbs.remember(itemId, orchestrator.excursions.setForWhom(tripId, first, { kind: 'all' }))
   }
 
   async function onAddGroup(templateId: string) {
-    const written = orchestrator.addGroupLines(tripId, excursionId, templateId)
+    const written = orchestrator.excursions.addGroupLines(tripId, excursionId, templateId)
     const group = masterStore.getTemplate(templateId)
     if (!written || !group) return
     await presentToast({

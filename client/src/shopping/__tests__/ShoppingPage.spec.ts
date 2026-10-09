@@ -164,14 +164,15 @@ function source(
   }
 }
 
-function mountPage(sources?: ShoppingSource[], orchestrator: Record<string, unknown> = {}) {
+function mountPage(
+  sources?: ShoppingSource[],
+  orchestrator: { identity?: Record<string, unknown> } = {},
+) {
   const provide: Record<symbol, unknown> = {
     [ORCHESTRATOR]: {
-      ...identityStub(),
-      fetchUsers: async () => people,
+      identity: { ...identityStub(), fetchUsers: async () => people, ...orchestrator.identity },
       ...tripScreen,
       moduleHost: fakeHost(),
-      ...orchestrator,
     },
   }
   if (sources) provide[SHOPPING_SOURCES] = sources
@@ -1408,7 +1409,9 @@ describe('M6 — the day an entry is due (FR-30.10)', () => {
 describe('M6 — who buys it (FR-30.12)', () => {
   /** The viewer is Andy, so *Meine* has somebody to mean. */
   const asAndy = {
-    fetchMe: async () => ({ user_id: 'u-andy', display_name: 'Andy', is_instance_admin: false }),
+    identity: {
+      fetchMe: async () => ({ user_id: 'u-andy', display_name: 'Andy', is_instance_admin: false }),
+    },
   }
 
   /** The trip's member rows — what makes a person somebody to hand a purchase to. */

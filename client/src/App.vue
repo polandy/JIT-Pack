@@ -247,7 +247,7 @@ async function showNotificationToast(n: ServerNotification) {
         ]
       : [{ text: notificationActionLabel(null), role: 'cancel' }],
   })
-  toast.onDidDismiss().then(() => orchestrator?.markNotificationRead(n.id))
+  toast.onDidDismiss().then(() => orchestrator?.notifications.markNotificationRead(n.id))
   await toast.present()
 }
 
@@ -257,7 +257,7 @@ provide(ORCHESTRATOR, orchestrator)
 // shared when the app was last open is shared again from the start.
 const liveLocation = orchestrator
   ? createLiveLocation({
-      host: orchestrator,
+      host: orchestrator.presence,
       geo: browserGeo(),
       storage: localStorage,
       now: clock,
@@ -317,9 +317,9 @@ provide(EXCURSION_EXTRA_LINES, mealExcursionSources)
 
 const shoppingSources = orchestrator
   ? [
-      createPackingShoppingSource(useTripStore(), orchestrator),
+      createPackingShoppingSource(useTripStore(), orchestrator.packing),
       // FR-31.8: an excursion's vor-Ort lines, bought at the kiosk on the way.
-      createExcursionShoppingSource(useTripStore(), orchestrator),
+      createExcursionShoppingSource(useTripStore(), orchestrator.excursions),
       // FR-33.3: a meal's ingredients, under the meal plan's heading.
       ...(mealSources ? [createMealShoppingSource(mealSources)] : []),
     ]
@@ -340,7 +340,10 @@ const dayPlanSources = orchestrator
           extraLines: (tripId, excursionId) =>
             mealExcursionSources.flatMap((source) => source.lines(tripId, excursionId)),
         },
-        { toggleTask: (tripId, task) => toggleTask(orchestrator, useTripStore(), tripId, task) },
+        {
+          toggleTask: (tripId, task) =>
+            toggleTask(orchestrator.comments, useTripStore(), tripId, task),
+        },
       ),
       // FR-33.5: the meals, each at its time or its slot's place.
       ...(mealSources ? [createMealDayPlanSource(mealSources)] : []),
@@ -486,7 +489,7 @@ onMounted(async () => {
   // FR-27.4: a group edited on another device arrives with that pull. The
   // trips that follow it work out what it would mean for them here, so M2
   // can say which ones have a question waiting — nothing is applied.
-  orchestrator?.proposeRefreshForLoadedTrips()
+  orchestrator?.groupRefresh.proposeRefreshForLoadedTrips()
 })
 
 onUnmounted(() => {
@@ -546,7 +549,7 @@ const tripStore = useTripStore()
  */
 const online = computed(() =>
   mode.value === 'server' && identity.myUserId !== null && orchestrator
-    ? onlineRows(orchestrator.getRoster(), identity.directory, tripStore.getTrip)
+    ? onlineRows(orchestrator.presence.getRoster(), identity.directory, tripStore.getTrip)
     : null,
 )
 
@@ -571,7 +574,7 @@ async function onSyncTap() {
   detailNow.value = clock()
   // The names in the roster come from the directory; a device that has not
   // opened a screen needing it yet has none.
-  if (orchestrator && mode.value === 'server') void identity.load(orchestrator)
+  if (orchestrator && mode.value === 'server') void identity.load(orchestrator.identity)
   lastExport.value = lastExportAt()
   storage.value = mode.value === 'local' ? await readStorageStatus() : null
   syncDetailOpen.value = true

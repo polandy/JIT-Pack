@@ -28,11 +28,15 @@ vi.mock('vue-router', () => ({
 const master = masterDataStub()
 const orchestratorFake = {
   ...master,
-  templateNameCollision: vi.fn(() => null),
-  createTemplate: vi.fn(() => 'tpl-new'),
-  updateTemplate: vi.fn(),
-  deleteTemplate: vi.fn(),
-  templateDeletionOutlook: vi.fn(() => ({ blocked: false, references: [] })),
+  names: {
+    templateNameCollision: vi.fn(() => null),
+  },
+  masterData: {
+    createTemplate: vi.fn(() => 'tpl-new'),
+    updateTemplate: vi.fn(),
+    deleteTemplate: vi.fn(),
+    templateDeletionOutlook: vi.fn(() => ({ blocked: false, references: [] })),
+  },
 }
 
 function mountPage() {

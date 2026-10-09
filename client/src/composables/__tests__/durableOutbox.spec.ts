@@ -224,13 +224,13 @@ describe('durable outbox on boot', () => {
       row: { trip_id: 'trip-1', quantity: 1, packed_count: 0, state: 'open' },
     })
 
-    orch.packComplete({
+    orch.packing.packComplete({
       id: 'i1',
       trip_id: 'trip-1',
       quantity: 1,
       packed_count: 0,
       state: 'open',
-    } as Parameters<typeof orch.packComplete>[0])
+    } as Parameters<typeof orch.packing.packComplete>[0])
     await orch.outbox.whenPersisted()
 
     expect(orch.syncStatus.queueDurable.value).toBe(false)

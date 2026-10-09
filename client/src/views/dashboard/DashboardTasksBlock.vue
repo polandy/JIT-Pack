@@ -43,7 +43,7 @@ const MAX_TASKS = 4
 const orchestrator = useOrchestrator()
 const masterStore = useMasterStore()
 const { tasksOf } = useTripTasks()
-const { myUserId, nameOf } = useTripIdentity(props.tripId, orchestrator)
+const { myUserId, nameOf } = useTripIdentity(props.tripId, orchestrator.identity)
 const { rowUndo, announceAct, announceTaskDone } = usePackAnnouncer(null)
 
 const acts = useTaskActs(() => props.tripId, {
@@ -88,7 +88,7 @@ const empty = computed(() => {
 
 /** Written in the phase in front of the trip, which is what the field's label promised. */
 function add(text: string) {
-  const id = orchestrator.addTripTodo(
+  const id = orchestrator.comments.addTripTodo(
     props.tripId,
     CLIENT_ACTOR_PLACEHOLDER,
     text,

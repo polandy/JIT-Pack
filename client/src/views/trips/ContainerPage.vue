@@ -116,7 +116,7 @@ const openContainerId = ref<string | null>(null)
 
 /** FR-24.5 minimal creation: a placeholder name is enough to start. */
 function createContainer() {
-  openContainerId.value = orchestrator.addContainer(props.tripId, t('container.new'), {})
+  openContainerId.value = orchestrator.containers.addContainer(props.tripId, t('container.new'), {})
 }
 
 // --- Assign picker (FR-10.2): the same sheet surface, options show load ------
@@ -145,7 +145,7 @@ const pickingLine = computed(() => {
  */
 function assignTo(containerId: string) {
   for (const item of pickingItems.value) {
-    orchestrator.assignContainer(item, containerId)
+    orchestrator.packing.assignContainer(item, containerId)
   }
   // A tap in the mode picks rather than opening this picker, so the picker
   // was opened by the bar whenever the mode is on — a batch of one included.

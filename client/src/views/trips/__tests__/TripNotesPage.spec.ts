@@ -40,10 +40,12 @@ const ME = { user_id: 'u-andy', display_name: 'Andy', is_instance_admin: false }
 let meAnswer: typeof ME | null = ME
 
 const acts = {
-  addComment: vi.fn(() => 'new-note'),
-  editNote: vi.fn(),
-  deleteComment: vi.fn(),
-  toggleNoteTick: vi.fn(),
+  comments: {
+    addComment: vi.fn(() => 'new-note'),
+    editNote: vi.fn(),
+    deleteComment: vi.fn(),
+    toggleNoteTick: vi.fn(),
+  },
 }
 
 /** `fetchMe` answers `u-andy`: a note by `u-sia` is new, one by `u-andy` is mine. */
@@ -53,9 +55,11 @@ function mountPage() {
     global: {
       provide: {
         [ORCHESTRATOR]: {
-          ...identityStub(),
-          fetchUsers: async () => people,
-          fetchMe: async () => meAnswer,
+          identity: {
+            ...identityStub(),
+            fetchUsers: async () => people,
+            fetchMe: async () => meAnswer,
+          },
           ...tripScreen,
           ...acts,
         },
@@ -263,10 +267,16 @@ describe('M26 — writing a note (FR-7.13)', () => {
     await page.findComponent(IonTextarea).setValue('Code 4711')
     await page.get('[data-testid="m26-add"]').trigger('click')
 
-    expect(acts.addComment).toHaveBeenCalledWith('t1', null, expect.any(String), 'Code 4711', {
-      title: 'Schlüsselbox',
-      excursionId: null,
-    })
+    expect(acts.comments.addComment).toHaveBeenCalledWith(
+      't1',
+      null,
+      expect.any(String),
+      'Code 4711',
+      {
+        title: 'Schlüsselbox',
+        excursionId: null,
+      },
+    )
   })
 
   it('writes a quick note without a title', async () => {
@@ -277,7 +287,7 @@ describe('M26 — writing a note (FR-7.13)', () => {
     await page.findComponent(IonTextarea).setValue('Pizza 079 555 12 34')
     await page.get('[data-testid="m26-add"]').trigger('click')
 
-    expect(acts.addComment).toHaveBeenCalledWith(
+    expect(acts.comments.addComment).toHaveBeenCalledWith(
       't1',
       null,
       expect.any(String),
@@ -349,7 +359,7 @@ describe('M26 — a thread about an excursion (FR-7.15)', () => {
     await hut.trigger('click')
     await page.get('[data-testid="m26-add"]').trigger('click')
 
-    expect(acts.addComment).toHaveBeenCalledWith(
+    expect(acts.comments.addComment).toHaveBeenCalledWith(
       't1',
       null,
       expect.any(String),

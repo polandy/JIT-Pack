@@ -44,23 +44,27 @@ function noonOf(day: string): number {
 }
 
 const orchestratorFake = {
-  ...identityStub(),
+  identity: {
+    ...identityStub(),
+  },
   ...master,
   drainAll: vi.fn(() => Promise.resolve()),
   ensureTripData: vi.fn(() => Promise.resolve()),
   subscribeTrip: vi.fn(),
-  resolvePrepTodo: vi.fn(),
-  reopenPrepTodo: vi.fn(),
+  comments: {
+    resolvePrepTodo: vi.fn(),
+    reopenPrepTodo: vi.fn(),
+    addTripTodo: vi.fn(() => 'new-task'),
+    resolveTripTodo: vi.fn(),
+    reopenTripTodo: vi.fn(),
+    deleteTripTodo: vi.fn(),
+    toggleNoteTick: vi.fn(),
+  },
   tripDataLoaded: vi.fn(() => true),
   // One instant for both: a screen reading the real clock instead would see
   // a different day from the one these two agree on.
   now: vi.fn(() => noonOf(FAKE_TODAY)),
   today: vi.fn(() => FAKE_TODAY),
-  addTripTodo: vi.fn(() => 'new-task'),
-  resolveTripTodo: vi.fn(),
-  reopenTripTodo: vi.fn(),
-  deleteTripTodo: vi.fn(),
-  toggleNoteTick: vi.fn(),
 }
 
 function mountPage(cards?: Component[]) {
@@ -282,7 +286,7 @@ describe('M1 — the hero once the packing is finished (FR-7.10)', () => {
     await flushPromises()
     await page.find('[data-testid="dashboard-tasks-Samedan-row-check"]').trigger('click')
 
-    expect(orchestratorFake.resolveTripTodo).toHaveBeenCalledTimes(1)
+    expect(orchestratorFake.comments.resolveTripTodo).toHaveBeenCalledTimes(1)
   })
 
   it('adds a task in the phase in front of the trip and keeps the field for the next', async () => {
@@ -294,7 +298,7 @@ describe('M1 — the hero once the packing is finished (FR-7.10)', () => {
     await input.setValue('  Post nachsenden  ')
     await page.find('[data-testid="dashboard-tasks-Samedan-add"]').trigger('submit')
 
-    expect(orchestratorFake.addTripTodo).toHaveBeenCalledWith(
+    expect(orchestratorFake.comments.addTripTodo).toHaveBeenCalledWith(
       't1',
       expect.anything(),
       'Post nachsenden',
@@ -311,7 +315,7 @@ describe('M1 — the hero once the packing is finished (FR-7.10)', () => {
     await page.find('[data-testid="dashboard-tasks-Samedan-add-input"]').setValue('   ')
     await page.find('[data-testid="dashboard-tasks-Samedan-add"]').trigger('submit')
 
-    expect(orchestratorFake.addTripTodo).not.toHaveBeenCalled()
+    expect(orchestratorFake.comments.addTripTodo).not.toHaveBeenCalled()
   })
 
   it('stays, with its field and a sentence, when nothing is left to do', async () => {
@@ -568,7 +572,7 @@ describe('M1 — the hero once the packing is finished (FR-7.10)', () => {
       await input.setValue('Post nachsenden')
       await page.find('[data-testid="dashboard-tasks-Samedan-add"]').trigger('submit')
 
-      expect(orchestratorFake.addTripTodo).toHaveBeenCalledWith(
+      expect(orchestratorFake.comments.addTripTodo).toHaveBeenCalledWith(
         't1',
         expect.anything(),
         'Post nachsenden',
@@ -720,7 +724,7 @@ describe('M1 — the Neue Notizen card (FR-7.9)', () => {
     // column the server stamps (invariant 3) — never the real myUserId.
     // No existing ack row yet (null) — the caller decides insert vs. upsert
     // from it, the same seam M25's own tick uses.
-    expect(orchestratorFake.toggleNoteTick).toHaveBeenCalledWith(
+    expect(orchestratorFake.comments.toggleNoteTick).toHaveBeenCalledWith(
       't1',
       'note-1',
       CLIENT_ACTOR_PLACEHOLDER,
@@ -736,7 +740,7 @@ describe('M1 — the Neue Notizen card (FR-7.9)', () => {
    */
   it('shows a thread by its newest unseen entry, and opens it on the notes view', async () => {
     seedActiveTrip('t1', 'Samedan')
-    vi.mocked(orchestratorFake.fetchUsers).mockResolvedValueOnce([
+    vi.mocked(orchestratorFake.identity.fetchUsers).mockResolvedValueOnce([
       { user_id: 'u2', display_name: 'Chris' },
     ])
     seedNote('note-1', 't1', 'u2', 'Code 4711', {

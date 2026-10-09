@@ -96,7 +96,7 @@ import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 const tripStore = useTripStore()
 const masterStore = useMasterStore()
 const orchestrator = useOrchestrator()
-const { myUserId, load } = useIdentity(orchestrator)
+const { myUserId, load } = useIdentity(orchestrator.identity)
 const route = useRoute()
 
 // Map DB 'planning' to display filter 'planned' for UI clarity
@@ -513,7 +513,7 @@ function proposedCount(trip: Trip): number {
 
 /** What the sheet names as open: the waiting plan's own log, worded as M4 words it. */
 function proposedChanges(trip: Trip): ChangeSummary[] {
-  return orchestrator.refreshProposals.value[trip.id]?.log ?? []
+  return orchestrator.groupRefresh.refreshProposals.value[trip.id]?.log ?? []
 }
 
 onMounted(async () => {
@@ -537,7 +537,7 @@ async function deleteTrip(trip: Trip) {
     message: t('trips.deleteMessage'),
     confirmLabel: t('common.delete'),
   })
-  if (confirmed) orchestrator.deleteTrip(trip.id)
+  if (confirmed) orchestrator.tripLifecycle.deleteTrip(trip.id)
 }
 
 /**
@@ -551,7 +551,7 @@ async function startTrip(tripId: string) {
     void router.push(tripStartingPath(tripId))
     return
   }
-  orchestrator.activateTrip(tripId)
+  orchestrator.tripLifecycle.activateTrip(tripId)
   // What starting changes is invisible on this screen — the list's later
   // additions count as forgotten (FR-9.1) — so it is said once, here.
   await presentToast({ message: t('packing.startedToast'), positionAnchor: FAB_ANCHOR.m2 })

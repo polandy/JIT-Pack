@@ -96,7 +96,7 @@ import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import SectionHead from '@/components/global/SectionHead.vue'
 
 const orchestrator = useOrchestrator()
-const { me, directory, load: loadIdentity } = useIdentity(orchestrator)
+const { me, directory, load: loadIdentity } = useIdentity(orchestrator.identity)
 const tripStore = useTripStore()
 const masterStore = useMasterStore()
 
@@ -143,7 +143,7 @@ onMounted(async () => {
   void loadInstanceUpdate()
   nameDraft.value = me.value?.display_name ?? ''
   if (notifiable) {
-    prefs.value = await orchestrator.fetchNotificationPrefs()
+    prefs.value = await orchestrator.notifications.fetchNotificationPrefs()
     pushOn.value = await pushRegistered()
   }
 })
@@ -242,14 +242,14 @@ const shownPrefRows = collaborative ? prefRows : prefRows.filter((row) => SOLO_K
 async function togglePref(kind: keyof NotificationPrefs, enabled: boolean) {
   if (!prefs.value) return
   prefs.value = { ...prefs.value, [kind]: enabled }
-  await orchestrator.saveNotificationPrefs(prefs.value)
+  await orchestrator.notifications.saveNotificationPrefs(prefs.value)
 }
 
 async function togglePush(enabled: boolean) {
   if (enabled) {
-    pushOn.value = await registerPush(orchestrator.pushApi)
+    pushOn.value = await registerPush(orchestrator.notifications.pushApi)
   } else {
-    await unregisterPush(orchestrator.pushApi)
+    await unregisterPush(orchestrator.notifications.pushApi)
     pushOn.value = false
   }
 }
@@ -265,7 +265,7 @@ async function saveName() {
   // name this screen shows and the name M4 puts on a packed row are one
   // answer — a ref of this screen's own would leave every other screen's
   // copy behind until it was remounted.
-  await orchestrator.saveDisplayName(me.value.user_id, nameDraft.value)
+  await orchestrator.identity.saveDisplayName(me.value.user_id, nameDraft.value)
   nameSaved.value = true
   setTimeout(() => (nameSaved.value = false), 2000)
 }
@@ -293,7 +293,7 @@ function onAvatarFile(event: Event) {
 async function onAvatarCropped(blob: Blob) {
   cropOpen.value = false
   if (!me.value) return
-  await orchestrator.uploadAvatar(me.value.user_id, blob)
+  await orchestrator.identity.uploadAvatar(me.value.user_id, blob)
   avatarVersion.value++
 }
 
@@ -334,7 +334,10 @@ async function createToken() {
   tokenPending.value = true
   tokenFailed.value = false
   try {
-    const out = await orchestrator.createAPIToken(tokenName.value.trim(), tokenExpiry.value)
+    const out = await orchestrator.identity.createAPIToken(
+      tokenName.value.trim(),
+      tokenExpiry.value,
+    )
     if (!out) {
       tokenFailed.value = true
       return
@@ -563,13 +566,13 @@ async function forgetConnection() {
 }
 
 async function exportFull() {
-  const blob = await orchestrator.downloadExport(API.meExport)
+  const blob = await orchestrator.identity.downloadExport(API.meExport)
   if (blob) saveBlob(blob, 'jitpack-export.json')
 }
 
 async function exportTripCSV() {
   if (!csvTripId.value) return
-  const blob = await orchestrator.downloadExport(API.tripExportCSV(csvTripId.value))
+  const blob = await orchestrator.identity.downloadExport(API.tripExportCSV(csvTripId.value))
   const trip = tripStore.getTrip(csvTripId.value)
   if (blob) saveBlob(blob, `${trip?.name ?? 'trip'}.csv`)
 }

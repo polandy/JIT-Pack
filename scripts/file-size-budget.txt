@@ -2,19 +2,18 @@
 # A ratchet: an entry is only ever lowered or deleted — the gate's header says why.
 1530 client/src/components/global/InventoryBrowseSheet.vue
 1493 client/src/components/global/TrackEditor.vue
-1425 client/src/views/templates/TemplateEditorPage.vue
-1306 client/src/views/items/ItemEditorPage.vue
+1427 client/src/views/templates/TemplateEditorPage.vue
+1307 client/src/views/items/ItemEditorPage.vue
 1211 client/src/views/trips/TripExcursionPage.vue
-1175 client/src/views/settings/SettingsPage.vue
+1178 client/src/views/settings/SettingsPage.vue
 1167 client/src/views/trips/TripListPage.vue
 1154 client/src/components/global/QuickAddItem.vue
 1103 client/src/types/domain.ts
-1101 client/src/components/trips/ItemDetailSheet.vue
+1102 client/src/components/trips/ItemDetailSheet.vue
 1096 client/src/planner/IdeaDetail.vue
-1091 client/src/composables/useSyncOrchestrator.ts
 1081 client/src/planner/DayEntrySheet.vue
 1070 client/src/shopping/ShoppingPage.vue
-1022 client/src/views/trips/PackingListPage.vue
+1026 client/src/views/trips/PackingListPage.vue
 1014 client/src/meals/MealSheetBody.vue
 982 client/src/views/dashboard/DashboardPage.vue
 948 client/src/sync/tableRegistry.ts
@@ -22,8 +21,9 @@
 908 client/src/domain/portable.ts
 888 internal/store/store.go
 863 client/src/planner/ConnectionSearch.vue
+862 client/src/composables/useSyncOrchestrator.ts
 844 client/src/meals/MealPlanPage.vue
 842 client/src/domain/packingView.ts
+819 client/src/App.vue
 818 client/src/views/trips/TripTasksPage.vue
-816 client/src/App.vue
 810 client/src/app/actions/packing.ts

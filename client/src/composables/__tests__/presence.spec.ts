@@ -62,10 +62,10 @@ describe('presence handling (G-10)', () => {
       }),
     })
 
-    const users = orch.getPresence('t1')
+    const users = orch.presence.getPresence('t1')
     expect(users).toHaveLength(2)
     expect(users[1]).toMatchObject({ user_id: 'u2', in_sync: false })
-    expect(orch.getPresence('other')).toHaveLength(0)
+    expect(orch.presence.getPresence('other')).toHaveLength(0)
   })
 
   it('reports the pull cursor over the WebSocket after a trip drain', async () => {
@@ -98,11 +98,11 @@ describe('presence handling (G-10)', () => {
         payload: { users: [{ user_id: 'u2', trip_ids: ['t1'] }] },
       }),
     })
-    expect(orch.getRoster()).toEqual([{ user_id: 'u2', trip_ids: ['t1'] }])
+    expect(orch.presence.getRoster()).toEqual([{ user_id: 'u2', trip_ids: ['t1'] }])
 
     // The hub sends the whole roster afresh on the next socket; until then a
     // stale entry would name somebody the device can no longer vouch for.
     wsInstances[0]!.onclose?.()
-    expect(orch.getRoster()).toEqual([])
+    expect(orch.presence.getRoster()).toEqual([])
   })
 })

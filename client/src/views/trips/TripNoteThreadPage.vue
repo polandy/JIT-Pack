@@ -61,7 +61,11 @@ const tripStore = useTripStore()
 const router = useRouter()
 
 const { trip, loaded, ensure } = useTripScreen(props.tripId, orchestrator)
-const { myUserId, nameOf, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator)
+const {
+  myUserId,
+  nameOf,
+  load: loadIdentity,
+} = useTripIdentity(props.tripId, orchestrator.identity)
 
 const acks = computed(() => tripStore.getNoteAcks(props.tripId))
 const thread = computed(
@@ -117,7 +121,7 @@ watch([loaded, divider], async ([ready, first]) => {
 function markRead() {
   const current = thread.value
   if (!current) return
-  orchestrator.toggleNoteTick(
+  orchestrator.comments.toggleNoteTick(
     props.tripId,
     current.root.id,
     CLIENT_ACTOR_PLACEHOLDER,
@@ -133,7 +137,7 @@ const reply = ref('')
 async function sendReply() {
   const body = reply.value.trim()
   if (!body) return
-  const id = orchestrator.addComment(props.tripId, null, CLIENT_ACTOR_PLACEHOLDER, body, {
+  const id = orchestrator.comments.addComment(props.tripId, null, CLIENT_ACTOR_PLACEHOLDER, body, {
     parentId: props.threadId,
   })
   reply.value = ''
@@ -145,11 +149,11 @@ async function sendReply() {
 }
 
 function onSave(entry: ItemComment, body: string, title: string | null | undefined) {
-  orchestrator.editNote(entry, body, title)
+  orchestrator.comments.editNote(entry, body, title)
 }
 
 function onLink(excursionId: string | null) {
-  if (thread.value) orchestrator.setNoteExcursion(thread.value.root, excursionId)
+  if (thread.value) orchestrator.comments.setNoteExcursion(thread.value.root, excursionId)
 }
 
 function openExcursion() {
@@ -191,7 +195,7 @@ async function runMenu(action: NoteMenuAction, entry: ItemComment) {
   } else if (action === 'edit') {
     entryRefs.get(entry.id)?.startEdit()
   } else {
-    orchestrator.deleteComment(entry.id)
+    orchestrator.comments.deleteComment(entry.id)
   }
 }
 

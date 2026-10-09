@@ -81,7 +81,7 @@ export function useWizardTravelers() {
   // --- Sharing & roles (FR-4.5/4.7) ---
   const collaborative = hasCollaborativeSession()
 
-  const { directory, myUserId, load: loadIdentity } = useIdentity(orchestrator)
+  const { directory, myUserId, load: loadIdentity } = useIdentity(orchestrator.identity)
   const shares = ref<{ userId: string; role: 'admin' | 'editor' }[]>([])
 
   onMounted(async () => {

@@ -90,7 +90,7 @@ export function useBulkActions(core: InventoryCore) {
    * `fresh` says the tag was created for this batch, so the undo removes it too.
    */
   async function giveTag(tagId: string, primary: boolean, fresh = false) {
-    const { touched, undo } = orchestrator.giveTagToItems(
+    const { touched, undo } = orchestrator.masterData.giveTagToItems(
       selectedItems.value,
       tagId,
       primary,
@@ -101,7 +101,7 @@ export function useBulkActions(core: InventoryCore) {
       await presentToast({ message: t('items.bulkNothingToDo') })
       return
     }
-    bulkUndo = () => orchestrator.undoBulkTag(undo)
+    bulkUndo = () => orchestrator.masterData.undoBulkTag(undo)
     endSelecting()
     await announceBulk(
       t(fresh ? 'items.bulkGaveNew' : 'items.bulkGave', { n: touched, tag: tagName(tagId) }),
@@ -110,18 +110,18 @@ export function useBulkActions(core: InventoryCore) {
 
   /** FR-24.9: the typed name no tag held — create it, then give it like any other. */
   async function createAndGive({ name, primary }: { name: string; primary: boolean }) {
-    await giveTag(orchestrator.createTag(name), primary, true)
+    await giveTag(orchestrator.masterData.createTag(name), primary, true)
   }
 
   /** Take the chosen tag away from every selected item that carries it. */
   async function takeTag(tagId: string) {
-    const { touched, undo } = orchestrator.takeTagFromItems(selectedItems.value, tagId)
+    const { touched, undo } = orchestrator.masterData.takeTagFromItems(selectedItems.value, tagId)
     bulkSheet.value = null
     if (touched === 0) {
       await presentToast({ message: t('items.bulkNothingToDo') })
       return
     }
-    bulkUndo = () => orchestrator.undoBulkTag(undo)
+    bulkUndo = () => orchestrator.masterData.undoBulkTag(undo)
     endSelecting()
     await announceBulk(t('items.bulkTook', { n: touched, tag: tagName(tagId) }))
   }
@@ -187,13 +187,16 @@ export function useBulkActions(core: InventoryCore) {
 
   /** Name who the selection is usually assigned to, or nobody (FR-1.9). */
   async function assignSelected({ userId }: { userId: string | null }) {
-    const { touched, undo } = orchestrator.assignDefaultAssignee(selectedItems.value, userId)
+    const { touched, undo } = orchestrator.masterData.assignDefaultAssignee(
+      selectedItems.value,
+      userId,
+    )
     assigneeSheet.value = false
     if (touched === 0) {
       await presentToast({ message: t('items.bulkNothingToDo') })
       return
     }
-    bulkUndo = () => orchestrator.undoBulkAssignee(undo)
+    bulkUndo = () => orchestrator.masterData.undoBulkAssignee(undo)
     endSelecting()
     await announceBulk(
       userId
@@ -211,7 +214,7 @@ export function useBulkActions(core: InventoryCore) {
     selectedItems.value.map((item) => ({
       item,
       tags: masterStore.getItemTags(item.id).map((tag) => tag.name),
-      uses: orchestrator.masterItemDeletionOutlook(item.id).references,
+      uses: orchestrator.masterData.masterItemDeletionOutlook(item.id).references,
     })),
   )
 
@@ -238,13 +241,13 @@ export function useBulkActions(core: InventoryCore) {
     if (!ok) return
 
     const photoFrom = survivor.image_hash ? null : losers.find((item) => item.image_hash)
-    const outcome = orchestrator.mergeMasterItems(
+    const outcome = orchestrator.masterData.mergeMasterItems(
       survivorId,
       losers.map((item) => item.id),
     )
     // The bytes are the one part of a merge that is not a mutation (ADR-002),
     // so they move after the rows and only where the survivor had no photo.
-    if (photoFrom) await orchestrator.copyItemImage(photoFrom, survivor)
+    if (photoFrom) await orchestrator.images.copyItemImage(photoFrom, survivor)
 
     endSelecting()
     await announceBulk(
@@ -279,7 +282,7 @@ export function useBulkActions(core: InventoryCore) {
   async function linkSelected({ itemId, mode }: { itemId: string; mode: DependencyMode }) {
     const direction = dependencySheet.value
     if (!direction) return
-    const { plan, undo } = orchestrator.linkItemsToDependency(
+    const { plan, undo } = orchestrator.dependencies.linkItemsToDependency(
       selectedItems.value,
       itemId,
       direction,
@@ -292,7 +295,7 @@ export function useBulkActions(core: InventoryCore) {
       await presentToast({ message: t('items.bulkLinkedNothing') })
       return
     }
-    bulkUndo = () => orchestrator.undoBulkDependency(undo)
+    bulkUndo = () => orchestrator.dependencies.undoBulkDependency(undo)
     endSelecting()
 
     const linked = t('items.bulkLinked', { n: written, name: itemName(itemId) })
@@ -322,7 +325,7 @@ export function useBulkActions(core: InventoryCore) {
   async function retireSelected() {
     const items = selectedItems.value
     if (items.length === 0) return
-    const outlooks = items.map((item) => orchestrator.masterItemDeletionOutlook(item.id))
+    const outlooks = items.map((item) => orchestrator.masterData.masterItemDeletionOutlook(item.id))
     const hidden = outlooks.filter((o) => o.kind === DELETION_RETIRE).length
     const removed = items.length - hidden
 
@@ -334,7 +337,7 @@ export function useBulkActions(core: InventoryCore) {
     })
     if (!ok) return
 
-    for (const item of items) orchestrator.deleteMasterItem(item.id)
+    for (const item of items) orchestrator.masterData.deleteMasterItem(item.id)
     bulkUndo = null
     endSelecting()
     await presentToast({ message: t('items.bulkRetired', { n: items.length }) })

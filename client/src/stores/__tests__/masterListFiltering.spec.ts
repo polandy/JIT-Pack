@@ -26,8 +26,8 @@ import { describe, it, expect } from 'vitest'
  */
 const COMPLETE_LIST_READERS: Record<string, string> = {
   'src/composables/useDeviceBackup.ts': 'the NFR-4.11 device backup — fidelity, not a listing',
-  'src/composables/useSyncOrchestrator.ts':
-    'generation, the FR-27.4 refresh, FR-27.10, clone and M21 all resolve positions that may name a retired row',
+  'src/app/actions/portable.ts':
+    "the FR-18.4 import's view of the device — it matches against everything, or it duplicates a name",
   'src/app/actions/masterData.ts':
     "FR-24.3's reference count — a position inside a retired Vorlage still keeps its item alive",
   'src/app/actions/groupRefresh.ts':

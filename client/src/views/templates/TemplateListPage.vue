@@ -203,7 +203,7 @@ function resetChooser() {
  * that exists almost always means the thing that has it.
  */
 const createCollision = computed(() =>
-  pendingKind.value ? (orchestrator.templateNameCollision(pendingName.value) ?? null) : null,
+  pendingKind.value ? (orchestrator.names.templateNameCollision(pendingName.value) ?? null) : null,
 )
 
 function openCollision() {
@@ -217,7 +217,7 @@ function commitCreate() {
   const kind = pendingKind.value
   const name = pendingName.value.trim()
   if (!kind || !name || createCollision.value) return
-  const id = orchestrator.createTemplate(name, kind)
+  const id = orchestrator.masterData.createTemplate(name, kind)
   if (id === null) return
   resetChooser()
   router.push(templatePath(id))
@@ -307,14 +307,14 @@ async function renameTemplate(tpl: Template) {
     confirmLabel: t('common.save'),
     onConfirm: async (name) => {
       if (!name || name === tpl.name) return
-      const taken = orchestrator.templateNameCollision(name, tpl.id)
+      const taken = orchestrator.names.templateNameCollision(name, tpl.id)
       if (taken) {
         await presentToast({ message: t('templates.renameTaken', { name: taken.name }) })
         // Keeping the alert open leaves the typed name where it can be
         // corrected; dismissing it would throw the edit away.
         return false
       }
-      orchestrator.updateTemplate(tpl, { name })
+      orchestrator.masterData.updateTemplate(tpl, { name })
     },
   })
 }
@@ -340,13 +340,13 @@ async function deleteTemplate(tpl: Template) {
   // and kept (FR-9.2); one no trip ever used is removed.
   const sentence = deletionSentence(
     DELETION_SUBJECT_TEMPLATE,
-    orchestrator.templateDeletionOutlook(tpl.id),
+    orchestrator.masterData.templateDeletionOutlook(tpl.id),
   )
   const confirmed = await confirmDestructive({
     message: `${t('templates.deleteConfirm', { name: tpl.name })} ${sentence}`,
     confirmLabel: t('common.delete'),
   })
-  if (confirmed) orchestrator.deleteTemplate(tpl.id)
+  if (confirmed) orchestrator.masterData.deleteTemplate(tpl.id)
 }
 
 function portableDocument(tpl: Template): string {

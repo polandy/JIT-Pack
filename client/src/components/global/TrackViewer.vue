@@ -67,7 +67,8 @@ const map = ref<InstanceType<typeof TrackMap> | null>(null)
 
 const live = inject(LIVE_LOCATION, null)
 const orchestrator = inject(ORCHESTRATOR, null)
-const identity = props.tripId && orchestrator ? useTripIdentity(props.tripId, orchestrator) : null
+const identity =
+  props.tripId && orchestrator ? useTripIdentity(props.tripId, orchestrator.identity) : null
 
 /**
  * Somebody else to share with or to see: an identity and another account on

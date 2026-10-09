@@ -71,11 +71,11 @@ describe('FR-24.3 — restoring a retired master item', () => {
     const master = seedRetiredItem()
     mockDrain()
 
-    expect(orch.masterItemRestoreVerdict('it-1')).toEqual({
+    expect(orch.masterData.masterItemRestoreVerdict('it-1')).toEqual({
       kind: RESTORE_READY,
       name: 'Sonnencreme',
     })
-    expect(orch.restoreMasterItem('it-1')).toBe(true)
+    expect(orch.masterData.restoreMasterItem('it-1')).toBe(true)
 
     expect(master.getItem('it-1')?.retired_at).toBeNull()
     expect(master.activeItemList.map((i) => i.id)).toContain('it-1')
@@ -105,17 +105,17 @@ describe('FR-24.3 — restoring a retired master item', () => {
     seedRetiredItem('it-other', 'Zelt')
     mockDrain()
 
-    const verdict = orch.masterItemRestoreVerdict('it-1')
+    const verdict = orch.masterData.masterItemRestoreVerdict('it-1')
     expect(verdict?.kind).toBe(RESTORE_NAME_TAKEN)
     expect(verdict && verdict.kind === RESTORE_NAME_TAKEN && verdict.holder.id).toBe('it-new')
 
-    expect(orch.restoreMasterItem('it-1')).toBe(false)
+    expect(orch.masterData.restoreMasterItem('it-1')).toBe(false)
 
     // Still hidden, and still exactly one active row of that name.
     expect(master.getItem('it-1')?.retired_at).toBe(RETIRED)
     expect(master.activeItemList.filter((i) => i.name === 'Sonnencreme')).toHaveLength(1)
 
-    expect(orch.restoreMasterItem('it-other')).toBe(true)
+    expect(orch.masterData.restoreMasterItem('it-other')).toBe(true)
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
     // One push, for the restore that was allowed — the refused one never
     // reached the outbox.
@@ -135,7 +135,7 @@ describe('FR-24.3 — restoring a retired master item', () => {
     })
     mockDrain()
 
-    expect(orch.restoreMasterItem('it-1', 'Sonnencreme 2024')).toBe(true)
+    expect(orch.masterData.restoreMasterItem('it-1', 'Sonnencreme 2024')).toBe(true)
 
     expect(master.getItem('it-1')?.name).toBe('Sonnencreme 2024')
     expect(master.getItem('it-1')?.retired_at).toBeNull()
@@ -164,7 +164,7 @@ describe('FR-24.3 — restoring a retired master item', () => {
     })
     mockDrain()
 
-    expect(orch.restoreMasterItem('it-1', 'Zelt')).toBe(false)
+    expect(orch.masterData.restoreMasterItem('it-1', 'Zelt')).toBe(false)
     expect(master.getItem('it-1')?.retired_at).toBe(RETIRED)
   })
 
@@ -200,7 +200,7 @@ describe('FR-24.3 — restoring a retired Vorlage', () => {
     const master = seedRetiredTemplate()
     mockDrain()
 
-    expect(orch.restoreTemplate('tpl-1')).toBe(true)
+    expect(orch.masterData.restoreTemplate('tpl-1')).toBe(true)
     expect(master.getTemplate('tpl-1')?.retired_at).toBeNull()
     expect(master.activeTemplateList.map((t) => t.id)).toContain('tpl-1')
 
@@ -221,10 +221,10 @@ describe('FR-24.3 — restoring a retired Vorlage', () => {
       row: { name: 'Kulturbeutel', kind: 'template', owner_id: 'u' },
     })
 
-    const verdict = orch.templateRestoreVerdict('tpl-1')
+    const verdict = orch.masterData.templateRestoreVerdict('tpl-1')
     expect(verdict?.kind).toBe(RESTORE_NAME_TAKEN)
     expect(verdict && verdict.kind === RESTORE_NAME_TAKEN && verdict.holder.kind).toBe('template')
-    expect(orch.restoreTemplate('tpl-1')).toBe(false)
+    expect(orch.masterData.restoreTemplate('tpl-1')).toBe(false)
     expect(master.getTemplate('tpl-1')?.retired_at).toBe(RETIRED)
   })
 
@@ -258,9 +258,9 @@ describe('FR-24.3 — a retired row does not become undeletable', () => {
 
     // The trip that had kept it alive is gone, so FR-24.3's second branch
     // now applies to the same row.
-    expect(orch.masterItemDeletionOutlook('it-1').kind).toBe(DELETION_REMOVE)
+    expect(orch.masterData.masterItemDeletionOutlook('it-1').kind).toBe(DELETION_REMOVE)
 
-    orch.deleteMasterItem('it-1')
+    orch.masterData.deleteMasterItem('it-1')
 
     expect(master.getItem('it-1')).toBeUndefined()
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())

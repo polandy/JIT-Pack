@@ -42,14 +42,16 @@ vi.mock('vue-router', () => ({
 const master = masterDataStub()
 const orchestratorFake = {
   ...master,
-  masterItemDeletionOutlook: vi.fn((_id: string): Record<string, unknown> => ({
-    blocked: false,
-    references: [],
-  })),
-  templateDeletionOutlook: vi.fn(() => ({ blocked: false, references: [] })),
-  masterItemRestoreVerdict: vi.fn(() => null),
-  restoreMasterItem: vi.fn((_id: string, _name?: string) => true),
-  deleteMasterItem: vi.fn(),
+  masterData: {
+    masterItemDeletionOutlook: vi.fn((_id: string): Record<string, unknown> => ({
+      blocked: false,
+      references: [],
+    })),
+    templateDeletionOutlook: vi.fn(() => ({ blocked: false, references: [] })),
+    masterItemRestoreVerdict: vi.fn(() => null),
+    restoreMasterItem: vi.fn((_id: string, _name?: string) => true),
+    deleteMasterItem: vi.fn(),
+  },
 }
 
 function mountPage() {
@@ -188,13 +190,13 @@ describe('M23 — several at once (FR-24.3, ADR-075)', () => {
 
   beforeEach(() => {
     // Only REFERENCED is still used somewhere: it has no delete of its own.
-    orchestratorFake.masterItemDeletionOutlook.mockImplementation((id: string) =>
+    orchestratorFake.masterData.masterItemDeletionOutlook.mockImplementation((id: string) =>
       id === REFERENCED
         ? { kind: 'retire', references: 2, certain: true }
         : { kind: 'remove', references: 0, certain: true },
     )
     // An active row holds TAKEN's name by now.
-    orchestratorFake.restoreMasterItem.mockImplementation((id: string) => id !== TAKEN)
+    orchestratorFake.masterData.restoreMasterItem.mockImplementation((id: string) => id !== TAKEN)
   })
 
   type Page = ReturnType<typeof mountPage>
@@ -231,7 +233,7 @@ describe('M23 — several at once (FR-24.3, ADR-075)', () => {
     expect(page.findAll('[data-testid="m23-restore"]')).toHaveLength(0)
     expect(page.find('[data-testid="m23-bulkbar"]').exists()).toBe(true)
     // The gesture itself restored nothing.
-    expect(orchestratorFake.restoreMasterItem).not.toHaveBeenCalled()
+    expect(orchestratorFake.masterData.restoreMasterItem).not.toHaveBeenCalled()
 
     await rowNamed(page, 'Zelt').trigger('pointerdown')
     await rowNamed(page, 'Zelt').trigger('click')
@@ -262,9 +264,9 @@ describe('M23 — several at once (FR-24.3, ADR-075)', () => {
     await page.find('[data-testid="m23-bulk-restore"]').trigger('click')
     await flushPromises()
 
-    expect(orchestratorFake.restoreMasterItem.mock.calls.map(([id]) => id).sort()).toEqual(
-      ['i-a', REFERENCED, TAKEN].sort(),
-    )
+    expect(
+      orchestratorFake.masterData.restoreMasterItem.mock.calls.map(([id]) => id).sort(),
+    ).toEqual(['i-a', REFERENCED, TAKEN].sort())
     // No prompt per collision: a batch never opens a queue of dialogs.
     expect(promptText).not.toHaveBeenCalled()
     expect(barCount()).toBe(t('selection.count', { n: 1 }))
@@ -283,7 +285,9 @@ describe('M23 — several at once (FR-24.3, ADR-075)', () => {
     await page.find('[data-testid="m23-bulk-restore"]').trigger('click')
     await flushPromises()
 
-    expect(orchestratorFake.restoreMasterItem.mock.calls.map(([id]) => id)).toEqual([TAKEN])
+    expect(orchestratorFake.masterData.restoreMasterItem.mock.calls.map(([id]) => id)).toEqual([
+      TAKEN,
+    ])
     expect(promptText).toHaveBeenCalledTimes(1)
     expect(vi.mocked(promptText).mock.calls[0]![0].testid).toBe('m23-name-taken')
     expect(barSelection()).toBeNull()
@@ -321,9 +325,9 @@ describe('M23 — several at once (FR-24.3, ADR-075)', () => {
     expect(asked.message).toBe(
       `${t('retired.bulkPurgeMessage', { n: 2 })} ${t('retired.bulkPurgeKept', { n: 1 })}`,
     )
-    expect(orchestratorFake.deleteMasterItem.mock.calls.map(([id]) => id).sort()).toEqual(
-      ['i-a', TAKEN].sort(),
-    )
+    expect(
+      orchestratorFake.masterData.deleteMasterItem.mock.calls.map(([id]) => id).sort(),
+    ).toEqual(['i-a', TAKEN].sort())
     // …and stays, selected, so the user sees which one.
     expect(barCount()).toBe(t('selection.count', { n: 1 }))
     expect(rowNamed(page, 'Stirnlampe').attributes('data-selected')).toBe('true')
@@ -340,7 +344,7 @@ describe('M23 — several at once (FR-24.3, ADR-075)', () => {
     await flushPromises()
 
     expect(confirmDestructive).toHaveBeenCalledTimes(1)
-    expect(orchestratorFake.deleteMasterItem).not.toHaveBeenCalled()
+    expect(orchestratorFake.masterData.deleteMasterItem).not.toHaveBeenCalled()
     expect(barCount()).toBe(t('selection.count', { n: 2 }))
   })
 
@@ -354,7 +358,7 @@ describe('M23 — several at once (FR-24.3, ADR-075)', () => {
     await flushPromises()
 
     expect(confirmDestructive).not.toHaveBeenCalled()
-    expect(orchestratorFake.deleteMasterItem).not.toHaveBeenCalled()
+    expect(orchestratorFake.masterData.deleteMasterItem).not.toHaveBeenCalled()
     expect(vi.mocked(presentToast).mock.calls.at(-1)![0].message).toBe(
       t('retired.bulkPurgeNone', { n: 1 }),
     )

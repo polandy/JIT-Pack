@@ -86,7 +86,7 @@ folder.
 - Specs moved with their subjects, so `git log --follow` is needed to read a spec's history across the move.
 
 **Neutral**
-- `useSyncOrchestrator.ts` stays in `composables/` as the Vue facade over `app/`; splitting it is ARCH-13.
+- `useSyncOrchestrator.ts` stays in `composables/` as the Vue facade over `app/`, one namespace per group (ADR-098).
 
 ## Revisit Trigger
 

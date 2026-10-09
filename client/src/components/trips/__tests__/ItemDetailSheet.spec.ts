@@ -31,13 +31,17 @@ const orchestratorFake = {
   // A real `ref`, because the indicator latches: what it says is a
   // function of the signal *changing* and not only of its value at mount.
   capturePending: ref(false),
-  setReviewFlag: vi.fn(),
-  setLatePacker: vi.fn(),
-  packToggle: vi.fn(),
-  setPacker: vi.fn(),
-  setQuantity: vi.fn(),
-  lockHolder: vi.fn(() => null as string | null),
-  quickAddItem: vi.fn(() => ({ id: 'ti-new', companions: [] })),
+  packing: {
+    setReviewFlag: vi.fn(),
+    setLatePacker: vi.fn(),
+    packToggle: vi.fn(),
+    setPacker: vi.fn(),
+    setQuantity: vi.fn(),
+    quickAddItem: vi.fn(() => ({ id: 'ti-new', companions: [] })),
+  },
+  claims: {
+    lockHolder: vi.fn(() => null as string | null),
+  },
 }
 
 /** Two accounts on the trip — what Server Mode looks like (FR-4.5). */
@@ -110,7 +114,7 @@ async function openDetails(wrapper: ReturnType<typeof mountSheet>) {
 beforeEach(() => {
   setActivePinia(createPinia())
   vi.clearAllMocks()
-  orchestratorFake.lockHolder.mockReturnValue(null)
+  orchestratorFake.claims.lockHolder.mockReturnValue(null)
   orchestratorFake.capturePending.value = false
 })
 
@@ -189,7 +193,7 @@ describe('M5 FR-9.1 flags', () => {
       detail: { checked: true },
     })
 
-    expect(orchestratorFake.setReviewFlag).toHaveBeenCalledWith(
+    expect(orchestratorFake.packing.setReviewFlag).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'ti1' }),
       'unused',
       true,
@@ -215,7 +219,7 @@ describe('M5 FR-9.1 flags', () => {
       detail: { checked: false },
     })
 
-    expect(orchestratorFake.setReviewFlag).toHaveBeenCalledWith(
+    expect(orchestratorFake.packing.setReviewFlag).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'ti1' }),
       'missing',
       false,
@@ -243,7 +247,7 @@ describe('M5 FR-9.1 flags', () => {
     await wrapper.get('[data-testid="m5-flag-unused"]').trigger('ionChange', {
       detail: { checked: true },
     })
-    expect(orchestratorFake.setReviewFlag).toHaveBeenCalledWith(
+    expect(orchestratorFake.packing.setReviewFlag).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'ti1' }),
       'unused',
       true,
@@ -344,7 +348,7 @@ describe('M5 respects the G-3 lock', () => {
         packing_now_at: new Date().toISOString(),
       },
     })
-    orchestratorFake.lockHolder.mockReturnValue(holder)
+    orchestratorFake.claims.lockHolder.mockReturnValue(holder)
     return tripStore
   }
 
@@ -398,14 +402,14 @@ describe('M5 respects the G-3 lock', () => {
       true,
     )
     await check.trigger('click')
-    expect(orchestratorFake.packToggle).not.toHaveBeenCalled()
+    expect(orchestratorFake.packing.packToggle).not.toHaveBeenCalled()
 
     // The positive signal: the same tap on the same control writes as soon
     // as nobody holds the row.
-    orchestratorFake.lockHolder.mockReturnValue(null)
+    orchestratorFake.claims.lockHolder.mockReturnValue(null)
     const free = mountSheet()
     await free.get('[data-testid="row-check"]').trigger('click')
-    expect(orchestratorFake.packToggle).toHaveBeenCalledTimes(1)
+    expect(orchestratorFake.packing.packToggle).toHaveBeenCalledTimes(1)
   })
 
   it('leaves the details controls unwritable while the lock holds', async () => {
@@ -414,7 +418,7 @@ describe('M5 respects the G-3 lock', () => {
 
     await wrapper.get('[data-testid="m5-late"]').trigger('ionChange', { detail: { checked: true } })
 
-    expect(orchestratorFake.setLatePacker).not.toHaveBeenCalled()
+    expect(orchestratorFake.packing.setLatePacker).not.toHaveBeenCalled()
     // Both halves matter: the handler refuses the write, and the control
     // says so — a toggle that flips back on its own is worse than one
     // that never moved.
@@ -433,7 +437,7 @@ describe('M5 respects the G-3 lock', () => {
 
   it('hands the sheet back in full once nobody holds it', () => {
     seedTrip('active')
-    orchestratorFake.lockHolder.mockReturnValue(null)
+    orchestratorFake.claims.lockHolder.mockReturnValue(null)
     const wrapper = mountSheet()
 
     expect(wrapper.find('[data-testid="m5-lock"]').exists()).toBe(false)
@@ -467,7 +471,7 @@ describe('M5 FR-25.19 assignment', () => {
       detail: { value: 'u-bob' },
     })
 
-    expect(orchestratorFake.setPacker).toHaveBeenCalledWith(
+    expect(orchestratorFake.packing.setPacker).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'ti1' }),
       'u-bob',
     )
@@ -483,7 +487,7 @@ describe('M5 FR-25.19 assignment', () => {
 
     // Null, not the empty string: the column is nullable and a placeholder
     // id in a foreign key is the trap invariant 3 exists to prevent.
-    expect(orchestratorFake.setPacker).toHaveBeenCalledWith(
+    expect(orchestratorFake.packing.setPacker).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'ti1' }),
       null,
     )
@@ -545,7 +549,7 @@ describe('M5 FR-25.19 assignment', () => {
 
   it('writes nothing while somebody else holds the row (G-3)', async () => {
     seedMembers(seedTrip('active'), ['u-alice', 'u-bob'])
-    orchestratorFake.lockHolder.mockReturnValue('u-alice')
+    orchestratorFake.claims.lockHolder.mockReturnValue('u-alice')
     const wrapper = await openDetails(mountSheet(MEMBERS))
 
     // The sheet knows it is locked — the positive signal, without which
@@ -559,7 +563,7 @@ describe('M5 FR-25.19 assignment', () => {
       detail: { value: 'u-bob' },
     })
 
-    expect(orchestratorFake.setPacker).not.toHaveBeenCalled()
+    expect(orchestratorFake.packing.setPacker).not.toHaveBeenCalled()
   })
 })
 
@@ -631,7 +635,7 @@ describe('M5 can change how many are coming along (FR-25.24)', () => {
     wrapper.getComponent({ name: 'QuantityEditor' }).vm.$emit('update', 4)
     await wrapper.vm.$nextTick()
 
-    expect(orchestratorFake.setQuantity).toHaveBeenCalledWith(
+    expect(orchestratorFake.packing.setQuantity).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'ti1' }),
       4,
     )
@@ -670,7 +674,7 @@ describe('M5 can change how many are coming along (FR-25.24)', () => {
 
   it('G-3: the editor reads but does not write while somebody else holds the row', () => {
     seedTrip('active')
-    orchestratorFake.lockHolder.mockReturnValue('u-bob')
+    orchestratorFake.claims.lockHolder.mockReturnValue('u-bob')
 
     const editor = mountSheet(MEMBERS).getComponent({ name: 'QuantityEditor' })
 
@@ -808,7 +812,7 @@ describe('M5 says what it knows (FR-21.9, FR-20.4/FR-24.2)', () => {
     const wrapper = mountSheet()
     await wrapper.get('[data-testid="m5-companion-Gürtel"]').trigger('click')
 
-    expect(orchestratorFake.quickAddItem).toHaveBeenCalledWith(
+    expect(orchestratorFake.packing.quickAddItem).toHaveBeenCalledWith(
       't1',
       'Gürtel',
       expect.objectContaining({

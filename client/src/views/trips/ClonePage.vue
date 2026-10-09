@@ -112,7 +112,7 @@ const creation = useSubmitOnce()
 
 function clone() {
   creation.submit(() => {
-    const tripId = orchestrator.cloneTrip(props.tripId, {
+    const tripId = orchestrator.tripCreation.cloneTrip(props.tripId, {
       name: name.value.trim(),
       year: year.value,
       startDate: startDate.value || null,

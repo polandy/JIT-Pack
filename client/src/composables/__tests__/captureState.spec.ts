@@ -58,7 +58,7 @@ describe('capturePending (FR-25.15)', () => {
     const persistence = new IndexedDBPersistence()
     const orch = useSyncOrchestrator({ baseUrl: '', getToken: () => null, local: persistence })
 
-    orch.quickAddItem('t1', 'Socken', {}, false)
+    orch.packing.quickAddItem('t1', 'Socken', {}, false)
 
     expect(orch.capturePending.value).toBe(true)
     await vi.waitFor(() => expect(orch.capturePending.value).toBe(false))
@@ -72,7 +72,7 @@ describe('capturePending (FR-25.15)', () => {
       outboxStore: store,
     })
 
-    orch.quickAddItem('t1', 'Socken', {}, false)
+    orch.packing.quickAddItem('t1', 'Socken', {}, false)
     await vi.waitFor(() => expect(store.appended).toBe(1))
     expect(orch.capturePending.value).toBe(true)
 
@@ -88,7 +88,7 @@ describe('capturePending (FR-25.15)', () => {
       outboxStore: store,
     })
 
-    orch.quickAddItem('t1', 'Socken', {}, false)
+    orch.packing.quickAddItem('t1', 'Socken', {}, false)
     await vi.waitFor(() => expect(store.appended).toBe(1))
     orch.syncStatus.setOffline()
 

@@ -32,7 +32,7 @@ import { confirmDestructive } from '@/composables/shared/confirm'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 
 const orchestrator = useOrchestrator()
-const { myUserId, load: loadIdentity } = useIdentity(orchestrator)
+const { myUserId, load: loadIdentity } = useIdentity(orchestrator.identity)
 
 const users = ref<AdminUserRow[]>([])
 /**
@@ -51,7 +51,7 @@ const failed = ref(false)
 
 async function load() {
   try {
-    users.value = await orchestrator.fetchAdminUsers()
+    users.value = await orchestrator.identity.fetchAdminUsers()
     failed.value = false
   } catch {
     failed.value = true // non-admin (403) or offline
@@ -95,17 +95,17 @@ async function runAction(action: AdminAction, user: AdminUserRow) {
   try {
     switch (action) {
       case 'deactivate':
-        await orchestrator.deactivateUser(user.user_id)
+        await orchestrator.identity.deactivateUser(user.user_id)
         break
       case 'reactivate':
-        await orchestrator.reactivateUser(user.user_id)
+        await orchestrator.identity.reactivateUser(user.user_id)
         break
       case 'reset-avatar':
-        await orchestrator.adminResetAvatar(user.user_id)
+        await orchestrator.identity.adminResetAvatar(user.user_id)
         avatarVersion.value++
         break
       case 'reset-name':
-        await orchestrator.adminResetDisplayName(user.user_id)
+        await orchestrator.identity.adminResetDisplayName(user.user_id)
         break
     }
   } catch {

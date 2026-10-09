@@ -51,7 +51,7 @@ const orchestrator = useOrchestrator()
 const { trip } = useTripScreen(props.tripId, orchestrator)
 const travelers = computed(() => tripStore.getTravelers(props.tripId))
 
-const { participants, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator)
+const { participants, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator.identity)
 onMounted(loadIdentity)
 
 /**
@@ -149,13 +149,13 @@ async function say(message: string): Promise<void> {
  */
 function onYear(value: number): void {
   if (!Number.isFinite(value) || value === trip.value?.year) return
-  orchestrator.updateTrip(props.tripId, { year: value })
+  orchestrator.tripLifecycle.updateTrip(props.tripId, { year: value })
 }
 
 function commitName(): void {
   const value = name.value.trim()
   if (!value || value === trip.value?.name) return
-  orchestrator.updateTrip(props.tripId, { name: value })
+  orchestrator.tripLifecycle.updateTrip(props.tripId, { name: value })
 }
 
 /** Writes the picked range, unless it is the one the trip already has. */
@@ -165,7 +165,7 @@ function onDates(first: string, last: string): void {
   const start = startDate.value || null
   const end = endDate.value || null
   if (start === (trip.value?.start_date ?? null) && end === (trip.value?.end_date ?? null)) return
-  orchestrator.updateTrip(props.tripId, { start_date: start, end_date: end })
+  orchestrator.tripLifecycle.updateTrip(props.tripId, { start_date: start, end_date: end })
 }
 
 /**
@@ -203,7 +203,7 @@ async function addTraveler(): Promise<void> {
   const account = newTravelerAccount.value
   newTraveler.value = ''
   newTravelerAccount.value = NO_ACCOUNT
-  const report = orchestrator.addTravelerToTrip(
+  const report = orchestrator.tripLifecycle.addTravelerToTrip(
     props.tripId,
     value,
     account === NO_ACCOUNT ? null : account,
@@ -216,14 +216,18 @@ async function addTraveler(): Promise<void> {
  * (the M8 pattern), and a select has no blur to commit on.
  */
 function linkTraveler(travelerId: string, value: string): void {
-  orchestrator.linkTraveler(props.tripId, travelerId, value === NO_ACCOUNT ? null : value)
+  orchestrator.tripLifecycle.linkTraveler(
+    props.tripId,
+    travelerId,
+    value === NO_ACCOUNT ? null : value,
+  )
 }
 
 function renameTraveler(travelerId: string, value: string): void {
   const next = value.trim()
   const current = travelers.value.find((tr) => tr.id === travelerId)
   if (!next || !current || next === current.name) return
-  orchestrator.renameTraveler(props.tripId, travelerId, next)
+  orchestrator.tripLifecycle.renameTraveler(props.tripId, travelerId, next)
 }
 
 /**
@@ -231,7 +235,7 @@ function renameTraveler(travelerId: string, value: string): void {
  * them is not visible from this screen — their untouched rows are on M4.
  */
 async function removeTraveler(travelerId: string, travelerName: string): Promise<void> {
-  const packed = orchestrator.packedRowsOf(props.tripId, travelerId)
+  const packed = orchestrator.tripLifecycle.packedRowsOf(props.tripId, travelerId)
 
   /*
    * The choice is offered only when there is something to choose about
@@ -260,7 +264,7 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
   const { role } = await alert.onDidDismiss()
   if (role !== 'destructive' && role !== 'keep') return
 
-  const report = orchestrator.removeTraveler(props.tripId, travelerId, {
+  const report = orchestrator.tripLifecycle.removeTraveler(props.tripId, travelerId, {
     includePacked: role === 'destructive' && packed > 0,
   })
   await reportTravelerChange(report, t('tripEdit.reportNothing'))

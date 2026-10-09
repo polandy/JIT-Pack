@@ -86,7 +86,7 @@ describe('series actions (FR-13.1)', () => {
     const orch = newOrch()
     const master = useMasterStore()
 
-    const id = orch.createSeries('Samedan Winter', { season: 'winter' })!
+    const id = orch.series.createSeries('Samedan Winter', { season: 'winter' })!
 
     expect(master.getSeries(id)).toMatchObject({
       name: 'Samedan Winter',
@@ -99,9 +99,9 @@ describe('series actions (FR-13.1)', () => {
   it('updateSeries patches fields and keeps the rest', () => {
     const orch = newOrch()
     const master = useMasterStore()
-    const id = orch.createSeries('Samedan', { season: 'summer' })!
+    const id = orch.series.createSeries('Samedan', { season: 'summer' })!
 
-    orch.updateSeries(master.getSeries(id)!, { name: 'Samedan Sommer' })
+    orch.series.updateSeries(master.getSeries(id)!, { name: 'Samedan Sommer' })
 
     expect(master.getSeries(id)).toMatchObject({
       name: 'Samedan Sommer',
@@ -120,10 +120,10 @@ describe('series actions (FR-13.1)', () => {
       row: { name: 'Engadin', status: 'planning', end_date: '2026-08-10' },
     })
 
-    orch.setTripSeries('t1', 'ser-1')
+    orch.series.setTripSeries('t1', 'ser-1')
     expect(trips.getTrip('t1')?.series_id).toBe('ser-1')
 
-    orch.setTripSeries('t1', null)
+    orch.series.setTripSeries('t1', null)
     expect(trips.getTrip('t1')?.series_id).toBeNull()
   })
 })
@@ -134,7 +134,7 @@ describe('wizard integration (FR-13.1/13.3)', () => {
     const master = useMasterStore()
     const trips = useTripStore()
 
-    const tripId = orch.createTripFromWizard({
+    const tripId = orch.tripCreation.createTripFromWizard({
       name: 'Engadin 2026',
       year: 2026,
       startDate: null,
@@ -157,9 +157,9 @@ describe('wizard integration (FR-13.1/13.3)', () => {
   it('attaches an existing series and adds the offered checklist items (FR-13.3)', () => {
     const orch = newOrch()
     const trips = useTripStore()
-    const seriesId = orch.createSeries('Samedan')!
+    const seriesId = orch.series.createSeries('Samedan')!
 
-    const tripId = orch.createTripFromWizard({
+    const tripId = orch.tripCreation.createTripFromWizard({
       name: 'Engadin 2026',
       year: 2026,
       startDate: null,
@@ -186,20 +186,20 @@ describe('destination profile actions (FR-13.2/13.3)', () => {
   it('ensureDestinationProfile creates once and then reuses the profile', () => {
     const orch = newOrch()
     const master = useMasterStore()
-    const seriesId = orch.createSeries('Samedan')!
+    const seriesId = orch.series.createSeries('Samedan')!
 
-    const profileId = orch.ensureDestinationProfile(seriesId)
+    const profileId = orch.series.ensureDestinationProfile(seriesId)
     expect(master.getDestinationProfile(seriesId)?.id).toBe(profileId)
-    expect(orch.ensureDestinationProfile(seriesId)).toBe(profileId)
+    expect(orch.series.ensureDestinationProfile(seriesId)).toBe(profileId)
   })
 
   it('updateDestinationProfile saves the notes', () => {
     const orch = newOrch()
     const master = useMasterStore()
-    const seriesId = orch.createSeries('Samedan')!
-    const profileId = orch.ensureDestinationProfile(seriesId)
+    const seriesId = orch.series.createSeries('Samedan')!
+    const profileId = orch.series.ensureDestinationProfile(seriesId)
 
-    orch.updateDestinationProfile(master.getDestinationProfile(seriesId)!, {
+    orch.series.updateDestinationProfile(master.getDestinationProfile(seriesId)!, {
       notes: 'Waschmaschine vorhanden',
     })
 
@@ -210,19 +210,21 @@ describe('destination profile actions (FR-13.2/13.3)', () => {
   it('checklist lifecycle: add, update, delete (FR-13.3)', () => {
     const orch = newOrch()
     const master = useMasterStore()
-    const seriesId = orch.createSeries('Samedan')!
-    const profileId = orch.ensureDestinationProfile(seriesId)
+    const seriesId = orch.series.createSeries('Samedan')!
+    const profileId = orch.series.ensureDestinationProfile(seriesId)
 
-    const itemId = orch.addChecklistItem(profileId, 'Milch', 'buy_local')
+    const itemId = orch.series.addChecklistItem(profileId, 'Milch', 'buy_local')
     expect(master.getChecklistItems(profileId)).toHaveLength(1)
 
-    orch.updateChecklistItem(master.getChecklistItems(profileId)[0]!, { label: 'Hafermilch' })
+    orch.series.updateChecklistItem(master.getChecklistItems(profileId)[0]!, {
+      label: 'Hafermilch',
+    })
     expect(master.getChecklistItems(profileId)[0]).toMatchObject({
       label: 'Hafermilch',
       mode: 'buy_local',
     })
 
-    orch.deleteChecklistItem(itemId)
+    orch.series.deleteChecklistItem(itemId)
     expect(master.getChecklistItems(profileId)).toHaveLength(0)
   })
 })

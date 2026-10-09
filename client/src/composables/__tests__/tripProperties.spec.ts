@@ -99,8 +99,8 @@ function seedTrip(status = 'planning') {
  * about.
  */
 function seedGeneratedRows(orch: ReturnType<typeof useSyncOrchestrator>) {
-  orch.addGroupToTrip(TRIP_ID, TEMPLATE_ID)
-  orch.proposeTripRefresh(TRIP_ID)
+  orch.tripLifecycle.addGroupToTrip(TRIP_ID, TEMPLATE_ID)
+  orch.groupRefresh.proposeTripRefresh(TRIP_ID)
 }
 
 /** Every row of the trip that came from the rain-trousers position. */
@@ -115,7 +115,7 @@ describe('updateTrip (FR-2.7)', () => {
     const orch = await localOrchestrator()
     seedTrip()
 
-    orch.updateTrip(TRIP_ID, { name: 'Samedan Sommer', start_date: '2026-02-14' })
+    orch.tripLifecycle.updateTrip(TRIP_ID, { name: 'Samedan Sommer', start_date: '2026-02-14' })
 
     const trip = useTripStore().getTrip(TRIP_ID)
     expect(trip?.name).toBe('Samedan Sommer')
@@ -126,7 +126,7 @@ describe('updateTrip (FR-2.7)', () => {
     const orch = await localOrchestrator()
     seedTrip('active')
 
-    orch.updateTrip(TRIP_ID, { name: 'Samedan Sommer' })
+    orch.tripLifecycle.updateTrip(TRIP_ID, { name: 'Samedan Sommer' })
 
     const trip = useTripStore().getTrip(TRIP_ID)
     // An editor saves a form, not a whole row. Losing `status` in Local Mode
@@ -140,7 +140,7 @@ describe('updateTrip (FR-2.7)', () => {
     const orch = await localOrchestrator()
     seedTrip()
 
-    orch.updateTrip(TRIP_ID, { start_date: '2026-02-01', end_date: '2026-02-08' })
+    orch.tripLifecycle.updateTrip(TRIP_ID, { start_date: '2026-02-01', end_date: '2026-02-08' })
 
     expect(useTripStore().getTrip(TRIP_ID)?.duration_days).toBe(8)
   })
@@ -151,7 +151,7 @@ describe('activateTrip (FR-11.1)', () => {
     const orch = await localOrchestrator()
     seedTrip()
 
-    orch.activateTrip(TRIP_ID)
+    orch.tripLifecycle.activateTrip(TRIP_ID)
 
     const trip = useTripStore().getTrip(TRIP_ID)
     expect(trip?.status).toBe('active')
@@ -166,7 +166,7 @@ describe('renameTraveler (FR-2.7)', () => {
     seedGeneratedRows(orch)
 
     const before = pantsRows().map((r) => r.id)
-    orch.renameTraveler(TRIP_ID, 'trv-z', 'Zoë')
+    orch.tripLifecycle.renameTraveler(TRIP_ID, 'trv-z', 'Zoë')
 
     expect(
       useTripStore()
@@ -183,7 +183,7 @@ describe('renameTraveler (FR-2.7)', () => {
       change(TABLE.travelers, 'trv-z', { trip_id: TRIP_ID, name: 'Zoe', linked_user_id: 'u-zoe' }),
     ])
 
-    orch.renameTraveler(TRIP_ID, 'trv-z', 'Zoë')
+    orch.tripLifecycle.renameTraveler(TRIP_ID, 'trv-z', 'Zoë')
 
     // The link is what makes the roster row a person with an account
     // (FR-2.5); a rename that drops it silently un-invites them.
@@ -207,7 +207,7 @@ describe('linkTraveler (FR-2.5, ADR-058)', () => {
     seedGeneratedRows(orch)
 
     const before = pantsRows().map((r) => r.id)
-    orch.linkTraveler(TRIP_ID, 'trv-z', 'u-zoe')
+    orch.tripLifecycle.linkTraveler(TRIP_ID, 'trv-z', 'u-zoe')
 
     expect(travelerLink()).toBe('u-zoe')
     // The link is a fact about the person, not about the plan: FR-27.4 has
@@ -222,7 +222,7 @@ describe('linkTraveler (FR-2.5, ADR-058)', () => {
       change(TABLE.travelers, 'trv-z', { trip_id: TRIP_ID, name: 'Zoe', linked_user_id: 'u-zoe' }),
     ])
 
-    orch.linkTraveler(TRIP_ID, 'trv-z', null)
+    orch.tripLifecycle.linkTraveler(TRIP_ID, 'trv-z', null)
 
     // `null` has to reach the row as a deliberate clear. A mutation that
     // dropped the field instead would leave the old account linked and the
@@ -239,12 +239,12 @@ describe('linkTraveler (FR-2.5, ADR-058)', () => {
     seedTrip()
     save.mockClear()
 
-    orch.linkTraveler(TRIP_ID, 'trv-z', 'u-zoe')
+    orch.tripLifecycle.linkTraveler(TRIP_ID, 'trv-z', 'u-zoe')
     expect(save).toHaveBeenCalledTimes(1)
 
     // `IonSelect` emits `ionChange` while it paints its own value, so a
     // no-op that still wrote would push a mutation per visit to this screen.
-    orch.linkTraveler(TRIP_ID, 'trv-z', 'u-zoe')
+    orch.tripLifecycle.linkTraveler(TRIP_ID, 'trv-z', 'u-zoe')
     expect(save).toHaveBeenCalledTimes(1)
   })
 })
@@ -256,7 +256,7 @@ describe('removeTraveler (FR-2.7 + FR-27.4)', () => {
     seedGeneratedRows(orch)
     expect(pantsRows()).toHaveLength(2)
 
-    orch.removeTraveler(TRIP_ID, 'trv-z')
+    orch.tripLifecycle.removeTraveler(TRIP_ID, 'trv-z')
 
     const left = pantsRows()
     expect(left).toHaveLength(1)
@@ -272,9 +272,9 @@ describe('removeTraveler (FR-2.7 + FR-27.4)', () => {
     seedGeneratedRows(orch)
 
     const zoes = pantsRows().find((r) => r.assigned_traveler_id === 'trv-z')!
-    orch.packComplete(zoes)
+    orch.packing.packComplete(zoes)
 
-    orch.removeTraveler(TRIP_ID, 'trv-z')
+    orch.tripLifecycle.removeTraveler(TRIP_ID, 'trv-z')
 
     const survivor = useTripStore()
       .getItems(TRIP_ID)
@@ -293,9 +293,9 @@ describe('removeTraveler (FR-2.7 + FR-27.4)', () => {
     // Xenia's share is worked on; Zoe's is untouched. The protection belongs
     // to the row, not to the position, so Zoe still leaves.
     const xenias = pantsRows().find((r) => r.assigned_traveler_id === 'trv-x')!
-    orch.packIncrement(xenias)
+    orch.packing.packIncrement(xenias)
 
-    orch.removeTraveler(TRIP_ID, 'trv-z')
+    orch.tripLifecycle.removeTraveler(TRIP_ID, 'trv-z')
 
     expect(
       useTripStore()
@@ -311,9 +311,9 @@ describe('removeTraveler (FR-2.7 + FR-27.4)', () => {
     seedGeneratedRows(orch)
 
     const zoes = pantsRows().find((r) => r.assigned_traveler_id === 'trv-z')!
-    orch.packComplete(zoes)
+    orch.packing.packComplete(zoes)
 
-    orch.removeTraveler(TRIP_ID, 'trv-z', { includePacked: true })
+    orch.tripLifecycle.removeTraveler(TRIP_ID, 'trv-z', { includePacked: true })
 
     // Gone, not merely unassigned: the user answered that the trousers come
     // back out of the bag.
@@ -333,11 +333,11 @@ describe('removeTraveler (FR-2.7 + FR-27.4)', () => {
     seedGeneratedRows(orch)
 
     const zoes = pantsRows().find((r) => r.assigned_traveler_id === 'trv-z')!
-    orch.packComplete(zoes)
+    orch.packing.packComplete(zoes)
 
     // The screen asks only when there is something to answer about.
-    expect(orch.packedRowsOf(TRIP_ID, 'trv-z')).toBe(1)
-    expect(orch.packedRowsOf(TRIP_ID, 'trv-x')).toBe(0)
+    expect(orch.tripLifecycle.packedRowsOf(TRIP_ID, 'trv-z')).toBe(1)
+    expect(orch.tripLifecycle.packedRowsOf(TRIP_ID, 'trv-x')).toBe(0)
   })
 
   it('refuses on a trip that has started, because the control is disabled there', async () => {
@@ -345,7 +345,7 @@ describe('removeTraveler (FR-2.7 + FR-27.4)', () => {
     seedTrip('active')
     seedGeneratedRows(orch)
 
-    const report = orch.removeTraveler(TRIP_ID, 'trv-z')
+    const report = orch.tripLifecycle.removeTraveler(TRIP_ID, 'trv-z')
 
     expect(report).toBeNull()
     expect(useTripStore().getTravelers(TRIP_ID)).toHaveLength(2)
@@ -358,12 +358,12 @@ describe('addTravelerToTrip (FR-2.7 + FR-27.4 amendment)', () => {
     seedTrip()
     seedGeneratedRows(orch)
 
-    const report = orch.addTravelerToTrip(TRIP_ID, 'Mia')
+    const report = orch.tripLifecycle.addTravelerToTrip(TRIP_ID, 'Mia')
 
     expect(pantsRows()).toHaveLength(3)
     expect(report?.added).toBe(1)
     // Immediately: nothing is left waiting on M4's card.
-    expect(orch.refreshProposals.value[TRIP_ID]).toBeUndefined()
+    expect(orch.groupRefresh.refreshProposals.value[TRIP_ID]).toBeUndefined()
   })
 
   it('records the account the new person is, in the same act (FR-2.5)', async () => {
@@ -371,7 +371,7 @@ describe('addTravelerToTrip (FR-2.7 + FR-27.4 amendment)', () => {
     seedTrip()
     seedGeneratedRows(orch)
 
-    const report = orch.addTravelerToTrip(TRIP_ID, 'Mia', 'u-mia')
+    const report = orch.tripLifecycle.addTravelerToTrip(TRIP_ID, 'Mia', 'u-mia')
 
     const added = useTripStore()
       .getTravelers(TRIP_ID)
@@ -387,7 +387,7 @@ describe('addTravelerToTrip (FR-2.7 + FR-27.4 amendment)', () => {
     const orch = await localOrchestrator()
     seedTrip()
 
-    const report = orch.addTravelerToTrip(TRIP_ID, 'Mia')
+    const report = orch.tripLifecycle.addTravelerToTrip(TRIP_ID, 'Mia')
 
     const added = useTripStore()
       .getTravelers(TRIP_ID)
@@ -400,7 +400,7 @@ describe('addTravelerToTrip (FR-2.7 + FR-27.4 amendment)', () => {
     seedTrip()
     seedGeneratedRows(orch)
 
-    orch.addTravelerToTrip(TRIP_ID, 'Mia')
+    orch.tripLifecycle.addTravelerToTrip(TRIP_ID, 'Mia')
 
     const tents = useTripStore()
       .getItems(TRIP_ID)

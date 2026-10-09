@@ -92,7 +92,7 @@ const members = computed(
 )
 
 function forWhom(target: LineFor) {
-  if (line.value) orchestrator.setForWhom(props.tripId, line.value, target)
+  if (line.value) orchestrator.excursions.setForWhom(props.tripId, line.value, target)
 }
 
 function toggleMember(travelerId: string) {
@@ -134,18 +134,21 @@ const choices = computed(() =>
 
 function count(packed: number) {
   if (!line.value) return
-  orchestrator.setLineCount(line.value, Math.min(Math.max(packed, 0), line.value.quantity))
+  orchestrator.excursions.setLineCount(
+    line.value,
+    Math.min(Math.max(packed, 0), line.value.quantity),
+  )
 }
 
 function onSkipToggle() {
   if (!line.value) return
-  if (isSkipped.value) orchestrator.unskipLine(line.value)
-  else orchestrator.skipLine(line.value)
+  if (isSkipped.value) orchestrator.excursions.unskipLine(line.value)
+  else orchestrator.excursions.skipLine(line.value)
 }
 
 function onModeChange(mode: ExcursionItemMode) {
   if (!line.value || mode === line.value.mode) return
-  orchestrator.setLineMode(line.value, mode)
+  orchestrator.excursions.setLineMode(line.value, mode)
 }
 </script>
 
@@ -179,7 +182,7 @@ function onModeChange(mode: ExcursionItemMode) {
           :quantity="line.quantity"
           :packed="line.packed_count"
           :choices="choices"
-          @update="(q: number) => orchestrator.setLineQuantity(line!, q)"
+          @update="(q: number) => orchestrator.excursions.setLineQuantity(line!, q)"
         />
       </div>
     </template>
@@ -194,7 +197,7 @@ function onModeChange(mode: ExcursionItemMode) {
         @decrement="count(line.packed_count - 1)"
         @complete="count(line.quantity)"
         @zero="count(0)"
-        @toggle="orchestrator.toggleLine(line)"
+        @toggle="orchestrator.excursions.toggleLine(line)"
       />
       <span class="state" :class="line.state">{{ stateLabel(line.state) }}</span>
     </div>
@@ -240,7 +243,7 @@ function onModeChange(mode: ExcursionItemMode) {
         :from-luggage="fromLuggage"
         :can-keep="canJoinPackingList(line)"
         :can-adopt="canAdoptIntoInventory(line)"
-        @buy-on-site="orchestrator.buyOnTheSpot(line)"
+        @buy-on-site="orchestrator.excursions.buyOnTheSpot(line)"
         @keep="emit('keep')"
         @adopt="emit('adopt')"
       />
@@ -277,7 +280,9 @@ function onModeChange(mode: ExcursionItemMode) {
           slot="end"
           :checked="line.bought_at !== null"
           data-testid="m27-line-bought"
-          @ion-change="(e: CustomEvent) => orchestrator.markBought(line!, e.detail.checked)"
+          @ion-change="
+            (e: CustomEvent) => orchestrator.excursions.markBought(line!, e.detail.checked)
+          "
         />
       </IonItem>
     </IonList>

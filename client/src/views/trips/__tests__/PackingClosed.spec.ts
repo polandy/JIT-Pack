@@ -41,35 +41,51 @@ enableAutoUnmount(afterEach)
 
 const tripScreen = tripScreenStub()
 const orchestratorFake = {
-  ...identityStub(),
+  identity: {
+    ...identityStub(),
+  },
   ...tripScreen,
-  refreshProposals: { value: {} as Record<string, unknown> },
-  proposeTripRefresh: vi.fn(),
-  acceptTripRefresh: vi.fn(),
-  declineTripRefresh: vi.fn(),
-  getPresence: vi.fn(() => []),
-  setViewing: vi.fn(),
-  holdsClaim: vi.fn(() => false),
-  isLockedByOther: vi.fn(() => false),
-  lockHolder: vi.fn(() => null),
-  // FR-7.7: the action reports the rows it decided *and* the tasks it moved.
-  // FR-7.12: and the shopping rows it moved to *at the destination*.
-  closePacking: vi.fn(
-    () =>
-      ({ rows: [], tasks: [], buyRows: [] }) as {
-        rows: unknown[]
-        tasks: unknown[]
-        buyRows: unknown[]
-      },
-  ),
-  reopenPacking: vi.fn(),
-  restorePackingClose: vi.fn(),
-  setTaskDueDate: vi.fn(),
-  addDecidedItem: vi.fn(() => ({ id: 'new-1', companions: [] })),
-  setTravelerAssignment: vi.fn(() => ({ id: 'new-1', companions: [] })),
-  removeAddedItem: vi.fn(),
-  // Read by the app bar's getter, not by anything under test here.
-  inventoryRenamesOf: vi.fn(() => []),
+  groupRefresh: {
+    refreshProposals: { value: {} as Record<string, unknown> },
+    proposeTripRefresh: vi.fn(),
+    acceptTripRefresh: vi.fn(),
+    declineTripRefresh: vi.fn(),
+  },
+  presence: {
+    getPresence: vi.fn(() => []),
+    setViewing: vi.fn(),
+  },
+  claims: {
+    holdsClaim: vi.fn(() => false),
+    isLockedByOther: vi.fn(() => false),
+    lockHolder: vi.fn(() => null),
+  },
+  tripLifecycle: {
+    // FR-7.7: the action reports the rows it decided *and* the tasks it moved.
+    // FR-7.12: and the shopping rows it moved to *at the destination*.
+    closePacking: vi.fn(
+      () =>
+        ({ rows: [], tasks: [], buyRows: [] }) as {
+          rows: unknown[]
+          tasks: unknown[]
+          buyRows: unknown[]
+        },
+    ),
+    reopenPacking: vi.fn(),
+    restorePackingClose: vi.fn(),
+  },
+  comments: {
+    setTaskDueDate: vi.fn(),
+  },
+  packing: {
+    addDecidedItem: vi.fn(() => ({ id: 'new-1', companions: [] })),
+    setTravelerAssignment: vi.fn(() => ({ id: 'new-1', companions: [] })),
+    removeAddedItem: vi.fn(),
+  },
+  inventoryNames: {
+    // Read by the app bar's getter, not by anything under test here.
+    inventoryRenamesOf: vi.fn(() => []),
+  },
 }
 
 const CLOSED_AT = '2026-09-20T18:40:00.000Z'
@@ -201,7 +217,7 @@ describe('M4 — finishing the packing (FR-5.10)', () => {
     expect(sheet.text()).toContain(t('packing.closeConfirmVerb', { n: 3 }))
     // Asking is not writing. Without this clause the sheet would be
     // decoration over an action that had already run.
-    expect(orchestratorFake.closePacking).not.toHaveBeenCalled()
+    expect(orchestratorFake.tripLifecycle.closePacking).not.toHaveBeenCalled()
   })
 
   it('leaves the list alone when the sheet is dismissed', async () => {
@@ -217,7 +233,7 @@ describe('M4 — finishing the packing (FR-5.10)', () => {
     await flushPromises()
 
     expect(page.findComponent(ClosePackingSheet).exists()).toBe(false)
-    expect(orchestratorFake.closePacking).not.toHaveBeenCalled()
+    expect(orchestratorFake.tripLifecycle.closePacking).not.toHaveBeenCalled()
   })
 
   it('writes the close once it is confirmed, and arms one undo for the batch', async () => {
@@ -228,7 +244,7 @@ describe('M4 — finishing the packing (FR-5.10)', () => {
     const moved = [{ task: { id: 'task-1', body: 'Salbe holen' }, phase: 'before' }]
     // FR-7.12: and a shopping row it sent to *at the destination*.
     const buyRows = [{ id: 'ti2', name: 'Sonnencreme', mode: 'buy_before' }]
-    orchestratorFake.closePacking.mockReturnValue({
+    orchestratorFake.tripLifecycle.closePacking.mockReturnValue({
       rows: [{ id: 'ti1', name: 'Regenjacke', quantity: 1, packed_count: 0, state: 'open' }],
       tasks: moved,
       buyRows,
@@ -243,14 +259,17 @@ describe('M4 — finishing the packing (FR-5.10)', () => {
     page.findComponent(ClosePackingSheet).vm.$emit('confirm')
     await flushPromises()
 
-    expect(orchestratorFake.closePacking).toHaveBeenCalledWith('t1', expect.anything())
+    expect(orchestratorFake.tripLifecycle.closePacking).toHaveBeenCalledWith(
+      't1',
+      expect.anything(),
+    )
     // The snackbar's undo is armed with the rows the action reported — the
     // same contract FR-5.5's skip has. Firing it restores exactly those.
     // The composable itself, the way QuickAddItem's spec reaches `open()`:
     // `<script setup>` exposes its bindings on the instance, and the undo is
     // not rendered anywhere a spec could tap it.
     ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
-    expect(orchestratorFake.restorePackingClose).toHaveBeenCalledWith(
+    expect(orchestratorFake.tripLifecycle.restorePackingClose).toHaveBeenCalledWith(
       't1',
       [expect.objectContaining({ itemId: 'ti1', quantity: 1, state: 'open' })],
       moved,
@@ -375,7 +394,7 @@ describe('M4 — the last row packed offers the step (FR-5.10)', () => {
     // e2e flows said so at once.
     expect(page.find('[data-testid="m4-close-prompt"]').exists()).toBe(true)
     expect(page.findComponent(ClosePackingSheet).exists()).toBe(false)
-    expect(orchestratorFake.closePacking).not.toHaveBeenCalled()
+    expect(orchestratorFake.tripLifecycle.closePacking).not.toHaveBeenCalled()
 
     // Its button asks the question, and only then.
     await page.find('[data-testid="m4-close-prompt"]').trigger('click')
@@ -635,8 +654,8 @@ describe('M4 — a list whose packing is finished (FR-5.10)', () => {
     await flushPromises()
     await page.find('[data-testid="m4-reopen-packing"]').trigger('click')
 
-    expect(orchestratorFake.reopenPacking).toHaveBeenCalledWith('t1')
-    expect(orchestratorFake.restorePackingClose).not.toHaveBeenCalled()
+    expect(orchestratorFake.tripLifecycle.reopenPacking).toHaveBeenCalledWith('t1')
+    expect(orchestratorFake.tripLifecycle.restorePackingClose).not.toHaveBeenCalled()
   })
 
   it('takes an addition as something already in the bag', async () => {
@@ -649,14 +668,14 @@ describe('M4 — a list whose packing is finished (FR-5.10)', () => {
       .vm.$emit('add', { name: 'Zahnbürste', sourceItemId: 'm-1', travelerIds: [] })
     await flushPromises()
 
-    expect(orchestratorFake.addDecidedItem).toHaveBeenCalledWith(
+    expect(orchestratorFake.packing.addDecidedItem).toHaveBeenCalledWith(
       't1',
       'Zahnbürste',
       expect.anything(),
       true,
       'packed',
     )
-    expect(orchestratorFake.setTravelerAssignment).not.toHaveBeenCalled()
+    expect(orchestratorFake.packing.setTravelerAssignment).not.toHaveBeenCalled()
   })
 
   it('takes an addition for named travelers as the plan it is', async () => {
@@ -669,8 +688,8 @@ describe('M4 — a list whose packing is finished (FR-5.10)', () => {
       .vm.$emit('add', { name: 'Zahnbürste', sourceItemId: 'm-1', travelerIds: ['tr1'] })
     await flushPromises()
 
-    expect(orchestratorFake.setTravelerAssignment).toHaveBeenCalled()
-    expect(orchestratorFake.addDecidedItem).not.toHaveBeenCalled()
+    expect(orchestratorFake.packing.setTravelerAssignment).toHaveBeenCalled()
+    expect(orchestratorFake.packing.addDecidedItem).not.toHaveBeenCalled()
   })
 
   it('tells the composer what an addition will become', async () => {
@@ -703,7 +722,7 @@ describe('M4 — the task sheet from the window (FR-7.11, FR-7.12)', () => {
     sheet.findComponent({ name: 'DateField' }).vm.$emit('update', '2026-07-09')
     await flushPromises()
 
-    expect(orchestratorFake.setTaskDueDate).toHaveBeenCalledWith(
+    expect(orchestratorFake.comments.setTaskDueDate).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'task-1' }),
       '2026-07-09',
     )

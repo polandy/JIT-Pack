@@ -92,8 +92,8 @@ function create(open: boolean) {
     return
   }
   nameError.value = ''
-  const id = orchestrator.createMasterItem(name)
-  for (const tagId of draftTagIds.value) orchestrator.assignTag(id, tagId)
+  const id = orchestrator.masterData.createMasterItem(name)
+  for (const tagId of draftTagIds.value) orchestrator.masterData.assignTag(id, tagId)
   emit('created', { id, name, open })
 }
 </script>
@@ -130,7 +130,7 @@ function create(open: boolean) {
         @assign="assign"
         @unassign="unassign"
         @primary="makePrimary"
-        @create="(tagName: string) => assign(orchestrator.createTag(tagName))"
+        @create="(tagName: string) => assign(orchestrator.masterData.createTag(tagName))"
       />
 
       <p class="later">{{ t('items.createLater') }}</p>

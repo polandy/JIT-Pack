@@ -138,7 +138,7 @@ onMounted(async () => {
   // follows would change. After the drain, not before — the diff must see the
   // rows the pull just brought, or it would offer what another device already
   // applied.
-  orchestrator.proposeTripRefresh(props.tripId)
+  orchestrator.groupRefresh.proposeTripRefresh(props.tripId)
   await core.loadIdentity()
 })
 
@@ -282,13 +282,13 @@ const isDesktop = useDesktopLayout()
 // subscription — the dashboard follows every active trip and never lets go.
 // Ionic keeps a page mounted under the one that replaced it, so leaving is a
 // view event and unmounting only the fallback.
-onIonViewDidEnter(() => orchestrator.setViewing(props.tripId))
-onIonViewWillLeave(() => orchestrator.setViewing(null))
-onUnmounted(() => orchestrator.setViewing(null))
+onIonViewDidEnter(() => orchestrator.presence.setViewing(props.tripId))
+onIonViewWillLeave(() => orchestrator.presence.setViewing(null))
+onUnmounted(() => orchestrator.presence.setViewing(null))
 
 // --- Header line --------------------------------------------------------
 
-const presenceUsers = computed(() => orchestrator.getPresence(props.tripId))
+const presenceUsers = computed(() => orchestrator.presence.getPresence(props.tripId))
 
 const kpis = computed(() =>
   tripStore.kpis(props.tripId, new Set([...core.removingRows.value, ...core.removingTodos.value])),
@@ -321,14 +321,18 @@ function selectTraveler(value: string) {
  * and after every master pull; nothing is written until one of the two
  * buttons is pressed.
  */
-const groupProposal = computed(() => orchestrator.refreshProposals.value[props.tripId] ?? null)
+const groupProposal = computed(
+  () => orchestrator.groupRefresh.refreshProposals.value[props.tripId] ?? null,
+)
 
 /**
  * FR-27.16: the names on this trip the inventory has moved on from. Derived,
  * like the proposal above, and never stored — the ⋮ entry and M5's line both
  * read it, and it empties itself once the names match.
  */
-const inventoryRenames = computed(() => orchestrator.inventoryRenamesOf(props.tripId))
+const inventoryRenames = computed(() =>
+  orchestrator.inventoryNames.inventoryRenamesOf(props.tripId),
+)
 const inventoryNamesOpen = ref(false)
 
 /** The choice the open row belongs to, for M5's own „Übernehmen". */
@@ -345,21 +349,21 @@ const openItemRename = computed(
 function adoptInventoryNames(chosen: InventoryRename[]) {
   inventoryNamesOpen.value = false
   if (chosen.length === 0) return
-  const undo = orchestrator.adoptInventoryNames(props.tripId, chosen)
+  const undo = orchestrator.inventoryNames.adoptInventoryNames(props.tripId, chosen)
   rowUndo.armUndo(
     undo.adoption.rows.map((r) => r.item),
-    () => orchestrator.restoreInventoryNames(props.tripId, undo),
+    () => orchestrator.inventoryNames.restoreInventoryNames(props.tripId, undo),
   )
   void announceRenamed(chosen.length)
 }
 
 async function applyGroupChanges() {
-  const applied = orchestrator.acceptTripRefresh(props.tripId)
+  const applied = orchestrator.groupRefresh.acceptTripRefresh(props.tripId)
   await reportGroupAnswer(t('trips.proposedApplied', { n: applied?.log.length ?? 0 }))
 }
 
 async function declineGroupChanges() {
-  orchestrator.declineTripRefresh(props.tripId)
+  orchestrator.groupRefresh.declineTripRefresh(props.tripId)
   await reportGroupAnswer(t('trips.proposedDeclined'))
 }
 

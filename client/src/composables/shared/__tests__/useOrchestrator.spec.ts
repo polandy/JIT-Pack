@@ -24,7 +24,7 @@ const Asking = defineComponent({
 })
 
 /** Enough of the facade to be provided; no case calls through it. */
-const fake = { updateTrip: () => {} } as unknown as Orchestrator
+const fake = { tripLifecycle: { updateTrip: () => {} } } as unknown as Orchestrator
 
 describe('useOrchestrator', () => {
   it('hands back the orchestrator provided under the key', () => {

@@ -75,12 +75,18 @@ vi.mock('vue-router', () => ({
 const master = masterDataStub()
 const orchestratorFake = {
   ...master,
-  // The identity seam comes with every mount, since M9 reads the directory
-  // for FR-1.9's bulk action; a spec about that action puts accounts in it.
-  ...identityStub(),
+  identity: {
+    // The identity seam comes with every mount, since M9 reads the directory
+    // for FR-1.9's bulk action; a spec about that action puts accounts in it.
+    ...identityStub(),
+  },
   // FR-24.12's count reads the day and which trips are on the device.
   today: () => '2026-09-19',
   tripDataLoaded: () => true,
+  // Filled per describe block by `Object.assign`, below — each case names
+  // only the write it exercises.
+  masterData: {} as Record<string, unknown>,
+  dependencies: {} as Record<string, unknown>,
 }
 
 function seedItem(name: string, id = 'i1') {
@@ -733,14 +739,12 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
       deleted,
     }
     const dependencies = createDependencyActions(ctx)
-    Object.assign(orchestratorFake, {
+    Object.assign(orchestratorFake.masterData, {
       giveTagToItems: actions.giveTagToItems,
       takeTagFromItems: actions.takeTagFromItems,
       undoBulkTag: actions.undoBulkTag,
       assignDefaultAssignee: actions.assignDefaultAssignee,
       undoBulkAssignee: actions.undoBulkAssignee,
-      linkItemsToDependency: dependencies.linkItemsToDependency,
-      undoBulkDependency: dependencies.undoBulkDependency,
       masterItemDeletionOutlook: (itemId: string) => ({
         // Only the first item is referenced anywhere: the batch spans both
         // acts, which is the case the confirm has to report honestly.
@@ -749,6 +753,10 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
         certain: true,
       }),
       deleteMasterItem: (itemId: string) => deleted.push(itemId),
+    })
+    Object.assign(orchestratorFake.dependencies, {
+      linkItemsToDependency: dependencies.linkItemsToDependency,
+      undoBulkDependency: dependencies.undoBulkDependency,
     })
   })
 
@@ -901,7 +909,7 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
   it('creates a typed tag and gives it in one step; the undo takes the new tag too (FR-24.9)', async () => {
     seedThree()
     const createdTags: string[] = []
-    Object.assign(orchestratorFake, {
+    Object.assign(orchestratorFake.masterData, {
       createTag: (name: string) => {
         createdTags.push(name)
         seedTag(name, 't-new', 2)
@@ -1004,7 +1012,7 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
 
   /** Two accounts on the instance, as Server Mode answers (G-8). */
   function withAccounts() {
-    Object.assign(orchestratorFake, { fetchUsers: async () => DIRECTORY })
+    Object.assign(orchestratorFake.identity, { fetchUsers: async () => DIRECTORY })
   }
 
   /** Press ⋯ and answer its sheet with `data`, or dismiss it. Returns its buttons. */
@@ -1072,7 +1080,7 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
       retired: 0,
       filled: ['weight_grams'],
     })
-    Object.assign(orchestratorFake, { mergeMasterItems })
+    Object.assign(orchestratorFake.masterData, { mergeMasterItems })
     vi.mocked(confirmDestructive).mockResolvedValueOnce(true)
 
     const page = mountPage()
@@ -1093,7 +1101,7 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
   it('writes nothing when the merge confirm is declined (FR-24.15)', async () => {
     seedThree()
     const mergeMasterItems = vi.fn()
-    Object.assign(orchestratorFake, { mergeMasterItems })
+    Object.assign(orchestratorFake.masterData, { mergeMasterItems })
     vi.mocked(confirmDestructive).mockResolvedValueOnce(false)
 
     const page = mountPage()
@@ -1296,7 +1304,7 @@ describe('M9 — who an item is usually for, on the row (FR-1.9 over FR-24.4)', 
 
   beforeEach(() => {
     inventoryProperties().reset()
-    Object.assign(orchestratorFake, identityStub())
+    Object.assign(orchestratorFake.identity, identityStub())
   })
 
   function seedAssigned(name: string, id: string, userId: string | null) {
@@ -1310,7 +1318,7 @@ describe('M9 — who an item is usually for, on the row (FR-1.9 over FR-24.4)', 
   }
 
   it('names the account on the row once the device asks for it', async () => {
-    Object.assign(orchestratorFake, { fetchUsers: async () => DIRECTORY })
+    Object.assign(orchestratorFake.identity, { fetchUsers: async () => DIRECTORY })
     seedAssigned('Zelt', 'i1', 'u-sia')
     seedAssigned('Hammer', 'i2', null)
 
@@ -1328,7 +1336,7 @@ describe('M9 — who an item is usually for, on the row (FR-1.9 over FR-24.4)', 
   })
 
   it('finds an item by the account it names (FR-24.7’s fourth field)', async () => {
-    Object.assign(orchestratorFake, { fetchUsers: async () => DIRECTORY })
+    Object.assign(orchestratorFake.identity, { fetchUsers: async () => DIRECTORY })
     seedAssigned('Zelt', 'i1', 'u-sia')
     seedAssigned('Hammer', 'i2', null)
 
@@ -1383,7 +1391,7 @@ describe('M9 — the tag manager’s half of the contract (FR-24.10)', () => {
     renameTag.mockReturnValue({ ok: true })
     deleteTag.mockReturnValue({ ok: true })
     mergeTags.mockReturnValue(0)
-    Object.assign(orchestratorFake, { renameTag, deleteTag, mergeTags, reorderTags })
+    Object.assign(orchestratorFake.masterData, { renameTag, deleteTag, mergeTags, reorderTags })
   })
 
   it('offers "Tags verwalten" only once there is a tag to manage', async () => {
@@ -1429,7 +1437,7 @@ describe('M9 — the tag manager’s half of the contract (FR-24.10)', () => {
     seedItem('Sonnencreme', 'i1')
     seedTag('Hygiene', 't-hyg')
     const setTagMark = vi.fn()
-    Object.assign(orchestratorFake, { setTagMark })
+    Object.assign(orchestratorFake.masterData, { setTagMark })
 
     const page = mountPage()
     await flushPromises()
@@ -1568,7 +1576,7 @@ describe('M9 — the tag manager’s half of the contract (FR-24.10)', () => {
     seedTag('Technik', 't-tec', 2)
     assignTag('i1', 't-hyg')
     const mergeTagsMany = vi.fn().mockReturnValue(1)
-    Object.assign(orchestratorFake, { mergeTagsMany })
+    Object.assign(orchestratorFake.masterData, { mergeTagsMany })
 
     // The picker offers the *picked* tags and nothing else: the selection is
     // the claim that these are one tag, so the survivor comes from inside it.
@@ -1604,7 +1612,7 @@ describe('M9 — the tag manager’s half of the contract (FR-24.10)', () => {
     seedTag('Hygiene', 't-hyg')
     seedTag('hygiene', 't-hyg2', 1)
     const mergeTagsMany = vi.fn()
-    Object.assign(orchestratorFake, { mergeTagsMany })
+    Object.assign(orchestratorFake.masterData, { mergeTagsMany })
 
     const create = vi
       .spyOn(actionSheetController, 'create')
@@ -1802,7 +1810,7 @@ describe('M9 — what the search did not find, it offers to create (FR-24.11)', 
 
   beforeEach(() => {
     writes = { created: [], assigned: [], restored: [] }
-    Object.assign(orchestratorFake, {
+    Object.assign(orchestratorFake.masterData, {
       createMasterItem: (name: string) => {
         const id = `new-${writes.created.length}`
         writes.created.push({ id, name })

@@ -149,7 +149,9 @@ describe('seedSampleMaster (dev)', () => {
     ])
     // The two released ones carry a permanent delete; the rest are still used.
     const removable = master.retiredItemList
-      .filter((i) => orchestrator.masterItemDeletionOutlook(i.id).kind === DELETION_REMOVE)
+      .filter(
+        (i) => orchestrator.masterData.masterItemDeletionOutlook(i.id).kind === DELETION_REMOVE,
+      )
       .map((i) => i.name)
       .sort()
     expect(removable).toEqual(['Ohrstöpsel', 'Wärmflasche'])
@@ -293,7 +295,7 @@ describe('seedSampleData (dev)', () => {
     // It also arrives with an *open* question on it: a group gained a position
     // after the trip took its content over, so M4's proposal card is reachable
     // from a fresh install without editing a group by hand first.
-    const proposal = orchestrator.refreshProposals.value[planned[0]!.id]
+    const proposal = orchestrator.groupRefresh.refreshProposals.value[planned[0]!.id]
     expect(proposal?.add.map((a) => a.generated.name)).toEqual(['Stirnlampe'])
     // Offered, not applied — otherwise the seed would skip the question it
     // exists to show.
@@ -303,8 +305,10 @@ describe('seedSampleData (dev)', () => {
   it('rejects rather than resolving quietly when a seed step fails', async () => {
     const { seedSampleData } = await import('../sampleData')
     const broken = {
-      createTag: () => {
-        throw new Error('boom')
+      masterData: {
+        createTag: () => {
+          throw new Error('boom')
+        },
       },
     } as unknown as Parameters<typeof seedSampleData>[0]
 

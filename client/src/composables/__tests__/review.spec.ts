@@ -71,7 +71,7 @@ describe('archiveTrip (FR-9.2 trigger)', () => {
       row: { name: 'Engadin', status: 'active', end_date: '2026-08-10' },
     })
 
-    orch.archiveTrip('t1')
+    orch.tripLifecycle.archiveTrip('t1')
 
     expect(trips.getTrip('t1')?.status).toBe('archived')
   })
@@ -96,7 +96,7 @@ describe('deleteTrip (M2, Owner-only)', () => {
       row: { trip_id: 't1', name: 'Socken', quantity: 1 },
     })
 
-    orch.deleteTrip('t1')
+    orch.tripLifecycle.deleteTrip('t1')
 
     expect(trips.getTrip('t1')).toBeUndefined()
     // Child rows go with it (local cascade mirrors the server FK cascade).
@@ -110,7 +110,7 @@ describe('applyReviewProposal (FR-27.11: the target is a group)', () => {
     const master = useMasterStore()
     seedGroup(master)
 
-    const target = orch.applyReviewProposal(proposal(), 'g1')
+    const target = orch.postTrip.applyReviewProposal(proposal(), 'g1')
 
     expect(target).toBe('g1')
     expect(master.getTemplateItems('g1')[0]!.quantity).toBe(0)
@@ -128,7 +128,7 @@ describe('applyReviewProposal (FR-27.11: the target is a group)', () => {
       row: { name: 'Sonnencreme' },
     })
 
-    orch.applyReviewProposal(
+    orch.postTrip.applyReviewProposal(
       proposal({ kind: 'missing', itemRef: 'item9', itemId: 'item9', itemName: 'Sonnencreme' }),
       'g1',
     )
@@ -147,7 +147,7 @@ describe('applyReviewProposal (FR-27.11: the target is a group)', () => {
     const master = useMasterStore()
     seedGroup(master)
 
-    orch.applyReviewProposal(
+    orch.postTrip.applyReviewProposal(
       proposal({
         kind: 'missing',
         itemRef: 'name:moskitonetz',
@@ -176,7 +176,7 @@ describe('applyReviewProposal (FR-27.11: the target is a group)', () => {
       row: { owner_id: 'me', name: 'Extras', kind: 'group' },
     })
 
-    orch.applyReviewProposal(
+    orch.postTrip.applyReviewProposal(
       proposal({
         kind: 'missing',
         itemRef: 'name:moskitonetz',
@@ -198,7 +198,7 @@ describe('applyReviewProposal (FR-27.11: the target is a group)', () => {
     const master = useMasterStore()
     seedGroup(master, 'someone-else')
 
-    const targetId = orch.applyReviewProposal(proposal(), 'g1')
+    const targetId = orch.postTrip.applyReviewProposal(proposal(), 'g1')
 
     expect(targetId).toBe('g1')
     expect(master.templateList).toHaveLength(1)

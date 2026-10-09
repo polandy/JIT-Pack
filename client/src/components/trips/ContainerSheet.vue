@@ -66,7 +66,7 @@ const pairOptions = computed(() => containers.value.filter((c) => c.id !== props
 // --- Edits (each commits on the spot, G-5) ---
 
 function update(fields: ContainerEdit) {
-  if (container.value) orchestrator.updateContainer(container.value, fields)
+  if (container.value) orchestrator.containers.updateContainer(container.value, fields)
 }
 
 function onName(raw: string | null | undefined) {
@@ -88,9 +88,9 @@ function toggleCarrier(travelerId: string) {
 
 function togglePair(otherId: string) {
   if (container.value?.paired_container_id === otherId) {
-    orchestrator.unpairContainer(props.tripId, props.containerId)
+    orchestrator.containers.unpairContainer(props.tripId, props.containerId)
   } else {
-    orchestrator.pairContainer(props.tripId, props.containerId, otherId)
+    orchestrator.containers.pairContainer(props.tripId, props.containerId, otherId)
   }
 }
 
@@ -99,7 +99,7 @@ function togglePair(otherId: string) {
 const confirmingDelete = ref(false)
 
 function onDelete() {
-  orchestrator.deleteContainer(props.tripId, props.containerId)
+  orchestrator.containers.deleteContainer(props.tripId, props.containerId)
   emit('close')
 }
 </script>

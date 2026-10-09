@@ -102,7 +102,7 @@ const {
   myUserId,
   nameOf,
   load: loadIdentity,
-} = useTripIdentity(props.tripId, orchestrator)
+} = useTripIdentity(props.tripId, orchestrator.identity)
 
 // FR-7.14: M25 carries the FAB, so its snackbar clears it as M6's does.
 const { rowUndo, announceAct, announceTaskDone } = usePackAnnouncer(FAB_ANCHOR.m25)
@@ -381,7 +381,7 @@ function bulkTag(taskTagId: string | null) {
 }
 
 function bulkNewTag(name: string) {
-  const id = orchestrator.createTaskTag(name, masterStore.taskTagList.length)
+  const id = orchestrator.masterData.createTaskTag(name, masterStore.taskTagList.length)
   bulkTag(id)
 }
 
@@ -490,7 +490,7 @@ function onSheetNewTag(name: string) {
   if (!task) return
   // Created where it is needed, like an item's tag in M10: a word that is not
   // in the list yet is not an error, it is the next tag.
-  const id = orchestrator.createTaskTag(name, masterStore.taskTagList.length)
+  const id = orchestrator.masterData.createTaskTag(name, masterStore.taskTagList.length)
   acts.retag(task, task.phase, id)
 }
 

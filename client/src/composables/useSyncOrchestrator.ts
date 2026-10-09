@@ -11,23 +11,21 @@
  * 5. Manages sync status for the G-2 indicator
  *
  * What is *not* here is anything that decides something. The rules live in
- * `sync/actions/`, whose groups are bound to a `SyncContext`, and in the
- * groups beside them that need no context at all — locks, notifications,
- * conflicts, identity and images, each taking the two or three plain values
- * it actually uses. The facade builds each one and spreads it into the
- * return shape.
+ * `app/actions/`, whose groups are bound to a `SyncContext`, and in the
+ * groups beside them in `app/` that need no context at all — locks,
+ * notifications, conflicts, identity and images, each taking the two or
+ * three plain values it actually uses. The facade builds each one and hands
+ * it out whole under its own namespace (`orchestrator.packing.*`, ADR-098).
  */
 
-import { API } from '@/api/routes'
 import { markLocalWrite } from '@/local/exportReminder'
-import { clearMigrationPending, deviceId } from '@/mode'
+import { deviceId } from '@/mode'
 import { computed, reactive, ref } from 'vue'
 
 import { APIClient, type TokenProvider } from '@/sync/apiClient'
 import { loadTokens, subjectOf } from '@/auth/tokens'
 import { HLCGenerator } from '@/sync/hlc'
 import { SyncOutbox, type ConflictReport, type RejectionReport } from '@/sync/outbox'
-import { optimisticInsert } from '@/sync/optimistic'
 import { createWriteFunnel, type PartitionBatch, type Write } from '@/sync/writeFunnel'
 import { TABLE } from '@/api/tables'
 import { storeFor } from '@/sync/routing'
@@ -45,6 +43,10 @@ import { createTripLifecycleActions } from '@/app/actions/tripLifecycle'
 import { createPostTripActions } from '@/app/actions/postTrip'
 import { createExcursionActions } from '@/app/actions/excursions'
 import { createTripCreationActions } from '@/app/actions/tripCreation'
+import { createClaimActions } from '@/app/actions/claims'
+import { createMembershipActions } from '@/app/actions/membership'
+import { createPortableActions } from '@/app/actions/portable'
+import { createRemovalPruneActions } from '@/app/actions/removalPrune'
 // The screens read this module rather than the group, so the type keeps its
 // public home even though FR-24.3's rules moved.
 export type { DeletionOutlook } from '@/app/actions/masterData'
@@ -71,24 +73,17 @@ import { useMasterStore } from '@/stores/masterStore'
 import type {
   ConflictEntry,
   LockEvent,
-  LockEventListResponse,
-  MasterPruneResponse,
   PresenceMember,
   RosterMember,
   LiveLocation,
   PullChange,
-  TakeoverResponse,
   WSEvent,
 } from '@/api/types'
 import { localIsoDate } from '@/domain/trips'
 import { defaultNowMs, isoFrom, type NowMs } from '@/lib/clock'
-import type { PortableDocument } from '@/domain/portable'
-import { importPortableBackup, importPortableDocument } from '@/domain/portableImport'
-import type { PortableImportEnv, PortableImportResult } from '@/domain/portableImport'
 import type { ServerNotification } from '@/notifications/format'
 import type { IndexedDBPersistence } from '@/local/persistence'
 import { IndexedDBOutboxStore, type OutboxStore } from '@/sync/outboxStore'
-import type { TripItem, TripMember } from '@/types/domain'
 
 /** One entry of a trip's presence facepile (G-10, Sync-API §7). */
 // Both shapes come from the contract now (NFR-4.14). The names are kept as
@@ -655,98 +650,20 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     packing: packingActions,
     groupRefresh: groupRefreshActions,
   })
-
-  /** Claim an item for packing (FR-5.2); locks it for others (G-3). */
-  function packingNow(item: TripItem) {
-    const mut = mutations.startPackingNow(item.id)
-    locks.claim(item.id)
-    write(mut)
-  }
-
-  /**
-   * takeOverClaim ends somebody else's claim and starts mine, in one step
-   * (FR-5.7). It is the only part of G-3's lock that goes through the
-   * server rather than the outbox: only the server can stamp who took
-   * over (invariant 3) and notify the account it was taken from, and a
-   * client cannot send itself a notification.
-   *
-   * Nothing is written optimistically. An outbox mutation would have to
-   * be undone when the server refuses — the row may have been packed or
-   * released in the meantime — and a taker shown a claim they do not hold
-   * is the one outcome worse than waiting for the answer. The row arrives
-   * by the drain below, like every other server-originated change.
-   *
-   * Returns who was holding it, which the confirmation named beforehand
-   * and the snackbar names afterwards. Local Mode has no server and no
-   * second person, so the surface never reaches here (G-8).
-   */
-  async function takeOverClaim(tripId: string, item: TripItem): Promise<string> {
-    if (local) return ''
-    const resp = await client.post<TakeoverResponse>(API.tripItemTakeover(tripId, item.id))
-    // The claim is mine from here: without it the row I just took would
-    // render as locked against me.
-    locks.takeOver(tripId, item.id)
-    await drainTrip(tripId)
-    return resp.previous_holder ?? ''
-  }
-
-  /**
-   * FR-5.8's second half (ADR-065): once a removal can no longer be undone,
-   * the inventory item it left unused goes too. Asked again here rather than
-   * trusted from the removal — the row may have come back, or another use
-   * arrived, while the snackbar was up.
-   *
-   * Local Mode holds every trip, so its answer is the whole answer and the
-   * item is deleted like any other. A server device holds only the trips it
-   * has opened, so it asks the server, which deletes the item only if nothing
-   * uses it anywhere and otherwise leaves it exactly as it was — the push's
-   * delete would retire it instead (FR-24.3). The removal is sent first: the
-   * server would count the row being removed as a use. A device offline at
-   * that moment keeps the item, which is the answer a doubt should give.
-   */
-  async function pruneItemLeftByRemoval(tripId: string, itemId: string) {
-    if (packingActions.itemStillUsed(itemId)) return
-    if (local) {
-      masterDataActions.deleteMasterItem(itemId)
-      return
-    }
-    try {
-      await outbox.whenSent('trip', tripId)
-      const resp = await client.post<MasterPruneResponse>(API.masterItemPrune(itemId))
-      if (resp.pruned) await drainMaster()
-    } catch {
-      // Offline, or the removal itself was refused: the item stays.
-    }
-  }
-
-  /**
-   * fetchLockEvents reads the trip's takeover record (FR-5.7) — who took
-   * what from whom. Deliberately not part of the conflict log: that one
-   * holds merge losers, and a list of two unrelated kinds of event stops
-   * being readable (ADR-028).
-   */
-  async function fetchLockEvents(tripId: string): Promise<LockEvent[]> {
-    if (local) return []
-    const resp = await client.get<LockEventListResponse>(API.tripLockEvents(tripId), {})
-    return resp.lock_events
-  }
-
-  /**
-   * releaseClaim gives a row back without packing it (G-3). Until now a
-   * claim ended only by packing or by ageing out of the §7 window, so a
-   * tap made by mistake held the row against everyone else for a quarter
-   * of an hour with no way out.
-   *
-   * The state it returns to is derived rather than remembered: the claim
-   * overwrote whatever was there, and `packed_count` against `quantity`
-   * says the same thing the stepper says — a release that always wrote
-   * `open` would throw away work already in the bag.
-   */
-  function releaseClaim(item: TripItem) {
-    const mut = mutations.releasePackingNow(item.id, item.packed_count, item.quantity)
-    locks.release(item.id)
-    write(mut)
-  }
+  const claimActions = createClaimActions(ctx, {
+    locks,
+    client,
+    drainTrip: (tripId) => drainTrip(tripId),
+  })
+  const membershipActions = createMembershipActions(ctx)
+  const portableActions = createPortableActions(ctx)
+  const removalPruneActions = createRemovalPruneActions(ctx, {
+    itemStillUsed: packingActions.itemStillUsed,
+    deleteMasterItem: masterDataActions.deleteMasterItem,
+    client,
+    whenTripSent: (tripId) => outbox.whenSent('trip', tripId),
+    drainMaster,
+  })
 
   /**
    * tripDataLoaded answers whether this trip's rows are on the device. It is
@@ -795,73 +712,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return request
   }
 
-  /**
-   * The environment the FR-18.4 rules run in here: the device's own stores,
-   * this session's mutation builders, and a write that lands optimistically
-   * and queues for the server. The rules themselves are in
-   * `@/domain/portableImport`, where the command line reaches them too
-   * (ADR-008).
-   */
-  function portableImportEnv(): PortableImportEnv {
-    return {
-      /*
-       * Trips live in the trip store rather than the master one, so the view
-       * is assembled here — through getters, because ADR-030's rule reads it
-       * back between writes and a snapshot taken now would not see the trip
-       * the previous document just created.
-       */
-      master: {
-        get itemList() {
-          return masterStore.itemList
-        },
-        get tagList() {
-          return masterStore.tagList
-        },
-        get templateList() {
-          return masterStore.templateList
-        },
-        get tripList() {
-          return tripStore.tripList
-        },
-      },
-      mutations,
-      // The partition the rules name is the one the funnel derives from the
-      // table; an emitted row is whole, so it paints as given even where its
-      // op is an upsert (a generated position).
-      emit(_partition, _tripId, mutation) {
-        queue({ mutation, optimistic: optimisticInsert(mutation) })
-      },
-    }
-  }
-
-  /** Land one M18 portable document, then push what it produced (FR-18.4). */
-  function commitPortableImport(
-    doc: PortableDocument,
-    mergeDecisions: Map<string, string>,
-    restoredTemplates?: Map<string, string>,
-  ): PortableImportResult {
-    const result = importPortableDocument(
-      doc,
-      mergeDecisions,
-      portableImportEnv(),
-      restoredTemplates,
-    )
-    drainPartitions(result.kind === 'trip' ? [result.id] : [])
-    return result
-  }
-
-  /** Restore a whole backup file (NFR-4.11), then push what it produced. */
-  function commitPortableRestore(docs: PortableDocument[]): PortableImportResult[] {
-    const imported = importPortableBackup(docs, portableImportEnv())
-    // FR-19.8: a restore onto a server is the third step of the move; in
-    // Local Mode there is no move to finish.
-    if (!local) clearMigrationPending()
-    // Every trip the file brought, not none of them: a restore is the whole
-    // device, and its rows live in one partition per trip (FR-19.5).
-    drainPartitions(imported.filter((r) => r.kind === 'trip').map((r) => r.id))
-    return imported
-  }
-
   const imageActions = createImageActions({
     client,
     local,
@@ -886,29 +736,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     // pinia is active, and the orchestrator is built before one is in a test.
     identityCache: () => useIdentityStore(),
   })
-
-  // --- Trip membership actions (FR-4.5/4.7) ---
-
-  /** addTripMember shares the trip with a user account; returns the row id. */
-  function addTripMember(
-    tripId: string,
-    userId: string,
-    role: 'admin' | 'editor' = 'editor',
-  ): string {
-    const { mutation, id } = mutations.addTripMember(tripId, userId, role)
-    write(mutation)
-    return id
-  }
-
-  function setTripMemberRole(member: TripMember, role: 'admin' | 'editor') {
-    const mutation = mutations.setTripMemberRole(member.id, role)
-    write(mutation)
-  }
-
-  function removeTripMember(memberId: string) {
-    const mutation = mutations.removeTripMember(memberId)
-    write(mutation)
-  }
 
   // --- Lifecycle ---
 
@@ -984,31 +811,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     syncStatus,
     capturePending,
     outbox,
-    getPresence,
-    getRoster,
-    setViewing,
-    getLiveLocations,
-    shareLocation,
-    ...conflictActions,
-    ...activityActions,
-    isLockedByOther: locks.isLockedByOther,
-    holdsClaim: locks.holdsClaim,
-    lockHolder: locks.lockHolder,
-    releaseClaim,
-    takeOverClaim,
-    pruneItemLeftByRemoval,
-    fetchLockEvents,
-
-    // Drain
-    drainTrip,
-    tripDataLoaded,
-    masterDataLoaded,
-    ensureTripData,
-    drainMaster,
-    drainAll,
-
-    // Actions
-    createTripFromWizard: tripCreationActions.createTripFromWizard,
     // The FR-27.4 clock, exposed so a view asking "which trips does this
     // reach?" answers with the same date the refresh itself uses — two
     // clocks would let the warning and the behaviour disagree by a day.
@@ -1017,75 +819,44 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     // a screen reading the real clock past this seam is what a test cannot
     // set and what put FR-5.1 on the UTC day (`clockSeam.spec.ts`).
     now,
-    proposeTripRefresh: groupRefreshActions.proposeTripRefresh,
-    acceptTripRefresh: groupRefreshActions.acceptTripRefresh,
-    declineTripRefresh: groupRefreshActions.declineTripRefresh,
-    proposeRefreshForLoadedTrips: groupRefreshActions.proposeRefreshForLoadedTrips,
-    refreshProposals: groupRefreshActions.refreshProposals,
-    // FR-27.16: names taken over from the inventory on request.
-    ...inventoryNameActions,
-    cloneTrip: tripCreationActions.cloneTrip,
-    commitImport: tripCreationActions.commitImport,
-    commitPortableImport,
-    commitPortableRestore,
-    packingNow,
-    addGroupToTrip: tripLifecycleActions.addGroupToTrip,
-    updateTrip: tripLifecycleActions.updateTrip,
-    renameTraveler: tripLifecycleActions.renameTraveler,
-    linkTraveler: tripLifecycleActions.linkTraveler,
-    addTravelerToTrip: tripLifecycleActions.addTravelerToTrip,
-    removeTraveler: tripLifecycleActions.removeTraveler,
-    packedRowsOf: tripLifecycleActions.packedRowsOf,
 
-    // Master data
-    ...imageActions,
-    templateNameCollision: names.templateNameCollision,
-    seriesNameCollision: names.seriesNameCollision,
-    ...dependencyActions,
-
-    // Comments and todos (FR-7.1/7.2/7.3)
-    ...commentActions,
-
-    // Containers (FR-10.1, M11)
-    ...containerActions,
-
-    // Excursions (FR-31, M27)
-    ...excursionActions,
-
-    // Trip membership (FR-4.5/4.7)
-    addTripMember,
-    setTripMemberRole,
-    removeTripMember,
-
-    // Series & destinations (FR-13.1/13.2, M16)
-    ...seriesActions,
-    ...masterDataActions,
-    ...packingActions,
-
-    // Profile, directory and instance user management (M17, M20)
-    ...identityActions,
-
-    // Notifications (FR-6.2 / NFR-4.6)
-    markNotificationRead: notificationActions.markNotificationRead,
-    fetchNotificationPrefs: notificationActions.fetchNotificationPrefs,
-    saveNotificationPrefs: notificationActions.saveNotificationPrefs,
-    pushApi: notificationActions.pushApi,
-
-    // Post-trip review (FR-9.2, M14)
-    activateTrip: tripLifecycleActions.activateTrip,
-    unstartTrip: tripLifecycleActions.unstartTrip,
-    archiveTrip: tripLifecycleActions.archiveTrip,
-    closePacking: tripLifecycleActions.closePacking,
-    reopenPacking: tripLifecycleActions.reopenPacking,
-    restorePackingClose: tripLifecycleActions.restorePackingClose,
-    deleteTrip: tripLifecycleActions.deleteTrip,
-    applyReviewProposal: postTripActions.applyReviewProposal,
-    createTemplateFromTrip: postTripActions.createTemplateFromTrip,
-
-    // Lifecycle
+    // Lifecycle and drains — the glue this file owns
     connect,
     subscribeTrip,
     resume,
     disconnect,
+    drainTrip,
+    drainMaster,
+    drainAll,
+    tripDataLoaded,
+    masterDataLoaded,
+    ensureTripData,
+
+    // G-10 presence, FR-4.9's roster and FR-29.19's live locations, fed by the socket
+    presence: { getPresence, getRoster, setViewing, getLiveLocations, shareLocation },
+
+    // One namespace per action group, named after its file (ADR-098)
+    packing: packingActions,
+    claims: claimActions,
+    removal: removalPruneActions,
+    containers: containerActions,
+    comments: commentActions,
+    dependencies: dependencyActions,
+    excursions: excursionActions,
+    tripCreation: tripCreationActions,
+    tripLifecycle: tripLifecycleActions,
+    postTrip: postTripActions,
+    groupRefresh: groupRefreshActions,
+    inventoryNames: inventoryNameActions,
+    portable: portableActions,
+    membership: membershipActions,
+    masterData: masterDataActions,
+    series: seriesActions,
+    names,
+    images: imageActions,
+    conflicts: conflictActions,
+    activity: activityActions,
+    identity: identityActions,
+    notifications: notificationActions,
   }
 }

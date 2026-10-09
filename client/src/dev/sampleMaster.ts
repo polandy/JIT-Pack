@@ -320,7 +320,7 @@ function addPositions(
   for (const pos of positions) {
     const itemId = itemIds.get(pos.item)
     if (!itemId) continue
-    const positionId = orchestrator.addTemplateItem(templateId, itemId, {
+    const positionId = orchestrator.masterData.addTemplateItem(templateId, itemId, {
       quantity: pos.quantity ?? 1,
       assignment: pos.perPerson ? 'per_person' : 'trip_global',
       defaultMode: pos.onSite
@@ -329,7 +329,7 @@ function addPositions(
           ? ITEM_MODE_BUY_BEFORE
           : ITEM_MODE_PACK,
     })
-    if (pos.task) orchestrator.addTemplateItemTask(positionId, pos.task)
+    if (pos.task) orchestrator.masterData.addTemplateItemTask(positionId, pos.task)
   }
 }
 
@@ -367,31 +367,31 @@ function seedRetiredRows(
   itemIds: Map<string, string>,
   tagIds: Map<string, string>,
 ): void {
-  const groupId = orchestrator.createTemplate(RETIRE_DEMO.group, 'group', '🧼')
+  const groupId = orchestrator.masterData.createTemplate(RETIRE_DEMO.group, 'group', '🧼')
   if (groupId === null) return
   const keepId = itemIds.get(RETIRE_DEMO.keep)
-  if (keepId) orchestrator.addTemplateItem(groupId, keepId, {})
+  if (keepId) orchestrator.masterData.addTemplateItem(groupId, keepId, {})
 
   // Tagged like every other seeded item: M9 groups by primary tag, and an
   // untagged row would land in a bucket the rest of the seed never uses.
   const tagId = tagIds.get(RETIRE_DEMO.tag)
   const seedItem = (name: string, icon: string | null): string => {
-    const itemId = orchestrator.createMasterItem(name, { weightGrams: null, icon })
-    if (tagId) orchestrator.assignTag(itemId, tagId)
+    const itemId = orchestrator.masterData.createMasterItem(name, { weightGrams: null, icon })
+    if (tagId) orchestrator.masterData.assignTag(itemId, tagId)
     return itemId
   }
 
   for (const name of [...RETIRE_DEMO.plain, RETIRE_DEMO.contested]) {
     const itemId = seedItem(name, null)
-    orchestrator.addTemplateItem(groupId, itemId, {})
-    orchestrator.deleteMasterItem(itemId)
+    orchestrator.masterData.addTemplateItem(groupId, itemId, {})
+    orchestrator.masterData.deleteMasterItem(itemId)
   }
 
   for (const name of RETIRE_DEMO.loose) {
     const itemId = seedItem(name, null)
-    const positionId = orchestrator.addTemplateItem(groupId, itemId, {})
-    orchestrator.deleteMasterItem(itemId)
-    orchestrator.deleteTemplateItem(positionId)
+    const positionId = orchestrator.masterData.addTemplateItem(groupId, itemId, {})
+    orchestrator.masterData.deleteMasterItem(itemId)
+    orchestrator.masterData.deleteTemplateItem(positionId)
   }
 
   // The retired row's name, now held by a different item — which is exactly
@@ -419,29 +419,29 @@ export function seedSampleMaster(
     (tag): tag is string => tag !== undefined,
   )
   for (const tag of new Set(tagNames)) {
-    tagIds.set(tag, orchestrator.createTag(tag, TAG_MARKS[tag] ?? null))
+    tagIds.set(tag, orchestrator.masterData.createTag(tag, TAG_MARKS[tag] ?? null))
   }
 
   const itemIds = new Map<string, string>()
   for (const item of INVENTORY) {
-    const id = orchestrator.createMasterItem(item.name, {
+    const id = orchestrator.masterData.createMasterItem(item.name, {
       weightGrams: item.weightGrams ?? null,
       icon: item.icon ?? null,
       defaultAssigneeId: item.name === ASSIGNED_TO_ME ? myUserId : null,
     })
     itemIds.set(item.name, id)
     const tagId = item.tag ? tagIds.get(item.tag) : undefined
-    if (tagId) orchestrator.assignTag(id, tagId)
+    if (tagId) orchestrator.masterData.assignTag(id, tagId)
     // Second, so it lands behind the first — `assignTag` appends.
     const alsoId = item.alsoTag ? tagIds.get(item.alsoTag) : undefined
-    if (alsoId) orchestrator.assignTag(id, alsoId)
+    if (alsoId) orchestrator.masterData.assignTag(id, alsoId)
   }
 
   for (const dep of DEPENDENCIES) {
     const itemId = itemIds.get(dep.item)
     const mainId = itemIds.get(dep.dependsOn)
     if (itemId && mainId)
-      orchestrator.addItemDependency(itemId, mainId, { mode: dep.mode ?? 'required' })
+      orchestrator.dependencies.addItemDependency(itemId, mainId, { mode: dep.mode ?? 'required' })
   }
 
   // A second seed run on a device that already carries the sample data finds
@@ -453,8 +453,8 @@ export function seedSampleMaster(
   // template this run actually created.
   const created = new Set<string>()
   const seedTemplate = (name: string, kind: TemplateKind, icon: string | null): string => {
-    const id = orchestrator.createTemplate(name, kind, icon)
-    if (id === null) return orchestrator.templateNameCollision(name)!.id
+    const id = orchestrator.masterData.createTemplate(name, kind, icon)
+    if (id === null) return orchestrator.names.templateNameCollision(name)!.id
     created.add(id)
     return id
   }
@@ -470,14 +470,14 @@ export function seedSampleMaster(
   if (created.has(vacationTemplateId)) {
     for (const name of VACATION.includes) {
       const groupId = groupIds.get(name)
-      if (groupId) orchestrator.addTemplateInclude(vacationTemplateId, groupId)
+      if (groupId) orchestrator.masterData.addTemplateInclude(vacationTemplateId, groupId)
     }
     addPositions(orchestrator, vacationTemplateId, itemIds, VACATION.positions)
     VACATION.taskTags.forEach((tag, index) => {
-      orchestrator.createTaskTag(tag.name, index)
+      orchestrator.masterData.createTaskTag(tag.name, index)
     })
     for (const { task, phase } of VACATION.tripTasks) {
-      orchestrator.addTemplateTask(vacationTemplateId, task, phase)
+      orchestrator.masterData.addTemplateTask(vacationTemplateId, task, phase)
     }
   }
 

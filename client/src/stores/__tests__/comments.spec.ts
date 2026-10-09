@@ -242,10 +242,10 @@ describe('orchestrator comment actions', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const tripStore = useTripStore()
 
-    const id = orch.addComment('t1', 'ti1', 'u1', 'Ventil prüfen')
+    const id = orch.comments.addComment('t1', 'ti1', 'u1', 'Ventil prüfen')
     expect(tripStore.getItemComments('t1', 'ti1')).toHaveLength(1)
 
-    orch.flagCommentAsTask('t1', tripStore.getItemComments('t1', 'ti1')[0]!)
+    orch.comments.flagCommentAsTask('t1', tripStore.getItemComments('t1', 'ti1')[0]!)
     expect(tripStore.getItemComments('t1', 'ti1')).toHaveLength(0)
     const todos = tripStore.getItemTodos('t1', 'ti1')
     expect(todos).toHaveLength(1)
@@ -261,7 +261,7 @@ describe('orchestrator comment actions', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const tripStore = useTripStore()
 
-    orch.toggleNoteTick('t1', 'note-1', 'u1', null, {
+    orch.comments.toggleNoteTick('t1', 'note-1', 'u1', null, {
       ticked: false,
       seenThrough: '2026-09-20T10:00:00Z',
     })
@@ -274,7 +274,10 @@ describe('orchestrator comment actions', () => {
       seen_through: '2026-09-20T10:00:00Z',
     })
 
-    orch.toggleNoteTick('t1', 'note-1', 'u1', acks[0]!, { ticked: true, seenThrough: null })
+    orch.comments.toggleNoteTick('t1', 'note-1', 'u1', acks[0]!, {
+      ticked: true,
+      seenThrough: null,
+    })
     const flipped = tripStore.getNoteAcks('t1')
     expect(flipped).toHaveLength(1)
     expect(flipped[0]).toMatchObject({ id: acks[0]!.id, acked: false })
@@ -289,12 +292,12 @@ describe('orchestrator comment actions', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const tripStore = useTripStore()
 
-    orch.toggleNoteTick('t1', 'note-1', 'u1', null, {
+    orch.comments.toggleNoteTick('t1', 'note-1', 'u1', null, {
       ticked: false,
       seenThrough: '2026-09-20T10:00:00Z',
     })
     const ack = tripStore.getNoteAcks('t1')[0]!
-    orch.toggleNoteTick('t1', 'note-1', 'u1', ack, {
+    orch.comments.toggleNoteTick('t1', 'note-1', 'u1', ack, {
       ticked: false,
       seenThrough: '2026-09-21T09:00:00Z',
     })
@@ -310,13 +313,13 @@ describe('orchestrator comment actions', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const tripStore = useTripStore()
 
-    const root = orch.addComment('t1', null, 'u1', 'Code 4711', { title: 'Schlüsselbox' })
-    orch.addComment('t1', null, 'u2', 'Danke', { parentId: root })
-    const other = orch.addComment('t1', null, 'u2', 'Fähre um 8')
-    orch.toggleNoteTick('t1', root, 'u2', null, { ticked: false, seenThrough: null })
+    const root = orch.comments.addComment('t1', null, 'u1', 'Code 4711', { title: 'Schlüsselbox' })
+    orch.comments.addComment('t1', null, 'u2', 'Danke', { parentId: root })
+    const other = orch.comments.addComment('t1', null, 'u2', 'Fähre um 8')
+    orch.comments.toggleNoteTick('t1', root, 'u2', null, { ticked: false, seenThrough: null })
     expect(tripStore.getTripComments('t1')).toHaveLength(3)
 
-    orch.deleteComment(root)
+    orch.comments.deleteComment(root)
 
     expect(tripStore.getTripComments('t1').map((c) => c.id)).toEqual([other])
     expect(tripStore.getNoteAcks('t1')).toEqual([])

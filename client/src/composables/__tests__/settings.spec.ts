@@ -23,7 +23,7 @@ describe('M17 profile & data actions', () => {
     )
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => 'tok' })
 
-    const me = await orch.fetchMe()
+    const me = await orch.identity.fetchMe()
 
     expect(me).toEqual({ user_id: 'u1', display_name: 'Andy' })
     const [url, init] = fetchMock.mock.calls[0]!
@@ -35,7 +35,7 @@ describe('M17 profile & data actions', () => {
     fetchMock.mockResolvedValueOnce(new Response('', { status: 200 }))
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
 
-    await orch.saveDisplayName('u1', 'Andy_2')
+    await orch.identity.saveDisplayName('u1', 'Andy_2')
 
     const [url, init] = fetchMock.mock.calls[0]!
     expect(String(url)).toContain('/api/v1/users/u1/display-name')
@@ -47,7 +47,7 @@ describe('M17 profile & data actions', () => {
     fetchMock.mockResolvedValueOnce(new Response('', { status: 200 }))
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
 
-    await orch.uploadAvatar('u1', new Blob(['jpeg-bytes'], { type: 'image/jpeg' }))
+    await orch.identity.uploadAvatar('u1', new Blob(['jpeg-bytes'], { type: 'image/jpeg' }))
 
     const [url, init] = fetchMock.mock.calls[0]!
     expect(String(url)).toContain('/api/v1/users/u1/avatar')
@@ -61,9 +61,9 @@ describe('M17 profile & data actions', () => {
       local: new IndexedDBPersistence(),
     })
 
-    expect(await orch.fetchMe()).toBeNull()
-    await orch.saveDisplayName('u1', 'x')
-    expect(await orch.downloadExport('/api/v1/me/export.json')).toBeNull()
+    expect(await orch.identity.fetchMe()).toBeNull()
+    await orch.identity.saveDisplayName('u1', 'x')
+    expect(await orch.identity.downloadExport('/api/v1/me/export.json')).toBeNull()
     expect(fetchMock).not.toHaveBeenCalled()
   })
 })
