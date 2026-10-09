@@ -5,6 +5,11 @@
 #
 # Base images are pinned by digest (supply-chain hardening); the tag is kept
 # for readability. Dependabot (docker ecosystem) updates the digest.
+#
+# They are pulled from public.ecr.aws/docker/library, Docker's own mirror of
+# the Official Images: the same manifests under the same digests, without
+# Docker Hub's anonymous pull limit, which fails the CI build whenever the
+# shared runner IPs have used it up.
 
 # Client build stage — compile the Vue/Ionic SPA to static assets.
 #
@@ -12,7 +17,7 @@
 # this stage builds the bundle that ships, and a version nothing else in the
 # repo tests with would ship untested. scripts/toolchain-pins-gate.sh enforces
 # that — moving the major is one change in all three files.
-FROM node:24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS client
+FROM public.ecr.aws/docker/library/node:24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS client
 
 # The Settings "About" section (M17) names the build. This stage has no
 # `.git` (only `client/` is in its context), so the release tag and commit
@@ -30,7 +35,7 @@ RUN npm run build
 
 # Server build stage — pure-Go modernc.org/sqlite, no C toolchain needed
 # (ADR-001).
-FROM golang:1.27-alpine@sha256:4c9fe60190a2a3350ddc51de80d0224b8a6698d12bdfc999fee45ea9d6c46dbc AS build
+FROM public.ecr.aws/docker/library/golang:1.27-alpine@sha256:4c9fe60190a2a3350ddc51de80d0224b8a6698d12bdfc999fee45ea9d6c46dbc AS build
 
 # The server names its own build too (FR-23.8): the release check compares
 # this tag against the newest release upstream, and a build that carries no
@@ -46,7 +51,7 @@ COPY . .
 RUN CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=${APP_VERSION}" -o /jitpackd ./cmd/jitpackd
 
 # Runtime stage
-FROM alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
+FROM public.ecr.aws/docker/library/alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
 
 RUN apk add --no-cache ca-certificates wget
 
