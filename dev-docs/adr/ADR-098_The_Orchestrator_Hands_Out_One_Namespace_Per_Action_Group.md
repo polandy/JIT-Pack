@@ -68,7 +68,7 @@ Keep `orchestrator.packIncrement`; spread every group through one merge that thr
 | Collisions impossible | 2 | 3 — by construction | 2 — a runtime throw | 1 — not addressed |
 | Facade decides nothing | 2 | 3 — groups extracted | 3 — same | 3 — same |
 | Cost of the change | 1 | 1 — ~1,300 sites | 3 — one file | 2 — helpers only |
-| **Total** | | **22** | **16** | **12** |
+| **Total** | | **22** | **16** | **13** |
 
 ---
 
