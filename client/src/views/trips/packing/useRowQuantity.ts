@@ -12,15 +12,15 @@ import { computed, ref } from 'vue'
 import { durationDays } from '@/domain/instantiate'
 import { quantityChoices } from '@/domain/quantityChoices'
 import { t } from '@/i18n'
-import type { TripItem } from '@/types/domain'
+import type { PackableRow } from '@/domain/packingView'
 
 import type { RowPort } from './rowPort'
 
 /** The popover's state and its two openers. */
-export type RowQuantity = ReturnType<typeof useRowQuantity>
+export type RowQuantity<R extends PackableRow = PackableRow> = ReturnType<typeof useRowQuantity<R>>
 
 /** Builds {@link RowQuantity} over a list's port — M4's, or an excursion's (FR-31.6). */
-export function useRowQuantity(port: RowPort) {
+export function useRowQuantity<R extends PackableRow>(port: RowPort<R>) {
   const { rowUndo } = port
 
   /**
@@ -73,7 +73,7 @@ export function useRowQuantity(port: RowPort) {
    * inert: somebody else holds the row, or the screen is asking a different
    * question and this is not an answer to it.
    */
-  function open(row: TripItem, opener?: MouseEvent): void {
+  function open(row: R, opener?: MouseEvent): void {
     if (port.inert(row)) return
     event.value = opener
     clusterLabel.value = null
@@ -94,7 +94,7 @@ export function useRowQuantity(port: RowPort) {
    * a snackbar raised over the open popover would also be the overlay Escape
    * dismisses first, leaving the popover standing and the undo gone.
    */
-  let before: TripItem[] | null = null
+  let before: R[] | null = null
 
   function set(quantity: number): void {
     // Snapshotted at the first write rather than at opening, so both openers —

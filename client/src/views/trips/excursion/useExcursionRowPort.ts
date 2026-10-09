@@ -1,21 +1,15 @@
 /**
  * An excursion's lines as M4's row slices act on them (FR-31.6): the
- * {@link RowPort} over the line's own count, so the stepper, the check, the
- * skip, the amount and the browse verbs are M4's, written to the line.
+ * {@link RowPort} over the lines themselves — a line is a packing view's
+ * `PackableRow` as it is — so the stepper, the check, the skip, the amount and
+ * the browse verbs are M4's, written to the line.
  */
 import { computed, type ComputedRef } from 'vue'
 
 import type { PackAnnouncer } from '@/composables/usePackAnnouncer'
 import type { RowUndoRecord } from '@/composables/useRowUndo'
 import type { Orchestrator } from '@/composables/useSyncOrchestrator'
-import { excursionLineAsRow } from '@/domain/excursionLines'
-import {
-  STATE_SKIPPED,
-  type Excursion,
-  type ExcursionItem,
-  type Traveler,
-  type TripItem,
-} from '@/types/domain'
+import { STATE_SKIPPED, type Excursion, type ExcursionItem, type Traveler } from '@/types/domain'
 
 import type { RowPort } from '../packing/rowPort'
 
@@ -35,19 +29,15 @@ export interface ExcursionRowSource {
   announcer: PackAnnouncer
 }
 
-/** Builds the excursion's port, and the way from one of its rows back to its line. */
+/** Builds the excursion's port, and the lines by id. */
 export function useExcursionRowPort(source: ExcursionRowSource) {
   const { orchestrator, lines, announcer } = source
 
-  /** The lines by id, to get from M4's row back to the line it reads. */
+  /** The lines by id, to read a line as it stands now. */
   const lineById = computed(() => new Map(lines.value.map((line) => [line.id, line])))
 
-  function lineOf(row: TripItem): ExcursionItem {
-    return lineById.value.get(row.id)!
-  }
-
-  /** Write to the line behind a row, unless it has left the excursion meanwhile. */
-  function onLine(row: TripItem, write: (line: ExcursionItem) => void): void {
+  /** Write to the line as it stands now, unless it has left the excursion meanwhile. */
+  function onLine(row: ExcursionItem, write: (line: ExcursionItem) => void): void {
     const line = lineById.value.get(row.id)
     if (line) write(line)
   }
@@ -69,17 +59,14 @@ export function useExcursionRowPort(source: ExcursionRowSource) {
     }
   }
 
-  const port: RowPort = {
-    rows: computed(() => lines.value.map(excursionLineAsRow)),
+  const port: RowPort<ExcursionItem> = {
+    rows: lines,
     travelers: source.participants,
     span: computed(() => ({
       start: source.excursion.value?.starts_on ?? null,
       end: source.excursion.value?.ends_on ?? null,
     })),
-    liveRow: (id) => {
-      const line = lineById.value.get(id)
-      return line ? excursionLineAsRow(line) : null
-    },
+    liveRow: (id) => lineById.value.get(id) ?? null,
     // Nobody claims a line, and an excursion has no closing pass.
     inert: () => false,
     setQuantity: (row, quantity) =>
@@ -99,7 +86,7 @@ export function useExcursionRowPort(source: ExcursionRowSource) {
       const line = lineById.value.get(row.id)
       if (!line) return []
       orchestrator.skipLine(line)
-      return [excursionLineAsRow(line)]
+      return [line]
     },
     unskip: (row) => onLine(row, (line) => orchestrator.unskipLine(line)),
     restorePacked: restoreCounts,
@@ -110,5 +97,5 @@ export function useExcursionRowPort(source: ExcursionRowSource) {
     announceSkipped: announcer.announceSkipped,
   }
 
-  return { port, lineById, lineOf }
+  return { port, lineById }
 }

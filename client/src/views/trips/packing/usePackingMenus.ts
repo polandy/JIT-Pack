@@ -53,7 +53,7 @@ export type PackingMenus = ReturnType<typeof usePackingMenus>
 export function usePackingMenus(
   core: PackingCore,
   acts: RowActions,
-  quantity: RowQuantity,
+  quantity: RowQuantity<TripItem>,
   forWhom: ForWhom,
 ) {
   const { tripId, orchestrator, locked, rowUndo, armRowsUndo } = core

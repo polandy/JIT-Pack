@@ -27,8 +27,9 @@ import {
   NO_VALUE,
   PACK_STATUS_VALUES,
   noFacets,
-} from '@/domain/packingView'
-import type { FacetValue, PackingView } from '@/domain/packingView'
+  type FacetValue,
+} from '@/domain/packingFacets'
+import type { PackingView } from '@/domain/packingView'
 import { ITEM_MODES, type FacetKey, type Facets } from '@/types/domain'
 
 function emptyFacetValues(): Record<FacetKey, FacetValue[]> {

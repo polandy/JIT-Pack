@@ -147,3 +147,13 @@ What stays put stays by the same rule: M4's own slices of the list (`packing/Tri
 `usePackingTasks.ts`) are packing's, `useTripTasks`/`useTaskActs` serve three screens from `composables/`,
 `lib/taskDueText.ts` is read by every module, and the rules keep their `domain/task*.ts` names — `tripTodos.ts` is
 renamed with ARCH-27's glossary, not before it.
+
+## Amendment, 2026-10-09: a line is M4's row by port, not by disguise (ARCH-22)
+
+The excursion screen still *is* M4's list, but a line no longer reads as a `TripItem`. `domain/packingView.ts` names
+the row it reads, `PackableRow`: what a trip item and a line both carry — name, count, state, mode, the person it is
+for — with the suitcase's own facts (luggage, the departure-day, missing and unused flags, assignment, packing record)
+optional and read as none where absent. `buildPackingView`, `RowPort`, M4's row slices, `PackingGroupList`,
+`PackingRow` and the row menu are generic over it, so M4 gets its `TripItem`s back and M27 its lines; the 24-field
+`excursionLineAsRow` and the `lineOf` lookup behind every row event are gone. The facet arithmetic the view filters
+with moved beside it into `domain/packingFacets.ts`.

@@ -18,8 +18,13 @@ import { briefcaseOutline, cartOutline, contrastOutline, flagOutline } from 'ion
 import { personOutline, pricetagOutline } from 'ionicons/icons'
 
 import type { FilterFacet, FilterOption, FilterSwitch, GroupingOption } from '@/lib/filterSheet'
-import { FACET_KEYS, NO_VALUE } from '@/domain/packingView'
-import type { FlagFacetValue, PackStatusFacetValue, PackingView } from '@/domain/packingView'
+import {
+  FACET_KEYS,
+  NO_VALUE,
+  type FlagFacetValue,
+  type PackStatusFacetValue,
+} from '@/domain/packingFacets'
+import type { PackingView } from '@/domain/packingView'
 import { t, type MessageKey } from '@/i18n'
 import { modeLabel } from '@/lib/modeLabels'
 import type { FacetKey, Facets, GroupBy } from '@/types/domain'

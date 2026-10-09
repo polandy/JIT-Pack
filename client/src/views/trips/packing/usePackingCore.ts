@@ -162,7 +162,7 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
   }
 
   /** The trip's rows as M4's shared row slices act on them (`rowPort.ts`). */
-  const port: RowPort = {
+  const port: RowPort<TripItem> = {
     rows: allItems,
     travelers,
     span: computed(() => ({

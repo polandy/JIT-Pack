@@ -4,7 +4,7 @@
 1493 client/src/components/global/TrackEditor.vue
 1427 client/src/views/templates/TemplateEditorPage.vue
 1307 client/src/views/items/ItemEditorPage.vue
-1211 client/src/views/trips/TripExcursionPage.vue
+1208 client/src/views/trips/TripExcursionPage.vue
 1178 client/src/views/settings/SettingsPage.vue
 1167 client/src/views/trips/TripListPage.vue
 1154 client/src/components/global/QuickAddItem.vue
@@ -22,6 +22,5 @@
 863 client/src/planner/ConnectionSearch.vue
 862 client/src/composables/useSyncOrchestrator.ts
 844 client/src/meals/MealPlanPage.vue
-842 client/src/domain/packingView.ts
 818 client/src/views/trips/TripTasksPage.vue
 810 client/src/app/actions/packing.ts

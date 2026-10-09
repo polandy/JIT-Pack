@@ -18,7 +18,9 @@
  * them by name is FR-27.10's rule for whole groups, and a second, quieter
  * copy of it here is exactly the drift FR-25.11g warns about.
  */
-import type { Traveler, TripItem } from '@/types/domain'
+import type { Traveler } from '@/types/domain'
+
+import type { PackableRow } from './packingView'
 
 /** The state the sheet renders for a master item the scope already carries. */
 export type BrowseRowState = 'open' | 'packed' | 'skipped' | 'locked'
@@ -56,12 +58,12 @@ export interface BrowseRowSummary {
  *    there is something left to decide, so the verbs stay on offer and act
  *    on the rows that are not in that state yet.
  */
-export function browseRowStates(
-  items: readonly TripItem[],
-  lockNoteOf: (item: TripItem) => string | null,
+export function browseRowStates<R extends PackableRow>(
+  items: readonly R[],
+  lockNoteOf: (item: R) => string | null,
   travelers: readonly Traveler[],
 ): Map<string, BrowseRowSummary> {
-  const rows = new Map<string, TripItem[]>()
+  const rows = new Map<string, R[]>()
   for (const item of items) {
     if (item.source_item_id === null) continue
     const group = rows.get(item.source_item_id)
@@ -84,7 +86,7 @@ export function browseRowStates(
 }
 
 /** The travelers of the roster this item already has a row for, counted once each. */
-function travelersReached(group: readonly TripItem[], roster: ReadonlySet<string>): number {
+function travelersReached(group: readonly PackableRow[], roster: ReadonlySet<string>): number {
   const reached = new Set<string>()
   for (const item of group) {
     if (item.assigned_traveler_id !== null && roster.has(item.assigned_traveler_id)) {
@@ -94,7 +96,7 @@ function travelersReached(group: readonly TripItem[], roster: ReadonlySet<string
   return reached.size
 }
 
-function settledState(group: readonly TripItem[]): BrowseRowState {
+function settledState(group: readonly PackableRow[]): BrowseRowState {
   if (group.every((item) => item.state === 'packed')) return 'packed'
   if (group.every((item) => item.state === 'skipped')) return 'skipped'
   return 'open'

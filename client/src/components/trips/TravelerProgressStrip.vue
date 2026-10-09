@@ -15,7 +15,7 @@
 import { computed, ref } from 'vue'
 
 import UserAvatar from '@/components/global/UserAvatar.vue'
-import { NO_VALUE } from '@/domain/packingView'
+import { NO_VALUE } from '@/domain/packingFacets'
 import {
   TRAVELER_FOLD_CAP,
   foldTravelers,

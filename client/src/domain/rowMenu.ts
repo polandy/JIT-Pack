@@ -8,7 +8,9 @@
  * are offered; the view keeps the wording, the glyphs and the handlers,
  * which are its own.
  */
-import { ITEM_MODE_BUY_LOCAL, type TripItem } from '@/types/domain'
+import { ITEM_MODE_BUY_LOCAL } from '@/types/domain'
+
+import type { PackableRow } from './packingView'
 
 /**
  * One entry the row menu can offer. Not a label: the wording of `flagUnused`
@@ -60,11 +62,11 @@ export interface RowMenuContext {
   forWhom: boolean
 }
 
-/** The row fields the menu reads; a `TripItem` satisfies it. */
-export type RowMenuItem = Pick<TripItem, 'state' | 'flag_unused' | 'late_packer' | 'mode'>
+/** The row fields the menu reads; any {@link PackableRow} satisfies it. */
+export type RowMenuItem = Pick<PackableRow, 'state' | 'flag_unused' | 'late_packer' | 'mode'>
 
-/** The row fields the avatar rule reads; a `TripItem` satisfies it. */
-export type AssignableRowItem = Pick<TripItem, 'packed_by_user_id'>
+/** The row fields the avatar rule reads; any {@link PackableRow} satisfies it. */
+export type AssignableRowItem = Pick<PackableRow, 'packed_by_user_id'>
 
 /** Everything outside the row that decides whether it can be handed over. */
 export interface AssignContext {
@@ -88,7 +90,7 @@ export interface AssignContext {
  */
 export function avatarAssignable(item: AssignableRowItem, ctx: AssignContext): boolean {
   if (!ctx.hasAssignees || ctx.closingPass || ctx.locked) return false
-  return item.packed_by_user_id === null
+  return (item.packed_by_user_id ?? null) === null
 }
 
 /**

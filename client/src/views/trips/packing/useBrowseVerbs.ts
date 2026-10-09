@@ -7,18 +7,22 @@
 import { computed } from 'vue'
 
 import { browseRowStates } from '@/domain/browseRows'
-import { STATE_PACKED, STATE_SKIPPED, type TripItem } from '@/types/domain'
+import type { PackableRow } from '@/domain/packingView'
+import { STATE_PACKED, STATE_SKIPPED } from '@/types/domain'
 
 import type { RowPort } from './rowPort'
 
 /** The verbs {@link useBrowseVerbs} returns. */
-export type BrowseVerbs = ReturnType<typeof useBrowseVerbs>
+export type BrowseVerbs<R extends PackableRow = PackableRow> = ReturnType<typeof useBrowseVerbs<R>>
 
 /**
  * Builds {@link BrowseVerbs} over a list's port. `lockNote` names who holds a
  * row (G-3), null where nobody does.
  */
-export function useBrowseVerbs(port: RowPort, lockNote: (row: TripItem) => string | null) {
+export function useBrowseVerbs<R extends PackableRow>(
+  port: RowPort<R>,
+  lockNote: (row: R) => string | null,
+) {
   /**
    * FR-25.13c: what the list already carries — skipped rows included — is
    * not offered again by the quick-add, and it is the context the composer's
@@ -63,7 +67,7 @@ export function useBrowseVerbs(port: RowPort, lockNote: (row: TripItem) => strin
   }
 
   /** Every row the list carries for one master item (FR-25.21's fan-out). */
-  function rowsOfMasterItem(itemId: string): TripItem[] {
+  function rowsOfMasterItem(itemId: string): R[] {
     return port.rows.value.filter((row) => row.source_item_id === itemId)
   }
 
