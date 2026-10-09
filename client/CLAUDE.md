@@ -71,7 +71,8 @@ pinia and Ionic in `lib/` and `sync/`, Ionic in `app/`). Decide by what the file
 - a rule with no I/O → `domain/`, into `domain/shared/` if a module reads it too (the calendar, a due day, a track) —
   that subtree reads only itself and the vocabulary (ADR-097); a pure helper that words or formats → `lib/` (no `vue`,
   Ionic or router there);
-- a use case the orchestrator and the CLI share → `app/` (an action group in `app/actions/`);
+- a use case the orchestrator and the CLI share → `app/` (an action group in `app/actions/`, which the orchestrator
+  hands out whole under a namespace named after the file — ADR-098);
 - a contract between the kernel and a module, or the adapter that fills one → `kernel/` — its shape in `domain/shared/`
   when a module's rules read it (`dayPlanLine.ts` beside `kernel/dayPlanSources.ts`), only the `InjectionKey` here;
 - anything reactive or an Ionic controller → `composables/`, into `composables/shared/` if a module mounts it;

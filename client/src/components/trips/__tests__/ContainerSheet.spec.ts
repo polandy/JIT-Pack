@@ -72,10 +72,12 @@ const orchestratorFake = {
   syncStatus: { state: { value: 'idle' } },
   // FR-25.15: the indicator's own signal, deliberately not the one above.
   capturePending: { value: false },
-  updateContainer: vi.fn(),
-  pairContainer: vi.fn(),
-  unpairContainer: vi.fn(),
-  deleteContainer: vi.fn(),
+  containers: {
+    updateContainer: vi.fn(),
+    pairContainer: vi.fn(),
+    unpairContainer: vi.fn(),
+    deleteContainer: vi.fn(),
+  },
 }
 
 function mountSheet(containerId = 'left') {
@@ -111,8 +113,8 @@ describe('ContainerSheet', () => {
     const wrapper = mountSheet('left')
     await wrapper.get('[data-testid="m11-pair-right"]').trigger('click')
 
-    expect(orchestratorFake.pairContainer).toHaveBeenCalledWith('t1', 'left', 'right')
-    expect(orchestratorFake.unpairContainer).not.toHaveBeenCalled()
+    expect(orchestratorFake.containers.pairContainer).toHaveBeenCalledWith('t1', 'left', 'right')
+    expect(orchestratorFake.containers.unpairContainer).not.toHaveBeenCalled()
   })
 
   it('tapping the active partner clears the pair for both sides', async () => {
@@ -123,8 +125,8 @@ describe('ContainerSheet', () => {
     const wrapper = mountSheet('left')
     await wrapper.get('[data-testid="m11-pair-right"]').trigger('click')
 
-    expect(orchestratorFake.unpairContainer).toHaveBeenCalledWith('t1', 'left')
-    expect(orchestratorFake.pairContainer).not.toHaveBeenCalled()
+    expect(orchestratorFake.containers.unpairContainer).toHaveBeenCalledWith('t1', 'left')
+    expect(orchestratorFake.containers.pairContainer).not.toHaveBeenCalled()
   })
 
   it('shows the imbalance only beyond the threshold (FR-10.3, default 15 %)', () => {
@@ -151,14 +153,16 @@ describe('ContainerSheet', () => {
     ;(input.element as HTMLInputElement & { value: string }).value = 'Left pannier'
     await input.trigger('ionBlur')
 
-    expect(orchestratorFake.updateContainer).toHaveBeenCalledTimes(1)
-    expect(orchestratorFake.updateContainer.mock.calls[0]![1]).toEqual({ name: 'Left pannier' })
+    expect(orchestratorFake.containers.updateContainer).toHaveBeenCalledTimes(1)
+    expect(orchestratorFake.containers.updateContainer.mock.calls[0]![1]).toEqual({
+      name: 'Left pannier',
+    })
 
     // The store still says 'Left' (the fake persists nothing): blurring
     // with the unchanged name must not produce a second write.
     ;(input.element as HTMLInputElement & { value: string }).value = 'Left'
     await input.trigger('ionBlur')
-    expect(orchestratorFake.updateContainer).toHaveBeenCalledTimes(1)
+    expect(orchestratorFake.containers.updateContainer).toHaveBeenCalledTimes(1)
   })
 
   // FR-10.1 calls the carrier *optional*, and E2E-M11-01 promises editing
@@ -173,7 +177,7 @@ describe('ContainerSheet', () => {
     const wrapper = mountSheet('left')
     await wrapper.get('[data-testid="m11-carrier-andy"]').trigger('click')
 
-    expect(orchestratorFake.updateContainer.mock.calls[0]![1]).toEqual({
+    expect(orchestratorFake.containers.updateContainer.mock.calls[0]![1]).toEqual({
       carrier_traveler_id: null,
     })
   })

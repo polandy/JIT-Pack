@@ -811,7 +811,7 @@ function takeOffer(): void {
     createOpen.value = true
     return
   }
-  if (!orchestrator.restoreMasterItem(current.id)) return
+  if (!orchestrator.masterData.restoreMasterItem(current.id)) return
   const restored = masterStore.getItem(current.id)
   if (restored) onAdd(restored)
 }

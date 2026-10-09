@@ -70,7 +70,7 @@ describe('commitImport (FR-16.2)', () => {
       row: { name: 'Unterhosen' },
     })
 
-    const result = orch.commitImport(plan)
+    const result = orch.tripCreation.commitImport(plan)
 
     // Master data: one new category, two new items, merge reused.
     const kleidung = master.tagList.find((c) => c.name === 'Kleidung')
@@ -132,7 +132,7 @@ describe('commitImport (FR-16.2)', () => {
       const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
       const trips = useTripStore()
 
-      const result = orch.commitImport(plan)
+      const result = orch.tripCreation.commitImport(plan)
 
       const row = trips.getItems(result.tripIds[0]!).find((i) => i.name === 'Regenschutz Rucksack')!
       const [todo] = trips.getItemTodos(result.tripIds[0]!, row.id)
@@ -153,7 +153,7 @@ describe('commitImport (FR-16.2)', () => {
   it('enqueues every master item before the tag assignment that references it', async () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
 
-    orch.commitImport(plan)
+    orch.tripCreation.commitImport(plan)
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
 
     const pushed = fetchMock.mock.calls
@@ -186,7 +186,7 @@ describe('commitImport (FR-16.2)', () => {
       row: { name: 'Kleidung', sort_order: 0 },
     })
 
-    orch.commitImport({ ...plan, trips: [] })
+    orch.tripCreation.commitImport({ ...plan, trips: [] })
 
     expect(master.tagList.filter((c) => c.name === 'Kleidung')).toHaveLength(1)
     const socken2 = master.itemList.find((i) => i.name === 'Socken')!

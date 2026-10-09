@@ -65,7 +65,7 @@ describe('co-skip cascade (FR-20.2)', () => {
     const tripStore = useTripStore()
 
     const cameraItem = tripStore.getItems('t1').find((i) => i.id === 'ti-camera')!
-    orch.skipItem('t1', cameraItem)
+    orch.packing.skipItem('t1', cameraItem)
 
     const states = new Map(tripStore.getItems('t1').map((i) => [i.id, i.state]))
     expect(states.get('ti-camera')).toBe('skipped')
@@ -82,7 +82,7 @@ describe('co-skip cascade (FR-20.2)', () => {
     const tripStore = useTripStore()
 
     const cameraItem = tripStore.getItems('t1').find((i) => i.id === 'ti-camera')!
-    const affected = orch.skipItem('t1', cameraItem)
+    const affected = orch.packing.skipItem('t1', cameraItem)
 
     expect(affected.map((row) => row.id)).toEqual(['ti-camera', 'ti-battery'])
     // Snapshotted before the write: an undo built from post-skip rows would
@@ -98,8 +98,8 @@ describe('co-skip cascade (FR-20.2)', () => {
     const tripStore = useTripStore()
 
     const cameraItem = tripStore.getItems('t1').find((i) => i.id === 'ti-camera')!
-    const affected = orch.skipItem('t1', cameraItem)
-    orch.restoreSkip(
+    const affected = orch.packing.skipItem('t1', cameraItem)
+    orch.packing.restoreSkip(
       affected.map((row) => ({
         itemId: row.id,
         quantity: row.quantity,
@@ -119,7 +119,7 @@ describe('co-skip cascade (FR-20.2)', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const tripStore = useTripStore()
 
-    orch.restoreSkip([{ itemId: 'gone', quantity: 1, packedCount: 0, state: 'open' }])
+    orch.packing.restoreSkip([{ itemId: 'gone', quantity: 1, packedCount: 0, state: 'open' }])
 
     expect(tripStore.getItems('t1')).toEqual([])
   })
@@ -132,7 +132,7 @@ describe('co-skip cascade (FR-20.2)', () => {
     const tripStore = useTripStore()
 
     const batteryItem = tripStore.getItems('t1').find((i) => i.id === 'ti-battery')!
-    orch.skipItem('t1', batteryItem)
+    orch.packing.skipItem('t1', batteryItem)
 
     const states = new Map(tripStore.getItems('t1').map((i) => [i.id, i.state]))
     expect(states.get('ti-battery')).toBe('skipped')
@@ -146,7 +146,7 @@ describe('quick-add companions (FR-20.4/FR-5.6)', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const tripStore = useTripStore()
 
-    orch.quickAddItem('t1', 'Kamera', { sourceItemId: 'camera' }, false)
+    orch.packing.quickAddItem('t1', 'Kamera', { sourceItemId: 'camera' }, false)
 
     const bySource = new Map(tripStore.getItems('t1').map((i) => [i.source_item_id, i]))
     expect(bySource.has('camera')).toBe(true)
@@ -161,7 +161,7 @@ describe('quick-add companions (FR-20.4/FR-5.6)', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const tripStore = useTripStore()
 
-    orch.quickAddItem('t1', 'Kamera', { sourceItemId: 'camera' }, false)
+    orch.packing.quickAddItem('t1', 'Kamera', { sourceItemId: 'camera' }, false)
 
     const batteries = tripStore.getItems('t1').filter((i) => i.source_item_id === 'battery')
     expect(batteries).toHaveLength(1)
@@ -172,7 +172,7 @@ describe('quick-add companions (FR-20.4/FR-5.6)', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const tripStore = useTripStore()
 
-    orch.quickAddItem('t1', 'Irgendwas', {}, false)
+    orch.packing.quickAddItem('t1', 'Irgendwas', {}, false)
 
     expect(tripStore.getItems('t1')).toHaveLength(1)
   })
@@ -184,15 +184,15 @@ describe('dependency master actions', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const masterStore = useMasterStore()
 
-    const id = orch.addItemDependency('battery', 'camera', { mode: 'suggested' })
+    const id = orch.dependencies.addItemDependency('battery', 'camera', { mode: 'suggested' })
     // dep1 from the seed plus the new relation
     expect(masterStore.dependencyList).toHaveLength(3)
     expect(masterStore.dependencyList.find((d) => d.id === id)?.mode).toBe('suggested')
 
-    orch.deleteItemDependency(id)
+    orch.dependencies.deleteItemDependency(id)
     expect(masterStore.dependencyList).toHaveLength(2)
 
-    orch.updateItemDependency(
+    orch.dependencies.updateItemDependency(
       masterStore.dependencyList.find((d) => d.id === 'dep2')!,
       {
         mode: 'required',

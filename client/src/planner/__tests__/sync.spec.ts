@@ -699,7 +699,7 @@ describe('Local Mode', () => {
 
     const orch = localOrch(persistence)
     await orch.connect()
-    orch.deleteTrip('t1')
+    orch.tripLifecycle.deleteTrip('t1')
     await persistence.whenSettled()
 
     expect((await persistence.load()).map((r) => `${r.table}/${r.id}`)).toEqual([])

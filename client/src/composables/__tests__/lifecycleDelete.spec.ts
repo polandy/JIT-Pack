@@ -68,13 +68,13 @@ describe('FR-24.3 — deleting a master item', () => {
     const master = seedReferencedItem()
     mockDrain()
 
-    expect(orch.masterItemDeletionOutlook('it-1')).toMatchObject({
+    expect(orch.masterData.masterItemDeletionOutlook('it-1')).toMatchObject({
       kind: DELETION_RETIRE,
       references: 1,
       certain: true,
     })
 
-    orch.deleteMasterItem('it-1')
+    orch.masterData.deleteMasterItem('it-1')
 
     // The positive signal beside the "did not disappear" assertion: the row
     // is still in the store, and it carries the marker that hides it.
@@ -101,9 +101,9 @@ describe('FR-24.3 — deleting a master item', () => {
     })
     mockDrain()
 
-    expect(orch.masterItemDeletionOutlook('it-lonely').kind).toBe(DELETION_REMOVE)
+    expect(orch.masterData.masterItemDeletionOutlook('it-lonely').kind).toBe(DELETION_REMOVE)
 
-    orch.deleteMasterItem('it-lonely')
+    orch.masterData.deleteMasterItem('it-lonely')
 
     expect(master.getItem('it-lonely')).toBeUndefined()
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
@@ -136,7 +136,7 @@ describe('FR-24.3 — deleting a master item', () => {
       row: { trip_id: 'trip-1', name: 'Zelt', quantity: 1, source_item_id: 'it-2' },
     })
 
-    expect(orch.masterItemDeletionOutlook('it-2')).toMatchObject({
+    expect(orch.masterData.masterItemDeletionOutlook('it-2')).toMatchObject({
       kind: DELETION_RETIRE,
       references: 1,
     })
@@ -149,7 +149,7 @@ describe('FR-24.3 — deleting a master item', () => {
 
     // No reference here — but this device holds only the trip partitions it
     // has opened, so the sentence M10 shows has to say so (ADR-032).
-    expect(orch.masterItemDeletionOutlook('it-3')).toMatchObject({
+    expect(orch.masterData.masterItemDeletionOutlook('it-3')).toMatchObject({
       kind: DELETION_REMOVE,
       certain: false,
     })
@@ -177,9 +177,9 @@ describe('FR-24.3 — deleting a Vorlage', () => {
     })
     mockDrain()
 
-    expect(orch.templateDeletionOutlook('tpl-1').kind).toBe(DELETION_RETIRE)
+    expect(orch.masterData.templateDeletionOutlook('tpl-1').kind).toBe(DELETION_RETIRE)
 
-    orch.deleteTemplate('tpl-1')
+    orch.masterData.deleteTemplate('tpl-1')
 
     expect(master.getTemplate('tpl-1')?.retired_at).toBeTruthy()
     // The cascade the store mirrors on a real delete must not have run.
@@ -192,9 +192,9 @@ describe('FR-24.3 — deleting a Vorlage', () => {
     const master = seedReferencedItem()
     mockDrain()
 
-    expect(orch.templateDeletionOutlook('tpl-1').kind).toBe(DELETION_REMOVE)
+    expect(orch.masterData.templateDeletionOutlook('tpl-1').kind).toBe(DELETION_REMOVE)
 
-    orch.deleteTemplate('tpl-1')
+    orch.masterData.deleteTemplate('tpl-1')
 
     expect(master.getTemplate('tpl-1')).toBeUndefined()
   })
@@ -223,7 +223,7 @@ describe('FR-24.3 — what the marker must never hide', () => {
     const before = master.resolve('tpl-ferien').positions.length
     expect(before).toBe(1)
 
-    orch.deleteMasterItem('it-1')
+    orch.masterData.deleteMasterItem('it-1')
 
     // A generated trip would lose an item if resolution filtered.
     expect(master.resolve('tpl-ferien').positions.length).toBe(before)
@@ -250,7 +250,7 @@ describe('FR-24.3 — what the marker must never hide', () => {
     })
     mockDrain()
 
-    orch.deleteTemplate('tpl-1')
+    orch.masterData.deleteTemplate('tpl-1')
 
     // NFR-4.11: the backup is the only copy a Local Mode device has.
     expect(master.compositionSource().templates.map((t) => t.id)).toContain('tpl-1')

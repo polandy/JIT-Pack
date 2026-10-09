@@ -70,7 +70,7 @@ describe('addGroupToTrip (FR-27.10)', () => {
     const tripStore = useTripStore()
     seedWorld()
 
-    const report = orch.addGroupToTrip(TRIP_ID, GROUP_ID)
+    const report = orch.tripLifecycle.addGroupToTrip(TRIP_ID, GROUP_ID)
 
     const rows = tripStore.getItems(TRIP_ID)
     expect(rows.map((r) => r.name)).toEqual(['Kamera'])
@@ -91,7 +91,7 @@ describe('addGroupToTrip (FR-27.10)', () => {
     const tripStore = useTripStore()
     seedWorld('active')
 
-    orch.addGroupToTrip(TRIP_ID, GROUP_ID)
+    orch.tripLifecycle.addGroupToTrip(TRIP_ID, GROUP_ID)
 
     expect(tripStore.getItems(TRIP_ID).map((r) => r.flag_missing)).toEqual([false])
   })
@@ -107,7 +107,7 @@ describe('addGroupToTrip (FR-27.10)', () => {
       }),
     ])
 
-    orch.addGroupToTrip(TRIP_ID, GROUP_ID)
+    orch.tripLifecycle.addGroupToTrip(TRIP_ID, GROUP_ID)
 
     const row = tripStore.getItems(TRIP_ID)[0]
     const todos = tripStore.getTodos(TRIP_ID).filter((t) => t.trip_item_id === row?.id)
@@ -134,7 +134,7 @@ describe('addGroupToTrip (FR-27.10)', () => {
       }),
     ])
 
-    const report = orch.addGroupToTrip(TRIP_ID, GROUP_ID)
+    const report = orch.tripLifecycle.addGroupToTrip(TRIP_ID, GROUP_ID)
 
     expect(tripStore.getItems(TRIP_ID)).toEqual([])
     expect(report).toEqual({
@@ -149,9 +149,9 @@ describe('addGroupToTrip (FR-27.10)', () => {
     const orch = await localOrchestrator()
     const tripStore = useTripStore()
     seedWorld()
-    orch.quickAddItem(TRIP_ID, 'Kamera', { sourceItemId: ITEM_ID }, false)
+    orch.packing.quickAddItem(TRIP_ID, 'Kamera', { sourceItemId: ITEM_ID }, false)
 
-    const report = orch.addGroupToTrip(TRIP_ID, GROUP_ID)
+    const report = orch.tripLifecycle.addGroupToTrip(TRIP_ID, GROUP_ID)
 
     expect(tripStore.getItems(TRIP_ID)).toHaveLength(1)
     expect(report).toEqual({
@@ -179,7 +179,7 @@ describe('addGroupToTrip (FR-27.10)', () => {
       }),
     ])
 
-    orch.addGroupToTrip(TRIP_ID, GROUP_ID)
+    orch.tripLifecycle.addGroupToTrip(TRIP_ID, GROUP_ID)
 
     expect(
       tripStore
@@ -194,7 +194,7 @@ describe('addGroupToTrip (FR-27.10)', () => {
     const tripStore = useTripStore()
     seedWorld()
 
-    orch.addGroupToTrip(TRIP_ID, GROUP_ID)
+    orch.tripLifecycle.addGroupToTrip(TRIP_ID, GROUP_ID)
 
     expect(tripStore.getTemplateSources(TRIP_ID).map((s) => s.template_id)).toEqual([GROUP_ID])
   })
@@ -204,8 +204,8 @@ describe('addGroupToTrip (FR-27.10)', () => {
     const tripStore = useTripStore()
     seedWorld()
 
-    orch.addGroupToTrip(TRIP_ID, GROUP_ID)
-    orch.addGroupToTrip(TRIP_ID, GROUP_ID)
+    orch.tripLifecycle.addGroupToTrip(TRIP_ID, GROUP_ID)
+    orch.tripLifecycle.addGroupToTrip(TRIP_ID, GROUP_ID)
 
     expect(tripStore.getTemplateSources(TRIP_ID)).toHaveLength(1)
     expect(tripStore.getItems(TRIP_ID)).toHaveLength(1)
@@ -216,7 +216,7 @@ describe('addGroupToTrip (FR-27.10)', () => {
     const tripStore = useTripStore()
     seedWorld('archived')
 
-    const report = orch.addGroupToTrip(TRIP_ID, GROUP_ID)
+    const report = orch.tripLifecycle.addGroupToTrip(TRIP_ID, GROUP_ID)
 
     // The positive signal that the add itself ran: without it, "no sources"
     // would be green for a call that did nothing at all.
@@ -235,7 +235,7 @@ describe('addGroupToTrip (FR-27.10)', () => {
 
     // No trip partition was pulled in this server-mode orchestrator, so the
     // list it would resolve against is unknown rather than empty.
-    expect(orch.addGroupToTrip(TRIP_ID, GROUP_ID)).toBeNull()
+    expect(orch.tripLifecycle.addGroupToTrip(TRIP_ID, GROUP_ID)).toBeNull()
     expect(useTripStore().getItems(TRIP_ID)).toEqual([])
   })
 })

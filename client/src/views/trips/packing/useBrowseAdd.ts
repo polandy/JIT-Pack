@@ -57,8 +57,8 @@ export function useBrowseAdd(core: PackingCore, facts: RowFacts) {
       decided ??
       (core.packingClosed.value && item.travelerIds.length === 0 ? STATE_PACKED : undefined)
     const { id: addedId, companions } = decision
-      ? orchestrator.addDecidedItem(tripId, item.name, opts, core.active.value, decision)
-      : orchestrator.setTravelerAssignment(
+      ? orchestrator.packing.addDecidedItem(tripId, item.name, opts, core.active.value, decision)
+      : orchestrator.packing.setTravelerAssignment(
           tripId,
           item.name,
           opts,
@@ -66,7 +66,7 @@ export function useBrowseAdd(core: PackingCore, facts: RowFacts) {
           [],
           item.travelerIds,
         )
-    remember(item.sourceItemId, () => orchestrator.removeAddedItem(tripId, addedId))
+    remember(item.sourceItemId, () => orchestrator.packing.removeAddedItem(tripId, addedId))
     announceCompanions(companions)
   }
 
@@ -96,7 +96,7 @@ export function useBrowseAdd(core: PackingCore, facts: RowFacts) {
    * included: none of them existed before it.
    */
   function onAddForAll(item: BrowseAddition) {
-    const result = orchestrator.addItemForEveryTraveler(
+    const result = orchestrator.packing.addItemForEveryTraveler(
       tripId,
       item.name,
       quickAddOptions(item),
@@ -105,7 +105,7 @@ export function useBrowseAdd(core: PackingCore, facts: RowFacts) {
     if (item.sourceItemId) {
       const ids = result.ids
       remember(item.sourceItemId, () => {
-        for (const id of ids) orchestrator.removeAddedItem(tripId, id)
+        for (const id of ids) orchestrator.packing.removeAddedItem(tripId, id)
       })
     }
     if (result.outcome !== SPREAD.done) void reportSpreadRefused()
@@ -125,7 +125,7 @@ export function useBrowseAdd(core: PackingCore, facts: RowFacts) {
    * for the item rather than a snapshot that a later toggle already changed.
    */
   function onAssignForTravelers(item: BrowseAddition, travelerIds: string[]) {
-    const { companions } = orchestrator.setTravelerAssignment(
+    const { companions } = orchestrator.packing.setTravelerAssignment(
       tripId,
       item.name,
       quickAddOptions(item),
@@ -136,7 +136,8 @@ export function useBrowseAdd(core: PackingCore, facts: RowFacts) {
     if (item.sourceItemId) {
       const itemId = item.sourceItemId
       remember(itemId, () => {
-        for (const row of rowsOfMasterItem(itemId)) orchestrator.removeAddedItem(tripId, row.id)
+        for (const row of rowsOfMasterItem(itemId))
+          orchestrator.packing.removeAddedItem(tripId, row.id)
       })
     }
     announceCompanions(companions)
@@ -149,13 +150,13 @@ export function useBrowseAdd(core: PackingCore, facts: RowFacts) {
    */
   function onSpread(itemId: string) {
     const rows = rowsOfMasterItem(itemId)
-    const result = orchestrator.spreadOverEveryTraveler(tripId, rows, rowsWithContent(rows))
+    const result = orchestrator.packing.spreadOverEveryTraveler(tripId, rows, rowsWithContent(rows))
     if (result.outcome !== SPREAD.done || !result.restore) {
       void reportSpreadRefused()
       return
     }
     const restore = result.restore
-    remember(itemId, () => orchestrator.restoreMembership(tripId, restore))
+    remember(itemId, () => orchestrator.packing.restoreMembership(tripId, restore))
   }
 
   /** What a delete of these rows would cost beyond the rows (FR-7.1/7.3). */
@@ -186,7 +187,7 @@ export function useBrowseAdd(core: PackingCore, facts: RowFacts) {
    * to offer.
    */
   async function onAddGroup(templateId: string) {
-    const report = orchestrator.addGroupToTrip(tripId, templateId)
+    const report = orchestrator.tripLifecycle.addGroupToTrip(tripId, templateId)
     await presentToast({ message: groupAdditionMessage(report), positionAnchor: FAB_ANCHOR.m4 })
   }
 

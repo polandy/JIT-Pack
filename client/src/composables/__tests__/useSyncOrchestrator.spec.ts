@@ -40,7 +40,7 @@ describe('useSyncOrchestrator', () => {
     mockPush()
     mockPull()
 
-    orch.quickAddItem('t1', 'Towel', {}, false)
+    orch.packing.quickAddItem('t1', 'Towel', {}, false)
 
     const items = tripStore.getItems('t1')
     expect(items).toHaveLength(1)
@@ -55,7 +55,7 @@ describe('useSyncOrchestrator', () => {
     mockPush()
     mockPull()
 
-    orch.quickAddItem('t1', 'Sunscreen', {}, true)
+    orch.packing.quickAddItem('t1', 'Sunscreen', {}, true)
 
     expect(tripStore.getItems('t1')[0]!.flag_missing).toBe(true)
   })
@@ -92,7 +92,7 @@ describe('useSyncOrchestrator', () => {
     mockPush()
     mockPull()
 
-    orch.packComplete(tripStore.getItems('t1')[0]!)
+    orch.packing.packComplete(tripStore.getItems('t1')[0]!)
 
     const row = tripStore.getItems('t1')[0]!
     expect(row.state).toBe('packed')
@@ -121,14 +121,14 @@ describe('useSyncOrchestrator', () => {
 
     mockPush()
     mockPull()
-    orch.buyItem(tripStore.getItems('t1')[0]!, 'buy_before')
+    orch.packing.buyItem(tripStore.getItems('t1')[0]!, 'buy_before')
 
     expect(tripStore.getItems('t1')[0]!.mode).toBe('pack')
     expect(tripStore.getItems('t1')[0]!.bought_from).toBe('buy_before')
 
     mockPush()
     mockPull()
-    orch.unbuyItem(tripStore.getItems('t1')[0]!, 'buy_before')
+    orch.packing.unbuyItem(tripStore.getItems('t1')[0]!, 'buy_before')
 
     expect(tripStore.getItems('t1')[0]!.mode).toBe('buy_before')
     expect(tripStore.getItems('t1')[0]!.bought_from).toBeNull()
@@ -159,7 +159,7 @@ describe('useSyncOrchestrator', () => {
     mockPull()
 
     const item = tripStore.getItems('t1')[0]!
-    orch.packToggle(item)
+    orch.packing.packToggle(item)
 
     expect(tripStore.getItems('t1')[0]!.packed_count).toBe(1)
     expect(tripStore.getItems('t1')[0]!.state).toBe('packed')
@@ -191,7 +191,7 @@ describe('useSyncOrchestrator', () => {
       },
     })
 
-    orch.packIncrement(tripStore.getItems('t1')[0]!)
+    orch.packing.packIncrement(tripStore.getItems('t1')[0]!)
 
     const item = tripStore.getItems('t1')[0]!
     expect(item.packed_count).toBe(1)
@@ -227,7 +227,7 @@ describe('useSyncOrchestrator', () => {
     mockPush()
     mockPull()
 
-    orch.setQuantity(tripStore.getItems('t1')[0]!, 2)
+    orch.packing.setQuantity(tripStore.getItems('t1')[0]!, 2)
 
     // Four packed of a target of two is the row the schema's CHECK refuses,
     // so the count comes down with the amount and the state follows it.
@@ -261,7 +261,7 @@ describe('useSyncOrchestrator', () => {
     mockPull()
 
     const item = tripStore.getItems('t1')[0]!
-    orch.skipItem('t1', item)
+    orch.packing.skipItem('t1', item)
 
     const updated = tripStore.getItems('t1')[0]!
     expect(updated.state).toBe('skipped')
@@ -292,7 +292,7 @@ describe('useSyncOrchestrator', () => {
     mockPull()
 
     const item = tripStore.getItems('t1')[0]!
-    orch.unskipItem(item)
+    orch.packing.unskipItem(item)
 
     const updated = tripStore.getItems('t1')[0]!
     expect(updated.state).toBe('open')
@@ -354,14 +354,14 @@ describe('useSyncOrchestrator', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const masterStore = useMasterStore()
 
-    const itemId = orch.createMasterItem('Badehose')
-    const kleidung = orch.createTag('Kleidung')
-    const sommer = orch.createTag('Sommer')
-    const strand = orch.createTag('Strand')
+    const itemId = orch.masterData.createMasterItem('Badehose')
+    const kleidung = orch.masterData.createTag('Kleidung')
+    const sommer = orch.masterData.createTag('Sommer')
+    const strand = orch.masterData.createTag('Strand')
 
-    orch.assignTag(itemId, kleidung)
-    orch.assignTag(itemId, sommer)
-    orch.assignTag(itemId, strand)
+    orch.masterData.assignTag(itemId, kleidung)
+    orch.masterData.assignTag(itemId, sommer)
+    orch.masterData.assignTag(itemId, strand)
 
     const positions = masterStore.itemTagList
       .filter((a) => a.item_id === itemId)
@@ -430,8 +430,8 @@ describe('useSyncOrchestrator', () => {
     mockPush()
     mockPull()
 
-    orch.quickAddItem('t1', 'A', {}, false)
-    orch.quickAddItem('t1', 'B', {}, false)
+    orch.packing.quickAddItem('t1', 'A', {}, false)
+    orch.packing.quickAddItem('t1', 'B', {}, false)
 
     // Pending count is set (may be 0 if drain already completed, but totalPending was called)
     expect(orch.outbox.totalPending()).toBeGreaterThanOrEqual(0)
@@ -443,7 +443,7 @@ describe('useSyncOrchestrator', () => {
       for (const name of names) {
         mockPush()
         mockPull()
-        ids.push(orch.addContainer('t1', name, {}))
+        ids.push(orch.containers.addContainer('t1', name, {}))
       }
       return ids
     }
@@ -455,7 +455,7 @@ describe('useSyncOrchestrator', () => {
 
       mockPush()
       mockPull()
-      orch.pairContainer('t1', a!, b!)
+      orch.containers.pairContainer('t1', a!, b!)
 
       const byId = new Map(tripStore.getContainers('t1').map((c) => [c.id, c]))
       expect(byId.get(a!)!.paired_container_id).toBe(b)
@@ -469,10 +469,10 @@ describe('useSyncOrchestrator', () => {
 
       mockPush()
       mockPull()
-      orch.pairContainer('t1', a!, b!)
+      orch.containers.pairContainer('t1', a!, b!)
       mockPush()
       mockPull()
-      orch.pairContainer('t1', a!, c!)
+      orch.containers.pairContainer('t1', a!, c!)
 
       const byId = new Map(tripStore.getContainers('t1').map((x) => [x.id, x]))
       expect(byId.get(a!)!.paired_container_id).toBe(c)
@@ -487,10 +487,10 @@ describe('useSyncOrchestrator', () => {
 
       mockPush()
       mockPull()
-      orch.pairContainer('t1', a!, b!)
+      orch.containers.pairContainer('t1', a!, b!)
       mockPush()
       mockPull()
-      orch.unpairContainer('t1', b!)
+      orch.containers.unpairContainer('t1', b!)
 
       for (const container of tripStore.getContainers('t1')) {
         expect(container.paired_container_id).toBeNull()
@@ -504,10 +504,10 @@ describe('useSyncOrchestrator', () => {
 
       mockPush()
       mockPull()
-      orch.pairContainer('t1', a!, b!)
+      orch.containers.pairContainer('t1', a!, b!)
       mockPush()
       mockPull()
-      orch.deleteContainer('t1', a!)
+      orch.containers.deleteContainer('t1', a!)
 
       const survivors = tripStore.getContainers('t1')
       expect(survivors.map((x) => x.id)).toEqual([b])
@@ -521,15 +521,15 @@ describe('useSyncOrchestrator', () => {
 
       mockPush()
       mockPull()
-      orch.quickAddItem('t1', 'Towel', {}, false)
+      orch.packing.quickAddItem('t1', 'Towel', {}, false)
       const item = tripStore.getItems('t1')[0]!
       mockPush()
       mockPull()
-      orch.assignContainer(item, a!)
+      orch.packing.assignContainer(item, a!)
 
       mockPush()
       mockPull()
-      orch.deleteContainer('t1', a!)
+      orch.containers.deleteContainer('t1', a!)
 
       const after = tripStore.getItems('t1')
       expect(after).toHaveLength(1)

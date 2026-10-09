@@ -98,7 +98,7 @@ describe('cloneTrip (FR-12)', () => {
     seedSource(tripStore)
     await orch.ensureTripData('src')
 
-    const tripId = orch.cloneTrip('src', {
+    const tripId = orch.tripCreation.cloneTrip('src', {
       name: 'Engadin 2026',
       year: 2026,
       startDate: '2026-08-01',
@@ -147,7 +147,7 @@ describe('cloneTrip (FR-12)', () => {
     seedSource(tripStore)
     await orch.ensureTripData('src')
 
-    const tripId = orch.cloneTrip('src', {
+    const tripId = orch.tripCreation.cloneTrip('src', {
       name: 'Engadin 2026',
       year: 2026,
       startDate: null,
@@ -173,7 +173,7 @@ describe('cloneTrip (FR-12)', () => {
 
     // The partition was never pulled: "not pulled yet" must not be read as
     // "empty trip" — before the guard this produced a clone with zero items.
-    const tripId = orch.cloneTrip('src', {
+    const tripId = orch.tripCreation.cloneTrip('src', {
       name: 'Engadin 2026',
       year: 2026,
       startDate: null,

@@ -20,8 +20,12 @@ import type { MembershipTarget } from '@/domain/membership'
 import type { TripItem } from '@/types/domain'
 
 const orchestratorFake = {
-  lockHolder: vi.fn((_tripId: string, _item: TripItem) => null as string | null),
-  setMembership: vi.fn(),
+  claims: {
+    lockHolder: vi.fn((_tripId: string, _item: TripItem) => null as string | null),
+  },
+  packing: {
+    setMembership: vi.fn(),
+  },
 }
 
 const TRIP = 't1'
@@ -74,7 +78,8 @@ function mountStrip(itemId: string, props: Record<string, unknown> = {}) {
 
 /** The target the last write carried — the strip's whole output. */
 function lastTarget(): MembershipTarget | undefined {
-  return orchestratorFake.setMembership.mock.calls.at(-1)?.[2] as MembershipTarget | undefined
+  return orchestratorFake.packing.setMembership.mock.calls.at(-1)?.[2] as
+    MembershipTarget | undefined
 }
 
 const tap = (wrapper: ReturnType<typeof mountStrip>, testid: string) =>
@@ -83,7 +88,7 @@ const tap = (wrapper: ReturnType<typeof mountStrip>, testid: string) =>
 beforeEach(() => {
   setActivePinia(createPinia())
   vi.clearAllMocks()
-  orchestratorFake.lockHolder.mockReturnValue(null)
+  orchestratorFake.claims.lockHolder.mockReturnValue(null)
   traveler('tr-a', 'Andy')
   traveler('tr-b', 'Leonardo')
   traveler('tr-c', 'Mia')
@@ -189,7 +194,7 @@ describe('ForWhomStrip — a question is asked in the strip and holds the write'
 
     await tap(wrapper, `for-whom-${KEY}-Leonardo`)
 
-    expect(orchestratorFake.setMembership).not.toHaveBeenCalled()
+    expect(orchestratorFake.packing.setMembership).not.toHaveBeenCalled()
     expect(wrapper.get(`[data-testid="for-whom-ask-${KEY}"]`).text()).toContain('Leonardo')
     // The summary line gives way to the question rather than sitting beside it.
     expect(wrapper.find(`[data-testid="for-whom-summary-${KEY}"]`).exists()).toBe(false)
@@ -209,7 +214,7 @@ describe('ForWhomStrip — a question is asked in the strip and holds the write'
     await tap(wrapper, `for-whom-${KEY}-Leonardo`)
     await tap(wrapper, `for-whom-no-${KEY}`)
 
-    expect(orchestratorFake.setMembership).not.toHaveBeenCalled()
+    expect(orchestratorFake.packing.setMembership).not.toHaveBeenCalled()
     expect(wrapper.find(`[data-testid="for-whom-summary-${KEY}"]`).exists()).toBe(true)
   })
 
@@ -218,7 +223,7 @@ describe('ForWhomStrip — a question is asked in the strip and holds the write'
 
     await tap(wrapper, `for-whom-shared-${KEY}`)
 
-    expect(orchestratorFake.setMembership).not.toHaveBeenCalled()
+    expect(orchestratorFake.packing.setMembership).not.toHaveBeenCalled()
     expect(wrapper.get(`[data-testid="for-whom-ask-${KEY}"]`).text()).toContain('5')
   })
 
@@ -230,7 +235,7 @@ describe('ForWhomStrip — a question is asked in the strip and holds the write'
     // the component's own guard is what is under test here.
     await wrapper.findComponent({ name: 'ForWhomToggles' }).vm.$emit('toggle', 'tr-c')
 
-    expect(orchestratorFake.setMembership).not.toHaveBeenCalled()
+    expect(orchestratorFake.packing.setMembership).not.toHaveBeenCalled()
     expect(wrapper.get(`[data-testid="for-whom-${KEY}-Mia"]`).attributes('disabled')).toBeDefined()
   })
 })
@@ -242,7 +247,7 @@ describe('ForWhomStrip — G-3 covers the cluster, not the row', () => {
     // Andy's instance is claimed by somebody else; the strip is opened from
     // Leonardo's, which is free. Asking the opened row alone answers "not
     // locked", and the write would rewrite Andy's row anyway.
-    orchestratorFake.lockHolder.mockImplementation((_tripId, item) =>
+    orchestratorFake.claims.lockHolder.mockImplementation((_tripId, item) =>
       item.id === 'ti-a' ? 'u-bob' : null,
     )
   })
@@ -254,7 +259,7 @@ describe('ForWhomStrip — G-3 covers the cluster, not the row', () => {
     await wrapper.findComponent({ name: 'ForWhomToggles' }).vm.$emit('toggle', 'tr-c')
     await wrapper.findComponent({ name: 'ForWhomToggles' }).vm.$emit('shared')
 
-    expect(orchestratorFake.setMembership).not.toHaveBeenCalled()
+    expect(orchestratorFake.packing.setMembership).not.toHaveBeenCalled()
     expect(wrapper.find(`[data-testid="for-whom-ask-${KEY}"]`).exists()).toBe(false)
   })
 
@@ -265,20 +270,20 @@ describe('ForWhomStrip — G-3 covers the cluster, not the row', () => {
   })
 
   it('writes again once the claim is gone — the freeze was the claim, not the mount', async () => {
-    orchestratorFake.lockHolder.mockReturnValue(null)
+    orchestratorFake.claims.lockHolder.mockReturnValue(null)
     const wrapper = mountStrip('ti-b')
 
     await tap(wrapper, `for-whom-${KEY}-Mia`)
 
-    expect(orchestratorFake.setMembership).toHaveBeenCalledTimes(1)
+    expect(orchestratorFake.packing.setMembership).toHaveBeenCalledTimes(1)
   })
 
   it('honours a caller that is read-only for a reason of its own', async () => {
-    orchestratorFake.lockHolder.mockReturnValue(null)
+    orchestratorFake.claims.lockHolder.mockReturnValue(null)
     const wrapper = mountStrip('ti-b', { locked: true })
 
     await wrapper.findComponent({ name: 'ForWhomToggles' }).vm.$emit('toggle', 'tr-c')
 
-    expect(orchestratorFake.setMembership).not.toHaveBeenCalled()
+    expect(orchestratorFake.packing.setMembership).not.toHaveBeenCalled()
   })
 })

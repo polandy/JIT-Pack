@@ -90,7 +90,7 @@ const conditionSummary = computed(() => {
 // --- Edits (each commits on the spot, G-5) ---
 
 function update(fields: TemplateItemEdit) {
-  if (position.value) orchestrator.updateTemplateItem(position.value, fields)
+  if (position.value) orchestrator.masterData.updateTemplateItem(position.value, fields)
 }
 
 function stepQuantity(delta: number) {
@@ -123,12 +123,12 @@ const newTaskText = ref('')
 function addTask() {
   const task = newTaskText.value.trim()
   if (!task) return
-  orchestrator.addTemplateItemTask(props.positionId, task)
+  orchestrator.masterData.addTemplateItemTask(props.positionId, task)
   newTaskText.value = ''
 }
 
 function removeTask(taskId: string) {
-  orchestrator.deleteTemplateItemTask(taskId)
+  orchestrator.masterData.deleteTemplateItemTask(taskId)
 }
 </script>
 

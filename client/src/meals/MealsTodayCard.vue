@@ -32,7 +32,7 @@ const MEALS_FOLD_KEY = 'meals'
 const orchestrator = useOrchestrator()
 const mealStore = useMealStore()
 const sheet = useMealSheet()
-const { nameOf } = useTripIdentity(props.tripId, orchestrator)
+const { nameOf } = useTripIdentity(props.tripId, orchestrator.identity)
 
 const today = computed(() => orchestrator.today())
 const meals = computed(() =>

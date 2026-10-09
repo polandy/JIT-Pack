@@ -135,17 +135,17 @@ const CASES: BuilderCase[] = [
     read: () => useMasterStore().getItem('it-1') as unknown as Record<string, unknown>,
     acts: [
       {
-        act: (i) => newOrch().updateMasterItem(i, { weight_grams: 2500 }),
+        act: (i) => newOrch().masterData.updateMasterItem(i, { weight_grams: 2500 }),
         changed: 'weight_grams',
         becomes: 2500,
       },
       {
-        act: (i) => newOrch().updateMasterItem(i, { default_assignee_id: 'user-b' }),
+        act: (i) => newOrch().masterData.updateMasterItem(i, { default_assignee_id: 'user-b' }),
         changed: 'default_assignee_id',
         becomes: 'user-b',
       },
       {
-        act: (i) => newOrch().updateMasterItem(i, { name: 'Tarp' }),
+        act: (i) => newOrch().masterData.updateMasterItem(i, { name: 'Tarp' }),
         changed: 'name',
         becomes: 'Tarp',
       },
@@ -174,9 +174,13 @@ const CASES: BuilderCase[] = [
       }),
     read: () => useMasterStore().getTemplate('tpl-1') as unknown as Record<string, unknown>,
     acts: [
-      { act: (t) => newOrch().updateTemplate(t, { icon: '🌞' }), changed: 'icon', becomes: '🌞' },
       {
-        act: (t) => newOrch().updateTemplate(t, { kind: 'template' }),
+        act: (t) => newOrch().masterData.updateTemplate(t, { icon: '🌞' }),
+        changed: 'icon',
+        becomes: '🌞',
+      },
+      {
+        act: (t) => newOrch().masterData.updateTemplate(t, { kind: 'template' }),
         changed: 'kind',
         becomes: 'template',
       },
@@ -206,12 +210,12 @@ const CASES: BuilderCase[] = [
     read: () => useMasterStore().getTemplateItems('tpl-1')[0] as unknown as Record<string, unknown>,
     acts: [
       {
-        act: (t) => newOrch().updateTemplateItem(t, { quantity: 4 }),
+        act: (t) => newOrch().masterData.updateTemplateItem(t, { quantity: 4 }),
         changed: 'quantity',
         becomes: 4,
       },
       {
-        act: (t) => newOrch().updateTemplateItem(t, { dedup: 'max' }),
+        act: (t) => newOrch().masterData.updateTemplateItem(t, { dedup: 'max' }),
         changed: 'dedup',
         becomes: 'max',
       },
@@ -265,12 +269,12 @@ const CASES: BuilderCase[] = [
     read: () => useTripStore().getItems(TRIP_ID)[0] as unknown as Record<string, unknown>,
     acts: [
       {
-        act: (i) => newOrch().setMode(i, 'buy_local'),
+        act: (i) => newOrch().packing.setMode(i, 'buy_local'),
         changed: 'mode',
         becomes: 'buy_local',
       },
       {
-        act: (i) => newOrch().setLatePacker(i, false),
+        act: (i) => newOrch().packing.setLatePacker(i, false),
         changed: 'late_packer',
         becomes: false,
       },
@@ -321,12 +325,12 @@ const CASES: BuilderCase[] = [
     read: () => useTripStore().getContainers(TRIP_ID)[0] as unknown as Record<string, unknown>,
     acts: [
       {
-        act: (c) => newOrch().updateContainer(c, { name: 'Roter Koffer' }),
+        act: (c) => newOrch().containers.updateContainer(c, { name: 'Roter Koffer' }),
         changed: 'name',
         becomes: 'Roter Koffer',
       },
       {
-        act: (c) => newOrch().updateContainer(c, { max_weight_grams: 20000 }),
+        act: (c) => newOrch().containers.updateContainer(c, { max_weight_grams: 20000 }),
         changed: 'max_weight_grams',
         becomes: 20000,
       },
@@ -356,10 +360,18 @@ const CASES: BuilderCase[] = [
       }),
     read: () => useTripStore().getTrip(TRIP_ID) as unknown as Record<string, unknown>,
     acts: [
-      { act: () => newOrch().activateTrip(TRIP_ID), changed: 'status', becomes: 'active' },
+      {
+        act: () => newOrch().tripLifecycle.activateTrip(TRIP_ID),
+        changed: 'status',
+        becomes: 'active',
+      },
       // This entry is what defends `status` — the column #158 dropped, which
       // made a trip permanently invisible on M2.
-      { act: () => newOrch().setTripSeries(TRIP_ID, null), changed: 'series_id', becomes: null },
+      {
+        act: () => newOrch().series.setTripSeries(TRIP_ID, null),
+        changed: 'series_id',
+        becomes: null,
+      },
     ],
     expected: {
       id: TRIP_ID,
@@ -401,7 +413,7 @@ const CASES: BuilderCase[] = [
     // alone. Unreachable rather than untested.
     acts: [
       {
-        act: () => newOrch().renameTraveler(TRIP_ID, 'tr-1', 'Andrea'),
+        act: () => newOrch().tripLifecycle.renameTraveler(TRIP_ID, 'tr-1', 'Andrea'),
         changed: 'name',
         becomes: 'Andrea',
       },
@@ -428,12 +440,12 @@ const CASES: BuilderCase[] = [
     read: () => useMasterStore().getSeries('ser-1') as unknown as Record<string, unknown>,
     acts: [
       {
-        act: (s) => newOrch().updateSeries(s, { name: 'Samedan' }),
+        act: (s) => newOrch().series.updateSeries(s, { name: 'Samedan' }),
         changed: 'name',
         becomes: 'Samedan',
       },
       {
-        act: (s) => newOrch().updateSeries(s, { default_attributes: { season: 'winter' } }),
+        act: (s) => newOrch().series.updateSeries(s, { default_attributes: { season: 'winter' } }),
         changed: 'default_attributes',
         becomes: { season: 'winter' },
       },
@@ -458,12 +470,12 @@ const CASES: BuilderCase[] = [
       useMasterStore().getItemDependencies('it-2')[0] as unknown as Record<string, unknown>,
     acts: [
       {
-        act: (d) => newOrch().updateItemDependency(d, { mode: 'required' }),
+        act: (d) => newOrch().dependencies.updateItemDependency(d, { mode: 'required' }),
         changed: 'mode',
         becomes: 'required',
       },
       {
-        act: (d) => newOrch().updateItemDependency(d, { quantity: 3 }),
+        act: (d) => newOrch().dependencies.updateItemDependency(d, { quantity: 3 }),
         changed: 'quantity',
         becomes: 3,
       },
@@ -496,7 +508,7 @@ const CASES: BuilderCase[] = [
     // Unreachable rather than untested, like `travelerRow.name`.
     acts: [
       {
-        act: (m) => newOrch().setTripMemberRole(m, 'editor'),
+        act: (m) => newOrch().membership.setTripMemberRole(m, 'editor'),
         changed: 'role',
         becomes: 'editor',
       },
@@ -531,7 +543,7 @@ const CASES: BuilderCase[] = [
     // column.
     acts: [
       {
-        act: (t) => newOrch().reopenPrepTodo(t),
+        act: (t) => newOrch().comments.reopenPrepTodo(t),
         changed: 'task_state',
         becomes: 'open',
         // FR-7.7: unticking clears the record with the state it described.
@@ -539,7 +551,7 @@ const CASES: BuilderCase[] = [
         also: { resolved_at: null },
       },
       {
-        act: (t) => newOrch().resolvePrepTodo(t),
+        act: (t) => newOrch().comments.resolvePrepTodo(t),
         changed: 'task_state',
         becomes: 'resolved',
         // FR-7.7: the tap's own moment, named by the client (FR-25.17's
@@ -581,7 +593,7 @@ const CASES: BuilderCase[] = [
     // that rebuilds the row, so there is no second field to change.
     acts: [
       {
-        act: (p) => newOrch().updateDestinationProfile(p, { notes: 'Adapter Typ I' }),
+        act: (p) => newOrch().series.updateDestinationProfile(p, { notes: 'Adapter Typ I' }),
         changed: 'notes',
         becomes: 'Adapter Typ I',
       },
@@ -607,12 +619,12 @@ const CASES: BuilderCase[] = [
         .find((c) => c.id === 'chk-1') as unknown as Record<string, unknown>,
     acts: [
       {
-        act: (c) => newOrch().updateChecklistItem(c, { label: 'Adapter' }),
+        act: (c) => newOrch().series.updateChecklistItem(c, { label: 'Adapter' }),
         changed: 'label',
         becomes: 'Adapter',
       },
       {
-        act: (c) => newOrch().updateChecklistItem(c, { mode: 'buy_before' }),
+        act: (c) => newOrch().series.updateChecklistItem(c, { mode: 'buy_before' }),
         changed: 'mode',
         becomes: 'buy_before',
       },
@@ -642,7 +654,7 @@ const CASES: BuilderCase[] = [
         // The only writer beyond the insert: un-ticking flips `acked` back
         // rather than deleting the row (NFR-4.2a never deletes).
         act: (a: NoteAck) =>
-          newOrch().toggleNoteTick(TRIP_ID, a.comment_id, a.user_id, a, {
+          newOrch().comments.toggleNoteTick(TRIP_ID, a.comment_id, a.user_id, a, {
             ticked: true,
             seenThrough: null,
           }),
@@ -675,13 +687,13 @@ const CASES: BuilderCase[] = [
     read: () => useTripStore().getExcursions(TRIP_ID)[0] as unknown as Record<string, unknown>,
     acts: [
       {
-        act: (e: Excursion) => newOrch().updateExcursion(e, { name: 'Hütte' }),
+        act: (e: Excursion) => newOrch().excursions.updateExcursion(e, { name: 'Hütte' }),
         changed: 'name',
         becomes: 'Hütte',
       },
       {
         // One end moved; the other is rewritten only when the pair reverses.
-        act: (e: Excursion) => newOrch().updateExcursion(e, { endsOn: '2026-07-18' }),
+        act: (e: Excursion) => newOrch().excursions.updateExcursion(e, { endsOn: '2026-07-18' }),
         changed: 'ends_on',
         becomes: '2026-07-18',
       },
@@ -721,13 +733,13 @@ const CASES: BuilderCase[] = [
     read: () => useTripStore().getExcursionItems(TRIP_ID)[0] as unknown as Record<string, unknown>,
     acts: [
       {
-        act: (l: ExcursionItem) => newOrch().setLineCount(l, 2),
+        act: (l: ExcursionItem) => newOrch().excursions.setLineCount(l, 2),
         changed: 'packed_count',
         becomes: 2,
         also: { state: 'packed' },
       },
       {
-        act: (l: ExcursionItem) => newOrch().buyOnTheSpot(l),
+        act: (l: ExcursionItem) => newOrch().excursions.buyOnTheSpot(l),
         changed: 'mode',
         becomes: 'buy_local',
       },
@@ -831,7 +843,7 @@ describe('commentRow', () => {
     seedComment()
     const comment = useTripStore().getItemComments(TRIP_ID, 'ti-1')[0]!
 
-    newOrch().flagCommentAsTask(TRIP_ID, comment)
+    newOrch().comments.flagCommentAsTask(TRIP_ID, comment)
 
     expect(useTripStore().getItemComments(TRIP_ID, 'ti-1')).toEqual([])
     expect(useTripStore().getTodos(TRIP_ID)).toEqual([

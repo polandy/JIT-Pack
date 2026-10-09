@@ -90,10 +90,16 @@ function toggleTag(id: string) {
 }
 
 function write(body: string, filing: { taskTagId: string | null; dueDate: string | null }) {
-  const id = orchestrator.addTripTodo(props.tripId, CLIENT_ACTOR_PLACEHOLDER, body, phase.value, {
-    ...filing,
-    ...(ideaId.value ? { ideaId: ideaId.value } : {}),
-  })
+  const id = orchestrator.comments.addTripTodo(
+    props.tripId,
+    CLIENT_ACTOR_PLACEHOLDER,
+    body,
+    phase.value,
+    {
+      ...filing,
+      ...(ideaId.value ? { ideaId: ideaId.value } : {}),
+    },
+  )
   ideaId.value = null
   emit('added', id, body)
 }
@@ -122,7 +128,7 @@ function chooseEntryTag(id: string | null) {
 
 /** Created where it is needed, like the task sheet's (FR-7.8). */
 function createEntryTag(name: string) {
-  chooseEntryTag(orchestrator.createTaskTag(name, props.taskTags.length))
+  chooseEntryTag(orchestrator.masterData.createTaskTag(name, props.taskTags.length))
 }
 
 /** Written as the field would write it; the tag stays for the next task, as M6's does. */

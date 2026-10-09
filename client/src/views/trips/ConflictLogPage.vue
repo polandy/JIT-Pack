@@ -48,7 +48,7 @@ import SectionHead from '@/components/global/SectionHead.vue'
 const props = defineProps<{ tripId?: string }>()
 
 const orchestrator = useOrchestrator()
-const { directory, load: loadIdentity } = useIdentity(orchestrator)
+const { directory, load: loadIdentity } = useIdentity(orchestrator.identity)
 const master = useMasterStore()
 const trips = useTripStore()
 
@@ -75,8 +75,8 @@ const names = computed(() => new Map(directory.value.map((u) => [u.user_id, u.di
 async function load() {
   try {
     conflicts.value = props.tripId
-      ? await orchestrator.fetchConflicts(props.tripId)
-      : await orchestrator.fetchMasterConflicts()
+      ? await orchestrator.conflicts.fetchConflicts(props.tripId)
+      : await orchestrator.conflicts.fetchMasterConflicts()
     failed.value = false
   } catch {
     failed.value = true
@@ -85,7 +85,7 @@ async function load() {
   }
   if (!props.tripId) return
   try {
-    lockEvents.value = await orchestrator.fetchLockEvents(props.tripId)
+    lockEvents.value = await orchestrator.claims.fetchLockEvents(props.tripId)
     // Only when there is somebody to name: the directory is one fetch per
     // session (ADR-047), and a log with no takeovers must not be what pays
     // for it.
@@ -128,7 +128,7 @@ async function revert(entry: ConflictEntry) {
   reverting.value = entry.id
   delete revertErrors.value[entry.id]
   try {
-    await orchestrator.revertConflict(entry.id, props.tripId)
+    await orchestrator.conflicts.revertConflict(entry.id, props.tripId)
     // Re-read rather than patch the row: the server owns whether the
     // entry is spent, and the reload also picks up anything that changed
     // while this page was open.

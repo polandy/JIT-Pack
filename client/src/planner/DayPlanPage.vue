@@ -73,7 +73,11 @@ const travelersOf = inject(DAY_PLAN_TRAVELERS, () => [])
 const travelers = computed(() => travelersOf(props.tripId))
 
 const { trip, loaded, ensure } = useTripScreen(props.tripId, orchestrator)
-const { myUserId, nameOf, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator)
+const {
+  myUserId,
+  nameOf,
+  load: loadIdentity,
+} = useTripIdentity(props.tripId, orchestrator.identity)
 
 onMounted(async () => {
   await ensure()

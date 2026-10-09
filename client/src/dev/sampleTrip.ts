@@ -170,8 +170,8 @@ export function seedSampleTrip(
     const id = masterItems[item.name]
     if (id) merges.set(item.name, id)
   }
-  const { id } = orchestrator.commitPortableImport(sampleDocument(), merges)
-  orchestrator.activateTrip(id)
+  const { id } = orchestrator.portable.commitPortableImport(sampleDocument(), merges)
+  orchestrator.tripLifecycle.activateTrip(id)
   buyOneShoppingRow(id, orchestrator)
   seedShoppingEntries(id, orchestrator)
   seedItemComment(id, orchestrator)
@@ -475,7 +475,7 @@ async function seedExcursionTrack(excursion: Excursion, orchestrator: Orchestrat
   try {
     const gpx = sampleGpx(SAMPLE_EXCURSION_ROUTE)
     const read = readTrack(gpx, SAMPLE_EXCURSION_ROUTE.fileName, gpx.length)
-    if (read.ok) await orchestrator.addTrack(excursion, read.upload)
+    if (read.ok) await orchestrator.excursions.addTrack(excursion, read.upload)
   } catch (error) {
     console.warn(`dev seed: no track for „${excursion.name}"`, error)
   }
@@ -534,7 +534,7 @@ function seedExcursions(tripId: string, orchestrator: Orchestrator): void {
     .getTravelers(tripId)
     .filter((traveler) => traveler.name !== TRAVELERS[2])
     .map((traveler) => traveler.id)
-  const hut = orchestrator.createExcursion(tripId, {
+  const hut = orchestrator.excursions.createExcursion(tripId, {
     name: 'Hüttentour Supramonte',
     startsOn: localDay(1),
     endsOn: localDay(2),
@@ -545,7 +545,7 @@ function seedExcursions(tripId: string, orchestrator: Orchestrator): void {
     .getExcursions(tripId)
     .find((excursion) => excursion.id === hut?.excursionId)
   if (hutTour) void seedExcursionTrack(hutTour, orchestrator)
-  const boat = orchestrator.createExcursion(tripId, {
+  const boat = orchestrator.excursions.createExcursion(tripId, {
     name: 'Bootsausflug',
     startsOn: null,
     endsOn: null,
@@ -553,7 +553,7 @@ function seedExcursions(tripId: string, orchestrator: Orchestrator): void {
     templateId: null,
   })
   if (boat) {
-    orchestrator.addLines(tripId, boat.excursionId, [
+    orchestrator.excursions.addLines(tripId, boat.excursionId, [
       {
         source_item_id: null,
         name: 'Sonnenhut',
@@ -588,12 +588,12 @@ const SEED_THREAD = {
 } as const
 
 function seedTripNotes(tripId: string, orchestrator: Orchestrator): void {
-  orchestrator.addComment(tripId, null, SEED_AUTHOR_ID, SEED_QUICK_NOTE)
-  const root = orchestrator.addComment(tripId, null, SEED_AUTHOR_ID, SEED_THREAD.body, {
+  orchestrator.comments.addComment(tripId, null, SEED_AUTHOR_ID, SEED_QUICK_NOTE)
+  const root = orchestrator.comments.addComment(tripId, null, SEED_AUTHOR_ID, SEED_THREAD.body, {
     title: SEED_THREAD.title,
   })
   for (const reply of SEED_THREAD.replies) {
-    orchestrator.addComment(tripId, null, SEED_AUTHOR_ID, reply, { parentId: root })
+    orchestrator.comments.addComment(tripId, null, SEED_AUTHOR_ID, reply, { parentId: root })
   }
 }
 
@@ -623,21 +623,21 @@ const SEED_TRIP_TODOS = [
 function seedTripTodos(tripId: string, orchestrator: Orchestrator): void {
   const tags = new Map(useMasterStore().taskTagList.map((tag) => [tag.name, tag.id]))
   for (const { body, phase, tag, due } of SEED_TRIP_TODOS) {
-    const id = orchestrator.addTripTodo(tripId, SEED_AUTHOR_ID, body, phase)
+    const id = orchestrator.comments.addTripTodo(tripId, SEED_AUTHOR_ID, body, phase)
     const live = () =>
       useTripStore()
         .getTripTodos(tripId)
         .find((row) => row.id === id)
     const tagId = tag === null ? null : (tags.get(tag) ?? null)
     const tagged = live()
-    if (tagId !== null && tagged) orchestrator.setTaskTag(tagged, tagId)
+    if (tagId !== null && tagged) orchestrator.comments.setTaskTag(tagged, tagId)
     const dated = live()
-    if (due !== null && dated) orchestrator.setTaskDueDate(dated, localDay(due))
+    if (due !== null && dated) orchestrator.comments.setTaskDueDate(dated, localDay(due))
   }
   const done = useTripStore()
     .getTripTodos(tripId)
     .find((todo) => todo.body === SEED_TRIP_TODOS[1].body)
-  if (done) orchestrator.resolveTripTodo(done)
+  if (done) orchestrator.comments.resolveTripTodo(done)
 }
 
 /**
@@ -655,7 +655,7 @@ function seedPreparations(tripId: string, orchestrator: Orchestrator): void {
     .find((item) => item.name === SEED_PREPARED_ROW)
   if (!row) return
   for (const body of SEED_PREPARATIONS) {
-    orchestrator.addPrepTodo(tripId, row.id, SEED_AUTHOR_ID, body)
+    orchestrator.comments.addPrepTodo(tripId, row.id, SEED_AUTHOR_ID, body)
   }
 }
 
@@ -672,7 +672,7 @@ function seedItemComment(tripId: string, orchestrator: Orchestrator): void {
   const row = useTripStore()
     .getItems(tripId)
     .find((item) => item.name === SEED_COMMENTED_ROW && item.source_item_id !== null)
-  if (row) orchestrator.addComment(tripId, row.id, SEED_AUTHOR_ID, SEED_COMMENT)
+  if (row) orchestrator.comments.addComment(tripId, row.id, SEED_AUTHOR_ID, SEED_COMMENT)
 }
 
 /**
@@ -694,7 +694,7 @@ function buyOneShoppingRow(tripId: string, orchestrator: Orchestrator): void {
   const item = useTripStore()
     .getItems(tripId)
     .find((row) => row.name === SEED_BOUGHT_ROW)
-  if (item) orchestrator.buyItem(item, ITEM_MODE_BUY_BEFORE)
+  if (item) orchestrator.packing.buyItem(item, ITEM_MODE_BUY_BEFORE)
 }
 
 /**
@@ -735,7 +735,7 @@ function seedShoppingEntries(tripId: string, orchestrator: Orchestrator): void {
  * the trip, and answer the card it carries.
  */
 export function seedPlannedTrip(orchestrator: Orchestrator, vacationTemplateId: string): string {
-  return orchestrator.createTripFromWizard({
+  return orchestrator.tripCreation.createTripFromWizard({
     name: 'Sommerferien 2027',
     year: 2027,
     startDate: null,

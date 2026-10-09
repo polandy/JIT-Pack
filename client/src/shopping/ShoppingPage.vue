@@ -115,7 +115,7 @@ const {
   assignees,
   myUserId,
   load: loadIdentity,
-} = useTripIdentity(props.tripId, orchestrator)
+} = useTripIdentity(props.tripId, orchestrator.identity)
 
 /** FR-30.12: a seat only where there is somebody else to hand a purchase to — M25's rule. */
 const assignable = computed(() => assignees.value.length > 1)

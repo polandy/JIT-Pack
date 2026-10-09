@@ -141,7 +141,7 @@ const judgeable = computed(() => canJudgeUnused(trip.value))
  * nobody has a mental model for.
  */
 const lockedByUserId = computed(() =>
-  item.value ? orchestrator.lockHolder(props.tripId, item.value) : null,
+  item.value ? orchestrator.claims.lockHolder(props.tripId, item.value) : null,
 )
 const isLocked = computed(() => lockedByUserId.value !== null)
 // Read only while `isLocked`, so the null branch of `lockNoteText` is
@@ -198,14 +198,14 @@ const newTodoText = ref('')
 function addTodo() {
   const body = newTodoText.value.trim()
   if (!body || isLocked.value) return
-  orchestrator.addPrepTodo(props.tripId, props.itemId, CLIENT_ACTOR_PLACEHOLDER, body)
+  orchestrator.comments.addPrepTodo(props.tripId, props.itemId, CLIENT_ACTOR_PLACEHOLDER, body)
   newTodoText.value = ''
 }
 
 function toggleTodo(todo: ItemTodo) {
   if (isLocked.value) return
-  if (todo.task_state === 'open') orchestrator.resolvePrepTodo(todo)
-  else orchestrator.reopenPrepTodo(todo)
+  if (todo.task_state === 'open') orchestrator.comments.resolvePrepTodo(todo)
+  else orchestrator.comments.reopenPrepTodo(todo)
 }
 
 // --- Notes (FR-7.1/7.2) ---
@@ -249,13 +249,13 @@ watch(
 function addComment() {
   const body = newCommentText.value.trim()
   if (!body) return
-  orchestrator.addComment(props.tripId, props.itemId, CLIENT_ACTOR_PLACEHOLDER, body)
+  orchestrator.comments.addComment(props.tripId, props.itemId, CLIENT_ACTOR_PLACEHOLDER, body)
   newCommentText.value = ''
 }
 
 /** FR-7.2: promoting a note moves it into the Preparation section above. */
 function flagAsTask(comment: ItemComment) {
-  orchestrator.flagCommentAsTask(props.tripId, comment)
+  orchestrator.comments.flagCommentAsTask(props.tripId, comment)
 }
 
 // --- FR-20.4 companions ---
@@ -273,7 +273,7 @@ function addCompanion(companion: SuggestedCompanion) {
   // Every field comes from the resolution rather than a second lookup: it
   // knows the category the row is filed under (FR-24.2) and the quantity
   // the dependency asked for, and the chip writes both.
-  orchestrator.quickAddItem(
+  orchestrator.packing.quickAddItem(
     props.tripId,
     companion.name,
     {
@@ -289,7 +289,7 @@ function addCompanion(companion: SuggestedCompanion) {
 
 // --- Edits (each commits on the spot, G-5) ---
 function onModeChange(mode: ItemMode) {
-  if (item.value && !isLocked.value) orchestrator.setMode(item.value, mode)
+  if (item.value && !isLocked.value) orchestrator.packing.setMode(item.value, mode)
 }
 /**
  * FR-25.28: the strip acts on every instance, and this sheet is open on one of
@@ -302,7 +302,7 @@ function onRowsRemoved(rowIds: string[]) {
 }
 
 function onContainerChange(id: string | null) {
-  if (item.value && !isLocked.value) orchestrator.assignContainer(item.value, id)
+  if (item.value && !isLocked.value) orchestrator.packing.assignContainer(item.value, id)
 }
 /** FR-9.1: the judgement is revocable, so the toggle writes both ways. */
 /**
@@ -311,15 +311,16 @@ function onContainerChange(id: string | null) {
  * placeholder invariant 3 exists to keep out.
  */
 function onAssigneeChange(value: string | null) {
-  if (item.value && !isLocked.value) orchestrator.setPacker(item.value, value ? value : null)
+  if (item.value && !isLocked.value)
+    orchestrator.packing.setPacker(item.value, value ? value : null)
 }
 
 function onReviewFlag(flag: ReviewFlag, value: boolean) {
-  if (item.value && !isLocked.value) orchestrator.setReviewFlag(item.value, flag, value)
+  if (item.value && !isLocked.value) orchestrator.packing.setReviewFlag(item.value, flag, value)
 }
 
 function onLatePacker(value: boolean) {
-  if (item.value && !isLocked.value) orchestrator.setLatePacker(item.value, value)
+  if (item.value && !isLocked.value) orchestrator.packing.setLatePacker(item.value, value)
 }
 /**
  * FR-25.24: M5's posture on the amount is the opposite of M4's. There is
@@ -341,23 +342,23 @@ const quantityChoiceList = computed(() =>
 )
 
 function onSetQuantity(quantity: number) {
-  if (item.value && !isLocked.value) orchestrator.setQuantity(item.value, quantity)
+  if (item.value && !isLocked.value) orchestrator.packing.setQuantity(item.value, quantity)
 }
 
 function onIncrement() {
-  if (item.value && !isLocked.value) orchestrator.packIncrement(item.value)
+  if (item.value && !isLocked.value) orchestrator.packing.packIncrement(item.value)
 }
 function onDecrement() {
-  if (item.value && !isLocked.value) orchestrator.packDecrement(item.value)
+  if (item.value && !isLocked.value) orchestrator.packing.packDecrement(item.value)
 }
 function onComplete() {
-  if (item.value && !isLocked.value) orchestrator.packComplete(item.value)
+  if (item.value && !isLocked.value) orchestrator.packing.packComplete(item.value)
 }
 function onZero() {
-  if (item.value && !isLocked.value) orchestrator.packZero(item.value)
+  if (item.value && !isLocked.value) orchestrator.packing.packZero(item.value)
 }
 function onToggle() {
-  if (item.value && !isLocked.value) orchestrator.packToggle(item.value)
+  if (item.value && !isLocked.value) orchestrator.packing.packToggle(item.value)
 }
 
 /**
@@ -372,8 +373,8 @@ const isSkipped = computed(() => item.value?.state === 'skipped')
 function onSkipToggle() {
   const row = item.value
   if (!row || isLocked.value) return
-  if (row.state === 'skipped') orchestrator.unskipItem(row)
-  else orchestrator.skipItem(props.tripId, row)
+  if (row.state === 'skipped') orchestrator.packing.unskipItem(row)
+  else orchestrator.packing.skipItem(props.tripId, row)
 }
 
 // --- Presentation helpers ---

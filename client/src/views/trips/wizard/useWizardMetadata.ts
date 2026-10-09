@@ -120,7 +120,7 @@ export function useWizardMetadata(preselect: unknown) {
    */
   const seriesTaken = computed(() =>
     seriesChoice.value === NEW_SERIES
-      ? (orchestrator.seriesNameCollision(newSeriesName.value) ?? null)
+      ? (orchestrator.names.seriesNameCollision(newSeriesName.value) ?? null)
       : null,
   )
 

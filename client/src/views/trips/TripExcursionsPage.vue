@@ -129,7 +129,7 @@ function dismiss() {
 async function create(result: ExcursionSheetResult) {
   const ideaId = fromIdea.value?.id ?? null
   dismiss()
-  const report = orchestrator.createExcursion(props.tripId, { ...result, ideaId })
+  const report = orchestrator.excursions.createExcursion(props.tripId, { ...result, ideaId })
   if (!report) return
   // Made from an idea, its list keeps the way back to the idea (FR-29.13).
   const origin = ideaId ? route.query[ORIGIN_QUERY_PARAM] : undefined

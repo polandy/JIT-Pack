@@ -45,7 +45,9 @@ function deferred() {
       resolve(url)
     },
     orchestrator: {
-      itemImageUrl: () => new Promise<string>((resolve) => pending.push(resolve)),
+      images: {
+        itemImageUrl: () => new Promise<string>((resolve) => pending.push(resolve)),
+      },
     },
   }
 }

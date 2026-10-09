@@ -77,7 +77,7 @@ describe('spreadOverEveryTraveler (FR-25.13g)', () => {
   it('gives every traveler a row, re-pointing the shared one rather than replacing it', () => {
     seedTrip([sharedRow()])
 
-    const result = orchestrator().spreadOverEveryTraveler(TRIP_ID, rowsOf(), [])
+    const result = orchestrator().packing.spreadOverEveryTraveler(TRIP_ID, rowsOf(), [])
 
     expect(result.outcome).toBe(SPREAD.done)
     expect(membership()).toEqual([
@@ -104,7 +104,7 @@ describe('spreadOverEveryTraveler (FR-25.13g)', () => {
       }),
     ])
 
-    orchestrator().spreadOverEveryTraveler(TRIP_ID, rowsOf(), [])
+    orchestrator().packing.spreadOverEveryTraveler(TRIP_ID, rowsOf(), [])
 
     expect(membership()).toEqual([
       ['tr-a', 1],
@@ -128,7 +128,7 @@ describe('spreadOverEveryTraveler (FR-25.13g)', () => {
       }),
     ])
 
-    const result = orchestrator().spreadOverEveryTraveler(TRIP_ID, rowsOf(), [])
+    const result = orchestrator().packing.spreadOverEveryTraveler(TRIP_ID, rowsOf(), [])
 
     expect(result.outcome).toBe(SPREAD.done)
     // The packed row of the departed traveler is untouched: still there, still
@@ -160,7 +160,7 @@ describe('spreadOverEveryTraveler (FR-25.13g)', () => {
       ),
     )
 
-    const result = orchestrator().spreadOverEveryTraveler(TRIP_ID, rowsOf(), [])
+    const result = orchestrator().packing.spreadOverEveryTraveler(TRIP_ID, rowsOf(), [])
 
     expect(result.outcome).toBe(SPREAD.nothing)
     expect(result.restore).toBeNull()
@@ -188,7 +188,7 @@ describe('spreadOverEveryTraveler (FR-25.13g)', () => {
       ),
     ])
 
-    const result = orchestrator().spreadOverEveryTraveler(TRIP_ID, rowsOf(), [])
+    const result = orchestrator().packing.spreadOverEveryTraveler(TRIP_ID, rowsOf(), [])
 
     expect(result.outcome).toBe(SPREAD.wouldDelete)
     expect(rowsOf()).toHaveLength(4)
@@ -198,7 +198,7 @@ describe('spreadOverEveryTraveler (FR-25.13g)', () => {
   it('reaches the outbox as one push, so a disconnect cannot strand half a fan-out', async () => {
     seedTrip([sharedRow()])
 
-    orchestrator().spreadOverEveryTraveler(TRIP_ID, rowsOf(), [])
+    orchestrator().packing.spreadOverEveryTraveler(TRIP_ID, rowsOf(), [])
 
     await vi.waitFor(() => expect(harness.fetch).toHaveBeenCalled())
     expect(harness.fetch.mock.calls.filter((call) => call[1]?.body)).toHaveLength(1)
@@ -218,10 +218,10 @@ describe('restoreMembership (FR-25.13g — the way back out of a spread)', () =>
       state: row.state,
     }))
 
-    const result = orch.spreadOverEveryTraveler(TRIP_ID, rowsOf(), [])
+    const result = orch.packing.spreadOverEveryTraveler(TRIP_ID, rowsOf(), [])
     expect(rowsOf()).toHaveLength(3)
 
-    orch.restoreMembership(TRIP_ID, result.restore!)
+    orch.packing.restoreMembership(TRIP_ID, result.restore!)
 
     expect(
       rowsOf().map((row) => ({
@@ -237,13 +237,13 @@ describe('restoreMembership (FR-25.13g — the way back out of a spread)', () =>
   it('leaves a row another device has deleted in the meantime alone', () => {
     seedTrip([sharedRow()])
     const orch = orchestrator()
-    const result = orch.spreadOverEveryTraveler(TRIP_ID, rowsOf(), [])
+    const result = orch.packing.spreadOverEveryTraveler(TRIP_ID, rowsOf(), [])
     const created = result.restore!.inserted[0]!
 
     useTripStore().applyChanges([
       { seq: 1, table: TABLE.tripItems, id: created, deleted: true, row: null },
     ])
-    orch.restoreMembership(TRIP_ID, result.restore!)
+    orch.packing.restoreMembership(TRIP_ID, result.restore!)
 
     // The undo took out the row it could still see and did not resurrect the
     // other by deleting it a second time — the rule removeAddedItem holds.
@@ -255,7 +255,7 @@ describe('addItemForEveryTraveler (FR-25.13g — the free line)', () => {
   it('adds the row and hands it to everybody in one tap', () => {
     seedTrip()
 
-    const result = orchestrator().addItemForEveryTraveler(
+    const result = orchestrator().packing.addItemForEveryTraveler(
       TRIP_ID,
       NAME,
       { sourceItemId: SHORTS, weightGrams: 180, valueCents: null, categoryName: 'Kleidung' },
@@ -285,7 +285,7 @@ describe('addItemForEveryTraveler (FR-25.13g — the free line)', () => {
     seedTrip()
     const orch = orchestrator()
 
-    const result = orch.addItemForEveryTraveler(
+    const result = orch.packing.addItemForEveryTraveler(
       TRIP_ID,
       NAME,
       { sourceItemId: SHORTS, weightGrams: null, valueCents: null, categoryName: null },
@@ -299,7 +299,7 @@ describe('addItemForEveryTraveler (FR-25.13g — the free line)', () => {
         .sort(),
     )
 
-    for (const id of result.ids) orch.removeAddedItem(TRIP_ID, id)
+    for (const id of result.ids) orch.packing.removeAddedItem(TRIP_ID, id)
     expect(rowsOf()).toHaveLength(0)
   })
 })

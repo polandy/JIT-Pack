@@ -131,7 +131,7 @@ export function usePackingMenus(
       closingPass: core.closingPass.value,
       locked: locked(item),
       canTakeOver: acts.canTakeOver,
-      mine: orchestrator.holdsClaim(tripId, item),
+      mine: orchestrator.claims.holdsClaim(tripId, item),
       judgeable: core.judgeable.value,
       forWhom: forWhom.seatColumn.value,
     })
@@ -178,13 +178,13 @@ export function usePackingMenus(
     return cluster.instanceIds.flatMap((id) => {
       const item = core.allItems.value.find((row) => row.id === id)
       if (!item) return []
-      const holder = locked(item) ? orchestrator.lockHolder(tripId, item) : null
+      const holder = locked(item) ? orchestrator.claims.lockHolder(tripId, item) : null
       return [
         {
           id: item.id,
           row: item,
           lockedBy: holder ? core.nameOf(holder) : null,
-          mine: orchestrator.holdsClaim(tripId, item),
+          mine: orchestrator.claims.holdsClaim(tripId, item),
         },
       ]
     })
@@ -246,8 +246,10 @@ export function usePackingMenus(
         // Per row: the instances may have disagreed before the fan-out, and the
         // undo gives each its own value back (FR-25.31).
         const previous = new Map(rows.map((row) => [row.id, row.packer_user_id]))
-        armRowsUndo(rows, (live) => orchestrator.setPacker(live, previous.get(live.id) ?? null))
-        orchestrator.setPackerForRows(rows, picked)
+        armRowsUndo(rows, (live) =>
+          orchestrator.packing.setPacker(live, previous.get(live.id) ?? null),
+        )
+        orchestrator.packing.setPackerForRows(rows, picked)
         report()
         return
       }
@@ -255,37 +257,39 @@ export function usePackingMenus(
       case 'latePackerOff': {
         const previous = new Map(rows.map((row) => [row.id, row.late_packer]))
         armRowsUndo(rows, (live) =>
-          orchestrator.setLatePacker(live, previous.get(live.id) ?? false),
+          orchestrator.packing.setLatePacker(live, previous.get(live.id) ?? false),
         )
-        orchestrator.setLatePackerForRows(rows, action === 'latePackerOn')
+        orchestrator.packing.setLatePackerForRows(rows, action === 'latePackerOn')
         report()
         return
       }
       case 'release':
         armRowsUndo(rows, (live) => {
-          if (!locked(live)) orchestrator.packingNow(live)
+          if (!locked(live)) orchestrator.claims.packingNow(live)
         })
-        for (const row of rows) orchestrator.releaseClaim(row)
+        for (const row of rows) orchestrator.claims.releaseClaim(row)
         report()
         return
       case 'unskip':
-        rowUndo.armUndo(rows, (records) => orchestrator.restoreSkip(records))
-        for (const row of rows) orchestrator.unskipItem(row)
+        rowUndo.armUndo(rows, (records) => orchestrator.packing.restoreSkip(records))
+        for (const row of rows) orchestrator.packing.unskipItem(row)
         report()
         return
       case 'packingNow':
         armRowsUndo(rows, (live) => {
-          if (orchestrator.holdsClaim(tripId, live)) orchestrator.releaseClaim(live)
+          if (orchestrator.claims.holdsClaim(tripId, live)) orchestrator.claims.releaseClaim(live)
         })
-        for (const row of rows) orchestrator.packingNow(row)
+        for (const row of rows) orchestrator.claims.packingNow(row)
         report()
         return
       case 'buyLocal':
       case 'packInstead': {
         const mode = action === 'buyLocal' ? ITEM_MODE_BUY_LOCAL : ITEM_MODE_PACK
         const previous = new Map(rows.map((row) => [row.id, row.mode]))
-        armRowsUndo(rows, (live) => orchestrator.setMode(live, previous.get(live.id) ?? live.mode))
-        for (const row of rows) orchestrator.setMode(row, mode)
+        armRowsUndo(rows, (live) =>
+          orchestrator.packing.setMode(live, previous.get(live.id) ?? live.mode),
+        )
+        for (const row of rows) orchestrator.packing.setMode(row, mode)
         report()
         return
       }
@@ -293,10 +297,10 @@ export function usePackingMenus(
       case 'unflagUnused': {
         const previous = new Map(rows.map((row) => [row.id, row.flag_unused]))
         armRowsUndo(rows, (live) =>
-          orchestrator.setReviewFlag(live, 'unused', previous.get(live.id) ?? false),
+          orchestrator.packing.setReviewFlag(live, 'unused', previous.get(live.id) ?? false),
         )
         for (const row of rows) {
-          orchestrator.setReviewFlag(row, 'unused', action === 'flagUnused')
+          orchestrator.packing.setReviewFlag(row, 'unused', action === 'flagUnused')
         }
         report()
         return

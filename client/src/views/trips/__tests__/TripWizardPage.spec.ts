@@ -35,9 +35,11 @@ vi.mock('vue-router', () => ({
 }))
 
 const orchestratorFake = {
-  // Typed on its parameter so a test can read the draft back: an untyped
-  // vi.fn() records a zero-length argument tuple.
-  createTripFromWizard: vi.fn((_draft: { sourceTemplateIds?: string[] }) => 'trip-1'),
+  tripCreation: {
+    // Typed on its parameter so a test can read the draft back: an untyped
+    // vi.fn() records a zero-length argument tuple.
+    createTripFromWizard: vi.fn((_draft: { sourceTemplateIds?: string[] }) => 'trip-1'),
+  },
   /** Which trip partitions this device has pulled (ADR-033). */
   loadedTrips: new Set<string>(),
   tripDataLoaded: vi.fn((tripId: string) => orchestratorFake.loadedTrips.has(tripId)),
@@ -293,7 +295,7 @@ describe('M3 step 4 — the default action (G-16)', () => {
 
     await wrapper.get('.qty-input').trigger('keydown.enter')
 
-    expect(orchestratorFake.createTripFromWizard).toHaveBeenCalledTimes(1)
+    expect(orchestratorFake.tripCreation.createTripFromWizard).toHaveBeenCalledTimes(1)
   })
 
   /**
@@ -310,7 +312,7 @@ describe('M3 step 4 — the default action (G-16)', () => {
     await wrapper.get('[data-testid="wizard-create"]').trigger('click')
     await wrapper.get('.qty-input').trigger('keydown.enter')
 
-    expect(orchestratorFake.createTripFromWizard).toHaveBeenCalledTimes(1)
+    expect(orchestratorFake.tripCreation.createTripFromWizard).toHaveBeenCalledTimes(1)
   })
 
   it('says so on the button, rather than letting it look ready again', async () => {
@@ -477,7 +479,7 @@ describe('what the trip follows (FR-27.4)', () => {
 
     await wrapper.get('[data-testid="wizard-create"]').trigger('click')
 
-    const draft = orchestratorFake.createTripFromWizard.mock.calls[0]?.[0]
+    const draft = orchestratorFake.tripCreation.createTripFromWizard.mock.calls[0]?.[0]
     // The pick, not the groups it expands to: the trip follows the Vorlage,
     // and a group added to that Vorlage later has to reach the trip through
     // it — which only works if the link is re-resolved rather than frozen.
@@ -568,7 +570,7 @@ describe('M3 step 3 — single items (FR-27.3)', () => {
     await wrapper.get('[data-testid="wizard-next"]').trigger('click')
     await wrapper.get('[data-testid="wizard-create"]').trigger('click')
 
-    const draft = orchestratorFake.createTripFromWizard.mock.calls[0]![0] as {
+    const draft = orchestratorFake.tripCreation.createTripFromWizard.mock.calls[0]![0] as {
       items: { name: string; source_template_id: string | null }[]
       sourceTemplateIds?: string[]
     }
@@ -601,7 +603,7 @@ describe('M3 step 4 — the companions the draft pulls in (FR-20.2/20.4)', () =>
 
     await wrapper.get('[data-testid="wizard-create"]').trigger('click')
 
-    const draft = orchestratorFake.createTripFromWizard.mock.calls[0]![0] as {
+    const draft = orchestratorFake.tripCreation.createTripFromWizard.mock.calls[0]![0] as {
       items: { name: string; source_template_id: string | null; tasks: string[] }[]
     }
     expect(draft.items.map((i) => i.name)).toContain('Ersatzakku')
@@ -617,7 +619,7 @@ describe('M3 step 4 — the companions the draft pulls in (FR-20.2/20.4)', () =>
 
     await wrapper.get('[data-testid="wizard-create"]').trigger('click')
 
-    const draft = orchestratorFake.createTripFromWizard.mock.calls[0]![0] as {
+    const draft = orchestratorFake.tripCreation.createTripFromWizard.mock.calls[0]![0] as {
       items: { name: string }[]
     }
     // The required one is the positive signal: companions were resolved,
@@ -635,7 +637,7 @@ describe('M3 step 4 — the companions the draft pulls in (FR-20.2/20.4)', () =>
       .trigger('ionChange', { detail: { checked: true } })
     await wrapper.get('[data-testid="wizard-create"]').trigger('click')
 
-    const draft = orchestratorFake.createTripFromWizard.mock.calls[0]![0] as {
+    const draft = orchestratorFake.tripCreation.createTripFromWizard.mock.calls[0]![0] as {
       items: { name: string }[]
     }
     expect(draft.items.map((i) => i.name)).toContain('Drohne')
@@ -650,7 +652,7 @@ describe('M3 step 4 — the companions the draft pulls in (FR-20.2/20.4)', () =>
     await box.trigger('ionChange', { detail: { checked: false } })
     await wrapper.get('[data-testid="wizard-create"]').trigger('click')
 
-    const draft = orchestratorFake.createTripFromWizard.mock.calls[0]![0] as {
+    const draft = orchestratorFake.tripCreation.createTripFromWizard.mock.calls[0]![0] as {
       items: { name: string }[]
     }
     expect(draft.items.map((i) => i.name)).not.toContain('Drohne')
@@ -855,7 +857,17 @@ describe('M3 step 2 — sharing (FR-4.5, G-8)', () => {
 
   async function mountAtStepTwo(): Promise<VueWrapper> {
     const wrapper = mount(TripWizardPage, {
-      global: { provide: { [ORCHESTRATOR]: { ...orchestratorFake, fetchUsers, fetchMe } } },
+      global: {
+        provide: {
+          [ORCHESTRATOR]: {
+            ...orchestratorFake,
+            identity: {
+              fetchUsers,
+              fetchMe,
+            },
+          },
+        },
+      },
     })
     await wrapper.get('[data-testid="wizard-name"]').trigger('ionInput', {
       detail: { value: 'Fototour' },
@@ -913,7 +925,7 @@ describe('M3 step 2 — sharing (FR-4.5, G-8)', () => {
 
   it('creates the trip with the linked traveler as a member, the creator only as a link (FR-2.5)', async () => {
     collaborative = true
-    orchestratorFake.createTripFromWizard.mockClear()
+    orchestratorFake.tripCreation.createTripFromWizard.mockClear()
     const wrapper = await mountAtStepTwo()
     const picker = wrapper.get('[data-testid="wizard-add-account-traveler"]')
     await picker.trigger('ionChange', { detail: { value: 'user-b' } })
@@ -925,8 +937,9 @@ describe('M3 step 2 — sharing (FR-4.5, G-8)', () => {
     await wrapper.get('[data-testid="wizard-next"]').trigger('click')
     await wrapper.get('[data-testid="wizard-create"]').trigger('click')
 
-    expect(orchestratorFake.createTripFromWizard).toHaveBeenCalledTimes(1)
-    const draft = orchestratorFake.createTripFromWizard.mock.calls[0]![0] as unknown as {
+    expect(orchestratorFake.tripCreation.createTripFromWizard).toHaveBeenCalledTimes(1)
+    const draft = orchestratorFake.tripCreation.createTripFromWizard.mock
+      .calls[0]![0] as unknown as {
       travelers: { name: string; linkedUserId: string | null }[]
       members: { userId: string; role: string }[]
     }
@@ -1030,7 +1043,16 @@ describe('M3 step 1 — a new series whose name is taken (FR-13.1)', () => {
       useMasterStore().seriesList.find((s) => s.name === name.trim()),
     )
     const wrapper = mount(TripWizardPage, {
-      global: { provide: { [ORCHESTRATOR]: { ...orchestratorFake, seriesNameCollision } } },
+      global: {
+        provide: {
+          [ORCHESTRATOR]: {
+            ...orchestratorFake,
+            names: {
+              seriesNameCollision,
+            },
+          },
+        },
+      },
     })
     const next = () =>
       wrapper
@@ -1102,7 +1124,7 @@ describe('M3 step 4 — the destination checklist the series offers (FR-13.3)', 
     if (untick) await step.get('ion-checkbox').trigger('ionChange', { detail: { checked: false } })
     await wrapper.get('[data-testid="wizard-create"]').trigger('click')
     return (
-      orchestratorFake.createTripFromWizard.mock.calls[0]![0] as unknown as {
+      orchestratorFake.tripCreation.createTripFromWizard.mock.calls[0]![0] as unknown as {
         checklistItems: { label: string; mode: string }[]
       }
     ).checklistItems
@@ -1127,7 +1149,17 @@ describe('M3 step 2 — a share’s role and its removal (FR-4.7)', () => {
   async function mountWithShare(): Promise<VueWrapper> {
     collaborative = true
     const wrapper = mount(TripWizardPage, {
-      global: { provide: { [ORCHESTRATOR]: { ...orchestratorFake, fetchUsers, fetchMe } } },
+      global: {
+        provide: {
+          [ORCHESTRATOR]: {
+            ...orchestratorFake,
+            identity: {
+              fetchUsers,
+              fetchMe,
+            },
+          },
+        },
+      },
     })
     await wrapper.get('[data-testid="wizard-name"]').trigger('ionInput', {
       detail: { value: 'Fototour' },
@@ -1151,7 +1183,8 @@ describe('M3 step 2 — a share’s role and its removal (FR-4.7)', () => {
     await wrapper.get('[data-testid="wizard-next"]').trigger('click')
     await wrapper.get('[data-testid="wizard-create"]').trigger('click')
 
-    const draft = orchestratorFake.createTripFromWizard.mock.calls[0]![0] as unknown as {
+    const draft = orchestratorFake.tripCreation.createTripFromWizard.mock
+      .calls[0]![0] as unknown as {
       members: { userId: string; role: string }[]
     }
     expect(draft.members).toEqual([{ userId: 'user-b', role: 'admin' }])

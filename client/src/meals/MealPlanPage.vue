@@ -73,7 +73,7 @@ const context = inject(MEAL_CONTEXT, null)
 const router = useRouter()
 
 const { trip, loaded, ensure } = useTripScreen(props.tripId, orchestrator)
-const { nameOf, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator)
+const { nameOf, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator.identity)
 
 const contentEl = ref<InstanceType<typeof IonContent> | null>(null)
 /** The page's scroller, read once: a move keeps the meal under the finger through it. */

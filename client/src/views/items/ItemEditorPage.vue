@@ -77,7 +77,7 @@ const props = defineProps<{ itemId?: string }>()
 const masterStore = useMasterStore()
 const tripStore = useTripStore()
 const orchestrator = useOrchestrator()
-const { directory, load } = useIdentity(orchestrator)
+const { directory, load } = useIdentity(orchestrator.identity)
 const route = useRoute()
 const router = useRouter()
 
@@ -130,7 +130,7 @@ function assign(tagId: string) {
   if (isCreating.value) {
     if (!draftTagIds.value.includes(tagId)) draftTagIds.value = [...draftTagIds.value, tagId]
   } else if (props.itemId) {
-    orchestrator.assignTag(props.itemId, tagId)
+    orchestrator.masterData.assignTag(props.itemId, tagId)
   }
 }
 
@@ -142,7 +142,7 @@ function unassign(tagId: string) {
   const assignment = masterStore.itemTagList.find(
     (a) => a.item_id === props.itemId && a.tag_id === tagId,
   )
-  if (assignment) orchestrator.unassignTag(assignment.id)
+  if (assignment) orchestrator.masterData.unassignTag(assignment.id)
 }
 
 /**
@@ -158,7 +158,7 @@ function makePrimary(tagId: string) {
     draftTagIds.value = [tagId, ...draftTagIds.value.filter((id) => id !== tagId)]
     return
   }
-  if (props.itemId) orchestrator.setPrimaryTag(props.itemId, tagId)
+  if (props.itemId) orchestrator.masterData.setPrimaryTag(props.itemId, tagId)
 }
 
 // --- Creating ---
@@ -181,13 +181,13 @@ async function createItem() {
 
   const weight = parseInt(draftWeight.value, 10)
   const price = parseFloat(draftPrice.value)
-  const id = orchestrator.createMasterItem(name, {
+  const id = orchestrator.masterData.createMasterItem(name, {
     weightGrams: isNaN(weight) ? null : weight,
     valueCents: isNaN(price) ? null : Math.round(price * 100),
     icon: draftIcon.value,
     defaultAssigneeId: draftAssignee.value,
   })
-  for (const tagId of draftTagIds.value) orchestrator.assignTag(id, tagId)
+  for (const tagId of draftTagIds.value) orchestrator.masterData.assignTag(id, tagId)
 
   // No toast. The screen itself is the confirmation and a better one: the
   // header becomes the item's name, the FR-25.15 indicator settles on ✓,
@@ -205,7 +205,7 @@ async function createItem() {
 
 function updateField<K extends keyof MasterItemEdit>(field: K, value: MasterItemEdit[K]) {
   if (!item.value) return
-  orchestrator.updateMasterItem(item.value, { [field]: value })
+  orchestrator.masterData.updateMasterItem(item.value, { [field]: value })
 }
 
 // --- The default assignee (FR-1.9) ---
@@ -289,7 +289,7 @@ watch(
   () => item.value?.image_hash,
   async () => {
     releasePhotoUrl()
-    if (item.value) photoUrl.value = await orchestrator.itemImageUrl(item.value)
+    if (item.value) photoUrl.value = await orchestrator.images.itemImageUrl(item.value)
   },
   { immediate: true },
 )
@@ -301,7 +301,7 @@ async function onPhotoFile(event: Event) {
   if (!file || !item.value) return
   photoBusy.value = true
   try {
-    await orchestrator.setItemImage(item.value, file)
+    await orchestrator.images.setItemImage(item.value, file)
   } finally {
     photoBusy.value = false
     if (photoInput.value) photoInput.value.value = ''
@@ -312,7 +312,7 @@ async function removePhoto() {
   if (!item.value) return
   photoBusy.value = true
   try {
-    await orchestrator.deleteItemImage(item.value)
+    await orchestrator.images.deleteItemImage(item.value)
   } finally {
     photoBusy.value = false
   }
@@ -395,7 +395,7 @@ function closeMainPicker() {
 function onAddDependency(mainItemId: string) {
   if (!props.itemId || mainRefused(mainItemId)) return
   closeMainPicker()
-  orchestrator.addItemDependency(props.itemId, mainItemId)
+  orchestrator.dependencies.addItemDependency(props.itemId, mainItemId)
 }
 
 /**
@@ -415,11 +415,11 @@ function mainRefused(mainItemId: string): boolean {
 
 function onDependencyModeChange(dependencyId: string, mode: DependencyMode) {
   const dep = dependsOn.value.find((d) => d.id === dependencyId)
-  if (dep) orchestrator.updateItemDependency(dep, { mode })
+  if (dep) orchestrator.dependencies.updateItemDependency(dep, { mode })
 }
 
 function onRemoveDependency(dependencyId: string) {
-  orchestrator.deleteItemDependency(dependencyId)
+  orchestrator.dependencies.deleteItemDependency(dependencyId)
 }
 
 function closeCompanionPicker() {
@@ -436,7 +436,7 @@ function closeCompanionPicker() {
 function onAddCompanion(companionItemId: string) {
   if (!props.itemId || companionRefused(companionItemId)) return
   closeCompanionPicker()
-  orchestrator.addItemDependency(companionItemId, props.itemId)
+  orchestrator.dependencies.addItemDependency(companionItemId, props.itemId)
 }
 
 /** Reports whether the edge would close a cycle, and says so on screen if it would. */
@@ -452,11 +452,11 @@ function companionRefused(companionItemId: string): boolean {
 
 function onCompanionModeChange(dependencyId: string, mode: DependencyMode) {
   const dep = companions.value.find((d) => d.id === dependencyId)
-  if (dep) orchestrator.updateItemDependency(dep, { mode })
+  if (dep) orchestrator.dependencies.updateItemDependency(dep, { mode })
 }
 
 function onRemoveCompanion(dependencyId: string) {
-  orchestrator.deleteItemDependency(dependencyId)
+  orchestrator.dependencies.deleteItemDependency(dependencyId)
 }
 
 // --- FR-20.1 + FR-24.11: a related item the inventory does not hold yet ---
@@ -505,10 +505,11 @@ function takeOffer(target: CreateFor) {
     return
   }
   if (target === CREATE_FOR_MAIN) {
-    if (mainRefused(current.id) || !orchestrator.restoreMasterItem(current.id)) return
+    if (mainRefused(current.id) || !orchestrator.masterData.restoreMasterItem(current.id)) return
     onAddDependency(current.id)
   } else {
-    if (companionRefused(current.id) || !orchestrator.restoreMasterItem(current.id)) return
+    if (companionRefused(current.id) || !orchestrator.masterData.restoreMasterItem(current.id))
+      return
     onAddCompanion(current.id)
   }
 }
@@ -521,11 +522,11 @@ async function onRelatedCreated({ id, open }: { id: string; open: boolean }) {
   if (target === CREATE_FOR_MAIN) {
     dependencyError.value = null
     closeMainPicker()
-    orchestrator.addItemDependency(props.itemId, id)
+    orchestrator.dependencies.addItemDependency(props.itemId, id)
   } else {
     companionError.value = null
     closeCompanionPicker()
-    orchestrator.addItemDependency(id, props.itemId)
+    orchestrator.dependencies.addItemDependency(id, props.itemId)
   }
   if (open) await router.push(itemPath(id))
 }
@@ -584,7 +585,7 @@ function authorName(userId: string): string | null {
  * where this device cannot see every trip (ADR-032).
  */
 const deletionOutlook = computed(() =>
-  props.itemId ? orchestrator.masterItemDeletionOutlook(props.itemId) : null,
+  props.itemId ? orchestrator.masterData.masterItemDeletionOutlook(props.itemId) : null,
 )
 
 const deletionSentence = computed(() =>
@@ -600,7 +601,7 @@ async function onDelete() {
     confirmLabel: t('common.delete'),
   })
   if (!confirmed) return
-  orchestrator.deleteMasterItem(current.id)
+  orchestrator.masterData.deleteMasterItem(current.id)
   router.replace({ name: 'items' })
 }
 
@@ -681,7 +682,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
           @assign="assign"
           @unassign="unassign"
           @primary="makePrimary"
-          @create="(name: string) => assign(orchestrator.createTag(name))"
+          @create="(name: string) => assign(orchestrator.masterData.createTag(name))"
         />
 
         <!-- FR-1.9: optional, and not folded away — it is the point of the

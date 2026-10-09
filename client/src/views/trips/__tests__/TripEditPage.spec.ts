@@ -29,18 +29,22 @@ const DIRECTORY = [
 
 const orchestratorFake = {
   ...tripScreenStub(),
-  updateTrip: vi.fn(),
-  renameTraveler: vi.fn(),
-  linkTraveler: vi.fn(),
-  addTravelerToTrip: vi.fn(),
-  removeTraveler: vi.fn(),
-  packedRowsOf: vi.fn(() => 0),
-  fetchUsers: vi.fn(async () => DIRECTORY),
-  fetchMe: vi.fn(async () => ({
-    user_id: 'u-alice',
-    display_name: 'Alice',
-    is_instance_admin: false,
-  })),
+  tripLifecycle: {
+    updateTrip: vi.fn(),
+    renameTraveler: vi.fn(),
+    linkTraveler: vi.fn(),
+    addTravelerToTrip: vi.fn(),
+    removeTraveler: vi.fn(),
+    packedRowsOf: vi.fn(() => 0),
+  },
+  identity: {
+    fetchUsers: vi.fn(async () => DIRECTORY),
+    fetchMe: vi.fn(async () => ({
+      user_id: 'u-alice',
+      display_name: 'Alice',
+      is_instance_admin: false,
+    })),
+  },
 }
 
 function seedTrip(fields: Record<string, unknown> = {}) {
@@ -130,7 +134,7 @@ describe('M22 — the trip’s dates are one range (FR-2.1d, G-17)', () => {
 
     await datesField(wrapper).vm.$emit('update', '2026-10-09', '2026-10-18')
 
-    expect(orchestratorFake.updateTrip).toHaveBeenCalledWith(TRIP_ID, {
+    expect(orchestratorFake.tripLifecycle.updateTrip).toHaveBeenCalledWith(TRIP_ID, {
       start_date: '2026-10-09',
       end_date: '2026-10-18',
     })
@@ -141,13 +145,13 @@ describe('M22 — the trip’s dates are one range (FR-2.1d, G-17)', () => {
     const wrapper = mountPage()
 
     await datesField(wrapper).vm.$emit('update', '2026-08-20', '')
-    expect(orchestratorFake.updateTrip).toHaveBeenLastCalledWith(TRIP_ID, {
+    expect(orchestratorFake.tripLifecycle.updateTrip).toHaveBeenLastCalledWith(TRIP_ID, {
       start_date: '2026-08-20',
       end_date: null,
     })
 
     await datesField(wrapper).vm.$emit('update', '', '')
-    expect(orchestratorFake.updateTrip).toHaveBeenLastCalledWith(TRIP_ID, {
+    expect(orchestratorFake.tripLifecycle.updateTrip).toHaveBeenLastCalledWith(TRIP_ID, {
       start_date: null,
       end_date: null,
     })
@@ -159,7 +163,7 @@ describe('M22 — the trip’s dates are one range (FR-2.1d, G-17)', () => {
 
     await datesField(wrapper).vm.$emit('update', '2026-08-22', '2026-09-05')
 
-    expect(orchestratorFake.updateTrip).not.toHaveBeenCalled()
+    expect(orchestratorFake.tripLifecycle.updateTrip).not.toHaveBeenCalled()
   })
 
   it('still renders an already-inverted range, so it can be repaired', () => {
@@ -209,13 +213,21 @@ describe('M22 — a traveller can be recorded as an account (FR-2.5, ADR-058)', 
 
     const select = linkSelect(wrapper)[0]!
     select.vm.$emit('ionChange', { detail: { value: 'u-bob' } })
-    expect(orchestratorFake.linkTraveler).toHaveBeenCalledWith(TRIP_ID, TRAVELER_ID, 'u-bob')
+    expect(orchestratorFake.tripLifecycle.linkTraveler).toHaveBeenCalledWith(
+      TRIP_ID,
+      TRAVELER_ID,
+      'u-bob',
+    )
 
     // `''` is the select's value for *nobody* — `null` would make `IonSelect`
     // render its placeholder instead of the option — so the screen is what
     // has to turn it back into the clear the store understands.
     select.vm.$emit('ionChange', { detail: { value: '' } })
-    expect(orchestratorFake.linkTraveler).toHaveBeenLastCalledWith(TRIP_ID, TRAVELER_ID, null)
+    expect(orchestratorFake.tripLifecycle.linkTraveler).toHaveBeenLastCalledWith(
+      TRIP_ID,
+      TRAVELER_ID,
+      null,
+    )
   })
 
   it('shows the account a traveller already carries', async () => {
@@ -281,7 +293,11 @@ describe('M22 — a traveller can be added as an account (FR-2.5, owner 2026-09-
 
     // One act, not two: the account reaches the same call as the name, so
     // there is no window in which the person exists unlinked on any screen.
-    expect(orchestratorFake.addTravelerToTrip).toHaveBeenCalledWith(TRIP_ID, 'Mia', 'u-bob')
+    expect(orchestratorFake.tripLifecycle.addTravelerToTrip).toHaveBeenCalledWith(
+      TRIP_ID,
+      'Mia',
+      'u-bob',
+    )
   })
 
   it('returns to *no account* for the next person', async () => {
@@ -300,8 +316,18 @@ describe('M22 — a traveller can be added as an account (FR-2.5, owner 2026-09-
     // second call carries null" would pass against a picker that never
     // worked at all. A sticky value would quietly make the children of the
     // family the second parent's account.
-    expect(orchestratorFake.addTravelerToTrip).toHaveBeenNthCalledWith(1, TRIP_ID, 'Mia', 'u-bob')
-    expect(orchestratorFake.addTravelerToTrip).toHaveBeenNthCalledWith(2, TRIP_ID, 'Jon', null)
+    expect(orchestratorFake.tripLifecycle.addTravelerToTrip).toHaveBeenNthCalledWith(
+      1,
+      TRIP_ID,
+      'Mia',
+      'u-bob',
+    )
+    expect(orchestratorFake.tripLifecycle.addTravelerToTrip).toHaveBeenNthCalledWith(
+      2,
+      TRIP_ID,
+      'Jon',
+      null,
+    )
     expect(addLinkSelect(wrapper)[0]!.props('value')).toBe('')
   })
 
@@ -314,6 +340,10 @@ describe('M22 — a traveller can be added as an account (FR-2.5, owner 2026-09-
     expect(addLinkSelect(wrapper)).toHaveLength(0)
 
     await addTraveler(wrapper, 'Mia')
-    expect(orchestratorFake.addTravelerToTrip).toHaveBeenCalledWith(TRIP_ID, 'Mia', null)
+    expect(orchestratorFake.tripLifecycle.addTravelerToTrip).toHaveBeenCalledWith(
+      TRIP_ID,
+      'Mia',
+      null,
+    )
   })
 })

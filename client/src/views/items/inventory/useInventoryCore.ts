@@ -104,7 +104,7 @@ export function useInventoryCore() {
    * asks once; in Local and Single-User Mode it answers nobody, which is what
    * hides the action (G-8).
    */
-  const { directory, load: loadDirectory } = useIdentity(orchestrator)
+  const { directory, load: loadDirectory } = useIdentity(orchestrator.identity)
 
   onMounted(() => void loadDirectory())
 

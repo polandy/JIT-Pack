@@ -47,7 +47,7 @@ const orchestrator = useOrchestrator()
 const plannerStore = usePlannerStore()
 const actions = createPlannerActions(orchestrator.moduleHost, plannerStore)
 const pageLinks = usePageLinks(props.tripId, orchestrator)
-const { myUserId, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator)
+const { myUserId, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator.identity)
 
 onMounted(loadIdentity)
 

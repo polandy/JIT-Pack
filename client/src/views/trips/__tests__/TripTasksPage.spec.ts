@@ -73,19 +73,23 @@ const people = [
 ]
 
 const acts = {
-  setTaskTag: vi.fn(),
-  createTaskTag: vi.fn(() => 'tag-new'),
-  addTripTodo: vi.fn(() => 'new-task'),
-  deleteTripTodo: vi.fn(),
-  resolveTripTodo: vi.fn(),
-  reopenTripTodo: vi.fn(),
-  resolvePrepTodo: vi.fn(),
-  reopenPrepTodo: vi.fn(),
-  assignTripTodo: vi.fn(),
-  assignPrepTodo: vi.fn(),
-  setTaskPhase: vi.fn(),
-  setTaskDueDate: vi.fn(),
-  setTaskBody: vi.fn(),
+  comments: {
+    setTaskTag: vi.fn(),
+    addTripTodo: vi.fn(() => 'new-task'),
+    deleteTripTodo: vi.fn(),
+    resolveTripTodo: vi.fn(),
+    reopenTripTodo: vi.fn(),
+    resolvePrepTodo: vi.fn(),
+    reopenPrepTodo: vi.fn(),
+    assignTripTodo: vi.fn(),
+    assignPrepTodo: vi.fn(),
+    setTaskPhase: vi.fn(),
+    setTaskDueDate: vi.fn(),
+    setTaskBody: vi.fn(),
+  },
+  masterData: {
+    createTaskTag: vi.fn(() => 'tag-new'),
+  },
 }
 
 function mountPage() {
@@ -94,13 +98,15 @@ function mountPage() {
     global: {
       provide: {
         [ORCHESTRATOR]: {
-          ...identityStub(),
-          fetchUsers: async () => people,
-          fetchMe: async () => ({
-            user_id: 'u-andy',
-            display_name: 'Andy',
-            is_instance_admin: false,
-          }),
+          identity: {
+            ...identityStub(),
+            fetchUsers: async () => people,
+            fetchMe: async () => ({
+              user_id: 'u-andy',
+              display_name: 'Andy',
+              is_instance_admin: false,
+            }),
+          },
           ...tripScreen,
           ...acts,
         },
@@ -248,16 +254,22 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
       ])
 
       await composer.get('form').trigger('submit')
-      expect(acts.addTripTodo).toHaveBeenLastCalledWith('t1', expect.any(String), body, 'before', {
-        taskTagId: null,
-        dueDate: '2026-07-11',
-        ideaId: 'idea-1',
-      })
+      expect(acts.comments.addTripTodo).toHaveBeenLastCalledWith(
+        't1',
+        expect.any(String),
+        body,
+        'before',
+        {
+          taskTagId: null,
+          dueDate: '2026-07-11',
+          ideaId: 'idea-1',
+        },
+      )
 
       // The next task is the list's own again.
       await composer.findComponent(IonInput).setValue('Tanken')
       await composer.get('form').trigger('submit')
-      expect(acts.addTripTodo).toHaveBeenLastCalledWith(
+      expect(acts.comments.addTripTodo).toHaveBeenLastCalledWith(
         't1',
         expect.any(String),
         'Tanken',
@@ -282,7 +294,7 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
     await composer.findComponent(IonInput).setValue('Zugverbindung abklären')
     await composer.get('form').trigger('submit')
 
-    expect(acts.addTripTodo).toHaveBeenCalledWith(
+    expect(acts.comments.addTripTodo).toHaveBeenCalledWith(
       't1',
       expect.any(String),
       'Zugverbindung abklären',
@@ -303,7 +315,7 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
     await composer.get('[data-testid="due-chip-today"]').trigger('click')
     await composer.get('form').trigger('submit')
 
-    expect(acts.addTripTodo).toHaveBeenLastCalledWith(
+    expect(acts.comments.addTripTodo).toHaveBeenLastCalledWith(
       't1',
       expect.any(String),
       'Salbe holen',
@@ -313,7 +325,7 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
     // The tag stays chosen for the next task of the same errand; the day does not.
     await composer.findComponent(IonInput).setValue('Rezept abholen')
     await composer.get('form').trigger('submit')
-    expect(acts.addTripTodo).toHaveBeenLastCalledWith(
+    expect(acts.comments.addTripTodo).toHaveBeenLastCalledWith(
       't1',
       expect.any(String),
       'Rezept abholen',
@@ -370,7 +382,7 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
     await composer.get('[data-testid="m25-entry-confirm"]').trigger('click')
     await flushPromises()
 
-    expect(acts.addTripTodo).toHaveBeenLastCalledWith(
+    expect(acts.comments.addTripTodo).toHaveBeenLastCalledWith(
       't1',
       expect.any(String),
       'Salbe holen',
@@ -420,7 +432,7 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
       page.find('[data-testid="m25-during"] [data-testid="trip-todos-resolved"]').exists(),
     ).toBe(false)
     await page.get('[data-testid="trip-todo-Zug abklären"] ion-checkbox').trigger('ionChange')
-    expect(acts.reopenTripTodo).toHaveBeenCalledTimes(1)
+    expect(acts.comments.reopenTripTodo).toHaveBeenCalledTimes(1)
   })
 
   /*
@@ -480,13 +492,13 @@ describe('M25 — the sheet in the order acts are wanted (FR-7.14)', () => {
     page.findComponent(TripTaskSheet).vm.$emit('rename', 'Pass holen')
     await flushPromises()
 
-    expect(acts.setTaskBody).toHaveBeenCalledWith(
+    expect(acts.comments.setTaskBody).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'Pas holen' }),
       'Pass holen',
     )
-    acts.setTaskBody.mockClear()
+    acts.comments.setTaskBody.mockClear()
     ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
-    expect(acts.setTaskBody).toHaveBeenCalledWith(
+    expect(acts.comments.setTaskBody).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'Pas holen' }),
       'Pas holen',
     )
@@ -503,7 +515,9 @@ describe('M25 — the sheet in the order acts are wanted (FR-7.14)', () => {
     await page.get('[data-testid="task-sheet-done"]').trigger('click')
     await flushPromises()
 
-    expect(acts.resolveTripTodo).toHaveBeenCalledWith(expect.objectContaining({ id: 'Pass holen' }))
+    expect(acts.comments.resolveTripTodo).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'Pass holen' }),
+    )
     expect(page.find('[data-testid="task-sheet"]').exists()).toBe(false)
   })
 })
@@ -521,16 +535,16 @@ describe('M25 — the crossing by hand (FR-7.7)', () => {
     page.findComponent(TripTaskSheet).vm.$emit('move', 'during')
     await flushPromises()
 
-    expect(acts.setTaskPhase).toHaveBeenCalledWith(
+    expect(acts.comments.setTaskPhase).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'Salbe holen' }),
       'during',
     )
 
     // One snackbar, one undo — and it writes back the phase the task actually
     // had, which for a task written before FR-7.7 is no phase at all.
-    acts.setTaskPhase.mockClear()
+    acts.comments.setTaskPhase.mockClear()
     ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
-    expect(acts.setTaskPhase).toHaveBeenCalledWith(
+    expect(acts.comments.setTaskPhase).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'Salbe holen' }),
       'before',
     )
@@ -628,7 +642,7 @@ describe('M25 — whose task it is (FR-7.5/FR-7.7)', () => {
     picked = undefined
     await before.get('[data-testid="trip-todo-assign-Salbe holen"]').trigger('click')
     await flushPromises()
-    expect(acts.assignTripTodo).not.toHaveBeenCalled()
+    expect(acts.comments.assignTripTodo).not.toHaveBeenCalled()
     // … and the tick's undo is still the one on offer, untouched.
     expect(undo.pending.value.map((record) => record.name)).toEqual(['Salbe holen'])
 
@@ -638,7 +652,7 @@ describe('M25 — whose task it is (FR-7.5/FR-7.7)', () => {
     picked = 'u-sia'
     await before.get('[data-testid="trip-todo-assign-Salbe holen"]').trigger('click')
     await flushPromises()
-    expect(acts.assignTripTodo).toHaveBeenCalledTimes(1)
+    expect(acts.comments.assignTripTodo).toHaveBeenCalledTimes(1)
   })
 
   /*
@@ -716,16 +730,16 @@ describe('M25 — the tag a task carries (FR-7.8)', () => {
     await page.get('[data-testid="tag-pick-offer-Apotheke"]').trigger('click')
     await flushPromises()
 
-    expect(acts.setTaskTag).toHaveBeenCalledWith(
+    expect(acts.comments.setTaskTag).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'Salbe holen' }),
       'apo',
     )
 
     // One undo for the movement, and it writes the tag back. A second armed
     // record would have replaced this one and left the movement half undone.
-    acts.setTaskTag.mockClear()
+    acts.comments.setTaskTag.mockClear()
     ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
-    expect(acts.setTaskTag).toHaveBeenCalledWith(
+    expect(acts.comments.setTaskTag).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'Salbe holen' }),
       null,
     )
@@ -765,7 +779,7 @@ describe('M25 — the tag a task carries (FR-7.8)', () => {
     await page.get('[data-testid="tag-pick-assigned-Apotheke"]').trigger('click')
     await flushPromises()
 
-    expect(acts.setTaskTag).toHaveBeenCalledWith(
+    expect(acts.comments.setTaskTag).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'Salbe holen' }),
       null,
     )
@@ -787,8 +801,8 @@ describe('M25 — the tag a task carries (FR-7.8)', () => {
     await page.get('[data-testid="tag-pick-create"]').trigger('click')
     await flushPromises()
 
-    expect(acts.createTaskTag).toHaveBeenCalledWith('Apotheke', 0)
-    expect(acts.setTaskTag).toHaveBeenCalledWith(
+    expect(acts.masterData.createTaskTag).toHaveBeenCalledWith('Apotheke', 0)
+    expect(acts.comments.setTaskTag).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'Salbe holen' }),
       'tag-new',
     )
@@ -878,15 +892,15 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
     await flushPromises()
 
     // Salbe already carried it: two writes, across both phases and both kinds.
-    expect(acts.setTaskTag).toHaveBeenCalledTimes(2)
-    const tagged = acts.setTaskTag.mock.calls.map((call) => (call[0] as { id: string }).id)
+    expect(acts.comments.setTaskTag).toHaveBeenCalledTimes(2)
+    const tagged = acts.comments.setTaskTag.mock.calls.map((call) => (call[0] as { id: string }).id)
     expect(tagged.sort()).toEqual(['Akku laden', 'Pflanzen giessen'])
     expect(barSelection()).toBeNull()
 
-    acts.setTaskTag.mockClear()
+    acts.comments.setTaskTag.mockClear()
     ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
-    expect(acts.setTaskTag).toHaveBeenCalledTimes(2)
-    for (const call of acts.setTaskTag.mock.calls) expect(call[1]).toBeNull()
+    expect(acts.comments.setTaskTag).toHaveBeenCalledTimes(2)
+    for (const call of acts.comments.setTaskTag.mock.calls) expect(call[1]).toBeNull()
   })
 
   it('sends the selection to a phase, and says so when nothing had to move', async () => {
@@ -900,19 +914,19 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
     await page.get('[data-testid="m25-bulk-during"]').trigger('click')
     await flushPromises()
 
-    expect(acts.setTaskPhase).toHaveBeenCalledTimes(1)
-    expect(acts.setTaskPhase).toHaveBeenCalledWith(
+    expect(acts.comments.setTaskPhase).toHaveBeenCalledTimes(1)
+    expect(acts.comments.setTaskPhase).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'Salbe holen' }),
       'during',
     )
 
     // FR-7.14: a selection already in one phase is offered only the other.
-    acts.setTaskPhase.mockClear()
+    acts.comments.setTaskPhase.mockClear()
     await page.get('[data-testid="trip-todo-Zug abklären"] ion-label').trigger('contextmenu')
     expect(page.find('[data-testid="m25-bulk-during"]').exists()).toBe(false)
     await page.get('[data-testid="m25-bulk-before"]').trigger('click')
     await flushPromises()
-    expect(acts.setTaskPhase).toHaveBeenCalledWith(
+    expect(acts.comments.setTaskPhase).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'Zug abklären' }),
       'before',
     )
@@ -933,13 +947,13 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
     await page.get('[data-testid="m25-bulk-done"]').trigger('click')
     await flushPromises()
 
-    expect(acts.resolveTripTodo).toHaveBeenCalledTimes(1)
-    expect(acts.resolvePrepTodo).toHaveBeenCalledTimes(1)
+    expect(acts.comments.resolveTripTodo).toHaveBeenCalledTimes(1)
+    expect(acts.comments.resolvePrepTodo).toHaveBeenCalledTimes(1)
     expect(barSelection()).toBeNull()
     ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
     // The store still reads them open (the stub wrote nothing), so the undo
     // has nothing to reopen — it must not reopen anything else either.
-    expect(acts.reopenTripTodo).not.toHaveBeenCalled()
+    expect(acts.comments.reopenTripTodo).not.toHaveBeenCalled()
   })
 
   it('dates the whole selection from one sheet of chips (FR-7.14)', async () => {
@@ -959,8 +973,8 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
       .trigger('click')
     await flushPromises()
 
-    expect(acts.setTaskDueDate).toHaveBeenCalledTimes(2)
-    for (const call of acts.setTaskDueDate.mock.calls) expect(call[1]).toBe('2026-07-09')
+    expect(acts.comments.setTaskDueDate).toHaveBeenCalledTimes(2)
+    for (const call of acts.comments.setTaskDueDate.mock.calls) expect(call[1]).toBe('2026-07-09')
   })
 
   it('hands the whole selection to one person, skipping who already has it, with one undo (FR-7.14)', async () => {
@@ -976,18 +990,18 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
     await page.get('[data-testid="m25-bulk-assign"]').trigger('click')
     await flushPromises()
 
-    expect(acts.assignTripTodo).toHaveBeenCalledTimes(1)
-    expect(acts.assignTripTodo.mock.calls[0]![0]).toMatchObject({ body: 'Salbe holen' })
-    expect(acts.assignTripTodo.mock.calls[0]![1]).toBe('u-sia')
+    expect(acts.comments.assignTripTodo).toHaveBeenCalledTimes(1)
+    expect(acts.comments.assignTripTodo.mock.calls[0]![0]).toMatchObject({ body: 'Salbe holen' })
+    expect(acts.comments.assignTripTodo.mock.calls[0]![1]).toBe('u-sia')
     expect(barSelection()).toBeNull()
 
     // A dismissed picker keeps the selection and writes nothing.
-    acts.assignTripTodo.mockClear()
+    acts.comments.assignTripTodo.mockClear()
     await page.get('[data-testid="trip-todo-Salbe holen"] ion-label').trigger('contextmenu')
     picked = undefined
     await page.get('[data-testid="m25-bulk-assign"]').trigger('click')
     await flushPromises()
-    expect(acts.assignTripTodo).not.toHaveBeenCalled()
+    expect(acts.comments.assignTripTodo).not.toHaveBeenCalled()
     expect(barSelection()).not.toBeNull()
   })
 
@@ -1025,7 +1039,7 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
     // Hidden at once, deleted when the undo lapses — and one undo brings both back.
     expect(page.find('[data-testid="trip-todo-Salbe holen"]').exists()).toBe(false)
     expect(page.find('[data-testid="trip-todo-Pass holen"]').exists()).toBe(false)
-    expect(acts.deleteTripTodo).not.toHaveBeenCalled()
+    expect(acts.comments.deleteTripTodo).not.toHaveBeenCalled()
     ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
     await flushPromises()
     expect(page.find('[data-testid="trip-todo-Salbe holen"]').exists()).toBe(true)
@@ -1097,15 +1111,15 @@ describe('M25 — the day a task is due (FR-7.11)', () => {
     await page.get('[data-testid="task-sheet"] [data-testid="due-chip-tomorrow"]').trigger('click')
     await flushPromises()
 
-    expect(acts.setTaskDueDate).toHaveBeenCalledWith(
+    expect(acts.comments.setTaskDueDate).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'Pass holen' }),
       '2026-07-09',
     )
     expect(page.find('[data-testid="task-sheet"]').exists()).toBe(true)
 
-    acts.setTaskDueDate.mockClear()
+    acts.comments.setTaskDueDate.mockClear()
     ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
-    expect(acts.setTaskDueDate).toHaveBeenCalledWith(
+    expect(acts.comments.setTaskDueDate).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'Pass holen' }),
       null,
     )
@@ -1211,7 +1225,7 @@ describe('M25 — the composer writes for the road once the trip has begun (FR-7
     const composer = page.findComponent(TaskComposer)
     await composer.findComponent(IonInput).setValue('Maut zahlen')
     await composer.get('form').trigger('submit')
-    expect(acts.addTripTodo).toHaveBeenLastCalledWith(
+    expect(acts.comments.addTripTodo).toHaveBeenLastCalledWith(
       't1',
       expect.any(String),
       'Maut zahlen',

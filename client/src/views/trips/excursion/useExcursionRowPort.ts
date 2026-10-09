@@ -21,7 +21,7 @@ import type { RowPort } from '../packing/rowPort'
 
 /** The writes on a line's count the port makes. */
 export type ExcursionLineWrites = Pick<
-  Orchestrator,
+  Orchestrator['excursions'],
   'setLineCount' | 'setLineQuantity' | 'toggleLine' | 'skipLine' | 'unskipLine'
 >
 

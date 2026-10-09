@@ -46,7 +46,7 @@ export function useRowFacts(core: PackingCore): RowFacts {
 
   /** G-3's "in progress by Andy", worded in `lib/rowFacts.ts` (U-2). */
   function lockNote(item: TripItem): string | null {
-    return lockNoteText(orchestrator.lockHolder(tripId, item), nameOf)
+    return lockNoteText(orchestrator.claims.lockHolder(tripId, item), nameOf)
   }
 
   /**
@@ -55,7 +55,7 @@ export function useRowFacts(core: PackingCore): RowFacts {
    * everyone else.
    */
   function ownClaimNote(item: TripItem): string | null {
-    return orchestrator.holdsClaim(tripId, item) ? t('packing.claimedByMe') : null
+    return orchestrator.claims.holdsClaim(tripId, item) ? t('packing.claimedByMe') : null
   }
 
   /** FR-25.17: "gepackt von Andy · heute 14:32", on revealed rows only. */

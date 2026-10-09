@@ -102,13 +102,19 @@ const master = masterDataStub()
 const HERO_TODAY = '2026-10-07'
 
 const orchestratorFake = {
-  ...identityStub(),
-  activateTrip: vi.fn(),
-  archiveTrip: vi.fn(),
-  deleteTrip: vi.fn(),
-  fetchMe: vi.fn(() => Promise.resolve(null)),
+  identity: {
+    ...identityStub(),
+    fetchMe: vi.fn(() => Promise.resolve(null)),
+  },
+  tripLifecycle: {
+    activateTrip: vi.fn(),
+    archiveTrip: vi.fn(),
+    deleteTrip: vi.fn(),
+  },
   drainAll: vi.fn(() => Promise.resolve()),
-  refreshProposals: { value: {} as Record<string, unknown> },
+  groupRefresh: {
+    refreshProposals: { value: {} as Record<string, unknown> },
+  },
   // ADR-033: whether a trip's own rows are on this device, and the request
   // that fetches them. The set is what a test decides.
   loadedTrips: new Set<string>(),
@@ -173,7 +179,7 @@ beforeEach(() => {
   segment = 'planned'
   pushed.length = 0
   sheets.length = 0
-  orchestratorFake.refreshProposals.value = {}
+  orchestratorFake.groupRefresh.refreshProposals.value = {}
   orchestratorFake.loadedTrips = new Set<string>()
   master.masterLoaded.value = true
   setActivePinia(createPinia())
@@ -241,7 +247,7 @@ describe('TripListPage — the FR-27.4 changes chip (UX-20)', () => {
     setLocale('de')
     const trips = seedTrip('planning')
     trips.applyChanges(manyEntries(11))
-    orchestratorFake.refreshProposals.value = { t1: proposal([STIRNLAMPE]) }
+    orchestratorFake.groupRefresh.refreshProposals.value = { t1: proposal([STIRNLAMPE]) }
 
     const wrapper = mountPage()
 
@@ -255,7 +261,7 @@ describe('TripListPage — the FR-27.4 changes chip (UX-20)', () => {
   it('says what is waiting when nothing was taken over yet', async () => {
     setLocale('de')
     seedTrip('planning')
-    orchestratorFake.refreshProposals.value = {
+    orchestratorFake.groupRefresh.refreshProposals.value = {
       t1: proposal([STIRNLAMPE, { ...STIRNLAMPE, item_name: 'Kabel' }, STIRNLAMPE]),
     }
 
@@ -279,7 +285,7 @@ describe('TripListPage — the FR-27.4 changes chip (UX-20)', () => {
       detail: { field: 'quantity', from: 1, to: 2 },
     }
     const tasks = { ...STIRNLAMPE, kind: 'changed', detail: { field: 'tasks', from: 0, to: 1 } }
-    orchestratorFake.refreshProposals.value = {
+    orchestratorFake.groupRefresh.refreshProposals.value = {
       t1: { ...proposal([quantity, tasks], 0), update: [{}] },
     }
     const wrapper = mountWithSheet()
@@ -308,7 +314,7 @@ describe('TripListPage — the FR-27.4 changes chip (UX-20)', () => {
 
   it('stays away when the plan only moves the ledger — that is nothing to answer', async () => {
     seedTrip('planning')
-    orchestratorFake.refreshProposals.value = {
+    orchestratorFake.groupRefresh.refreshProposals.value = {
       t1: { ...proposal([], 0), ledgerUpsert: [{ id: 'l1' }] },
     }
 
@@ -333,7 +339,7 @@ describe('TripListPage — the FR-27.4 changes sheet (UX-20)', () => {
     setLocale('de')
     const trips = seedTrip('planning')
     trips.applyChanges([logEntry()])
-    orchestratorFake.refreshProposals.value = { t1: proposal([STIRNLAMPE]) }
+    orchestratorFake.groupRefresh.refreshProposals.value = { t1: proposal([STIRNLAMPE]) }
     const wrapper = mountWithSheet()
     expect(wrapper.find('[data-testid="m2-changes-sheet"]').exists()).toBe(false)
 
@@ -395,7 +401,7 @@ describe('TripListPage — the FR-27.4 changes sheet (UX-20)', () => {
 
   it('leads to the trip from the open change, once the sheet is gone', async () => {
     seedTrip('planning')
-    orchestratorFake.refreshProposals.value = { t1: proposal([STIRNLAMPE]) }
+    orchestratorFake.groupRefresh.refreshProposals.value = { t1: proposal([STIRNLAMPE]) }
     const wrapper = mountWithSheet()
     await wrapper.find('[data-testid="m2-changes-chip-Samedan"]').trigger('click')
 
@@ -501,7 +507,7 @@ describe('TripListPage — the row menu (hold / right-click)', () => {
 
     // The pass is what archives, so nothing is archived from here.
     expect(pushed).toContain(tripClosingPath('t1'))
-    expect(orchestratorFake.archiveTrip).not.toHaveBeenCalled()
+    expect(orchestratorFake.tripLifecycle.archiveTrip).not.toHaveBeenCalled()
     expect(labels(sheets[0]!)).not.toContain(t('trips.actionStart'))
   })
 
@@ -513,7 +519,7 @@ describe('TripListPage — the row menu (hold / right-click)', () => {
     await flushPromises()
     button(t('trips.actionStart')).handler!()
 
-    expect(orchestratorFake.activateTrip).toHaveBeenCalledWith('t1')
+    expect(orchestratorFake.tripLifecycle.activateTrip).toHaveBeenCalledWith('t1')
     expect(pushed).not.toContain(tripStartingPath('t1'))
   })
 
@@ -527,7 +533,7 @@ describe('TripListPage — the row menu (hold / right-click)', () => {
     button(t('trips.actionStart')).handler!()
 
     expect(pushed).toContain(tripStartingPath('t1'))
-    expect(orchestratorFake.activateTrip).not.toHaveBeenCalled()
+    expect(orchestratorFake.tripLifecycle.activateTrip).not.toHaveBeenCalled()
   })
 
   it('offers clone from the archive, and marks delete as the destructive entry, last (G-14)', async () => {
@@ -913,7 +919,7 @@ describe('TripListPage — the hero (FR-21.15)', () => {
     sheetButton(t('trips.actionArchive')).handler!()
 
     expect(pushed).toContain(tripClosingPath('t1'))
-    expect(orchestratorFake.archiveTrip).not.toHaveBeenCalled()
+    expect(orchestratorFake.tripLifecycle.archiveTrip).not.toHaveBeenCalled()
   })
 
   // The trip's properties are M2's alone, since M4's ⋮ holds packing only.

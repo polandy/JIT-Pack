@@ -60,11 +60,13 @@ const ME = { user_id: 'u-andy', display_name: 'Andy', is_instance_admin: false }
 let meAnswer: typeof ME | null = ME
 
 const acts = {
-  addComment: vi.fn(() => 'new-reply'),
-  editNote: vi.fn(),
-  setNoteExcursion: vi.fn(),
-  deleteComment: vi.fn(),
-  toggleNoteTick: vi.fn(),
+  comments: {
+    addComment: vi.fn(() => 'new-reply'),
+    editNote: vi.fn(),
+    setNoteExcursion: vi.fn(),
+    deleteComment: vi.fn(),
+    toggleNoteTick: vi.fn(),
+  },
 }
 
 function seedTrip() {
@@ -125,9 +127,11 @@ async function mounted(threadId = 'n1') {
     global: {
       provide: {
         [ORCHESTRATOR]: {
-          ...identityStub(),
-          fetchUsers: async () => people,
-          fetchMe: async () => meAnswer,
+          identity: {
+            ...identityStub(),
+            fetchUsers: async () => people,
+            fetchMe: async () => meAnswer,
+          },
           ...tripScreen,
           ...acts,
         },
@@ -282,10 +286,16 @@ describe('M26 thread view — new for me, and saying I read it (FR-7.13)', () =>
     const page = await mounted()
     await page.get('[data-testid="note-thread-read"]').trigger('click')
 
-    expect(acts.toggleNoteTick).toHaveBeenCalledWith('t1', 'n1', expect.any(String), null, {
-      ticked: false,
-      seenThrough: '2026-09-21T09:00:00Z',
-    })
+    expect(acts.comments.toggleNoteTick).toHaveBeenCalledWith(
+      't1',
+      'n1',
+      expect.any(String),
+      null,
+      {
+        ticked: false,
+        seenThrough: '2026-09-21T09:00:00Z',
+      },
+    )
   })
 
   it('offers no *read* when nothing is new — nor on a thread only I wrote in', async () => {
@@ -311,7 +321,7 @@ describe('M26 thread view — writing (FR-7.13)', () => {
       .setValue('Parkplatz ist Nr. 12')
     await page.get('[data-testid="note-thread-reply-send"]').trigger('click')
 
-    expect(acts.addComment).toHaveBeenCalledWith(
+    expect(acts.comments.addComment).toHaveBeenCalledWith(
       't1',
       null,
       expect.any(String),
@@ -341,7 +351,7 @@ describe('M26 thread view — writing (FR-7.13)', () => {
     await editor.findComponent(IonTextarea).setValue('Code 4712')
     await editor.get('[data-testid="note-edit-save"]').trigger('click')
 
-    expect(acts.editNote).toHaveBeenCalledWith(
+    expect(acts.comments.editNote).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'n1' }),
       'Code 4712',
       'Schlüsselbox',
@@ -385,7 +395,7 @@ describe('M26 thread view — removing (FR-7.13)', () => {
     await flushPromises()
     await choose('Delete reply')
 
-    expect(acts.deleteComment).toHaveBeenCalledWith('r1')
+    expect(acts.comments.deleteComment).toHaveBeenCalledWith('r1')
   })
 
   it('deletes the first note with its replies, and leaves for the list once it is gone', async () => {
@@ -398,7 +408,7 @@ describe('M26 thread view — removing (FR-7.13)', () => {
     await page.get('[data-testid="note-entry-open-n1"]').trigger('click')
     await flushPromises()
     await choose('Delete note, with 2 replies')
-    expect(acts.deleteComment).toHaveBeenCalledWith('n1')
+    expect(acts.comments.deleteComment).toHaveBeenCalledWith('n1')
 
     // The orchestrator is a stub: the delete lands as the store would see it.
     useTripStore().applyChange({
@@ -457,11 +467,11 @@ describe('M26 thread view — the excursion a thread is about (FR-7.15)', () => 
     await editor.get('[data-testid="note-excursion-chip-ex-boat"]').trigger('click')
     await editor.get('[data-testid="note-edit-save"]').trigger('click')
 
-    expect(acts.setNoteExcursion).toHaveBeenCalledWith(
+    expect(acts.comments.setNoteExcursion).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'n1' }),
       'ex-boat',
     )
-    expect(acts.editNote).not.toHaveBeenCalled()
+    expect(acts.comments.editNote).not.toHaveBeenCalled()
   })
 
   it('takes the excursion off with a second tap on its chip', async () => {
@@ -477,7 +487,10 @@ describe('M26 thread view — the excursion a thread is about (FR-7.15)', () => 
     await editor.get('[data-testid="note-excursion-chip-ex-hut"]').trigger('click')
     await editor.get('[data-testid="note-edit-save"]').trigger('click')
 
-    expect(acts.setNoteExcursion).toHaveBeenCalledWith(expect.objectContaining({ id: 'n1' }), null)
+    expect(acts.comments.setNoteExcursion).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'n1' }),
+      null,
+    )
   })
 
   it('offers no excursion to a reply', async () => {

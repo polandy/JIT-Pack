@@ -79,7 +79,7 @@ import { callBlock } from '@/composables/blockCall'
 const tripStore = useTripStore()
 const { tasksOf } = useTripTasks()
 const orchestrator = useOrchestrator()
-const { myUserId, directory, load } = useIdentity(orchestrator)
+const { myUserId, directory, load } = useIdentity(orchestrator.identity)
 const router = useRouter()
 
 onMounted(() => {
@@ -291,7 +291,7 @@ function tickNote(row: DashboardNoteRow): void {
   if (!myUserId.value) return
   const acks = noteTrips.value.find((trip) => trip.tripId === row.tripId)?.acks ?? []
   const root = row.thread.root
-  orchestrator.toggleNoteTick(
+  orchestrator.comments.toggleNoteTick(
     row.tripId,
     root.id,
     CLIENT_ACTOR_PLACEHOLDER,

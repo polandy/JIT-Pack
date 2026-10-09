@@ -74,7 +74,7 @@ export function usePackingClose(core: PackingCore) {
    * the archived M4 leads with the closing card either way.
    */
   async function archiveAndReview() {
-    orchestrator.archiveTrip(tripId)
+    orchestrator.tripLifecycle.archiveTrip(tripId)
     const flagged = tripStore.getItems(tripId).some((item) => item.flag_unused || item.flag_missing)
     if (!flagged) {
       await presentToast({ message: t('review.nothingToast') })
@@ -122,7 +122,7 @@ export function usePackingClose(core: PackingCore) {
   function onStartOnly() {
     sheetOpen.value = false
     starting.value = false
-    orchestrator.activateTrip(tripId)
+    orchestrator.tripLifecycle.activateTrip(tripId)
     void announceAct(t('packing.startedToast'))
   }
 
@@ -147,7 +147,7 @@ export function usePackingClose(core: PackingCore) {
       } else if (step === 'start') {
         // Finished on another device between M2's tap and this arrival: there
         // is nothing left to ask, and the start was asked for.
-        orchestrator.activateTrip(tripId)
+        orchestrator.tripLifecycle.activateTrip(tripId)
         void announceAct(t('packing.startedToast'))
       }
       void router.replace(tripPath(tripId))
@@ -236,7 +236,7 @@ export function usePackingClose(core: PackingCore) {
     sheetOpen.value = false
     starting.value = false
     promptUp.value = false
-    const { rows, tasks, buyRows } = orchestrator.closePacking(tripId, {
+    const { rows, tasks, buyRows } = orchestrator.tripLifecycle.closePacking(tripId, {
       isClaimed: (row: TripItem) => core.locked(row),
       // FR-7.16: the tag the crossing trip tasks are filed under, in the
       // reader's words.
@@ -247,7 +247,7 @@ export function usePackingClose(core: PackingCore) {
     const crossed = crossings.map((crossing) => crossing.cross(tripId))
     // FR-7.16: asked for by *Reise starten* — the start is part of the act,
     // after the close, so the trip is under way with *before* already closed.
-    if (startsToo) orchestrator.activateTrip(tripId)
+    if (startsToo) orchestrator.tripLifecycle.activateTrip(tripId)
     const shopping = buyRows.length + crossed.reduce((n, effect) => n + effect.count, 0)
     // One undo for the whole act (FR-25.31), and deliberately one *call*: the
     // rows travel as the records the snackbar snapshots, the moved tasks in the
@@ -255,9 +255,9 @@ export function usePackingClose(core: PackingCore) {
     // first — the record holds one action at a time, by design — and the rows
     // would quietly lose their way back.
     rowUndo.armUndo(rows, (records) => {
-      orchestrator.restorePackingClose(tripId, records, tasks, buyRows)
+      orchestrator.tripLifecycle.restorePackingClose(tripId, records, tasks, buyRows)
       for (const effect of crossed) effect.undo()
-      if (startsToo) orchestrator.unstartTrip(tripId)
+      if (startsToo) orchestrator.tripLifecycle.unstartTrip(tripId)
     })
     const said = [
       rows.length > 0 ? t('packing.closedToast', { n: rows.length }) : t('packing.closedToastNone'),
@@ -276,7 +276,7 @@ export function usePackingClose(core: PackingCore) {
    * is itself the way back out of closing.
    */
   function onReopen() {
-    orchestrator.reopenPacking(tripId)
+    orchestrator.tripLifecycle.reopenPacking(tripId)
   }
 
   return {

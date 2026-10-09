@@ -71,18 +71,20 @@ let masterLoaded = true
 
 const orchestratorFake = {
   masterDataLoaded: () => masterLoaded,
-  createMasterItem: (name: string) => {
-    writes.created.push(name)
-    item(`new-${name}`, name)
-    return `new-${name}`
-  },
-  assignTag: () => 'assignment',
-  createTag: () => 'tag',
-  restoreMasterItem: (id: string) => {
-    writes.restored.push(id)
-    const hidden = useMasterStore().getItem(id)
-    if (hidden) item(id, hidden.name)
-    return true
+  masterData: {
+    createMasterItem: (name: string) => {
+      writes.created.push(name)
+      item(`new-${name}`, name)
+      return `new-${name}`
+    },
+    assignTag: () => 'assignment',
+    createTag: () => 'tag',
+    restoreMasterItem: (id: string) => {
+      writes.restored.push(id)
+      const hidden = useMasterStore().getItem(id)
+      if (hidden) item(id, hidden.name)
+      return true
+    },
   },
 }
 

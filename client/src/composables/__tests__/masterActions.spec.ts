@@ -50,7 +50,7 @@ describe('master data actions', () => {
     })
     mockDrain()
 
-    orch.updateMasterItem(master.getItem('i1')!, { weight_grams: 500 })
+    orch.masterData.updateMasterItem(master.getItem('i1')!, { weight_grams: 500 })
 
     const item = master.getItem('i1')!
     expect(item.weight_grams).toBe(500)
@@ -75,7 +75,7 @@ describe('master data actions', () => {
     })
     mockDrain()
 
-    orch.updateMasterItem(master.getItem('i1')!, { weight_grams: 500 })
+    orch.masterData.updateMasterItem(master.getItem('i1')!, { weight_grams: 500 })
 
     const item = master.getItem('i1')!
     expect(item.icon).toBe('\u{1F9E6}')
@@ -94,7 +94,7 @@ describe('master data actions', () => {
     })
     mockDrain()
 
-    orch.updateTemplate(master.getTemplate('tpl-1')!, { name: 'Camping' })
+    orch.masterData.updateTemplate(master.getTemplate('tpl-1')!, { name: 'Camping' })
 
     const tpl = master.getTemplate('tpl-1')!
     expect(tpl.name).toBe('Camping')
@@ -108,15 +108,15 @@ describe('master data actions', () => {
     mockDrain()
     mockDrain()
 
-    const tiId = orch.addTemplateItem('tpl-1', 'i1', { quantity: 3 })
+    const tiId = orch.masterData.addTemplateItem('tpl-1', 'i1', { quantity: 3 })
     expect(master.getTemplateItems('tpl-1')).toHaveLength(1)
 
-    orch.updateTemplateItem(master.getTemplateItems('tpl-1')[0]!, { dedup: 'sum' })
+    orch.masterData.updateTemplateItem(master.getTemplateItems('tpl-1')[0]!, { dedup: 'sum' })
     const ti = master.getTemplateItems('tpl-1')[0]!
     expect(ti.dedup).toBe('sum')
     expect(ti.quantity).toBe(3)
 
-    orch.deleteTemplateItem(tiId)
+    orch.masterData.deleteTemplateItem(tiId)
     expect(master.getTemplateItems('tpl-1')).toHaveLength(0)
   })
 
@@ -126,10 +126,10 @@ describe('master data actions', () => {
     mockDrain()
     mockDrain()
 
-    const id = orch.createMasterItem('Stirnlampe')
+    const id = orch.masterData.createMasterItem('Stirnlampe')
     expect(master.getItem(id)?.name).toBe('Stirnlampe')
 
-    orch.deleteMasterItem(id)
+    orch.masterData.deleteMasterItem(id)
     expect(master.getItem(id)).toBeUndefined()
   })
 
@@ -138,7 +138,7 @@ describe('master data actions', () => {
     const master = useMasterStore()
     mockDrain()
 
-    const id = orch.createTemplate('Ski-Trip')!
+    const id = orch.masterData.createTemplate('Ski-Trip')!
 
     const tpl = master.getTemplate(id)
     expect(tpl?.name).toBe('Ski-Trip')
@@ -195,7 +195,7 @@ describe('FR-24.9 — refiling an item without tearing its assignment down', () 
     const master = seedTagged()
     mockDrain()
 
-    orch.setPrimaryTag('i1', 't-sport')
+    orch.masterData.setPrimaryTag('i1', 't-sport')
 
     // The same assignment row, at a position below its sibling: the item is
     // filed under Sport now, and nothing was tombstoned to get there.
@@ -208,7 +208,7 @@ describe('FR-24.9 — refiling an item without tearing its assignment down', () 
     const orch = newOrch()
     const master = seedTagged()
 
-    orch.setPrimaryTag('i1', 't-missing')
+    orch.masterData.setPrimaryTag('i1', 't-missing')
 
     expect(master.getItemTags('i1').map((t) => t.name)).toEqual(['Diverses', 'Sport'])
     expect(fetchMock).not.toHaveBeenCalled()
@@ -218,7 +218,7 @@ describe('FR-24.9 — refiling an item without tearing its assignment down', () 
     const orch = newOrch()
     seedTagged()
 
-    orch.setPrimaryTag('i1', 't-div')
+    orch.masterData.setPrimaryTag('i1', 't-div')
 
     // Idempotent on purpose: a bulk action over a mixed selection presses this
     // for every item, and the ones already filed there must cost no row.
@@ -237,7 +237,7 @@ describe('FR-24.9 — refiling an item without tearing its assignment down', () 
     })
     mockDrain()
 
-    orch.assignTagAt('i1', 't-neu', -1)
+    orch.masterData.assignTagAt('i1', 't-neu', -1)
 
     expect(master.getItemTags('i1').map((t) => t.name)).toEqual(['Neu', 'Diverses', 'Sport'])
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
@@ -264,7 +264,7 @@ describe('M5 assignment actions on the trip partition', () => {
     })
     mockDrain()
 
-    orch.assignTraveler(trips.getItems('t1')[0]!, 'trav-9')
+    orch.packing.assignTraveler(trips.getItems('t1')[0]!, 'trav-9')
 
     expect(trips.getItems('t1')[0]!.assigned_traveler_id).toBe('trav-9')
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
@@ -291,8 +291,8 @@ describe('M5 assignment actions on the trip partition', () => {
     mockDrain()
     mockDrain()
 
-    orch.assignContainer(trips.getItems('t1')[0]!, 'cont-1')
-    orch.setLatePacker(trips.getItems('t1')[0]!, true)
+    orch.packing.assignContainer(trips.getItems('t1')[0]!, 'cont-1')
+    orch.packing.setLatePacker(trips.getItems('t1')[0]!, true)
 
     const item = trips.getItems('t1')[0]!
     expect(item.container_id).toBe('cont-1')
@@ -364,7 +364,7 @@ describe('FR-9.1 review flags (M5 Details)', () => {
     const before = { ...trips.getItems('t1')[0]! }
     mockDrain()
 
-    orch.setReviewFlag(trips.getItems('t1')[0]!, 'unused', true)
+    orch.packing.setReviewFlag(trips.getItems('t1')[0]!, 'unused', true)
 
     const after = trips.getItems('t1')[0]!
     expect(after).toEqual({ ...before, flag_unused: true, updated_hlc: after.updated_hlc })
@@ -375,7 +375,7 @@ describe('FR-9.1 review flags (M5 Details)', () => {
     const trips = seedRow()
     mockDrain()
 
-    orch.setReviewFlag(trips.getItems('t1')[0]!, 'unused', true)
+    orch.packing.setReviewFlag(trips.getItems('t1')[0]!, 'unused', true)
 
     const item = trips.getItems('t1')[0]!
     expect(item.flag_unused).toBe(true)
@@ -406,7 +406,7 @@ describe('FR-9.1 review flags (M5 Details)', () => {
     mockDrain()
     const before = trips.getItems('t1')[0]!
 
-    orch.setPacker(before, 'u-bob')
+    orch.packing.setPacker(before, 'u-bob')
 
     // Responsibility and record are two things (FR-25.19): assigning must
     // not touch who packed it, and the optimistic row is a *replacement*,
@@ -426,10 +426,10 @@ describe('FR-9.1 review flags (M5 Details)', () => {
     mockDrain()
     mockDrain()
 
-    orch.setPacker(trips.getItems('t1')[0]!, 'u-bob')
+    orch.packing.setPacker(trips.getItems('t1')[0]!, 'u-bob')
     expect(trips.getItems('t1')[0]!.packer_user_id).toBe('u-bob')
 
-    orch.setPacker(trips.getItems('t1')[0]!, null)
+    orch.packing.setPacker(trips.getItems('t1')[0]!, null)
     // Null, not '': a placeholder in a foreign key is what invariant 3
     // exists to keep out, and the column is nullable for exactly this.
     expect(trips.getItems('t1')[0]!.packer_user_id).toBeNull()
@@ -441,10 +441,10 @@ describe('FR-9.1 review flags (M5 Details)', () => {
     mockDrain()
     mockDrain()
 
-    orch.setReviewFlag(trips.getItems('t1')[0]!, 'missing', true)
+    orch.packing.setReviewFlag(trips.getItems('t1')[0]!, 'missing', true)
     expect(trips.getItems('t1')[0]!.flag_missing).toBe(true)
 
-    orch.setReviewFlag(trips.getItems('t1')[0]!, 'missing', false)
+    orch.packing.setReviewFlag(trips.getItems('t1')[0]!, 'missing', false)
     expect(trips.getItems('t1')[0]!.flag_missing).toBe(false)
   })
 })

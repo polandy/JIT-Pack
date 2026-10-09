@@ -91,7 +91,7 @@ const {
   nameOf,
   assignees,
   load: loadIdentity,
-} = useTripIdentity(props.tripId, orchestrator)
+} = useTripIdentity(props.tripId, orchestrator.identity)
 
 onMounted(async () => {
   await ensure()

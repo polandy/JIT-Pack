@@ -65,7 +65,7 @@ const mealStore = useMealStore()
 const actions = createMealActions(orchestrator.moduleHost, mealStore)
 const context = inject(MEAL_CONTEXT, null)
 const tripId = props.request.tripId
-const { assignees, nameOf, load: loadIdentity } = useTripIdentity(tripId, orchestrator)
+const { assignees, nameOf, load: loadIdentity } = useTripIdentity(tripId, orchestrator.identity)
 onMounted(() => void loadIdentity())
 
 const meal = props.request.mealId ? (mealStore.getMeal(props.request.mealId) ?? null) : null

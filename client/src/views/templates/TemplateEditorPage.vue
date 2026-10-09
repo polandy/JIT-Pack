@@ -109,13 +109,13 @@ async function commitName(field: HTMLIonInputElement) {
   // here rather than by a push whose rejection would arrive on another
   // screen. The field goes back to what the row is still called — leaving
   // the refused spelling in it would read as saved.
-  const taken = orchestrator.templateNameCollision(name, tpl.id)
+  const taken = orchestrator.names.templateNameCollision(name, tpl.id)
   if (taken) {
     field.value = tpl.name
     await toast(t('templates.renameTaken', { name: taken.name }))
     return
   }
-  orchestrator.updateTemplate(tpl, { name })
+  orchestrator.masterData.updateTemplate(tpl, { name })
 }
 
 /** FR-28.8: a group's own mark, for the rows that offer it. */
@@ -132,7 +132,7 @@ const markPickerOpen = ref(false)
 
 function setMark(next: string | null) {
   const tpl = template.value
-  if (tpl) orchestrator.updateTemplate(tpl, { icon: next })
+  if (tpl) orchestrator.masterData.updateTemplate(tpl, { icon: next })
 }
 
 // --- Scope switch, guarded (FR-27.6) ---------------------------------------
@@ -149,7 +149,7 @@ async function switchScope(target: TemplateKind) {
     await toast(t('templates.includedBlocked', { name: includedBy.value[0]!.name }))
     return
   }
-  orchestrator.updateTemplate(tpl, { kind: target })
+  orchestrator.masterData.updateTemplate(tpl, { kind: target })
 }
 
 const includedInLine = computed(() =>
@@ -273,12 +273,12 @@ function closePicker() {
 }
 
 function includeGroup(groupId: string) {
-  orchestrator.addTemplateInclude(props.templateId, groupId)
+  orchestrator.masterData.addTemplateInclude(props.templateId, groupId)
   closePicker()
 }
 
 function removeInclude(includeId: string) {
-  orchestrator.removeTemplateInclude(includeId)
+  orchestrator.masterData.removeTemplateInclude(includeId)
 }
 
 /**
@@ -302,22 +302,22 @@ async function commitNewGroup() {
   // to reference — include it instead of refusing the user their own words.
   // A Vorlage cannot stand in for it, and saying so is the only way the
   // refusal does not read as a bug.
-  const taken = orchestrator.templateNameCollision(name)
+  const taken = orchestrator.names.templateNameCollision(name)
   if (taken?.kind === 'template') {
     await toast(t('templates.groupNameIsTemplate'))
     return
   }
   if (taken) {
     if (!includes.value.some((i) => i.included_template_id === taken.id)) {
-      orchestrator.addTemplateInclude(props.templateId, taken.id)
+      orchestrator.masterData.addTemplateInclude(props.templateId, taken.id)
     }
     closePicker()
     await toast(t('templates.groupExists', { name: taken.name }))
     return
   }
-  const groupId = orchestrator.createTemplate(name, 'group')
+  const groupId = orchestrator.masterData.createTemplate(name, 'group')
   if (groupId === null) return
-  orchestrator.addTemplateInclude(props.templateId, groupId)
+  orchestrator.masterData.addTemplateInclude(props.templateId, groupId)
   closePicker()
   await toast(t('templates.groupCreated', { name }))
 }
@@ -345,12 +345,14 @@ async function onQuickAdd(entry: { name: string; sourceItemId: string }) {
     await toast(t('templates.duplicate', { name: entry.name }))
     return
   }
-  orchestrator.addTemplateItem(props.templateId, entry.sourceItemId, { assignment: 'trip_global' })
+  orchestrator.masterData.addTemplateItem(props.templateId, entry.sourceItemId, {
+    assignment: 'trip_global',
+  })
   await toast(t('templates.added', { name: entry.name }))
 }
 
 function removePosition(templateItemId: string) {
-  orchestrator.deleteTemplateItem(templateItemId)
+  orchestrator.masterData.deleteTemplateItem(templateItemId)
 }
 
 // --- Trip tasks (FR-7.4) ---
@@ -369,7 +371,7 @@ const tripTaskPhase = ref<TaskPhase>(TASK_PHASE_BEFORE)
 function addTripTask() {
   const task = tripTaskDraft.value.trim()
   if (!task) return
-  orchestrator.addTemplateTask(props.templateId, task, tripTaskPhase.value)
+  orchestrator.masterData.addTemplateTask(props.templateId, task, tripTaskPhase.value)
   tripTaskDraft.value = ''
 }
 
@@ -380,7 +382,7 @@ function phaseOf(task: TemplateTask): TaskPhase {
 
 /** The chip on a task line, tapped: the same task, due at the other end. */
 function flipPhase(task: TemplateTask) {
-  orchestrator.setTemplateTaskPhase(
+  orchestrator.masterData.setTemplateTaskPhase(
     task,
     phaseOf(task) === TASK_PHASE_BEFORE ? TASK_PHASE_DURING : TASK_PHASE_BEFORE,
   )
@@ -431,15 +433,15 @@ async function foldGroup(match: GroupMatch) {
       pos,
       tasks: masterStore.getTemplateItemTasks(pos.id).map((task) => task.task),
     }))
-  for (const entry of removed) orchestrator.deleteTemplateItem(entry.pos.id)
-  const includeId = orchestrator.addTemplateInclude(props.templateId, match.templateId)
+  for (const entry of removed) orchestrator.masterData.deleteTemplateItem(entry.pos.id)
+  const includeId = orchestrator.masterData.addTemplateInclude(props.templateId, match.templateId)
 
   await toast(t('templates.foldDone', { name: match.name, n: removed.length }), {
     text: t('templates.foldUndo'),
     handler: () => {
-      orchestrator.removeTemplateInclude(includeId)
+      orchestrator.masterData.removeTemplateInclude(includeId)
       for (const entry of removed) {
-        const id = orchestrator.addTemplateItem(props.templateId, entry.pos.item_id, {
+        const id = orchestrator.masterData.addTemplateItem(props.templateId, entry.pos.item_id, {
           quantity: entry.pos.quantity,
           assignment: entry.pos.assignment,
           dedup: entry.pos.dedup,
@@ -447,7 +449,7 @@ async function foldGroup(match: GroupMatch) {
           latePacker: entry.pos.late_packer,
           conditions: entry.pos.conditions,
         })
-        for (const task of entry.tasks) orchestrator.addTemplateItemTask(id, task)
+        for (const task of entry.tasks) orchestrator.masterData.addTemplateItemTask(id, task)
       }
       void toast(t('templates.foldUndone', { n: removed.length }))
     },
@@ -857,7 +859,7 @@ const mergeLines = computed(() =>
               class="rm-gap"
               :label="t('templates.removeTask')"
               :data-testid="`m8-trip-task-remove-${task.task}`"
-              @click="orchestrator.deleteTemplateTask(task.id)"
+              @click="orchestrator.masterData.deleteTemplateTask(task.id)"
             />
           </div>
           <div class="trip-task-composer">

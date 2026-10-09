@@ -64,14 +64,14 @@ describe('live locations (FR-29.19)', () => {
     sockets[0]!.onopen!()
 
     sockets[0]!.onmessage!(frame(SIA))
-    expect([...orch.getLiveLocations('t1')]).toEqual([
+    expect([...orch.presence.getLiveLocations('t1')]).toEqual([
       ['user-sia', { lat: 46.5, lon: 9.8, accuracyM: 8, at: 1000 }],
     ])
-    expect(orch.getLiveLocations('t2').size).toBe(0)
+    expect(orch.presence.getLiveLocations('t2').size).toBe(0)
 
     clock = 2000
     sockets[0]!.onmessage!(frame({ ...SIA, gone: true }))
-    expect(orch.getLiveLocations('t1').size).toBe(0)
+    expect(orch.presence.getLiveLocations('t1').size).toBe(0)
   })
 
   it('forgets every position when the socket dies', async () => {
@@ -82,14 +82,14 @@ describe('live locations (FR-29.19)', () => {
 
     sockets[0]!.onclose!()
 
-    expect(orch.getLiveLocations('t1').size).toBe(0)
+    expect(orch.presence.getLiveLocations('t1').size).toBe(0)
   })
 
   it('sends a shared position over the socket, and nothing in Local Mode', async () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => 't' })
     await orch.connect()
     sockets[0]!.onopen!()
-    orch.shareLocation('t1', { lat: 46.5, lon: 9.8, accuracyM: 8 })
+    orch.presence.shareLocation('t1', { lat: 46.5, lon: 9.8, accuracyM: 8 })
     expect(sockets[0]!.send).toHaveBeenLastCalledWith(
       JSON.stringify({ location: { trip_id: 't1', lat: 46.5, lon: 9.8, accuracy_m: 8 } }),
     )
@@ -101,7 +101,7 @@ describe('live locations (FR-29.19)', () => {
     })
     await local.connect()
     const before = sockets.length
-    local.shareLocation('t1', { lat: 46.5, lon: 9.8, accuracyM: 8 })
+    local.presence.shareLocation('t1', { lat: 46.5, lon: 9.8, accuracyM: 8 })
     expect(sockets).toHaveLength(before)
   })
 })

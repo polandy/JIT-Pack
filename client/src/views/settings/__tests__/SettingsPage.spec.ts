@@ -40,28 +40,32 @@ vi.mock('@/notifications/push', () => ({
 }))
 
 const orchestratorFake = {
-  ...identityStub(),
+  identity: {
+    ...identityStub(),
+    downloadExport: vi.fn(),
+  },
   // The NFR-4.11 reminder reads this, never the real clock.
   now: () => new Date('2026-07-08T12:00:00').getTime(),
-  fetchNotificationPrefs: vi.fn(() =>
-    Promise.resolve({
-      delegation: true,
-      mention: true,
-      task: false,
-      lock_taken: true,
-      note: true,
-      note_reply: true,
-      task_due: true,
-      shopping_due: true,
-      excursion_due: true,
-      idea: true,
-      idea_comment: true,
-      idea_shortlisted: true,
-    }),
-  ),
-  saveNotificationPrefs: vi.fn(),
+  notifications: {
+    fetchNotificationPrefs: vi.fn(() =>
+      Promise.resolve({
+        delegation: true,
+        mention: true,
+        task: false,
+        lock_taken: true,
+        note: true,
+        note_reply: true,
+        task_due: true,
+        shopping_due: true,
+        excursion_due: true,
+        idea: true,
+        idea_comment: true,
+        idea_shortlisted: true,
+      }),
+    ),
+    saveNotificationPrefs: vi.fn(),
+  },
   drainAll: vi.fn(() => Promise.resolve()),
-  downloadExport: vi.fn(),
 }
 
 function mountSettings() {
@@ -276,12 +280,12 @@ describe('M17 default travellers from the accounts (FR-2.5a)', () => {
     setActivePinia(createPinia())
     localStorage.setItem('jitpack_mode', 'server')
     defaultTravelers().set([])
-    orchestratorFake.fetchUsers = vi.fn(async () => [ME, BOB])
+    orchestratorFake.identity.fetchUsers = vi.fn(async () => [ME, BOB])
   })
 
   afterEach(() => {
     localStorage.removeItem('jitpack_mode')
-    orchestratorFake.fetchUsers = vi.fn(async () => [])
+    orchestratorFake.identity.fetchUsers = vi.fn(async () => [])
   })
 
   it('adds the picked account as a default, stored with its id', async () => {
@@ -309,7 +313,7 @@ describe('M17 default travellers from the accounts (FR-2.5a)', () => {
   })
 
   it('offers no picker when nobody is left to pick', async () => {
-    orchestratorFake.fetchUsers = vi.fn(async () => [ME])
+    orchestratorFake.identity.fetchUsers = vi.fn(async () => [ME])
     defaultTravelers().add('Andy', 'u1')
     const wrapper = mountSettings()
     await flushPromises()

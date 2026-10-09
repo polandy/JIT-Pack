@@ -34,7 +34,7 @@ function actsFor() {
         return () => null
       },
     }),
-    { global: { provide: { [ORCHESTRATOR]: { deleteTripTodo } } } },
+    { global: { provide: { [ORCHESTRATOR]: { comments: { deleteTripTodo } } } } },
   )
   return { acts, announceAct, rowUndo }
 }

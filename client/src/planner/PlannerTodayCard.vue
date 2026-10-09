@@ -38,7 +38,7 @@ const plannerStore = usePlannerStore()
 const sources = inject(DAY_PLAN_SOURCES, [])
 const travelersOf = inject(DAY_PLAN_TRAVELERS, () => [])
 const router = useRouter()
-const { nameOf } = useTripIdentity(props.tripId, orchestrator)
+const { nameOf } = useTripIdentity(props.tripId, orchestrator.identity)
 
 const today = computed(() => orchestrator.today())
 const dates = computed(() => ({ start_date: props.startDate, end_date: props.endDate }))

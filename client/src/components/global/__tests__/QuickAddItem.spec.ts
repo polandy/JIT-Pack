@@ -64,18 +64,20 @@ function putItem(id: string, name: string, retired_at: string | null = null) {
 
 const orchestratorFake = {
   masterDataLoaded: () => masterLoaded,
-  createMasterItem: (name: string) => {
-    writes.created.push(name)
-    putItem(`new-${name}`, name)
-    return `new-${name}`
-  },
-  assignTag: () => 'assignment',
-  createTag: () => 'tag',
-  restoreMasterItem: (id: string) => {
-    writes.restored.push(id)
-    const item = useMasterStore().getItem(id)
-    if (item) putItem(id, item.name)
-    return true
+  masterData: {
+    createMasterItem: (name: string) => {
+      writes.created.push(name)
+      putItem(`new-${name}`, name)
+      return `new-${name}`
+    },
+    assignTag: () => 'assignment',
+    createTag: () => 'tag',
+    restoreMasterItem: (id: string) => {
+      writes.restored.push(id)
+      const item = useMasterStore().getItem(id)
+      if (item) putItem(id, item.name)
+      return true
+    },
   },
 }
 

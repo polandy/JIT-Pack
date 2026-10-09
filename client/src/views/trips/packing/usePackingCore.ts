@@ -44,7 +44,7 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
     participants,
     nameOf,
     load: loadIdentity,
-  } = useTripIdentity(tripId, orchestrator)
+  } = useTripIdentity(tripId, orchestrator.identity)
 
   /**
    * FR-9.3's closing pass: a *mode of M4*, not a screen of its own. It keeps
@@ -78,7 +78,7 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
   const judgeable = computed(() => canJudgeUnused(trip.value))
 
   function locked(item: TripItem): boolean {
-    return orchestrator.isLockedByOther(tripId, item)
+    return orchestrator.claims.isLockedByOther(tripId, item)
   }
 
   /** The rows behind a fan-out plan, in the order the plan names them. */
@@ -157,7 +157,7 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
   /** Put back what a pack changed, and only that (FR-25.2). */
   function restorePacked(records: RowUndoRecord[]) {
     for (const record of records) {
-      orchestrator.restorePack(record.itemId, record.packedCount, record.state)
+      orchestrator.packing.restorePack(record.itemId, record.packedCount, record.state)
     }
   }
 
@@ -171,16 +171,16 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
     })),
     liveRow,
     inert: (row) => closingPass.value || locked(row),
-    setQuantity: (row, quantity) => orchestrator.setQuantity(row, quantity),
-    packIncrement: (row) => orchestrator.packIncrement(row),
-    packDecrement: (row) => orchestrator.packDecrement(row),
-    packComplete: (row) => orchestrator.packComplete(row),
-    packZero: (row) => orchestrator.packZero(row),
-    packToggle: (row) => orchestrator.packToggle(row),
-    skip: (row) => orchestrator.skipItem(tripId, row),
-    unskip: (row) => orchestrator.unskipItem(row),
+    setQuantity: (row, quantity) => orchestrator.packing.setQuantity(row, quantity),
+    packIncrement: (row) => orchestrator.packing.packIncrement(row),
+    packDecrement: (row) => orchestrator.packing.packDecrement(row),
+    packComplete: (row) => orchestrator.packing.packComplete(row),
+    packZero: (row) => orchestrator.packing.packZero(row),
+    packToggle: (row) => orchestrator.packing.packToggle(row),
+    skip: (row) => orchestrator.packing.skipItem(tripId, row),
+    unskip: (row) => orchestrator.packing.unskipItem(row),
     restorePacked,
-    restoreSkip: (records) => orchestrator.restoreSkip(records),
+    restoreSkip: (records) => orchestrator.packing.restoreSkip(records),
     rowUndo,
     announceAct,
     announcePacked: announcer.announcePacked,
