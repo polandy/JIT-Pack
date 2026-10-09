@@ -778,7 +778,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
         <!-- Everything below exists only once the item does (FR-24.5). -->
         <template v-if="!isCreating && item">
           <SectionHead :title="t('items.editor.photo')" data-testid="m10-section-photo" />
-          <p class="section-hint">{{ t('items.editor.photoHint') }}</p>
+          <p class="jp-section-hint">{{ t('items.editor.photoHint') }}</p>
 
           <div class="photo-section">
             <img
@@ -827,7 +827,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
           </div>
 
           <SectionHead :title="t('items.editor.dependsOn')" data-testid="m10-section-depends" />
-          <p class="section-hint">{{ t('items.editor.dependsOnHint') }}</p>
+          <p class="jp-section-hint">{{ t('items.editor.dependsOnHint') }}</p>
 
           <IonList v-if="dependsOn.length > 0">
             <IonItem v-for="dep in dependsOn" :key="dep.id">
@@ -935,7 +935,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
             standing.
           -->
           <SectionHead :title="t('items.editor.companions')" data-testid="m10-section-companions" />
-          <p class="section-hint">
+          <p class="jp-section-hint">
             {{ t('items.editor.companionsHint', { name: item.name }) }}
           </p>
 
@@ -1099,7 +1099,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
               :title="t('items.editor.tripComments')"
               data-testid="m10-section-comments"
             />
-            <p class="section-hint">{{ t('items.editor.tripCommentsHint') }}</p>
+            <p class="jp-section-hint">{{ t('items.editor.tripCommentsHint') }}</p>
             <IonList>
               <IonItem
                 v-for="entry in itemComments"
@@ -1132,7 +1132,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
             -->
             <p
               v-if="!(deletionOutlook?.certain ?? true)"
-              class="section-hint"
+              class="jp-section-hint"
               data-testid="m10-comments-partial"
             >
               {{ t('items.editor.tripCommentsPartial') }}
@@ -1141,10 +1141,10 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
 
           <section class="jp-card delete-card" data-testid="m10-section-delete">
             <SectionHead :title="t('items.editor.delete')" />
-            <p class="section-hint" data-testid="m10-delete-usage">
+            <p class="jp-section-hint" data-testid="m10-delete-usage">
               {{ t('items.editor.deleteUsage', { n: deletionOutlook?.references ?? 0 }) }}
             </p>
-            <p class="section-hint" data-testid="m10-delete-outlook">{{ deletionSentence }}</p>
+            <p class="jp-section-hint" data-testid="m10-delete-outlook">{{ deletionSentence }}</p>
             <IonButton
               fill="outline"
               color="danger"
@@ -1225,12 +1225,6 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
 .delete-card {
   margin-top: 24px;
   padding: 16px;
-}
-
-.section-hint {
-  font-size: var(--jp-text-sm);
-  color: var(--ion-color-medium);
-  margin: 0 0 8px;
 }
 
 .field-error {
