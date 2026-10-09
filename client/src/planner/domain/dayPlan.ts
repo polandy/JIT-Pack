@@ -11,14 +11,15 @@
 import { daysOf } from '@/domain/shared/calendar'
 import type { DayPlanLine } from '@/domain/shared/dayPlanLine'
 import { DAY_PLAN_EXCURSION, DAY_PLAN_MEAL, DAY_PLAN_TASK } from '@/domain/shared/dayPlanLine'
-import type { DayEntry, DayEntryTraveler, Idea, Traveler } from '@/types/domain'
+import type { Traveler } from '@/types/domain'
+import type { DayEntry, DayEntryTraveler, Idea } from '../types'
 import {
   EXCURSION_ROLE_BACK,
   EXCURSION_ROLE_OUT,
   IDEA_STATE_DONE,
   IDEA_STATE_SHORTLISTED,
   type ExcursionRole,
-} from '@/types/domain'
+} from '../types'
 
 /** What one line of the timeline is. */
 export const DAY_LINE = {

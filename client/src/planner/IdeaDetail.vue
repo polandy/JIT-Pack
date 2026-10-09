@@ -69,14 +69,8 @@ import { IDEA_RESULT_SCREEN, IDEA_RESULT_SOURCES } from '@/kernel/ideaBridge'
 import { writtenMeta } from '@/lib/noteFacts'
 import type { NameOf } from '@/lib/rowFacts'
 import { shortDueDay } from '@/lib/taskDueText'
-import type {
-  IdeaComment,
-  IdeaImage,
-  IdeaState,
-  IdeaTrack,
-  IdeaVoteValue,
-  TrackFields,
-} from '@/types/domain'
+import type { IdeaImage, IdeaTrack, TrackFields } from '@/types/domain'
+import type { IdeaComment, IdeaState, IdeaVoteValue } from './types'
 import {
   IDEA_STATE_DONE,
   IDEA_STATE_DROPPED,
@@ -84,7 +78,7 @@ import {
   IDEA_STATE_SHORTLISTED,
   IDEA_VOTE_DOWN,
   IDEA_VOTE_UP,
-} from '@/types/domain'
+} from './types'
 import { ideaBridgePath } from '@/router/paths'
 import { offeredResults } from './domain/bridge'
 import { isPlanTime } from './domain/dayPlan'

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import type { ConnectionLeg } from '@/types/domain'
+import type { ConnectionLeg } from '../../types'
 import {
   connectionDay,
   connectionDestination,

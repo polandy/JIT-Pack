@@ -5,7 +5,7 @@
  * this file only hands them to the kernel's map in its terms.
  */
 import { LEG_HUE_CLASS, type MapLine } from '@/lib/trackColors'
-import type { ConnectionLeg, LatLon, LegMode } from '@/types/domain'
+import type { ConnectionLeg, LatLon, LegMode } from './types'
 import { legPath } from './domain/connections'
 
 /** What a leg is drawn as: its mode, or a walk. */

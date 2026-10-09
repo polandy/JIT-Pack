@@ -57,3 +57,6 @@ export function ideaLookup(): IdeaLookup {
     },
   }
 }
+
+/** The module's rows and their vocabulary, for the composition root and the dev seed. */
+export * from './types'

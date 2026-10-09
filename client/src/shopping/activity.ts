@@ -14,7 +14,7 @@ import {
   type ActivityReader,
   type ActivityReaders,
 } from '@/domain/shared/activityReader'
-import type { ShoppingEntry } from '@/types/domain'
+import type { ShoppingEntry } from './types'
 import { TABLE } from '@/api/tables'
 
 const BOUGHT = 'bought' satisfies keyof ShoppingEntry

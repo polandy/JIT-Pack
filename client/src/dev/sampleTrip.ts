@@ -11,20 +11,20 @@ import {
 import {
   ITEM_MODE_BUY_BEFORE,
   ITEM_MODE_BUY_LOCAL,
-  IDEA_STATE_DROPPED,
-  IDEA_STATE_SHORTLISTED,
-  IDEA_VOTE_UP,
   ITEM_MODE_PACK,
-  MEAL_KIND_COOK,
-  MEAL_KIND_OUT,
   TASK_PHASE_BEFORE,
   TASK_PHASE_DURING,
   type Excursion,
+} from '@/types/domain'
+import {
+  IDEA_STATE_DROPPED,
+  IDEA_STATE_SHORTLISTED,
+  IDEA_VOTE_UP,
   type Idea,
   type IdeaState,
   type IdeaTag,
-  type MealSlot,
-} from '@/types/domain'
+} from '@/planner'
+import { MEAL_KIND_COOK, MEAL_KIND_OUT, type MealSlot } from '@/meals'
 import { createPlannerActions, usePlannerStore, voteTally } from '@/planner'
 import { samplePicture } from './samplePictures'
 import { SAMPLE_EXCURSION_ROUTE, SAMPLE_ROUTES, sampleGpx } from './sampleTracks'

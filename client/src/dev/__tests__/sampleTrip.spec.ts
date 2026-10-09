@@ -22,7 +22,7 @@ import { useTripStore } from '@/stores/tripStore'
 
 import { seedSampleMaster } from '../sampleMaster'
 import { plannerFeatureStore, usePlannerStore } from '@/planner'
-import { IDEA_STATES } from '@/types/domain'
+import { IDEA_STATES } from '@/planner/types'
 
 import { SEED_IDEAS, SEED_MEALS, SEED_SHOPPING_ENTRIES, seedSampleTrip } from '../sampleTrip'
 import { mealFeatureStore, useMealStore } from '@/meals'

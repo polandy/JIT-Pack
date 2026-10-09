@@ -18,7 +18,7 @@ import TimeField from '@/components/global/TimeField.vue'
 import { LIVE_LOCATION } from '@/composables/shared/useLiveLocation'
 import { t } from '@/i18n'
 import { shortDueDay } from '@/lib/taskDueText'
-import type { ConnectionLeg } from '@/types/domain'
+import type { ConnectionLeg } from './types'
 import { legHue } from './connectionMap'
 import { connectionSummary, timeOf } from './domain/connections'
 import {

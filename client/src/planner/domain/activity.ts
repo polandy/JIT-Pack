@@ -14,7 +14,7 @@ import {
   type ActivityReader,
   type ActivityReaders,
 } from '@/domain/shared/activityReader'
-import type { IdeaVote } from '@/types/domain'
+import type { IdeaVote } from '../types'
 import { TABLE } from '@/api/tables'
 
 const VOTE = 'vote' satisfies keyof IdeaVote

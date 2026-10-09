@@ -49,16 +49,9 @@ import { PANEL_HOST_SELECTOR } from '@/lib/frameSlots'
 import { presentToast } from '@/composables/shared/toast'
 import { closeOverlayRoute } from '@/composables/shared/closeOverlay'
 import { IDEA_QUERY_PARAM, tripIdeasPath } from '@/router/paths'
-import type {
-  Idea,
-  IdeaComment,
-  IdeaImage,
-  IdeaState,
-  IdeaTag,
-  IdeaTrack,
-  IdeaVoteValue,
-} from '@/types/domain'
-import { IDEA_STATE_IDEA, IDEA_STATE_SHORTLISTED, IDEA_STATES } from '@/types/domain'
+import type { IdeaImage, IdeaTrack } from '@/types/domain'
+import type { Idea, IdeaComment, IdeaState, IdeaTag, IdeaVoteValue } from './types'
+import { IDEA_STATE_IDEA, IDEA_STATE_SHORTLISTED, IDEA_STATES } from './types'
 import { createPlannerActions, type IdeaFields } from './actions'
 import {
   IDEA_ORDER_NEWEST,

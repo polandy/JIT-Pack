@@ -36,8 +36,8 @@ import { MEAL_CONTEXT } from '@/kernel/mealContext'
 import { presentToast, TOAST_DURATION_MS } from '@/composables/shared/toast'
 import { localDay, shortDueDay } from '@/lib/taskDueText'
 import { tripSubPath } from '@/router/paths'
-import type { Meal, MealSlot } from '@/types/domain'
-import { MEAL_KIND_OUT, MEAL_SLOT_DINNER, MEAL_SLOTS } from '@/types/domain'
+import type { Meal, MealSlot } from './types'
+import { MEAL_KIND_OUT, MEAL_SLOT_DINNER, MEAL_SLOTS } from './types'
 import { createMealActions } from './actions'
 import {
   agenda,

@@ -13,7 +13,8 @@ import type { ShoppingLine, ShoppingSource } from '@/kernel/shoppingSources'
 import { dbBool } from '@/sync/columns'
 import type { ModuleHost } from '@/sync/featureModule'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL } from '@/types/domain'
-import type { ShoppingEntry, ShoppingMode } from '@/types/domain'
+import type { ShoppingMode } from '@/types/domain'
+import type { ShoppingEntry } from './types'
 import { TABLE } from '@/api/tables'
 
 /** The key prefix that keeps an own entry's line apart from any source's. */

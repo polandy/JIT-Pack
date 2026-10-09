@@ -1,10 +1,9 @@
 <script setup lang="ts">
 /**
- * The day plan's sheet for an entry of its own (FR-29.15): one form — what,
- * time, note, whom it is for — and the connection the entry may carry (FR-29.18), added,
- * changed or taken off at any time; a new one has the shortlisted ideas
- * without a day above it, any of which is planned there instead. Nothing is
- * written before its button.
+ * The day plan's sheet for an entry of its own (FR-29.15): one form — what, time, note, whom it is
+ * for — and the connection the entry may carry (FR-29.18), added, changed or taken off at any time;
+ * a new one has the shortlisted ideas without a day above it, any of which is planned there
+ * instead. Nothing is written before its button.
  *
  * The connection is found in a step of its own inside the same sheet: the
  * timetable search first (ADR-086), then a shared link or the hand fields.
@@ -36,7 +35,8 @@ import { canReadClipboard, readClipboardText } from '@/lib/clipboard'
 import { useTimetableOffered } from '@/composables/shared/timetable'
 import { shortDueDay } from '@/lib/taskDueText'
 import { useTransitionSettled } from '@/composables/shared/transitionSettled'
-import type { ConnectionLeg, DayEntry, Idea, Traveler } from '@/types/domain'
+import type { Traveler } from '@/types/domain'
+import type { ConnectionLeg, DayEntry, Idea } from './types'
 import type { ConnectionFields, DayEntryFields } from './actions'
 import ConnectionCard from './ConnectionCard.vue'
 import ConnectionSearch from './ConnectionSearch.vue'

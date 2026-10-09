@@ -165,3 +165,32 @@ the right end state once `wiregen` emits tables (ARCH-11), but a generator for o
 **Cost accepted.** The walk finds children a level at a time by scanning each child table once per level, not
 through an index; on a family's data that is a few passes over a few thousand rows per delete. Siblings come out in
 `TABLE_SPECS` order rather than a hand-chosen one — only leaf-first is a contract, and the specs hold that alone.
+
+## Amendment 2 (2026-10-09) — a module's rows and types leave the kernel; the specs ride the sinks (ARCH-15)
+
+The revisit trigger's "single module registration shape" is being cut in two. This half moves the data layer. A module's
+entity types moved from `types/domain.ts` to `<m>/types.ts`. Its parsers and encoders moved from `sync/tableRegistry.ts`
+and `sync/rows.ts` to `<m>/rows.ts`, which declares the module's `RowSpec`s (`SHOPPING_ROWS`, `PLANNER_ROWS`,
+`MEAL_ROWS`). The kernel's registry is now `KERNEL_TABLE_SPECS` and names none of the module's tables. A store hands its
+sinks over through `specifiedSinks(specs, …)`, so **each sink carries its table's spec**. A pulled row is parsed by its
+sink's codec, a write's base row is encoded by it, and `cascadeOf` builds its edges from the `cascadeParents` of the
+sinks it is handed. Routing calls every table the kernel does not specify a feature table. A fourth module's rows are
+now a diff inside its own directory.
+
+**Options weighed.** (a) A registry the modules fill at start-up — rejected above, and for the same reason: it would be
+empty in every spec that forgot to fill it, and its failure is a silently dropped row. (b) A full spec map composed in
+`App.vue` and handed to the orchestrator beside `features` — explicit, but a second list kept in step with the stores,
+and `cascade.ts`, `sinks.ts` and the trip store would all need it threaded in. (c) **The spec rides the sink**
+*(chosen)* — a store that holds a table necessarily knows how to read it, and the cascade can only find rows in the
+sinks it walks anyway, so the edges of the stores at hand are all it needs. A spec that builds a store gets the module's
+specs with it.
+
+**Cost accepted.** The build no longer refuses a `TABLE.*` without a spec: `satisfies Record<SyncTable, TableSpec>`
+could only hold one map. `src/__tests__/moduleRows.spec.ts` now holds that, by composing the kernel's specs and each
+module's against `TABLE`. It also holds each module store's sinks to its module's specs. The specs that read the codecs
+against each other and against the schema compose the same way (`src/__tests__/rowSpecs.ts`). The edges are rebuilt per
+cascade from a few dozen sinks rather than once at load. The picture and track rows of the planner (`IdeaImage`,
+`IdeaTrack`) and their codecs stay in the kernel, because the kernel serves their files (ADR-002, ADR-085;
+`ModuleHost.pictures`/`tracks`). The planner's spec names them. A module's `types.ts` is vocabulary in the layer order
+(ADR-096), so its rules read it (`layer-gate.mjs`, `domain-purity-gate.mjs`). The composition half — one `contribute()`
+per module, which `App.vue` folds over — is ARCH-15b.
