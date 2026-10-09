@@ -7,7 +7,7 @@ import { computed } from 'vue'
 
 import type { PackingRowNotes, RowEdgeAvatar } from '@/components/trips/PackingRow.vue'
 import { borrowersByTripItem } from '@/domain/excursionSuitcase'
-import { rowEdgeAvatar, type PackingCluster } from '@/domain/packingView'
+import { rowEdgeAvatar, type PackableRow, type PackingCluster } from '@/domain/packingView'
 import { avatarAssignable } from '@/domain/rowMenu'
 import { lockNoteText, packedStampText, responsibleNote, skippedNote } from '@/lib/rowFacts'
 import { t } from '@/i18n'
@@ -19,19 +19,19 @@ import type { PackingCore } from './usePackingCore'
  * The row resolvers `PackingGroupList` renders through — the port M4 answers
  * from its trip and M27 with a line's inert answers (FR-31.6).
  */
-export interface ListFacts {
-  locked(item: TripItem): boolean
-  rowNotes(item: TripItem): PackingRowNotes
-  edgeAvatarFor(item: TripItem): RowEdgeAvatar | null
-  assignableRow(item: TripItem): boolean
-  masterOf(item: TripItem): MasterItem | null
-  clusterMaster(cluster: PackingCluster): MasterItem | null
+export interface ListFacts<R extends PackableRow = PackableRow> {
+  locked(item: R): boolean
+  rowNotes(item: R): PackingRowNotes
+  edgeAvatarFor(item: R): RowEdgeAvatar | null
+  assignableRow(item: R): boolean
+  masterOf(item: R): MasterItem | null
+  clusterMaster(cluster: PackingCluster<R>): MasterItem | null
   openTodoCount(itemId: string): number
   borrowedBy(itemId: string): readonly string[]
 }
 
 /** M4's {@link ListFacts}, with the lock's wording the browse sheet reads too. */
-export interface RowFacts extends ListFacts {
+export interface RowFacts extends ListFacts<TripItem> {
   lockNote(item: TripItem): string | null
 }
 

@@ -79,7 +79,6 @@ import { usePackingFilter } from '@/composables/usePackingFilter'
 import { useTrackOwner } from '@/composables/shared/useTrackOwner'
 import { useTripScreen } from '@/composables/shared/useTripScreen'
 import {
-  excursionLineAsRow,
   isLeftBehind,
   isOpenPurchase,
   namesItsParticipants,
@@ -123,7 +122,7 @@ import {
 } from '@/router/paths'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import type { ExcursionItem, ExcursionTrack, FacetKey, GroupBy, TripItem } from '@/types/domain'
+import type { ExcursionItem, ExcursionTrack, FacetKey, GroupBy } from '@/types/domain'
 import { ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK } from '@/types/domain'
 
 const props = defineProps<{ tripId: string; excursionId: string }>()
@@ -162,8 +161,8 @@ const lines = computed(() => tripStore.getExcursionItems(props.tripId, props.exc
 const announcer = usePackAnnouncer(FAB_ANCHOR.m27Excursion)
 const { rowUndo, packAnnouncements, announceRemoved, announceAct } = announcer
 
-/** The lines as M4's rows, and M4's row slices over them (`rowPort.ts`). */
-const { port, lineById, lineOf } = useExcursionRowPort({
+/** M4's row slices over the lines (`rowPort.ts`). */
+const { port, lineById } = useExcursionRowPort({
   orchestrator: orchestrator.excursions,
   excursion,
   lines,
@@ -221,7 +220,7 @@ const {
 })
 
 /**
- * M4's own view model over the lines read as M4's rows (FR-31.6): the same
+ * M4's own view model over the lines (FR-31.6): the same
  * grouping, clusters, facets, search, counts and FR-25.2 departure, so the
  * list behaves as the packing list does because it is built by the same
  * function. Nobody's lines are hidden as somebody else's (FR-25.20 is the
@@ -304,7 +303,7 @@ function masterOf(sourceItemId: string | null) {
  * line, it has no preparation and nothing borrows it — only the master's
  * photo and mark carry over (FR-28.7).
  */
-const lineFacts: ListFacts = {
+const lineFacts: ListFacts<ExcursionItem> = {
   locked: () => false,
   rowNotes: () => NO_NOTES,
   edgeAvatarFor: () => null,
@@ -339,12 +338,12 @@ function setMode(line: ExcursionItem, mode: typeof ITEM_MODE_BUY_LOCAL | typeof 
   const before = { mode: line.mode, bought_at: line.bought_at }
   actUndoably(
     port,
-    excursionLineAsRow(line),
+    line,
     t(mode === ITEM_MODE_BUY_LOCAL ? 'packing.buyLocalToast' : 'packing.packInsteadToast', {
       name: line.name,
     }),
     () => orchestrator.excursions.setLineMode(line, mode),
-    (live) => orchestrator.excursions.updateLine(lineOf(live), before),
+    (live) => orchestrator.excursions.updateLine(live, before),
   )
 }
 
@@ -358,10 +357,10 @@ function markBought(line: ExcursionItem, bought: boolean) {
   const before = line.bought_at
   actUndoably(
     port,
-    excursionLineAsRow(line),
+    line,
     t(bought ? 'excursions.boughtToast' : 'excursions.unboughtToast', { name: line.name }),
     () => orchestrator.excursions.markBought(line, bought),
-    (live) => orchestrator.excursions.updateLine(lineOf(live), { bought_at: before }),
+    (live) => orchestrator.excursions.updateLine(live, { bought_at: before }),
   )
 }
 
@@ -398,7 +397,7 @@ const isDesktop = useDesktopLayout()
  * for M4's reason — the release falls on the overlay, not the row.
  */
 let menuActive = false
-const hold = useLongPress<TripItem>((row) => void openLine(lineOf(row)))
+const hold = useLongPress<ExcursionItem>((line) => void openLine(line))
 
 /**
  * Pushed, unlike M5's `?item=`: under M4 sits a tab's root, and the overlay
@@ -439,13 +438,13 @@ function buttonOf(action: ExcursionMenuAction): RowMenuButton {
 function runMenu(action: ExcursionMenuAction, line: ExcursionItem) {
   switch (action) {
     case 'quantity':
-      quantity.open(excursionLineAsRow(line))
+      quantity.open(line)
       return
     case 'skip':
-      steps.onSkipItem(excursionLineAsRow(line))
+      steps.onSkipItem(line)
       return
     case 'unskip':
-      steps.onUnskipItem(excursionLineAsRow(line))
+      steps.onUnskipItem(line)
       return
     case 'buyLocal':
       setMode(line, ITEM_MODE_BUY_LOCAL)
@@ -898,7 +897,7 @@ setHeaderTitle(
           @toggle-group="toggleGroup"
           @toggle-cluster="toggleCluster"
           @open="openSheet"
-          @row-menu="(item: TripItem) => openLine(lineOf(item))"
+          @row-menu="openLine"
           @edit-quantity="quantity.open"
           @increment="steps.onIncrement"
           @decrement="steps.onDecrement"
@@ -908,18 +907,16 @@ setHeaderTitle(
         >
           <template #facts="{ item, testKey, child }">
             <ExcursionFacts
-              :line="lineOf(item)"
+              :line="item"
               :test-key="testKey"
-              :from-luggage="suitcaseOf(lineOf(item), tripItems) !== null"
-              :left-behind="
-                child && item.packed_count > 0 && isLeftBehind(lineOf(item), participants)
-              "
-              :can-keep="canJoinPackingList(lineOf(item))"
-              :can-adopt="canAdoptIntoInventory(lineOf(item))"
-              @buy-on-site="buyOnSite(lineOf(item))"
-              @take-out="removeLine(lineOf(item))"
-              @keep="keep(lineOf(item))"
-              @adopt="adopt(lineOf(item))"
+              :from-luggage="suitcaseOf(item, tripItems) !== null"
+              :left-behind="child && item.packed_count > 0 && isLeftBehind(item, participants)"
+              :can-keep="canJoinPackingList(item)"
+              :can-adopt="canAdoptIntoInventory(item)"
+              @buy-on-site="buyOnSite(item)"
+              @take-out="removeLine(item)"
+              @keep="keep(item)"
+              @adopt="adopt(item)"
             />
           </template>
         </PackingGroupList>

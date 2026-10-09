@@ -6,30 +6,30 @@
  */
 import { stateFor } from '@/domain/packState'
 import { t } from '@/i18n'
-import type { TripItem } from '@/types/domain'
+import type { PackableRow } from '@/domain/packingView'
 
 import type { RowPort } from './rowPort'
 
 /** The acts {@link useRowSteps} returns. */
-export type RowSteps = ReturnType<typeof useRowSteps>
+export type RowSteps<R extends PackableRow = PackableRow> = ReturnType<typeof useRowSteps<R>>
 
 /** Builds {@link RowSteps} over a list's port. */
-export function useRowSteps(port: RowPort) {
+export function useRowSteps<R extends PackableRow>(port: RowPort<R>) {
   const { rowUndo, announceAct, announcePacked, announceSkipped } = port
 
   /**
    * A step of the counter is announced like a pack, and the step that
    * completes the row *is* one — it leaves the list the same way (FR-25.2).
    */
-  function onIncrement(item: TripItem) {
+  function onIncrement(item: R) {
     packStep(item, Math.min(item.packed_count + 1, item.quantity), () => port.packIncrement(item))
   }
 
-  function onDecrement(item: TripItem) {
+  function onDecrement(item: R) {
     packStep(item, Math.max(item.packed_count - 1, 0), () => port.packDecrement(item))
   }
 
-  function packStep(item: TripItem, packed: number, act: () => void) {
+  function packStep(item: R, packed: number, act: () => void) {
     const name = item.name
     rowUndo.actWithUndo([item], act, port.restorePacked)
     void (packed >= item.quantity
@@ -37,19 +37,19 @@ export function useRowSteps(port: RowPort) {
       : announceAct(t('packing.countToast', { name, packed, quantity: item.quantity })))
   }
 
-  function onComplete(item: TripItem) {
+  function onComplete(item: R) {
     const name = item.name
     rowUndo.actWithUndo([item], () => port.packComplete(item), port.restorePacked)
     void announcePacked(name)
   }
 
-  function onZero(item: TripItem) {
+  function onZero(item: R) {
     const name = item.name
     rowUndo.actWithUndo([item], () => port.packZero(item), port.restorePacked)
     void announceAct(t('packing.unpackedToast', { name }))
   }
 
-  function onToggle(item: TripItem) {
+  function onToggle(item: R) {
     // Un-packing a revealed done row is announced too (FR-25.31): its result
     // is on screen, but a mistap on a list of done rows
     // is as expensive to find again as one on the open list.
@@ -69,7 +69,7 @@ export function useRowSteps(port: RowPort) {
    * back. It names them and offers the one undo that puts the whole cascade
    * back.
    */
-  function onSkipItem(item: TripItem) {
+  function onSkipItem(item: R) {
     // Armed from what the skip reports rather than from the row in hand: the
     // companions are only known once the cascade has run, and the skip
     // returns them as they were *before* it wrote.
@@ -81,7 +81,7 @@ export function useRowSteps(port: RowPort) {
     )
   }
 
-  function onUnskipItem(item: TripItem) {
+  function onUnskipItem(item: R) {
     rowUndo.armUndo([item], port.restoreSkip)
     port.unskip(item)
     void announceAct(t('packing.unskippedToast', { name: item.name }))

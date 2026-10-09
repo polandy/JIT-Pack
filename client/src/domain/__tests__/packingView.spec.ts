@@ -16,13 +16,13 @@
  */
 import { describe, it, expect } from 'vitest'
 
+import { NO_VALUE, noFacets } from '../packingFacets'
 import {
   buildPackingView,
   isDone,
-  NO_VALUE,
-  noFacets,
   rowEdgeAvatar,
   isReshaped,
+  type PackableRow,
 } from '../packingView'
 import type { Container, Facets, TripItem, TripParticipant, Traveler } from '@/types/domain'
 
@@ -97,9 +97,9 @@ const participants = [
   participant('u-tom', 'Tom'),
 ]
 
-type ViewOptions = Partial<Parameters<typeof buildPackingView>[0]>
+type ViewOptions = Partial<Omit<Parameters<typeof buildPackingView>[0], 'items'>>
 
-function view(items: TripItem[], over: ViewOptions = {}) {
+function view<R extends PackableRow>(items: R[], over: ViewOptions = {}) {
   return buildPackingView({
     items,
     travelers,
@@ -1219,5 +1219,42 @@ describe('FR-25.28: isReshaped — an item changing shape leaves at once', () =>
 
   it('a row taken off the list altogether keeps its collapse (FR-5.8)', () => {
     expect(isReshaped({ key: KEY, rowId: 'r1' }, shown([], []), new Set())).toBe(false)
+  })
+})
+
+describe('PackableRow — a row without the suitcase’s facts (FR-31.6)', () => {
+  /** What an excursion's line carries: no luggage, flags, assignment or packing record. */
+  function bare(over: Partial<PackableRow> = {}): PackableRow {
+    seq += 1
+    return {
+      id: `b${seq}`,
+      name: `Line ${seq}`,
+      source_item_id: null,
+      category_name: 'Clothing',
+      assigned_traveler_id: null,
+      quantity: 1,
+      packed_count: 0,
+      state: 'open',
+      mode: 'pack',
+      ...over,
+    }
+  }
+
+  it('reads every absent fact as none — not somebody else’s, not late, in no luggage', () => {
+    const row = bare({ name: 'Proviant' })
+    const built = view([row], { showOthers: false, showLate: false, groupBy: 'container' })
+    expect(built.groups.map((g) => g.key)).toEqual([NO_VALUE])
+    expect(built.groups[0]!.entries.map((e) => e.kind === 'item' && e.item)).toEqual([row])
+    expect(built.hiddenOtherCount).toBe(0)
+    expect(built.lateCount).toBe(0)
+    expect(built.narrowed).toBe(false)
+    expect(built.facetValues.flag).toEqual([])
+    expect(rowEdgeAvatar(row)).toBeNull()
+  })
+
+  it('hands the caller’s own rows back, so a list of lines renders lines', () => {
+    const rows = [bare({ assigned_traveler_id: andy.id, source_item_id: 'cap' })]
+    const [entry] = view(rows).groups[0]!.entries
+    expect(entry?.kind === 'item' && entry.item).toBe(rows[0])
   })
 })

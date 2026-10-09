@@ -122,7 +122,7 @@ export interface MembershipPlan {
  * because it is the one name for an item that survives the row turning into a
  * cluster and back.
  */
-export function membershipKey(row: TripItem): string {
+export function membershipKey(row: Pick<TripItem, 'source_item_id' | 'name'>): string {
   return row.source_item_id ?? `name:${foldName(row.name)}`
 }
 

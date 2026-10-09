@@ -9,7 +9,6 @@ import { computed, ref } from 'vue'
 
 import type { PackAnnouncer } from '@/composables/usePackAnnouncer'
 import { useRowUndo } from '@/composables/useRowUndo'
-import { excursionLineAsRow } from '@/domain/excursionLines'
 import { STATE_SKIPPED, type ExcursionItem } from '@/types/domain'
 
 import { useExcursionRowPort, type ExcursionLineWrites } from '../useExcursionRowPort'
@@ -61,7 +60,7 @@ function setup(initial: ExcursionItem[]) {
 }
 
 describe('useExcursionRowPort (FR-31.6)', () => {
-  it('reads every line as M4 row, and a line that is gone as no row', () => {
+  it('reads every line as a row, and a line that is gone as no row', () => {
     const { port } = setup([line()])
     expect(port.rows.value.map((row) => row.id)).toEqual(['l1'])
     expect(port.liveRow('l1')?.quantity).toBe(2)
@@ -72,7 +71,7 @@ describe('useExcursionRowPort (FR-31.6)', () => {
     const { port, writes } = setup([line({ packed_count: 1 })])
     const affected = port.skip(port.rows.value[0]!)
     expect(writes.skipLine).toHaveBeenCalledOnce()
-    expect(affected).toEqual([excursionLineAsRow(line({ packed_count: 1 }))])
+    expect(affected).toEqual([line({ packed_count: 1 })])
   })
 
   it('fills an open line, and leaves a skipped one alone — it has no amount to fill', () => {

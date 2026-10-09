@@ -36,7 +36,7 @@
   several at once, each an active chip). Then M4's **chip row** (`m27-filter-bar`: the active filter values, removable,
   or *„Gruppiert nach Kategorie"*), and the lines **by category** — or by person or state, the filter sheet's grouping,
   container left out since a line has none — under M4's collapsible group heads (`done/total` in units, *Ohne* for
-  none), A–Z. **The list is built by M4's own view model** (`buildPackingView` over the lines read as M4's rows), so it
+  none), A–Z. **The list is built by M4's own view model** (`buildPackingView` over the lines as they are), so it
   behaves as the packing list does: a packed line **leaves the list** with M4's pack-out (FR-25.2) and M4's snackbar
   with *Rückgängig*, and M4's reveal bar (*„2 gepackt anzeigen"*, `m27-done-bar`) brings the packed lines back. **The
   bar** carries M4's own three (G-12): the search (`m27-search`, its field `m27-search-input`, *„Ausflugsliste

@@ -7,12 +7,7 @@
  * line's menu that offers it.
  */
 
-import {
-  excursionLineAsRow,
-  isExcursionOnly,
-  normalizeName,
-  type DraftLine,
-} from './excursionLines'
+import { isExcursionOnly, normalizeName, type DraftLine } from './excursionLines'
 import { whenOf } from './excursionSchedule'
 import type { GeneratedTripItemFields } from './instantiate'
 import { rowMenuEntries, type RowMenuAction } from './rowMenu'
@@ -290,12 +285,12 @@ const SUITCASE_ONLY: ReadonlySet<RowMenuAction> = new Set([
 
 /**
  * The entries a line's menu offers, in order — M4's `rowMenuEntries` over the
- * line read as its row, so the amount, the skip, the mode and the removal are
+ * line, so the amount, the skip, the mode and the removal are
  * offered where and as M4 offers them; the excursion's own acts go before the
  * removal, which stays last.
  */
 export function excursionMenuEntries(line: ExcursionItem): ExcursionMenuAction[] {
-  const own = rowMenuEntries(excursionLineAsRow(line), {
+  const own = rowMenuEntries(line, {
     closingPass: false,
     locked: false,
     canTakeOver: false,

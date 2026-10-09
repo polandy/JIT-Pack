@@ -9,7 +9,7 @@ import { IonPopover } from '@ionic/vue'
 import QuantityEditor from '@/components/global/QuantityEditor.vue'
 import type { QuantityChoice } from '@/domain/quantityChoices'
 import { t } from '@/i18n'
-import type { TripItem } from '@/types/domain'
+import type { PackableRow } from '@/domain/packingView'
 
 defineProps<{
   /** The popover's `data-testid`: each list names its own (`m4-…`, `m27-…`). */
@@ -19,7 +19,7 @@ defineProps<{
   event: MouseEvent | undefined
   /** What a popover standing for several rows is named; null names the row. */
   label: string | null
-  item: TripItem | null
+  item: PackableRow | null
   packed: number
   choices: QuantityChoice[]
 }>()

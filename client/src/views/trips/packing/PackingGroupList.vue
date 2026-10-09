@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="R extends PackableRow">
 /**
  * M4's list body: the groups, their per-person clusters (FR-25.1) and rows,
  * and the leave a packed row makes (FR-25.2). It reads rows through the
@@ -14,10 +14,10 @@ import ClusterHead from '@/components/trips/ClusterHead.vue'
 import ForWhomStrip from '@/components/trips/ForWhomStrip.vue'
 import PackingRow from '@/components/trips/PackingRow.vue'
 import type { LongPress } from '@/composables/shared/useLongPress'
-import type { PackingCluster, PackingEntry, PackingGroup } from '@/domain/packingView'
+import type { PackableRow, PackingCluster, PackingEntry, PackingGroup } from '@/domain/packingView'
 import { t } from '@/i18n'
 import { collapseRow } from '@/lib/rowCollapse'
-import type { TripItem, TripParticipant } from '@/types/domain'
+import type { TripParticipant } from '@/types/domain'
 
 import type { ForWhom } from './useForWhom'
 import type { ListFacts } from './useRowFacts'
@@ -25,15 +25,15 @@ import type { ListFacts } from './useRowFacts'
 const props = withDefaults(
   defineProps<{
     tripId: string
-    groups: PackingGroup[]
+    groups: PackingGroup<R>[]
     closingPass: boolean
-    facts: ListFacts
+    facts: ListFacts<R>
     /** FR-25.28's *who* column; absent where the list has none (M27). */
     forWhom?: ForWhom | null
     /** The roster the *who* strip offers; read only with {@link forWhom}. */
     participants?: TripParticipant[]
     /** FR-5.5's press and hold, on a row and on a cluster head. */
-    rowHold: LongPress<TripItem>
+    rowHold: LongPress<R>
     clusterHold?: LongPress<PackingCluster> | null
     /** Whose handles the list's `data-testid`s carry, as `PackingRow`'s do. */
     screen?: 'm4' | 'm27'
@@ -43,24 +43,24 @@ const props = withDefaults(
 
 defineSlots<{
   /** Under a row's name, after M4's own notes; `child` marks a traveler's row. */
-  facts?(scope: { item: TripItem; testKey: string; child: boolean }): unknown
+  facts?(scope: { item: R; testKey: string; child: boolean }): unknown
 }>()
 
 defineEmits<{
   toggleGroup: [key: string]
   toggleCluster: [key: string]
   clusterMenu: [cluster: PackingCluster]
-  rowMenu: [item: TripItem]
+  rowMenu: [item: R]
   toggleForWhom: [entry: PackingEntry]
-  assign: [item: TripItem, traveler?: string]
+  assign: [item: R, traveler?: string]
   open: [itemId: string]
-  passToggle: [item: TripItem]
-  editQuantity: [item: TripItem, event: MouseEvent]
-  increment: [item: TripItem]
-  decrement: [item: TripItem]
-  complete: [item: TripItem]
-  zero: [item: TripItem]
-  toggle: [item: TripItem]
+  passToggle: [item: R]
+  editQuantity: [item: R, event: MouseEvent]
+  increment: [item: R]
+  decrement: [item: R]
+  complete: [item: R]
+  zero: [item: R]
+  toggle: [item: R]
 }>()
 
 /**
@@ -90,7 +90,7 @@ function onRowLeave(el: Element, done: () => void) {
  * row (E2E-G6-01). `PackingRow` stops the press at the control itself, so a
  * press that reaches this handler is already the row's.
  */
-function onRowPress(item: TripItem, event: PointerEvent): void {
+function onRowPress(item: R, event: PointerEvent): void {
   props.rowHold.down(item, event.clientX, event.clientY)
 }
 </script>

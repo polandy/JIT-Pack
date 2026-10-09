@@ -26,7 +26,7 @@
  */
 import { ref, watch, type Ref } from 'vue'
 
-import { noFacets } from '@/domain/packingView'
+import { noFacets } from '@/domain/packingFacets'
 import type { FacetKey, Facets, GroupBy } from '@/types/domain'
 
 const FILTER_PREFIX = 'jitpack.m4filter.'
