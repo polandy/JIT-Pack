@@ -17,7 +17,7 @@
 # this stage builds the bundle that ships, and a version nothing else in the
 # repo tests with would ship untested. scripts/toolchain-pins-gate.sh enforces
 # that — moving the major is one change in all three files.
-FROM public.ecr.aws/docker/library/node:24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS client
+FROM public.ecr.aws/docker/library/node:26-alpine@sha256:143494b1da2945f061539253adc65e4f1569ddf07da2d384c022c791a9d90a4a AS client
 
 # The Settings "About" section (M17) names the build. This stage has no
 # `.git` (only `client/` is in its context), so the release tag and commit
