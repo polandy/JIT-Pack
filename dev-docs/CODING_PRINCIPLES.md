@@ -50,7 +50,8 @@ internal/wiregen/            the wire contract turned into the client's TypeScri
 internal/linkpreview/        what a web page says about itself (FR-29.16, FR-29.18) — imports nothing internal
 internal/store/              SQLite repositories; the only package importing database/sql
 internal/store/schema.sql    the whole schema, always current (//go:embed, ADR-018)
-internal/api/                HTTP handlers, WebSocket hub, auth middleware, push; wire.go is the contract
+internal/notify/             who is notified of what (FR-6.2, FR-7.11), the rows, Web Push delivery (ADR-099)
+internal/api/                HTTP handlers, WebSocket hub, auth middleware; wire.go is the contract
 internal/webui/              serves the built client beside the API on one origin (ADR-043) — stdlib only
 ```
 
@@ -98,8 +99,7 @@ client/src/views/            screens
   them as columns (`trackSettingsColumns` beside `trackSettingsChanges`).
 * The pure domain rules deliberately live in `client/src/domain/` rather than an `internal/domain/`: Local Mode runs
   with no backend, so generation, dependency resolution, analytics and review have to execute on the client to exist in
-  that mode at all. Push lives in `internal/api/push.go` rather than a separate `internal/notify/` — it is small enough
-  that the package boundary would buy nothing.
+  that mode at all.
 * **Accept interfaces, return structs.** Interfaces are declared where they are *consumed*, kept small (1–3 methods).
 * **Testability is an architectural acceptance criterion, not a property tests add later.** Where a new behaviour lands
   is decided by where its driving test can live: decision logic goes into pure functions a table-driven unit test can

@@ -70,6 +70,9 @@ ADR-085), and an excursion's in `excursion_tracks` (FR-31.15, ADR-089).
   the one place the server fetches an address a user chose.
 - `internal/webui` — serves the built client beside the API on one origin (ADR-043). Standard library only; does
   **not** import `internal/api` (prefixes are passed in).
-- `internal/api` — HTTP handlers, WebSocket hub, session auth + OIDC broker (ADR-007), notifications, Web Push, admin,
+- `internal/notify` — the notification sub-domain (ADR-099): who a push, a lock takeover or FR-7.11's daily reminder
+  notifies — pure rules reading the trip through `notificationFacts` — the rows, the WebSocket ping through `Pinger`
+  and Web Push through `pushSender`, each send bounded by a timeout. No HTTP.
+- `internal/api` — HTTP handlers, WebSocket hub, session auth + OIDC broker (ADR-007), the notification endpoints, admin,
   export. **`wire.go` is the contract** — envelopes, frame, conflict shapes, error vocabulary, routes. **Export only** —
   importing is the client's (invariant 4, ADR-025).

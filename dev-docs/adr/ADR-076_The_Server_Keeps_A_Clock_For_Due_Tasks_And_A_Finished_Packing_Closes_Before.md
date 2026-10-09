@@ -2,14 +2,14 @@
 
 **Status:** Accepted
 **Related:** FR-7.11, FR-7.12, FR-7.7, FR-5.10, FR-17.3, FR-6.2, NFR-4.6, FR-30.3, ADR-066, ADR-071, ADR-037,
-`internal/api/taskdue.go`, `internal/store/taskdue.go`, `client/src/domain/taskDue.ts`,
+`internal/notify/due.go`, `internal/store/taskdue.go`, `client/src/domain/taskDue.ts`,
 `client/src/domain/closePacking.ts`, `client/src/kernel/packingClose.ts`, migration `005_task_due_date.sql`
 
 **Context.** The owner asked on 2026-09-25 for two things that FR-7.7 had deliberately left out. A task may name the
 **day** it is due, and whoever it is for is **reminded the day before and on the day**, at a time the operator sets
 (default 06:00). And closing the packing ends *before the trip* for good: the shopping list's *before departure* moves
 with it, as FR-7.7's tasks already do, and both *before* sections are read-only until the packing is reopened. Two
-choices had a real cost. Every notification so far was a person's act, detected in a push (`notificationrules.go`),
+choices had a real cost. Every notification so far was a person's act, detected in a push (`internal/notify/rules.go`),
 so nothing in the server runs on a clock. And the lock could live in its own state or be read off what already exists.
 
 **Decision Drivers (in priority order):**

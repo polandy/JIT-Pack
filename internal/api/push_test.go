@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
-	"time"
 
+	"jitpack/internal/api"
 	"jitpack/internal/store"
 )
 
@@ -52,13 +52,18 @@ func (f *fakePushService) holdDeliveries(t *testing.T) (release func()) {
 	return release
 }
 
-func (f *fakePushService) waitForDelivery(t *testing.T) *http.Request {
+// delivered is the delivery the server made, read once WaitDetached has said
+// every delivery is done — so its absence is a fact, not a timeout.
+func (f *fakePushService) delivered(t *testing.T, apiSrv *api.Server) *http.Request {
 	t.Helper()
+	if err := apiSrv.WaitDetached(context.Background()); err != nil {
+		t.Fatalf("WaitDetached: %v", err)
+	}
 	select {
 	case r := <-f.received:
 		return r
-	case <-time.After(3 * time.Second):
-		t.Fatal("no web push delivery within 3s")
+	default:
+		t.Fatal("no web push delivery")
 		return nil
 	}
 }
@@ -83,7 +88,7 @@ func registerSubscription(t *testing.T, srv *httptest.Server, user, endpoint str
 }
 
 func TestWebPush_DeliveredOnNotification(t *testing.T) {
-	srv, _ := newTestServerWithStore(t)
+	srv, _, apiSrv := newTestServerWithAPI(t)
 	push := newFakePushService(t, http.StatusCreated)
 	registerSubscription(t, srv, userB, push.srv.URL+"/sub-1")
 	seedItem(t, srv, "item-1", "Zelt")
@@ -91,7 +96,7 @@ func TestWebPush_DeliveredOnNotification(t *testing.T) {
 	pushAs(t, srv, userA, mutation("item-1", "m-delegate", "upsert",
 		map[string]any{"packer_user_id": userB}, "0000000002000-0000-aaaaaaaa"))
 
-	r := push.waitForDelivery(t)
+	r := push.delivered(t, apiSrv)
 	if auth := r.Header.Get("Authorization"); auth == "" {
 		t.Error("delivery missing VAPID Authorization header")
 	}
@@ -112,15 +117,9 @@ func TestWebPush_GoneSubscriptionIsDropped(t *testing.T) {
 	pushAs(t, srv, userA, mutation("item-1", "m-delegate", "upsert",
 		map[string]any{"packer_user_id": userB}, "0000000002000-0000-aaaaaaaa"))
 
-	// Two signals, in this order and for two different reasons: the
-	// delivery says the send goroutine exists (the push response can
-	// reach the client before it is even started), and WaitDetached says
-	// it has finished acting on the 410. Without them, reading the
-	// subscriptions in between would need a poll.
-	push.waitForDelivery(t)
-	if err := apiSrv.WaitDetached(context.Background()); err != nil {
-		t.Fatalf("WaitDetached: %v", err)
-	}
+	// WaitDetached inside delivered says the send has finished acting on
+	// the 410; without it, reading the subscriptions would need a poll.
+	push.delivered(t, apiSrv)
 
 	if subs := subscriptions(t, st, userB); len(subs) != 0 {
 		t.Fatalf("gone subscription still registered: %+v", subs)
@@ -142,7 +141,9 @@ func TestWebPush_WaitDetachedGivesUpWithTheContext(t *testing.T) {
 
 	pushAs(t, srv, userA, mutation("item-1", "m-delegate", "upsert",
 		map[string]any{"packer_user_id": userB}, "0000000002000-0000-aaaaaaaa"))
-	push.waitForDelivery(t)
+	// The delivery is in the push service's hands and held there; it
+	// arrives, so the receive needs no deadline of its own.
+	<-push.received
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()

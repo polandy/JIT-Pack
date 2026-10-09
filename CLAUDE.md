@@ -53,7 +53,7 @@ Sources of open work, in order: what the owner just asked for (the family's inst
 
 The full text of 2, 3 and 6 is in `internal/CLAUDE.md`, of 4, 9 and 9b in `client/CLAUDE.md`, of 8 in `CODING_PRINCIPLES.md` §5.
 
-1. **Dependency direction** (`cmd/jitpackd/dependencies_test.go`): `api → store, sync, linkpreview`; `store → sync`; **`sync`, `wiregen` and `linkpreview` import nothing internal, ever**; `webui` does not import `api`.
+1. **Dependency direction** (`cmd/jitpackd/dependencies_test.go`): `api → notify, store, sync, linkpreview`; `notify → store, sync`; `store → sync`; **`sync`, `wiregen` and `linkpreview` import nothing internal, ever**; `webui` does not import `api`.
 2. **A schema change carries a migration** (ADR-067): `schema.sql` *and* an additive `migrations/NNN_*.sql`. Nothing is recreated or deleted on start-up; an unknown database is refused with `ErrSchemaStale`.
 3. **The client's identity claims are never trusted.** The server stamps actor columns (`tableSpec.serverOwned`); clients can never grant `owner`; the trip creator's membership row is immutable.
 4. **Generation runs client-side, once** (ADR-008, ADR-025): template instantiation, dependencies, quantities, analytics, review, clone and import live in `client/src/domain` because Local Mode has no server. A rule is never reachable only through a Vue composable, and `domain` never imports Vue, router, pinia or Ionic (`scripts/domain-purity-gate.mjs`). The kernel and its feature modules (`shopping`, `planner`, `meals`) never import each other (`scripts/module-boundary-gate.mjs`).

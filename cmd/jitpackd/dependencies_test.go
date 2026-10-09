@@ -39,7 +39,8 @@ type packageRule struct {
 // "standard library only" beside it. Every internal package has a row: a new
 // one takes its place in the order on purpose, never by default.
 var dependencyRules = map[string]packageRule{
-	"api":         {internal: []string{"store", "sync", "linkpreview"}},
+	"api":         {internal: []string{"notify", "store", "sync", "linkpreview"}},
+	"notify":      {internal: []string{"store", "sync"}},
 	"store":       {internal: []string{"sync"}},
 	"sync":        {standardOnly: true},
 	"wiregen":     {standardOnly: true},
@@ -85,7 +86,7 @@ func TestDependencyDirection_RefusesEachKindOfBreak(t *testing.T) {
 		{"a leaf reaches an internal package", listedPackage{ImportPath: modulePrefix + "sync", Deps: []string{modulePrefix + "store"}}, "reaches internal/store"},
 		{"a standard-only package reaches a module", listedPackage{ImportPath: modulePrefix + "webui", Deps: []string{"example.com/router"}}, "standard library only"},
 		{"database/sql outside the store", listedPackage{ImportPath: modulePrefix + "api", Imports: []string{"database/sql"}}, "imports database/sql"},
-		{"a package without a row", listedPackage{ImportPath: modulePrefix + "notify"}, "no row in dependencyRules"},
+		{"a package without a row", listedPackage{ImportPath: modulePrefix + "mailer"}, "no row in dependencyRules"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got := dependencyViolations(map[string]listedPackage{tc.pkg.ImportPath: tc.pkg})
