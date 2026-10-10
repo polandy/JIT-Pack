@@ -41,7 +41,7 @@ import {
   pricetagsOutline,
   trashOutline,
 } from 'ionicons/icons'
-import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 import BulkBar from '@/components/global/BulkBar.vue'
 import DueChips from '@/components/global/DueChips.vue'
@@ -81,6 +81,7 @@ import {
   type TripTask,
 } from '@/domain/tripTodos'
 import { useDragToGroup, type DropPlace } from '@/composables/shared/useDragToGroup'
+import { usePhasedShelves } from '@/composables/shared/usePhasedShelves'
 import { useMasterStore } from '@/stores/masterStore'
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
@@ -166,7 +167,6 @@ const groupsBefore = computed(() =>
 const groupsDuring = computed(() =>
   taskGroups(board.value.during.open, taskTags.value, today.value),
 )
-const dueIn = (phase: TaskPhase) => board.value.due.filter((task) => task.phase === phase).length
 
 /**
  * A row read outside its tag group — in the *Fällig* block or a fold — names
@@ -189,62 +189,29 @@ function groupsOf(phase: TaskPhase) {
   return phase === TASK_PHASE_BEFORE ? groupsBefore.value : groupsDuring.value
 }
 
-/** FR-7.12: the finished packing's *before* — history, read and never worked. */
-function isClosed(phase: TaskPhase): boolean {
-  return phase === TASK_PHASE_BEFORE && beforeLocked.value
-}
-
 /**
- * M6 alike: a phase with nothing open under its heading leaves reading order
- * for one line at the end rather than taking a heading's worth of room above
- * the one still being worked, as the closed *before* does — also while its last open tasks stand in the
- * *Fällig* block, which is where they are read (the line counts them).
+ * The shelves M25 shares with M6 (`usePhasedShelves`): a phase with
+ * nothing open under its heading, or the finished packing's *before* —
+ * history, read and never worked (FR-7.12) — is one line at the end.
  */
-function inOrder(phase: TaskPhase): boolean {
-  return !isClosed(phase) && shelfOf(phase).open.length > 0
-}
-
-const restPhases = computed(() => PHASES.filter((phase) => !inOrder(phase)))
-const restOpen = reactive<Record<TaskPhase, boolean>>({
-  [TASK_PHASE_BEFORE]: false,
-  [TASK_PHASE_DURING]: false,
+const shelves = usePhasedShelves<TaskPhase>({
+  shelves: PHASES,
+  closed: (phase) => phase === TASK_PHASE_BEFORE && beforeLocked.value,
+  open: (phase) => shelfOf(phase).open.length,
+  due: (phase) => board.value.due.filter((task) => task.phase === phase).length,
+  done: (phase) => shelfOf(phase).resolved.length,
+  words: {
+    name: (phase) => (phase === TASK_PHASE_BEFORE ? 'tasks.before' : 'tasks.during'),
+    history: 'tasks.beforeHistory',
+    historyEmpty: 'tasks.beforeHistoryEmpty',
+    rest: 'tasks.phaseRest',
+    restDone: 'tasks.phaseRestDone',
+    restDue: 'tasks.phaseRestDue',
+    restDueDone: 'tasks.phaseRestDueDone',
+  },
 })
-
-/** *„Vor der Reise · nichts offen · 3 erledigt"* (*„· 2 fällig"* while the block holds some) — or the closed *before*'s own words. */
-function restLabel(phase: TaskPhase): string {
-  const done = shelfOf(phase).resolved.length
-  if (isClosed(phase)) {
-    return done > 0 ? t('tasks.beforeHistory', { n: done }) : t('tasks.beforeHistoryEmpty')
-  }
-  const name = t(phase === TASK_PHASE_BEFORE ? 'tasks.before' : 'tasks.during')
-  const due = dueIn(phase)
-  if (due > 0) {
-    return done > 0
-      ? t('tasks.phaseRestDueDone', { phase: name, due, n: done })
-      : t('tasks.phaseRestDue', { phase: name, due })
-  }
-  return done > 0
-    ? t('tasks.phaseRestDone', { phase: name, n: done })
-    : t('tasks.phaseRest', { phase: name })
-}
-
-/** The line opens where there is something below it: a finished task, or the lock's sentence. */
-function restExpandable(phase: TaskPhase): boolean {
-  return isClosed(phase) || shelfOf(phase).resolved.length > 0
-}
-
-/**
- * `before/apotheke` — the phase and the group, which is what a drop decides.
- * Built and read in one place, because a separator a reader has to match by
- * eye is a separator that will one day be matched wrong.
- */
-const DROP_KEY_SEPARATOR = '/'
-const dropKey = (phase: TaskPhase) => (group: TaskGroup) =>
-  `${phase}${DROP_KEY_SEPARATOR}${group.key}`
-const readDropKey = (place: DropPlace) => {
-  const [phase, key] = place.target.split(DROP_KEY_SEPARATOR)
-  return { phase: phase as TaskPhase, key }
-}
+const { isClosed, inOrder, restShelves, restOpen, toggleRest, restLabel, restExpandable, dropKey } =
+  shelves
 
 /**
  * FR-7.8's drag. The gesture is `useDragToGroup`, which knows nothing about
@@ -264,14 +231,14 @@ const drag = useDragToGroup<TripTask>({
   markGap: true,
   accepts: (task, place) => {
     const before = { locked: beforeLocked.value, over: forTheRoad.value }
-    if (!phaseTakes(readDropKey(place).phase, task, before)) return false
+    if (!phaseTakes(shelves.readDropKey(place.target).shelf, task, before)) return false
     const group = groupAt(place)
     return group !== null && groupAccepts(group, task)
   },
   onDrop: (task, place) => {
     const group = groupAt(place)
     if (!group) return
-    const { phase } = readDropKey(place)
+    const { shelf: phase } = shelves.readDropKey(place.target)
     // FR-7.17: renumbered against the whole group, before the retag moves
     // the task into it — the tasks the *Fällig* block holds and the chip
     // hides keep their places around the one that was put there.
@@ -290,9 +257,8 @@ function wholeGroup(phase: TaskPhase, key: string): TripTask[] {
 }
 
 function groupAt(place: DropPlace): TaskGroup | null {
-  const { phase, key } = readDropKey(place)
-  const groups = phase === TASK_PHASE_BEFORE ? groupsBefore.value : groupsDuring.value
-  return groups.find((group) => group.key === key) ?? null
+  const { shelf: phase, key } = shelves.readDropKey(place.target)
+  return groupsOf(phase).find((group) => group.key === key) ?? null
 }
 
 /** A grip was pressed: it lifts at once — the hold on a row selects instead (M6's gesture). */
@@ -616,7 +582,7 @@ function onSheetRemove() {
         <!-- M6 alike: a phase with nothing open — or a
              finished packing's *before*, FR-7.12 — is one line at the end. -->
         <section
-          v-for="phase in restPhases"
+          v-for="phase in restShelves"
           :key="phase"
           class="phase-rest"
           :data-testid="phase === TASK_PHASE_BEFORE ? 'm25-before' : 'm25-during'"
@@ -626,7 +592,7 @@ function onSheetRemove() {
             :expandable="restExpandable(phase)"
             :open="restOpen[phase]"
             :testid="phase === TASK_PHASE_BEFORE ? 'm25-before-fold' : 'm25-during-fold'"
-            @toggle="restOpen[phase] = !restOpen[phase]"
+            @toggle="toggleRest(phase)"
           >
             <InlineHint v-if="isClosed(phase)" class="hint-wide" data-testid="m25-before-locked">{{
               t('tasks.beforeLocked')
