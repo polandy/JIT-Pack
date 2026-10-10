@@ -146,7 +146,7 @@ what runs.
 * Rows are **full snapshots** of the current state (not diffs) — pulling the same entity twice is harmless, which keeps
   the client applier trivial: `INSERT OR REPLACE` / `DELETE`.
   * A snapshot carries the table's **syncable columns**, plus `updated_hlc` — and nothing else (`syncableColumns`,
-    `internal/store/store.go`). A generated column such as `trips.duration_days` is in neither direction of the
+    `internal/store/tables.go`). A generated column such as `trips.duration_days` is in neither direction of the
     protocol. **A client derives such a value from the columns it does receive** rather than reading it off the row —
     `durationDays()` mirrors the schema's own definition — because reading it leaves every pulled trip without one.
   * **`updated_hlc` is the one column that travels without being writable.** §3 has every client advance its clock to

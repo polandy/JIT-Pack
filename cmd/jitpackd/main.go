@@ -151,7 +151,7 @@ func main() {
 	// The requests are answered; their Web Push deliveries may not be.
 	// Same budget, because both are the one shutdown deadline.
 	if err := srv.WaitDetached(shutdownCtx); err != nil {
-		slog.Info("gave up on in-flight web push deliveries", "error", err)
+		slog.Warn("gave up on in-flight web push deliveries", "error", err)
 	}
 	slog.Info("stopped")
 }
