@@ -58,16 +58,14 @@ import SaveIndicator from '@/components/global/SaveIndicator.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import MarkPicker from '@/components/items/MarkPicker.vue'
 import { formatDay, t } from '@/i18n'
-import type { MasterItemEdit } from '@/sync/mutations'
-import type { Tag } from '@/types/domain'
 import { itemPath, templatePath } from '@/router/paths'
 import { confirmDestructive } from '@/composables/shared/confirm'
-import { centsAsInput, parseCents } from '@/lib/currency'
 import {
   DELETION_SUBJECT_ITEM,
   deletionSentence as deletionSentenceFor,
 } from '@/lib/deletionLabels'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
+import { useItemFields } from '@/composables/useItemFields'
 import SectionHead from '@/components/global/SectionHead.vue'
 import TagChooser from '@/components/items/TagChooser.vue'
 import CreateItemSheet from '@/components/items/CreateItemSheet.vue'
@@ -89,16 +87,26 @@ const isCreating = computed(() => !props.itemId)
 
 const item = computed(() => (props.itemId ? masterStore.getItem(props.itemId) : undefined))
 
-// --- Creation draft (FR-24.5) ---
+// --- The fields, draft or live (FR-24.1/24.5) ---
 
-const draftName = ref('')
-const draftTagIds = ref<string[]>([])
-// FR-28.1: staged while creating, live once saved — like the tags above it.
-const draftIcon = ref<string | null>(null)
-// FR-1.9: the optional default assignee, staged like the mark.
-const draftAssignee = ref<string | null>(null)
-const draftWeight = ref('')
-const draftPrice = ref('')
+const { fields, draft } = useItemFields(() => props.itemId, {
+  item: (id) => masterStore.getItem(id),
+  allTags: () => masterStore.tagList,
+  itemTags: (id) => masterStore.getItemTags(id),
+  assignTag: (id, tagId) => orchestrator.masterData.assignTag(id, tagId),
+  unassignTag: (id, tagId) => {
+    const assignment = masterStore.itemTagList.find((a) => a.item_id === id && a.tag_id === tagId)
+    if (assignment) orchestrator.masterData.unassignTag(assignment.id)
+  },
+  setPrimaryTag: (id, tagId) => orchestrator.masterData.setPrimaryTag(id, tagId),
+  update: (row, edit) => orchestrator.masterData.updateMasterItem(row, edit),
+})
+
+/** An input's text, from a keystroke (`ionInput`) or a blur (`ionBlur`). */
+function inputText(event: CustomEvent): string {
+  return ((event.target as HTMLIonInputElement).value as string | null | undefined) ?? ''
+}
+
 const showMore = ref(false)
 const nameError = ref('')
 const nameInput = ref<{ $el: HTMLElement } | null>(null)
@@ -119,55 +127,11 @@ onMounted(async () => {
   native?.focus()
 })
 
-// --- Tags (FR-24.1) ---
-
-const assignedTags = computed<Tag[]>(() => {
-  if (isCreating.value) {
-    const byId = new Map(masterStore.tagList.map((tag) => [tag.id, tag]))
-    return draftTagIds.value.map((id) => byId.get(id)).filter((tag): tag is Tag => !!tag)
-  }
-  return props.itemId ? masterStore.getItemTags(props.itemId) : []
-})
-
-function assign(tagId: string) {
-  if (isCreating.value) {
-    if (!draftTagIds.value.includes(tagId)) draftTagIds.value = [...draftTagIds.value, tagId]
-  } else if (props.itemId) {
-    orchestrator.masterData.assignTag(props.itemId, tagId)
-  }
-}
-
-function unassign(tagId: string) {
-  if (isCreating.value) {
-    draftTagIds.value = draftTagIds.value.filter((id) => id !== tagId)
-    return
-  }
-  const assignment = masterStore.itemTagList.find(
-    (a) => a.item_id === props.itemId && a.tag_id === tagId,
-  )
-  if (assignment) orchestrator.masterData.unassignTag(assignment.id)
-}
-
-/**
- * Make an assigned tag the primary one (FR-24.9) — where the item is filed
- * in the inventory, rather than the accident of which tag was assigned
- * first, changeable only by removing them all.
- *
- * While *creating*, the draft's order is the assignment order, so the same
- * act is a move inside the list rather than a write.
- */
-function makePrimary(tagId: string) {
-  if (isCreating.value) {
-    draftTagIds.value = [tagId, ...draftTagIds.value.filter((id) => id !== tagId)]
-    return
-  }
-  if (props.itemId) orchestrator.masterData.setPrimaryTag(props.itemId, tagId)
-}
-
 // --- Creating ---
 
 async function createItem() {
-  const name = draftName.value.trim()
+  const staged = draft()
+  const name = staged.name
   if (!name) {
     // A hint, not a disabled button: the user should not have to work out
     // why nothing happens (FR-24.5).
@@ -182,14 +146,13 @@ async function createItem() {
   }
   nameError.value = ''
 
-  const weight = parseInt(draftWeight.value, 10)
   const id = orchestrator.masterData.createMasterItem(name, {
-    weightGrams: isNaN(weight) ? null : weight,
-    valueCents: parseCents(draftPrice.value),
-    icon: draftIcon.value,
-    defaultAssigneeId: draftAssignee.value,
+    weightGrams: staged.weightGrams,
+    valueCents: staged.valueCents,
+    icon: staged.icon,
+    defaultAssigneeId: staged.defaultAssigneeId,
   })
-  for (const tagId of draftTagIds.value) orchestrator.masterData.assignTag(id, tagId)
+  for (const tagId of staged.tagIds) orchestrator.masterData.assignTag(id, tagId)
 
   // No toast. The screen itself is the confirmation and a better one: the
   // header becomes the item's name, the FR-25.15 indicator settles on ✓,
@@ -201,13 +164,6 @@ async function createItem() {
   // replace, not push: "back" from the saved item belongs on the
   // inventory, not on a creation form for an item that now exists.
   await router.replace(itemPath(id))
-}
-
-// --- Editing an existing item ---
-
-function updateField<K extends keyof MasterItemEdit>(field: K, value: MasterItemEdit[K]) {
-  if (!item.value) return
-  orchestrator.masterData.updateMasterItem(item.value, { [field]: value })
 }
 
 // --- The default assignee (FR-1.9) ---
@@ -225,53 +181,13 @@ const NO_ASSIGNEE = ''
  */
 const canAssign = computed(() => directory.value.length > 1)
 
-const assignee = computed(() =>
-  isCreating.value ? draftAssignee.value : (item.value?.default_assignee_id ?? null),
-)
-
 function setAssignee(value: string) {
-  const next = value === NO_ASSIGNEE ? null : value
-  if (isCreating.value) {
-    draftAssignee.value = next
-    return
-  }
-  updateField('default_assignee_id', next)
+  fields.value.setAssignee(value === NO_ASSIGNEE ? null : value)
 }
 
 // --- The mark (FR-28.1/28.2) ---
 
 const pickerOpen = ref(false)
-
-/** What the editor shows and what the picker's removal offer keys off. */
-const mark = computed(() => (isCreating.value ? draftIcon.value : (item.value?.icon ?? null)))
-
-/**
- * The name the suggestion reads. While creating that is the draft, so the
- * offer follows the field as it is typed; afterwards it is the saved name.
- */
-const markName = computed(() => (isCreating.value ? draftName.value : (item.value?.name ?? '')))
-
-function setMark(next: string | null) {
-  if (isCreating.value) {
-    draftIcon.value = next
-    return
-  }
-  updateField('icon', next)
-}
-
-function onNameChange(event: CustomEvent) {
-  const val = (event.target as HTMLIonInputElement).value as string
-  if (val?.trim()) updateField('name', val.trim())
-}
-
-function onWeightChange(event: CustomEvent) {
-  const val = parseInt((event.target as HTMLIonInputElement).value as string, 10)
-  updateField('weight_grams', isNaN(val) ? null : val)
-}
-
-function onValueChange(event: CustomEvent) {
-  updateField('value_cents', parseCents((event.target as HTMLIonInputElement).value as string))
-}
 
 // --- Reference photo (Addendum 3.22, FR-22.1/22.5) ---
 
@@ -338,7 +254,7 @@ const companionSection = relatedSections[DEPENDENCY_LINK_COMPANION]
 const createFor = ref<{ direction: DependencyLinkDirection; name: string } | null>(null)
 
 /** This item's tags, offered first: the batteries live where the headlamp does. */
-const relatedPreferredTagIds = computed(() => assignedTags.value.map((tag) => tag.id))
+const relatedPreferredTagIds = computed(() => fields.value.tags.map((tag) => tag.id))
 
 async function onRelatedCreated({ id, open }: { id: string; open: boolean }) {
   const target = createFor.value
@@ -460,28 +376,27 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
               :aria-label="t('marks.choose')"
               @click="pickerOpen = true"
             >
-              <ItemMark v-if="mark" :mark="mark" surface="plain" :size="28" />
+              <ItemMark v-if="fields.mark" :mark="fields.mark" surface="plain" :size="28" />
               <IonIcon v-else :icon="happyOutline" aria-hidden="true" />
             </button>
             <IonLabel position="stacked">{{ t('items.editor.name') }}</IonLabel>
             <IonInput
-              v-if="isCreating"
               ref="nameInput"
-              :value="draftName"
+              :value="fields.text('name')"
               data-testid="m10-name"
-              :placeholder="t('items.editor.namePlaceholder')"
-              @ionInput="(e: CustomEvent) => (draftName = (e.detail.value as string) ?? '')"
-              @keyup.enter="createItem"
+              :placeholder="isCreating ? t('items.editor.namePlaceholder') : undefined"
+              @ionInput="(e: CustomEvent) => fields.type('name', inputText(e))"
+              @ionBlur="(e: CustomEvent) => fields.settle('name', inputText(e))"
+              @keyup.enter="isCreating && createItem()"
             />
-            <IonInput v-else :value="item!.name" data-testid="m10-name" @ionBlur="onNameChange" />
           </IonItem>
         </IonList>
 
         <MarkPicker
           :is-open="pickerOpen"
-          :name="markName"
-          :current="mark"
-          @pick="setMark"
+          :name="fields.text('name')"
+          :current="fields.mark"
+          @pick="fields.setMark"
           @close="pickerOpen = false"
         />
 
@@ -495,11 +410,11 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
 
         <TagChooser
           :tags="masterStore.tagList"
-          :assigned="assignedTags"
-          @assign="assign"
-          @unassign="unassign"
-          @primary="makePrimary"
-          @create="(name: string) => assign(orchestrator.masterData.createTag(name))"
+          :assigned="fields.tags"
+          @assign="fields.assignTag"
+          @unassign="fields.unassignTag"
+          @primary="fields.makePrimary"
+          @create="(name: string) => fields.assignTag(orchestrator.masterData.createTag(name))"
         />
 
         <!-- FR-1.9: optional, and not folded away — it is the point of the
@@ -510,7 +425,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
               interface="popover"
               :label="t('items.editor.assignee')"
               label-placement="stacked"
-              :value="assignee ?? NO_ASSIGNEE"
+              :value="fields.assignee ?? NO_ASSIGNEE"
               data-testid="m10-assignee"
               @ionChange="(e: CustomEvent) => setAssignee(String(e.detail.value))"
             >
@@ -541,42 +456,25 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
           <IonItem>
             <IonLabel position="stacked">{{ t('items.editor.weight') }}</IonLabel>
             <IonInput
-              v-if="isCreating"
               type="number"
-              :value="draftWeight"
+              :value="fields.text('weight')"
               data-testid="m10-weight"
               :placeholder="t('items.editor.optional')"
-              @ionInput="(e: CustomEvent) => (draftWeight = (e.detail.value as string) ?? '')"
-            />
-            <IonInput
-              v-else
-              type="number"
-              :value="item!.weight_grams ?? ''"
-              data-testid="m10-weight"
-              :placeholder="t('items.editor.optional')"
-              @ionBlur="onWeightChange"
+              @ionInput="(e: CustomEvent) => fields.type('weight', inputText(e))"
+              @ionBlur="(e: CustomEvent) => fields.settle('weight', inputText(e))"
             />
           </IonItem>
 
           <IonItem>
             <IonLabel position="stacked">{{ t('items.editor.price') }}</IonLabel>
             <IonInput
-              v-if="isCreating"
               type="number"
               step="0.01"
-              :value="draftPrice"
+              :value="fields.text('price')"
               data-testid="m10-price"
               :placeholder="t('items.editor.optional')"
-              @ionInput="(e: CustomEvent) => (draftPrice = (e.detail.value as string) ?? '')"
-            />
-            <IonInput
-              v-else
-              type="number"
-              step="0.01"
-              :value="centsAsInput(item!.value_cents)"
-              data-testid="m10-price"
-              :placeholder="t('items.editor.optional')"
-              @ionBlur="onValueChange"
+              @ionInput="(e: CustomEvent) => fields.type('price', inputText(e))"
+              @ionBlur="(e: CustomEvent) => fields.settle('price', inputText(e))"
             />
           </IonItem>
         </IonList>

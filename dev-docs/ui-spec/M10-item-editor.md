@@ -43,10 +43,11 @@
   matches nothing in the index, the band says so in one line rather than rendering an empty row — an empty offer is what
   makes people pick 📦 for everything.
 * **Creation mode (FR-24.5):** minimal form — intro line, name (focused), tags, Gewicht/Preis behind "Mehr ▾"; the
-  existing-item sections (photo, Hängt ab von, Begleitartikel) are **absent, not emptied**. "Artikel anlegen ✓" commits
-  and a missing name is answered with a hint rather than a disabled button. Because the item's name is its identity
-  (FR-24.1, `UNIQUE (name)`, ADR-014), a **duplicate name is reported here** rather than left to the sync push to
-  reject. On success the route *replaces* rather than pushes, so "back" lands on the inventory and not on a creation
+  existing-item sections (photo, Hängt ab von, Begleitartikel) are **absent, not emptied**. Each field is one control in
+  both modes (`useItemFields`): it stages into a draft while creating and writes the row once editing. "Artikel anlegen
+  ✓" commits and a missing name is answered with a hint rather than a disabled button. Because the item's name is its
+  identity (FR-24.1, `UNIQUE (name)`, ADR-014), a **duplicate name is reported here** rather than left to the sync push
+  to reject. On success the route *replaces* rather than pushes, so "back" lands on the inventory and not on a creation
   form for an item that now exists. **Dependencies (Addendum 3.20):** a "Depends on" section listing this item's
   declared dependencies with a required/suggested mode toggle per row, an add-picker with save-time cycle rejection, and
   a *Begleitartikel* list of items depending on this one (FR-20.1/20.4). **The two lists are symmetric:**
