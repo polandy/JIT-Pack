@@ -24,7 +24,7 @@ import { useLongPress } from './useLongPress'
  * own, and on M6 and M25 the two would stand one above the other meaning
  * different things (FR-7.14).
  */
-export const SELECTION_ICON = checkmarkDoneOutline
+const SELECTION_ICON = checkmarkDoneOutline
 
 /** `PointerEvent.button` for a mouse's main button, a touch and a pen tip. */
 const PRIMARY_BUTTON = 0
