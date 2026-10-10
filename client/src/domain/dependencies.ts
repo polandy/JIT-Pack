@@ -10,7 +10,8 @@
  */
 
 import { computeQuantity } from './instantiate'
-import type { CategorisedMasterItem, ItemDependency } from '@/types/domain'
+import { COLUMN_ENUMS } from '@/api/tables'
+import type { CategorisedMasterItem, DependencyMode, ItemDependency } from '@/types/domain'
 
 export interface DependencyResolutionInput {
   /** Items already on the list (generated or explicit). */
@@ -320,6 +321,11 @@ function findPath(
   return null
 }
 
+/** FR-20.1's two modes, in the schema's order — the order a mode select offers them. */
+export const DEPENDENCY_MODES = COLUMN_ENUMS.item_dependencies.mode
+export const DEPENDENCY_MODE_REQUIRED = 'required' as const satisfies DependencyMode
+export const DEPENDENCY_MODE_SUGGESTED = 'suggested' as const satisfies DependencyMode
+
 // --- Linking many items at once (FR-24.9 over FR-20.1) ---------------------
 
 /**
@@ -344,6 +350,27 @@ export type DependencySkipReason =
 export interface DependencyEdge {
   item_id: string
   depends_on_item_id: string
+}
+
+/**
+ * The edge a link writes, from the end the user is standing on: `standingId`
+ * depends on `pickedId` when the picked item is its main, and the other way
+ * round when it is a companion. M10's two sections and the bulk link both
+ * write through here, so the two ends cannot be read differently in two places.
+ */
+export function linkEdge(
+  direction: DependencyLinkDirection,
+  standingId: string,
+  pickedId: string,
+): DependencyEdge {
+  return direction === DEPENDENCY_LINK_MAIN
+    ? { item_id: standingId, depends_on_item_id: pickedId }
+    : { item_id: pickedId, depends_on_item_id: standingId }
+}
+
+/** The far end of an edge, seen from the end {@link linkEdge} stood on. */
+export function linkedEnd(direction: DependencyLinkDirection, edge: DependencyEdge): string {
+  return direction === DEPENDENCY_LINK_MAIN ? edge.depends_on_item_id : edge.item_id
 }
 
 /** What a batch will write, and which of its items it cannot. */
@@ -380,10 +407,7 @@ export function planDependencyBatch(
   const plan: DependencyBatchPlan = { edges: [], skipped: [] }
 
   for (const selectedId of selectedIds) {
-    const edge =
-      direction === DEPENDENCY_LINK_MAIN
-        ? { item_id: selectedId, depends_on_item_id: pickedId }
-        : { item_id: pickedId, depends_on_item_id: selectedId }
+    const edge = linkEdge(direction, selectedId, pickedId)
 
     const reason = linkRefusal(edge, existing, edges)
     if (reason) {

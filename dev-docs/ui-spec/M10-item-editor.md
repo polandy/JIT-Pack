@@ -50,8 +50,9 @@
   form for an item that now exists. **Dependencies (Addendum 3.20):** a "Depends on" section listing this item's
   declared dependencies with a required/suggested mode toggle per row, an add-picker with save-time cycle rejection, and
   a *Begleitartikel* list of items depending on this one (FR-20.1/20.4). **The two lists are symmetric:**
-  *Begleitartikel* carries the same add-picker, mode toggle and removal as *„Hängt ab von"* and sits directly beneath
-  it, above the delete card, because an editable section under the destructive one is read as part of it. **Each name in
+  *Begleitartikel* carries the same add-picker, mode toggle and removal as *„Hängt ab von"* (one `RelatedItemsSection`,
+  read from either end of the edge) and sits directly beneath it, above the delete card, because an editable section
+  under the destructive one is read as part of it. **Each name in
   either list is a link to that item's M10:** the name alone, in the action role, not the whole row, because the row
   also holds the mode select and the remove button. **The companion picker creates what it did not find** (FR-24.11): a
   query no active item carries as its exact name shows M9's dashed offer above the hits — *„‚{Name}' anlegen"*, hint

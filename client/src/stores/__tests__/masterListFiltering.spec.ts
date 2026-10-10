@@ -113,7 +113,7 @@ describe('FR-24.3 — the complete master lists are read on purpose (ADR-032)', 
       'src/views/trips/ReviewPage.vue', // the FR-27.11 retarget offer
       'src/views/trips/TemplateFromTripPage.vue', // the groups M21 offers
       'src/components/global/QuickAddItem.vue', // chips, group matches, browse door
-      'src/views/items/ItemEditorPage.vue', // dependency picker + FR-27.8's containment
+      'src/views/items/ItemEditorPage.vue', // the name check + FR-27.8's containment
     ]
     const byPath = new Map(sources.map(({ path, source }) => [path, source]))
     for (const path of mixed) {
@@ -148,9 +148,10 @@ describe('FR-24.3 — the complete master lists are read on purpose (ADR-032)', 
     const offerSurfaces = [
       // The inventory's rows are its core's, which the page and its parts read.
       'src/views/items/inventory/useInventoryCore.ts',
-      // ItemEditorPage is `mixed`: its pickers read the active lists, and
+      // ItemEditorPage is `mixed`: its name check reads the active lists, and
       // FR-27.8's containment reads the complete one for the same reason the
-      // delete card's count above it does.
+      // delete card's count above it does. Its two pickers are the section's.
+      'src/components/items/RelatedItemsSection.vue',
       'src/views/templates/TemplateListPage.vue',
       'src/components/global/InventoryBrowseSheet.vue',
       'src/components/settings/SettingsDataSection.vue', // M17's template YAML picker
