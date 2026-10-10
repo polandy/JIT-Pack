@@ -157,7 +157,7 @@ func (s *Server) handleMintAPIToken(w http.ResponseWriter, r *http.Request) {
 			"API tokens need a server that signs sessions")
 		return
 	}
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 
 	// A token may not mint another one. Without this a leaked credential
 	// renews itself before its own expiry and outlives every lifetime its

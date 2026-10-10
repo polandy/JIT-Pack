@@ -14,7 +14,7 @@ import (
 
 // handleMe returns the authenticated user's identity.
 func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 	name, err := s.store.UserDisplayName(r.Context(), userID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, ErrInternal, "display name lookup failed")
@@ -33,7 +33,7 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 // handleExportFull streams the NFR-4.5 versioned JSON backup, filtered
 // to the requesting user's visibility.
 func (s *Server) handleExportFull(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 	export, err := s.store.ExportFull(r.Context(), userID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, ErrInternal, "export failed")

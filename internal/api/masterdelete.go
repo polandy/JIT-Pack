@@ -21,7 +21,7 @@ import (
 // mapping to drift.
 func (s *Server) deleteMasterRow(table, pathParam string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, _ := r.Context().Value(userIDKey).(string)
+		userID := callerID(r.Context())
 
 		res, err := s.store.DeleteMasterRow(r.Context(), userID, table, r.PathValue(pathParam))
 		if err != nil {
@@ -71,7 +71,7 @@ func writeMasterDeleteRefusal(w http.ResponseWriter, reason store.RejectReason) 
 // write that cannot go through the push, because the push's delete answers a
 // use by retiring, and only the server can see every use.
 func (s *Server) handlePruneMasterItem(w http.ResponseWriter, r *http.Request) {
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 
 	res, err := s.store.PruneMasterItem(r.Context(), userID, r.PathValue(PathItemID))
 	if err != nil {

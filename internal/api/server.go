@@ -264,6 +264,13 @@ const (
 	tokenKindKey
 )
 
+// callerID is the authenticated user id authed stamped onto the request's
+// context, or "" when none was (a route reached without that middleware).
+func callerID(ctx context.Context) string {
+	id, _ := ctx.Value(userIDKey).(string)
+	return id
+}
+
 // identityRefusals is the one place a refused identity becomes an HTTP
 // answer, for the same reason the broker's table exists: a refusal must
 // read the same way at every endpoint that meets it.
@@ -295,7 +302,7 @@ func (s *Server) authed(next http.HandlerFunc) http.HandlerFunc {
 // endpoints reject with 403, the screen is never merely hidden.
 func (s *Server) adminOnly(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID := r.Context().Value(userIDKey).(string)
+		userID := callerID(r.Context())
 		admin, err := s.store.IsInstanceAdmin(r.Context(), userID)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, ErrInternal, "admin lookup failed")
@@ -312,7 +319,7 @@ func (s *Server) adminOnly(next http.HandlerFunc) http.HandlerFunc {
 func (s *Server) member(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tripID := r.PathValue(PathTripID)
-		userID, _ := r.Context().Value(userIDKey).(string)
+		userID := callerID(r.Context())
 		ok, err := s.identity.isMember(r.Context(), tripID, userID)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, ErrInternal, "membership check failed")
@@ -333,7 +340,7 @@ func (s *Server) member(next http.HandlerFunc) http.HandlerFunc {
 // /admin/users/{userID} endpoints, which carry their own authorization.
 func (s *Server) self(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, _ := r.Context().Value(userIDKey).(string)
+		userID := callerID(r.Context())
 		if !s.identity.ownsProfile(r, userID) {
 			writeError(w, http.StatusForbidden, ErrForbidden, "cannot modify another user's profile")
 			return
@@ -382,7 +389,7 @@ func writePullPage(w http.ResponseWriter, page store.PullPage) {
 
 func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 	tripID := r.PathValue(PathTripID)
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 	out, pushed, ok := applyPushBatch(w, r, func(m syncpkg.Mutation) (store.MutationResult, error) {
 		return s.store.ApplyMutation(r.Context(), tripID, userID, m)
 	})

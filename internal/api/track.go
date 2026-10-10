@@ -50,7 +50,7 @@ func (s *Server) putTrack(w http.ResponseWriter, r *http.Request, holderID strin
 		return
 	}
 	tripID := r.PathValue(PathTripID)
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 	if _, err := put(r.Context(), tripID, userID, holderID, r.PathValue(PathTrackID),
 		store.TrackFile{
 			Name: up.Name, FileName: up.FileName, Kind: string(up.Kind),

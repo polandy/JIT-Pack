@@ -12,7 +12,7 @@ import (
 // handleTakeover serves POST /trips/{tripID}/items/{itemID}/takeover.
 func (s *Server) handleTakeover(w http.ResponseWriter, r *http.Request) {
 	tripID, itemID := r.PathValue(PathTripID), r.PathValue(PathItemID)
-	takerID, _ := r.Context().Value(userIDKey).(string)
+	takerID := callerID(r.Context())
 
 	ev, err := s.store.TakeOverClaim(r.Context(), tripID, itemID, takerID)
 	if err != nil {
