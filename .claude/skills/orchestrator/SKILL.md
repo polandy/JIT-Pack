@@ -176,7 +176,7 @@ Collect what the sessions tell you and pass it on; it is the cheapest thing you 
   task and read its exit code, or wait on the PID you started.
 - **Pick the local e2e files by marker, not by the files the diff touched.** A case whose *subject* moved
   with a screen sits in a file the PR never opened, and only goes red if it waits for something. Grep the
-  testids and helpers the change moves (`grep -l trip-todo-`) and read every hit for one question: does it
+  testids and helpers the change moves (`grep -l trip-task-`) and read every hit for one question: does it
   assert that something is *there*, or that something is *not*? A negative without a positive twin stays green
   after its subject has left and checks nothing. This found a case that had been *confirming* a bug.
 - **"Untracked when the session started" says nothing about now.** A session deleted two files from the main
