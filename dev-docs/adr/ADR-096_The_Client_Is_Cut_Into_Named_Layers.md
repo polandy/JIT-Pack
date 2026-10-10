@@ -108,8 +108,8 @@ five more entries on the boundary gate's list of `domain/` files a module may re
 
 The portable import no longer names the mutation factory's type: it declares `ImportMutations`, the fifteen builders it
 consumes, and `sync/mutations` satisfies it structurally. The option shapes both sides read (`MasterItemOptions`,
-`TemplateItemOptions`, `TripOptions`, `ContainerOptions`, `PortableTripItemFields`) moved into `types/domain.ts`, so
-the port is no copy of them. `domain-purity-gate.mjs` lost its list of allowed files.
+`TemplateItemOptions`, `TripOptions`, `ContainerOptions`, `PortableTripItemFields`) moved into `types/`
+(`types/creationOptions.ts`), so the port is no copy of them. `domain-purity-gate.mjs` lost its list of allowed files.
 
 `scripts/layer-gate.mjs` holds the whole order: every file under `client/src` belongs to the layer of its longest path
 prefix and imports only its own layer or earlier ones; a file in no layer fails. Placing every directory took three

@@ -149,7 +149,7 @@ function hasReaderOutsideItsDeclaration(name: string, declaringFile: string): bo
   return false
 }
 
-describe('every export has a reader outside internal/store’s client equivalent (ARCH-31)', () => {
+describe('every export has a reader outside its own declaration (ARCH-31)', () => {
   const exportDecls = collectExports()
 
   it('found a measurable number of exports — the guard is not measuring nothing', () => {
@@ -279,7 +279,7 @@ describe('every i18n key has a reader outside specs and e2e (ARCH-31)', () => {
     ).toBe(true)
   })
 
-  it('names only prefixes a real template literal builds', () => {
+  it('names only prefixes that match a catalogue key', () => {
     for (const prefix of Object.keys(dynamicKeyPrefixes)) {
       const covers = allKeys.some((key) => key.startsWith(prefix))
       expect(covers, `${prefix} is named in dynamicKeyPrefixes but matches no catalogue key`).toBe(

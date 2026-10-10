@@ -3,11 +3,11 @@
  * to include, its search, and "Neue Gruppe anlegen…" inline so a missing
  * group never detours through M7.
  *
- * Pulled out of `TemplateEditorPage.vue` because the picker, its search and
- * the new-group flow all read and write through the same three surfaces —
- * `otherGroups`, `includedGroupIds` and the include/create actions — and
- * nothing outside this slice needs them, aside from the two sets the fold
- * offer (FR-27.15) also reads.
+ * A composable of its own, beside `TemplateEditorPage.vue`, because the
+ * picker, its search and the new-group flow all read and write through the
+ * same three surfaces — `otherGroups`, `includedGroupIds` and the
+ * include/create actions — and nothing outside this slice needs them, aside
+ * from the two sets the fold offer (FR-27.15) also reads.
  */
 import { computed, nextTick, ref, type ComputedRef } from 'vue'
 

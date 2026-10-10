@@ -3,8 +3,8 @@
  * including the G-4 deep link that scrolls to and flashes a comment reached
  * from a notification.
  *
- * Pulled out of `ItemDetailSheet.vue` because both sections are one self
- * contained slice of the sheet's state: they read the row's own id and lock
+ * A composable of its own because both sections are one self-contained
+ * slice of `ItemDetailSheet.vue`'s state: they read the row's own id and lock
  * state and write through `orchestrator.comments`, but neither touches the
  * packing, assignment or edit controls around them.
  */
