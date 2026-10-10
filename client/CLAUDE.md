@@ -43,6 +43,8 @@ against its `en.ts`, so a key missing in German fails the type check in the file
 - **The globals come from one harness**, `client/src/__tests__/harness.ts` (`installHarness()` in `beforeEach`):
   pinia, `fetch`, `WebSocket`, response builders. It stubs `localStorage` only under `node`. A spec owns anything
   bespoke and stubs after the call.
+- **Every export and every i18n key has a reader outside specs and e2e**, or is named with a reason —
+  `client/src/__tests__/surface.spec.ts` (ARCH-31), the client's equivalent of `internal/store/surface_test.go`.
 
 ## Playwright — a UI change ships a *running* case (owner's rule)
 

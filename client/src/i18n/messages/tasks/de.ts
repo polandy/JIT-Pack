@@ -2,7 +2,6 @@
 import type { tasksEn } from './en'
 
 export const tasksDe: Record<keyof typeof tasksEn, string> = {
-  'tripTasks.section': 'Aufgaben für die Reise',
   'tripTasks.progress': '{done} von {total} erledigt',
   'tripTasks.allDone': '✓ Alle Aufgaben erledigt',
   'tripTasks.figure': '{done}/{total} Aufgaben',
@@ -10,7 +9,6 @@ export const tasksDe: Record<keyof typeof tasksEn, string> = {
   'tripTasks.figurePacking': 'Beim Packen {done}/{total}',
   'tripTasks.open': '{n} offen',
   'tripTasks.resolved': '{n} erledigt',
-  'tripTasks.add': 'Aufgabe hinzufügen…',
   'tripTasks.remove': 'Aufgabe entfernen',
   'tripTasks.drag': '{body} verschieben',
   'tripTasks.forItem': 'Gehört zu {name}',
@@ -27,8 +25,6 @@ export const tasksDe: Record<keyof typeof tasksEn, string> = {
   'tasks.addDuring': 'Aufgabe für unterwegs…',
   'tasks.emptyBefore': 'Vor der Reise ist nichts mehr offen.',
   'tasks.emptyDuring': 'Für unterwegs ist nichts notiert.',
-  'tasks.emptyMine': 'Dir ist gerade nichts zugewiesen.',
-  'tasks.emptyAll': 'Diese Reise hat noch keine Aufgaben.',
   'tasks.moveToDuring': 'Auf „Während der Reise" schieben',
   'tasks.moveToBefore': 'Zurück auf „Vor der Reise"',
   'tasks.movedToDuring': '„{body}" ist jetzt für unterwegs',

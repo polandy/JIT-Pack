@@ -211,11 +211,6 @@ export function packingWindowTasks(tasks: readonly TripTask[], today: string): T
   )
 }
 
-/** FR-7.7: the tasks of one phase, for M25's two sections. */
-export function tasksInPhase(tasks: readonly TripTask[], phase: TaskPhase): TripTask[] {
-  return tasks.filter((task) => task.phase === phase)
-}
-
 /**
  * FR-7.7: the *Meine* chip — the tasks handed to this person.
  *

@@ -12,7 +12,6 @@ import {
   taskPhaseOf,
   tasksToMove,
   tasksToRetag,
-  tasksInPhase,
   tasksOfAssignee,
   tripTasks,
   tripTaskPercent,
@@ -285,19 +284,6 @@ describe('the two windows on one list (FR-7.7)', () => {
       'overdue',
       'tomorrow',
       'undated',
-    ])
-  })
-
-  it('splits M25 by phase, both kinds together', () => {
-    const tasks = [
-      task('prep-before', { item: camera }),
-      task('own-during', { phase: TASK_PHASE_DURING }),
-      task('prep-during', { item: camera, phase: TASK_PHASE_DURING }),
-    ]
-    expect(tasksInPhase(tasks, TASK_PHASE_BEFORE).map((t) => t.id)).toEqual(['prep-before'])
-    expect(tasksInPhase(tasks, TASK_PHASE_DURING).map((t) => t.id)).toEqual([
-      'own-during',
-      'prep-during',
     ])
   })
 

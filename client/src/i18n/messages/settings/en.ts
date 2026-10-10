@@ -29,7 +29,6 @@ export const settingsEn = {
   // than an untranslated one — a section is the unit.
   'settings.profile': 'Profile',
   'settings.profileLocalNote': 'Local Mode has no account — everything stays on this device.',
-  'settings.avatarAlt': 'Avatar',
   'settings.changePicture': 'Change picture',
   'settings.displayName': 'Display name',
   'settings.saved': 'Saved',

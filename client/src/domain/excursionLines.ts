@@ -11,7 +11,7 @@
  */
 
 import { generateTripItems } from './instantiate'
-import { stateFor, unitsOf, type PackUnits } from './packState'
+import { unitsOf, type PackUnits } from './packState'
 import type {
   CategorisedMasterItem,
   ExcursionLine,
@@ -303,11 +303,6 @@ export function isOpenPurchase(line: ExcursionLine): boolean {
   return (
     line.mode === ITEM_MODE_BUY_LOCAL && line.bought_at === null && line.state !== STATE_SKIPPED
   )
-}
-
-/** The line's pack state after a tick, a partial count or an untick. */
-export function packedState(packedCount: number, quantity: number) {
-  return stateFor(packedCount, quantity)
 }
 
 // --- Saving as a Gruppe (FR-31.11) ---

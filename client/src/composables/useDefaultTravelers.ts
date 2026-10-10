@@ -23,11 +23,6 @@ export interface DefaultTraveler {
   userId: string | null
 }
 
-/** Names are trimmed, non-empty and unique, in the order given. */
-export function normalizeNames(raw: string[]): string[] {
-  return normalizeEntries(raw.map((name) => ({ name, userId: null }))).map((e) => e.name)
-}
-
 /**
  * Same rules as names, plus: one account is one person, so a repeated
  * `userId` is dropped like a repeated name.

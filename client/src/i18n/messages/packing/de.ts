@@ -3,7 +3,6 @@ import type { packingEn } from './en'
 
 export const packingDe: Record<keyof typeof packingEn, string> = {
   'packing.title': 'Packliste',
-  'packing.itemsLeft': '{n} Packelement offen | {n} Packelemente offen',
   'packing.showDone': '{n} Erledigtes anzeigen | {n} Erledigte anzeigen',
   'packing.hideDone': '{n} Erledigtes ausblenden | {n} Erledigte ausblenden',
   'packing.allDone': 'Alles erledigt 🎉',
@@ -86,7 +85,6 @@ export const packingDe: Record<keyof typeof packingEn, string> = {
   'row.assignedToNobody': 'niemand',
   'row.luggageOptional': 'Gepäck · optional',
   'row.latePackerHint': 'Erst am Abreisetag packen',
-  'row.flags': 'Markierungen',
   'row.flagUnusedHint': 'Mitgenommen, nie gebraucht',
   'row.flagMissingHint': 'Gebraucht und nicht dabei',
   'row.saving': 'Speichert…',
@@ -106,9 +104,7 @@ export const packingDe: Record<keyof typeof packingEn, string> = {
   'packing.emptyHint': 'Mit ＋ das erste Packelement hinzufügen.',
 
   // M4-Kopfzeile und Icon-Cluster in der App-Bar (G-12).
-  'packing.progress': '{packed}/{total}',
   'packing.searchPlaceholder': 'Packliste durchsuchen…',
-  'packing.closeSearch': 'Suche schliessen',
   'packing.foldAll': 'Alle zuklappen',
   'packing.unfoldAll': 'Alle aufklappen',
   'packing.openCount': '{n} offen',
@@ -218,7 +214,6 @@ export const packingDe: Record<keyof typeof packingEn, string> = {
   'container.loadOf': '{weight} von {max}',
   'container.overLimit': 'Über dem Gewichtslimit',
   'container.imbalance': '{n} % Ungleichgewicht',
-  'container.carriedBy': 'Getragen von {name}',
   'container.new': 'Neues Gepäckstück',
   'container.namePlaceholder': 'z. B. Linke Packtasche',
   'container.carrier': 'Getragen von',

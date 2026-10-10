@@ -30,7 +30,6 @@ export const excursionsDe: Record<keyof typeof excursionsEn, string> = {
   'excursions.created': '„{name}“ angelegt',
   'excursions.createdAdded':
     '„{name}“ angelegt · {n} Ding auf die Packliste | „{name}“ angelegt · {n} Dinge auf die Packliste',
-  'excursions.fromGroup': 'aus Gruppe {name}',
   'excursions.participantsAll': 'Alle',
   'excursions.packed': '{done}/{total} gepackt',
   'excursions.packedOf': '{done} von {total} gepackt',

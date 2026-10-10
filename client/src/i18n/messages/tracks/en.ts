@@ -40,7 +40,6 @@ export const tracksEn = {
   'track.full': 'There are {max} tracks already — no more fit.',
   'track.route': 'Route',
   'track.reading': 'Reading the track …',
-  'track.open': 'Open the map',
   'track.me': 'You are here',
   'track.someone': 'Someone',
   'track.personNow': '{name} · just now',

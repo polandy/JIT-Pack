@@ -30,7 +30,6 @@ export const settingsDe: Record<keyof typeof settingsEn, string> = {
   // M17's remaining sections (NFR-4.12) — see the English file.
   'settings.profile': 'Profil',
   'settings.profileLocalNote': 'Der lokale Modus kennt kein Konto — alles bleibt auf diesem Gerät.',
-  'settings.avatarAlt': 'Profilbild',
   'settings.changePicture': 'Bild ändern',
   'settings.displayName': 'Anzeigename',
   'settings.saved': 'Gespeichert',

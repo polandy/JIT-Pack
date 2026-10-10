@@ -47,13 +47,6 @@ export function parseHLC(hlc: HLC): HLCComponents {
   return { millis, counter, deviceId }
 }
 
-/** Lexicographic comparison — causal order (Sync-API Spec §3). */
-export function compareHLC(a: HLC, b: HLC): number {
-  if (a < b) return -1
-  if (a > b) return 1
-  return 0
-}
-
 /**
  * Produces strictly increasing HLCs for one device and folds
  * observed remote clocks into its own notion of "now".
