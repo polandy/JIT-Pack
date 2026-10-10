@@ -4,9 +4,17 @@
  * rendered suite cannot drive deterministically.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ref } from 'vue'
+
+import { barAll, barExit, barSelection } from '@/__tests__/headerSelection'
 
 import { LONG_PRESS_MS } from '../useLongPress'
-import { useRowSelection } from '../useRowSelection'
+import { offerSelection, useRowSelection } from '../useRowSelection'
+
+vi.mock('@/composables/shared/useHeaderSelection', async (actual) => ({
+  ...(await actual()),
+  setHeaderSelection: (await import('@/__tests__/headerSelection')).captureSelection,
+}))
 
 const at = (x = 0, y = 0, button = 0) => ({ clientX: x, clientY: y, button }) as PointerEvent
 
@@ -104,5 +112,56 @@ describe('useRowSelection', () => {
     sel.end()
     expect(sel.selecting.value).toBe(false)
     expect(sel.selected.value.size).toBe(0)
+  })
+})
+
+describe('offerSelection', () => {
+  function offered(keys: string[]) {
+    const shown = ref(keys)
+    const sel = useRowSelection()
+    const selectIcon = offerSelection(sel, { testid: 'mX', keys: () => shown.value })
+    return { shown, sel, selectIcon }
+  }
+
+  it('offers the icon while there is something to select, and gives the bar back outside the mode', () => {
+    const { shown, sel, selectIcon } = offered(['a'])
+    expect(selectIcon('mX-select', 'Auswählen').map((action) => action.id)).toEqual(['mX-select'])
+    expect(barSelection()).toBeNull()
+    shown.value = []
+    expect(selectIcon('mX-select', 'Auswählen')).toEqual([])
+    // An open selection keeps its way out even with nothing left to choose.
+    sel.start()
+    expect(selectIcon('mX-select', 'Auswählen')).toHaveLength(1)
+  })
+
+  it('the icon enters and leaves the mode', () => {
+    const { sel, selectIcon } = offered(['a'])
+    selectIcon('mX-select', 'Auswählen')[0]!.onClick()
+    expect(sel.selecting.value).toBe(true)
+    sel.toggle('a')
+    selectIcon('mX-select', 'Auswählen')[0]!.onClick()
+    expect(sel.selecting.value).toBe(false)
+    expect(sel.selected.value.size).toBe(0)
+  })
+
+  it('counts only the chosen keys still among the offered ones', () => {
+    const { shown, sel } = offered(['a', 'b', 'c'])
+    sel.start()
+    sel.toggle('a')
+    sel.toggle('b')
+    expect(barSelection()).toMatchObject({ count: 2, total: 3, testid: 'mX' })
+    // A row taken out from under the selection — bought, restored, filtered away.
+    shown.value = ['a', 'c']
+    expect(barSelection()).toMatchObject({ count: 1, total: 2 })
+  })
+
+  it('„Alle" takes the offered keys and ✕ ends the mode', async () => {
+    const { sel } = offered(['a', 'b'])
+    sel.start()
+    await barAll()
+    expect(barSelection()).toMatchObject({ count: 2, total: 2 })
+    await barExit()
+    expect(sel.selecting.value).toBe(false)
+    expect(barSelection()).toBeNull()
   })
 })

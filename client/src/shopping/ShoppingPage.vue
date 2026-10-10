@@ -45,11 +45,10 @@ import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import { useDragToGroup, type DropPlace } from '@/composables/shared/useDragToGroup'
 import { usePhasedShelves } from '@/composables/shared/usePhasedShelves'
-import { setHeaderActions, type HeaderAction } from '@/composables/shared/useHeaderActions'
-import { setHeaderSelection } from '@/composables/shared/useHeaderSelection'
+import { setHeaderActions } from '@/composables/shared/useHeaderActions'
 import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
-import { SELECTION_ICON, useRowSelection } from '@/composables/shared/useRowSelection'
+import { offerSelection, useRowSelection } from '@/composables/shared/useRowSelection'
 import { useTripScreen } from '@/composables/shared/useTripScreen'
 import { useIdeaSeed } from '@/composables/shared/useIdeaSeed'
 import { useTripIdentity } from '@/composables/shared/useTripIdentity'
@@ -277,33 +276,12 @@ const ownOpenLines = computed(() => SHOPPING_MODES.flatMap((list) => own.open(pr
 
 const endSelecting = selection.end
 
-/** „Alle N" takes every own line — the same act undoes it (FR-30.9, M9's `toggleAll`). */
-function toggleAllSelected() {
-  selection.toggleAll(ownOpenLines.value.map((line) => line.key))
-}
-
-setHeaderSelection(() =>
-  selecting.value
-    ? {
-        count: selected.value.size,
-        total: ownOpenLines.value.length,
-        testid: 'm6',
-        onExit: endSelecting,
-        onAll: toggleAllSelected,
-      }
-    : null,
-)
-
-setHeaderActions(() => {
-  const select: HeaderAction = {
-    id: 'm6-select',
-    icon: SELECTION_ICON,
-    label: t('shopping.select'),
-    active: selecting.value,
-    onClick: () => (selecting.value ? endSelecting() : selection.start()),
-  }
-  return ownOpenLines.value.length > 0 || selecting.value ? [select] : []
+// „Alle N" takes every own line — the same act undoes it (FR-30.9).
+const selectIcon = offerSelection(selection, {
+  testid: 'm6',
+  keys: () => ownOpenLines.value.map((line) => line.key),
 })
+setHeaderActions(() => selectIcon('m6-select', t('shopping.select')))
 
 const bulkSheetOpen = ref(false)
 
