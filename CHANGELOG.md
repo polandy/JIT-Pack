@@ -1,5 +1,41 @@
 # Changelog
 
+## [0.27.0](https://github.com/polandy/JIT-Pack/compare/v0.26.0...v0.27.0) (2026-10-10)
+
+
+### Features
+
+* **g12:** a tab root holds search and ⋮ alone — the imports and M9's view become words (FR-24.4, FR-24.9, ADR-050 amendment 1, UX-05) ([#708](https://github.com/polandy/JIT-Pack/issues/708)) ([006c657](https://github.com/polandy/JIT-Pack/commit/006c657e08a1bfea41c733bf4e3d2d562e5e4b56))
+* **g12:** the trip switcher's row says it scrolls — fades, snap, the current pill centred (FR-21.21, ADR-051 amendment 5, UX-04) ([#706](https://github.com/polandy/JIT-Pack/issues/706)) ([04965ae](https://github.com/polandy/JIT-Pack/commit/04965ae46f9fff2130be7d1c9326b59c16e2e48d))
+* **g22:** the app greets with its mark — the backpack packs itself and flies into the app bar, once per start, off in M17 (FR-21.29, G-22) ([#724](https://github.com/polandy/JIT-Pack/issues/724)) ([3c552b4](https://github.com/polandy/JIT-Pack/commit/3c552b4872826a1b979680d04da3cc32a1267835))
+* **g9,g12:** on desktop the page's cluster ends where the column does — sync glyph and gear keep the corner (G-9, G-12, ADR-050 amendment 2, UX-14) ([#722](https://github.com/polandy/JIT-Pack/issues/722)) ([1b69f77](https://github.com/polandy/JIT-Pack/commit/1b69f77c8ded0065c76c0da2580959745e797351))
+* **m11,m21:** every row says whose it is — the traveller on M11's second line, one M21 line per thing written pro Person (FR-10.2, FR-27.5, UX-13) ([#721](https://github.com/polandy/JIT-Pack/issues/721)) ([ab30a0d](https://github.com/polandy/JIT-Pack/commit/ab30a0d56f7de05386e5cca23992062aa73f292c))
+* **m1:** on the road the hero works the day, the packing one line below (FR-7.10, UX-02) ([#699](https://github.com/polandy/JIT-Pack/issues/699)) ([33cc81d](https://github.com/polandy/JIT-Pack/commit/33cc81df8ae1626fb73fa255289ffdae3623f6a4))
+* **m1:** what is due stands in the head — the due line replaces the opening toast, each count leading to its block (FR-7.11, FR-30.10, UX-15) ([#723](https://github.com/polandy/JIT-Pack/issues/723)) ([952a45d](https://github.com/polandy/JIT-Pack/commit/952a45d22e429d07e5ced23be09342f00441d28a))
+* **m28,m29:** the idea sheet leads with its next step — Auf die Shortlist, Einplanen… into M29, Gemacht; the rest behind ⋮ (FR-29.2, FR-29.14, FR-21.12, UX-12) ([#720](https://github.com/polandy/JIT-Pack/issues/720)) ([37b9b1c](https://github.com/polandy/JIT-Pack/commit/37b9b1ccbc2d503371ff56ea4b1fcd0a7b9d7e12))
+* **m29,m31:** one word per meal slot — the short noun in M29's time column, Mahlzeit as its label, zw. retired (§3.33, FR-29.15, UX-10) ([#718](https://github.com/polandy/JIT-Pack/issues/718)) ([57a38d6](https://github.com/polandy/JIT-Pack/commit/57a38d63cccfd8f0131867180314f947873ab3bd))
+* **m29:** one shape per meaning on a day line — a task's checkbox, named rings, no idea tick; the time column says a time, a slot, ganztags or nothing (FR-29.15, UX-09) ([#717](https://github.com/polandy/JIT-Pack/issues/717)) ([eaec092](https://github.com/polandy/JIT-Pack/commit/eaec092cc16257c08b40ea6baeff675af535b1f0))
+* **m2:** the hero is M1's card — no glyph row, the phase and day line, a ⋮ for a mouse (FR-21.15, UX-06) ([#713](https://github.com/polandy/JIT-Pack/issues/713)) ([922a503](https://github.com/polandy/JIT-Pack/commit/922a5034cd56ae99cca66b4827fb726717e8fe95))
+* **m31,m5:** every chip whole — slots in short words, days under the fades, for-whom toggles as wide as their word (G-13, FR-25.28, FR-33.1, UX-08) ([#716](https://github.com/polandy/JIT-Pack/issues/716)) ([8d7c1b1](https://github.com/polandy/JIT-Pack/commit/8d7c1b105524b73f4ffe6b279ff4b421ef139ead))
+* **m3:** the dates on step 1, a footer that stays put — Schritt n · Name in the head, M9's search row on step 3 (FR-2.1c, G-16, UX-11) ([#719](https://github.com/polandy/JIT-Pack/issues/719)) ([d1007ee](https://github.com/polandy/JIT-Pack/commit/d1007ee280c4f3bbf5ee1edcbc7f37efc04d90d6))
+* **m4:** the who column is the lead slot — every name one slot in (FR-25.28, UX-03) ([#704](https://github.com/polandy/JIT-Pack/issues/704)) ([f336264](https://github.com/polandy/JIT-Pack/commit/f336264885ece4b98011a8c105c24d6f7555d1e6))
+* **m6,m25:** the ＋ is the one door to the composer — closed at rest, open on an empty list (FR-21.24, FR-30.6, FR-7.14, UX-07) ([#715](https://github.com/polandy/JIT-Pack/issues/715)) ([ba1cbe8](https://github.com/polandy/JIT-Pack/commit/ba1cbe88c2a6106e37f244544c6dacc2fc8f2732))
+
+
+### Bug Fixes
+
+* **client:** every screen reads the orchestrator's clock; M1's late packers stand on the local day (FR-5.1) ([#702](https://github.com/polandy/JIT-Pack/issues/702)) ([c239493](https://github.com/polandy/JIT-Pack/commit/c239493e9359445ded6c840b41fdd88c178d9326))
+* **client:** M27's browse sheet adds a free thing packed or skipped, not open (ARCH-21b) ([#773](https://github.com/polandy/JIT-Pack/issues/773)) ([e5ff70c](https://github.com/polandy/JIT-Pack/commit/e5ff70c3a6d7e788b9757023f42572c2e4fb8ca7))
+* **g14:** a row menu lists acts, flags, then the delete — a hairline between, the delete in Ember (G-14, FR-5.5, FR-24.15, UX-22) ([#738](https://github.com/polandy/JIT-Pack/issues/738)) ([28693a9](https://github.com/polandy/JIT-Pack/commit/28693a98b6410a819ccf52aa03e2642a9a0412dd))
+* **m26:** the thread view heads with its title or *Notiz* — an untitled note's words stand once (FR-7.13, UX-17) ([#728](https://github.com/polandy/JIT-Pack/issues/728)) ([675111b](https://github.com/polandy/JIT-Pack/commit/675111bf2468997587dc2ee9e752f8c2d93196e8))
+* **m2:** a planned row is name, dates and one chip — both group counts on it, the changes in a sheet behind it (FR-27.4, UX-20) ([#735](https://github.com/polandy/JIT-Pack/issues/735)) ([fdb27a6](https://github.com/polandy/JIT-Pack/commit/fdb27a6acb5aa93a21088515719aa218fe3142ab))
+* **m4:** the search opens in the progress card's place in the sticky band, its ✕ the round control (G-12, FR-25.11k, G-14, UX-18) ([#730](https://github.com/polandy/JIT-Pack/issues/730)) ([e8e612a](https://github.com/polandy/JIT-Pack/commit/e8e612a247b14913b26462fa2cac2b5770faa504))
+* **m7,m8:** the section head's count ends where its card ends — the head inset by what holds it (FR-21.11, G-13, UX-16) ([#725](https://github.com/polandy/JIT-Pack/issues/725)) ([5ee2d6b](https://github.com/polandy/JIT-Pack/commit/5ee2d6b37a8ccb1221addf83ab5278abd68e5f97))
+* **m9:** under its own tag's heading a row stops borrowing the tag's mark — the slot stays, empty (G-15, FR-24.13, FR-28.4, UX-19) ([#734](https://github.com/polandy/JIT-Pack/issues/734)) ([eb8b1ef](https://github.com/polandy/JIT-Pack/commit/eb8b1ef76b967820084532661693ab7379cd1e73))
+* **store:** server-owned columns are one pipeline step, and a revert runs it with the scope (ARCH-03, NFR-4.2a) ([5f65706](https://github.com/polandy/JIT-Pack/commit/5f657060f08f9735715b775b96d21d762cdeb851))
+* **sync:** a push's side effects read each mutation's own verdict (Sync-API §5, FR-6.2, G-3) ([#698](https://github.com/polandy/JIT-Pack/issues/698)) ([8b9b429](https://github.com/polandy/JIT-Pack/commit/8b9b42970f6324d59de31b5eb412b14e554cfd2c))
+* the words the family trips over — a trip is copied, the URL stands in a field, the build lives in M17, M5's glance names exceptions (UX-21) ([#736](https://github.com/polandy/JIT-Pack/issues/736)) ([524f4d3](https://github.com/polandy/JIT-Pack/commit/524f4d39cf2b4aefcde4af6c7e22137975dc081d))
+
 ## [0.26.0](https://github.com/polandy/JIT-Pack/compare/v0.25.0...v0.26.0) (2026-10-06)
 
 
