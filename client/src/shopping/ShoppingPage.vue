@@ -72,6 +72,7 @@ import { canDrop, listInFocus, planDrop, shoppingBoard, type ShoppingSection } f
 import ShoppingListSection, { type AgainState } from './ShoppingListSection.vue'
 import ShoppingRows from './ShoppingRows.vue'
 import ShoppingTagChooser from './ShoppingTagChooser.vue'
+import { useShoppingBatch } from './useShoppingBatch'
 import { useShoppingStore } from './store'
 
 const props = defineProps<{ tripId: string }>()
@@ -269,12 +270,10 @@ async function buyLine(line: ShoppingLine) {
  * selectable.
  */
 const selection = useRowSelection()
-const { selecting, selected } = selection
+const { selecting } = selection
 
 /** The lines a selection can act on: every open own entry, across both lists and every group. */
 const ownOpenLines = computed(() => SHOPPING_MODES.flatMap((list) => own.open(props.tripId, list)))
-
-const endSelecting = selection.end
 
 // „Alle N" takes every own line — the same act undoes it (FR-30.9).
 const selectIcon = offerSelection(selection, {
@@ -283,44 +282,14 @@ const selectIcon = offerSelection(selection, {
 })
 setHeaderActions(() => selectIcon('m6-select', t('shopping.select')))
 
-const bulkSheetOpen = ref(false)
-
-/** The last batch's undo, live for as long as its snackbar (FR-30.9, M9's `bulkUndo`). One batch at a time. */
-let bulkUndo: (() => void) | null = null
-
-function undoBulk() {
-  const undo = bulkUndo
-  bulkUndo = null
-  undo?.()
-}
-
-/** One tag for the batch, across both lists: one write per list, one undo for both. */
-async function applyBulkTag(tag: string | null) {
-  const results = SHOPPING_MODES.map((list) =>
-    own.bulkSetTag(props.tripId, list, selected.value, tag),
-  )
-  const touched = results.reduce((n, result) => n + result.touched, 0)
-  bulkSheetOpen.value = false
-  endSelecting()
-  if (touched === 0) {
-    await presentToast({
-      message: t('shopping.bulkNothingToDo'),
-      positionAnchor: FAB_ANCHOR.m6,
-      cssClass: 'pack-toast',
-    })
-    return
-  }
-  bulkUndo = () => results.forEach((result) => result.undo())
-  await presentToast({
-    message: t(tag !== null ? 'shopping.bulkTagged' : 'shopping.bulkUntagged', {
-      n: touched,
-      tag: tag ?? '',
-    }),
-    positionAnchor: FAB_ANCHOR.m6,
-    cssClass: 'pack-toast',
-    buttons: [{ text: t('packing.undo'), handler: () => undoBulk() }],
-  })
-}
+const { selectedLines, bulkSheetOpen, applyBulkTag, bulkAssign, bulkRemove } = useShoppingBatch({
+  tripId: props.tripId,
+  own,
+  selection,
+  ownOpenLines,
+  pickAssignee,
+  nameOf,
+})
 
 /** FR-30.12: the person picker M4 and M25 ask with (`composables/shared/pickAssignee`), over the trip's own people. */
 function pickAssignee(header: string, current: string | null) {
@@ -352,53 +321,6 @@ async function assignLine(line: ShoppingLine) {
 /** An own entry's line as the store holds it now, open on either list. */
 function liveOwnLine(key: string): ShoppingLine | undefined {
   return ownOpenLines.value.find((line) => line.key === key)
-}
-
-/** FR-30.12: one person for the batch, across both lists — `applyBulkTag`'s shape. */
-async function bulkAssign() {
-  const picked = await pickAssignee(t('shopping.bulkAssignTitle', { n: selected.value.size }), null)
-  if (picked === undefined) return
-  const results = SHOPPING_MODES.map((list) =>
-    own.bulkSetAssignee(props.tripId, list, selected.value, picked),
-  )
-  const touched = results.reduce((n, result) => n + result.touched, 0)
-  endSelecting()
-  if (touched === 0) {
-    await presentToast({
-      message: t('shopping.bulkNothingToDo'),
-      positionAnchor: FAB_ANCHOR.m6,
-      cssClass: 'pack-toast',
-    })
-    return
-  }
-  bulkUndo = () => results.forEach((result) => result.undo())
-  await presentToast({
-    message:
-      picked === null
-        ? t('shopping.bulkUnassigned', { n: touched })
-        : t('shopping.bulkAssigned', { n: touched, who: nameOf(picked) ?? '' }),
-    positionAnchor: FAB_ANCHOR.m6,
-    cssClass: 'pack-toast',
-    buttons: [{ text: t('packing.undo'), handler: () => undoBulk() }],
-  })
-}
-
-/**
- * FR-30.9: the selection removed in one act, across both lists. No question
- * first — the toast's undo puts every entry back, as it does each batch here.
- */
-async function bulkRemove() {
-  const results = SHOPPING_MODES.map((list) => own.bulkRemove(props.tripId, list, selected.value))
-  const touched = results.reduce((n, result) => n + result.touched, 0)
-  endSelecting()
-  if (touched === 0) return
-  bulkUndo = () => results.forEach((result) => result.undo())
-  await presentToast({
-    message: t('shopping.bulkRemoved', { n: touched }),
-    positionAnchor: FAB_ANCHOR.m6,
-    cssClass: 'pack-toast',
-    buttons: [{ text: t('packing.undo'), handler: () => undoBulk() }],
-  })
 }
 
 const draft = ref('')
@@ -881,7 +803,7 @@ setHeaderTitle(
       </p>
 
       <!-- FR-30.9: what the selection can be acted on with. -->
-      <BulkBar v-if="selecting && selected.size > 0" data-testid="m6-bulkbar">
+      <BulkBar v-if="selecting && selectedLines.length > 0" data-testid="m6-bulkbar">
         <button type="button" data-testid="m6-bulk-tag" @click="bulkSheetOpen = true">
           <IonIcon :icon="pricetagsOutline" />
           {{ t('shopping.bulkTag') }}
@@ -903,7 +825,7 @@ setHeaderTitle(
       <SheetModal :is-open="bulkSheetOpen" testid="m6-bulk-sheet" @dismiss="bulkSheetOpen = false">
         <section v-if="bulkSheetOpen" class="entry-sheet">
           <SheetHead
-            :title="t('shopping.bulkTagTitle', { n: selected.size })"
+            :title="t('shopping.bulkTagTitle', { n: selectedLines.length })"
             title-testid="m6-bulk-title"
             close-testid="m6-bulk-close"
             @close="bulkSheetOpen = false"

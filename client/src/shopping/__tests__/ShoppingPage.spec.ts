@@ -38,6 +38,7 @@ import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 import { setHeaderActions, type HeaderAction } from '@/composables/shared/useHeaderActions'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { presentToast } from '@/composables/shared/toast'
+import { pickAssignee } from '@/composables/shared/pickAssignee'
 import { barAll, barCount, barExit, barSelection } from '@/__tests__/headerSelection'
 import { currentRowIn } from '@/sync/sinks'
 
@@ -1230,6 +1231,29 @@ describe('M6 — multi-select and a bulk tag (FR-30.9)', () => {
     expect(page.find('[data-testid="m6-bulkbar"]').exists()).toBe(false)
   })
 
+  it('a selected line bought elsewhere leaves the batch, its count and the bar', async () => {
+    seedEntry('e1', { name: 'Brot' })
+    seedEntry('e2', { name: 'Milch' })
+    const page = mountPage()
+
+    await enterSelectionViaHeader()
+    await barAll()
+    // Another device buys Milch while it is chosen here.
+    seedEntry('e2', { name: 'Milch', bought: 1, bought_at: TAP })
+    await flushPromises()
+
+    expect(barCount()).toBe(t('selection.count', { n: 1 }))
+    await page.find('[data-testid="m6-bulk-tag"]').trigger('click')
+    expect(page.find('[data-testid="m6-bulk-title"]').text()).toBe(
+      t('shopping.bulkTagTitle', { n: 1 }),
+    )
+
+    // With Brot gone too, nothing chosen is left to act on.
+    seedEntry('e1', { name: 'Brot', bought: 1, bought_at: TAP })
+    await flushPromises()
+    expect(page.find('[data-testid="m6-bulkbar"]').exists()).toBe(false)
+  })
+
   it('files every selected entry — tagged or not — under one tag at once, with an undo', async () => {
     seedEntry('e1', { name: 'Brot' })
     seedEntry('e2', { name: 'Milch', tag: 'Apotheke' })
@@ -1551,6 +1575,30 @@ describe('M6 — who buys it (FR-30.12)', () => {
     expect(written).toEqual([
       expect.objectContaining({ id: 'e1', fields: { assignee_user_id: null } }),
     ])
+  })
+
+  it('heads the person picker with the chosen lines still open', async () => {
+    seedMembers()
+    seedEntry('e1', { name: 'Brot' })
+    seedEntry('e2', { name: 'Milch' })
+    const page = mountPage(undefined, asAndy)
+    await flushPromises()
+
+    headerActions()
+      .find((a) => a.id === 'm6-select')!
+      .onClick()
+    await flushPromises()
+    await barAll()
+    // Another device buys Milch while it is chosen here.
+    seedEntry('e2', { name: 'Milch', bought: 1, bought_at: TAP })
+    await flushPromises()
+    picked = undefined
+    await page.get('[data-testid="m6-bulk-assign"]').trigger('click')
+    await flushPromises()
+
+    expect(vi.mocked(pickAssignee).mock.calls.at(-1)![0]).toBe(
+      t('shopping.bulkAssignTitle', { n: 1 }),
+    )
   })
 })
 
