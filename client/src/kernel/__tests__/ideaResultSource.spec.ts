@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 import { createIdeaResultSource } from '../ideaResultSource'
 import { IDEA_RESULT_EXCURSION, IDEA_RESULT_TASK } from '@/domain/shared/ideaBridge'
 import { tripExcursionsPath, tripSubPath } from '@/router/paths'
-import type { Excursion, TripTodo } from '@/types/domain'
+import type { Excursion, OwnTask } from '@/types/domain'
 
 function excursion(id: string, ideaId: string | null): Excursion {
   return {
@@ -21,7 +21,7 @@ function excursion(id: string, ideaId: string | null): Excursion {
   }
 }
 
-function task(id: string, ideaId: string | null, resolved = false): TripTodo {
+function task(id: string, ideaId: string | null, resolved = false): OwnTask {
   return {
     id,
     trip_id: 't',
@@ -42,7 +42,7 @@ function task(id: string, ideaId: string | null, resolved = false): TripTodo {
 describe('createIdeaResultSource (FR-29.13)', () => {
   const source = createIdeaResultSource({
     getExcursions: () => [excursion('ex-1', 'idea-1'), excursion('ex-2', 'idea-2')],
-    getTripTodos: () => [task('to-1', 'idea-1', true), task('to-2', null), task('to-3', 'idea-1')],
+    getOwnTasks: () => [task('to-1', 'idea-1', true), task('to-2', null), task('to-3', 'idea-1')],
   })
 
   it('lists the excursion and the tasks made from the idea, and nothing else', () => {

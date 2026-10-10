@@ -15,13 +15,13 @@ import type {
   DestinationProfile,
   ItemComment,
   ItemDependency,
-  ItemTodo,
+  PrepTask,
   NoteAck,
   Excursion,
   ExcursionItem,
   ExcursionTraveler,
   TaskFacts,
-  TripTodo,
+  OwnTask,
   MasterItem,
   Template,
   TemplateItem,
@@ -86,7 +86,7 @@ export function memberRow(member: TripMember): Record<string, unknown> {
 }
 
 /**
- * A comment and a todo are the same row (FR-7.2), told apart by `is_task`
+ * A comment and a task are the same row (FR-7.2), told apart by `is_task`
  * — which is why both mappers carry it: the store routes on that column,
  * so an optimistic row without it moves the row to the other list.
  */
@@ -158,29 +158,29 @@ export function excursionItemRow(line: ExcursionItem): Record<string, unknown> {
   }
 }
 
-export function todoRow(todo: ItemTodo): Record<string, unknown> {
+export function prepTaskRow(task: PrepTask): Record<string, unknown> {
   return {
-    trip_id: todo.trip_id,
-    trip_item_id: todo.trip_item_id,
-    author_id: todo.author_id,
-    body: todo.body,
+    trip_id: task.trip_id,
+    trip_item_id: task.trip_item_id,
+    author_id: task.author_id,
+    body: task.body,
     is_task: dbBool(true),
-    task_state: todo.task_state,
-    ...taskFactRow(todo),
+    task_state: task.task_state,
+    ...taskFactRow(task),
   }
 }
 
-/** tripTodoRow is `todoRow` without an anchor: FR-7.4's null `trip_item_id`. */
-export function tripTodoRow(todo: TripTodo): Record<string, unknown> {
+/** ownTaskRow is `prepTaskRow` without an anchor: FR-7.4's null `trip_item_id`. */
+export function ownTaskRow(task: OwnTask): Record<string, unknown> {
   return {
-    trip_id: todo.trip_id,
+    trip_id: task.trip_id,
     trip_item_id: null,
-    author_id: todo.author_id,
-    body: todo.body,
+    author_id: task.author_id,
+    body: task.body,
     is_task: dbBool(true),
-    task_state: todo.task_state,
-    ...taskFactRow(todo),
-    idea_id: todo.idea_id ?? null,
+    task_state: task.task_state,
+    ...taskFactRow(task),
+    idea_id: task.idea_id ?? null,
   }
 }
 

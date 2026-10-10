@@ -10,7 +10,7 @@
  * has to agree with the others about a pending decision.
  *
  * It is the first group that depends on another one. FR-27.7's preparation
- * tasks arrive as ordinary FR-7.3 prep todos, so the comment group's writer
+ * tasks arrive as ordinary FR-7.3 preparations, so the comment group's writer
  * is passed in beside the context — a group edge is an argument, deliberately
  * visible at the wiring, rather than another field on the spine. The argument
  * is a named object because the next group along needed three of them.
@@ -136,7 +136,7 @@ export function createGroupRefreshActions(
       masterItems: masterStore.categorisedItemList,
       travelers: tripStore.getTravelers(tripId),
       items: tripStore.getItems(tripId),
-      todos: tripStore.getTodos(tripId),
+      prepTasks: tripStore.getPrepTasks(tripId),
       ledger: tripStore.getGeneratedPositions(tripId),
       today: today(),
     })
@@ -155,11 +155,11 @@ export function createGroupRefreshActions(
         add.trip_item_id,
       )
       write(mutation)
-      // FR-27.7: the position's tasks arrive as ordinary prep todos, the
+      // FR-27.7: the position's tasks arrive as ordinary preparations, the
       // same shape generation writes — enqueued after the row they hang
       // off, or the server rejects the foreign key.
       for (const body of add.generated.tasks) {
-        commentActions.addPrepTodo(tripId, id, CLIENT_ACTOR_PLACEHOLDER, body)
+        commentActions.addPrepTask(tripId, id, CLIENT_ACTOR_PLACEHOLDER, body)
       }
     }
 
@@ -168,10 +168,10 @@ export function createGroupRefreshActions(
         write(mutations.updateGeneratedTripItem(update.item.id, update.fields))
       }
       for (const body of update.addTasks) {
-        commentActions.addPrepTodo(tripId, update.item.id, CLIENT_ACTOR_PLACEHOLDER, body)
+        commentActions.addPrepTask(tripId, update.item.id, CLIENT_ACTOR_PLACEHOLDER, body)
       }
-      for (const todo of update.removeTodos) {
-        write(mutations.deleteTodo(todo.id))
+      for (const task of update.removePrepTasks) {
+        write(mutations.deleteTask(task.id))
       }
     }
 

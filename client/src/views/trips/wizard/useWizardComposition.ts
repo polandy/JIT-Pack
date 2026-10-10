@@ -141,7 +141,7 @@ export function useWizardComposition(metadata: WizardMetadata, roster: WizardTra
     return byGroup
   })
 
-  /** FR-27.7: how many preparation todos the generated trip will start with. */
+  /** FR-27.7: how many preparations the generated trip will start with. */
   const taskCount = computed(() =>
     generation.value.items.reduce((sum, item) => sum + item.tasks.length, 0),
   )

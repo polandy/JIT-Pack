@@ -235,8 +235,8 @@ export interface TripKPIs {
   packedWeight: number
   totalValue: number
   packedValue: number
-  totalTodos: number
-  resolvedTodos: number
+  totalPrepTasks: number
+  resolvedPrepTasks: number
 }
 
 export interface DashboardTrip {
@@ -341,7 +341,7 @@ export interface Container {
 
 /**
  * A plain comment (comments row with is_task = 0). Flagging it as task
- * (FR-7.2) turns the same row into an ItemTodo. trip_item_id null means
+ * (FR-7.2) turns the same row into a PrepTask. trip_item_id null means
  * the comment anchors to the trip itself.
  */
 export interface ItemComment {
@@ -389,9 +389,9 @@ export interface NoteAck {
   seen_through: string | null
 }
 
-// --- Preparation Todos (FR-7.3) ---
+// --- Preparation tasks (FR-7.3) ---
 
-export type TodoState = ColumnEnum<'comments', 'task_state'>
+export type TaskState = ColumnEnum<'comments', 'task_state'>
 
 /**
  * FR-7.7: when a task is meant to be done — before the trip or during it.
@@ -409,8 +409,8 @@ export type TaskPhase = (typeof TASK_PHASES)[number]
  * FR-7.7: the facts every task carries beside its words — when it is due, who
  * wrote it and when, and the record of it being ticked off.
  *
- * One interface for both kinds of task (FR-7.3's preparation and FR-7.4's trip
- * todo), because they are one table and both carry the same four facts.
+ * One interface for both kinds of task (FR-7.3's preparation and FR-7.4's
+ * own task), because they are one table and both carry the same four facts.
  * `phase` is null on a task written before FR-7.7 and reads as *before*
  * (`taskPhaseOf`); the resolution pair is null while the task is open.
  */
@@ -442,26 +442,26 @@ export interface TaskFacts {
   position?: number | null
 }
 
-export interface ItemTodo extends TaskFacts {
+export interface PrepTask extends TaskFacts {
   id: string
   trip_id: string
   trip_item_id: string
   author_id: string
   body: string
-  task_state: TodoState
+  task_state: TaskState
 }
 
 /**
  * FR-7.4: a task on the trip itself — a task comment with no `trip_item_id`.
- * Kept apart from `ItemTodo` because nothing the packing list measures may
- * count it: a row's doneness, the ring and the prep KPI read `ItemTodo` only.
+ * Kept apart from `PrepTask` because nothing the packing list measures may
+ * count it: a row's doneness, the ring and the prep KPI read `PrepTask` only.
  */
-export interface TripTodo extends TaskFacts {
+export interface OwnTask extends TaskFacts {
   id: string
   trip_id: string
   author_id: string
   body: string
-  task_state: TodoState
+  task_state: TaskState
   /** FR-29.13: the idea it was made from; null or absent for none, or one since deleted. */
   idea_id?: string | null
 }
@@ -641,7 +641,7 @@ export interface TemplateInclude {
 
 /**
  * FR-27.7: one free-text preparation task on a template position. At trip
- * generation each task becomes an ordinary FR-7.3 prep todo on the generated
+ * generation each task becomes an ordinary FR-7.3 preparation on the generated
  * trip item, so the "open prep blocks done" rule applies without a new flag.
  */
 export interface TemplateItemTask {
@@ -652,7 +652,7 @@ export interface TemplateItemTask {
 
 /**
  * FR-7.4: one free-text trip task on a template. At trip generation it
- * becomes a trip todo — a task on the trip itself, not on any generated row —
+ * becomes a trip's own task — a task on the trip itself, not on any generated row —
  * so it holds back no item from counting as done.
  */
 export interface TemplateTask {

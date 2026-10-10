@@ -13,7 +13,7 @@
  * The second list was shorter than the first in three places: a deleted
  * master item kept its dependency rows, a deleted template kept its
  * positions' FR-27.7 tasks, and a deleted trip item kept its comments and
- * FR-7.3 todos. The window is real but bounded — the children's own
+ * FR-7.3 preparations. The window is real but bounded — the children's own
  * tombstones follow, on the *next* pull page whenever the parent's lands on
  * a page boundary — and no test compared the two paths, which is the point
  * of this file rather than of any one of the three.
@@ -71,7 +71,7 @@ function stillThere(table: SyncTable, tripId: string): string[] {
     case TABLE.comments:
       return [
         ...tripStore.getComments(tripId).map((c) => c.id),
-        ...tripStore.getTodos(tripId).map((t) => t.id),
+        ...tripStore.getPrepTasks(tripId).map((t) => t.id),
       ]
     case TABLE.tripItems:
       return tripStore.getItems(tripId).map((i) => i.id)
@@ -137,7 +137,7 @@ describe('an applied tombstone removes exactly what the optimistic cascade names
     expect(stillThere(TABLE.templateItemTasks, TRIP)).toEqual(['task2'])
   })
 
-  it('a deleted trip item takes its comments and its FR-7.3 todos', () => {
+  it('a deleted trip item takes its comments and its FR-7.3 preparations', () => {
     stores.tripStore.applyChanges([
       row(TABLE.trips, TRIP, { name: 'Engadin', year: 2026, status: 'active' }),
       row(TABLE.tripItems, 'ti1', { trip_id: TRIP, name: 'Zelt', quantity: 1 }),

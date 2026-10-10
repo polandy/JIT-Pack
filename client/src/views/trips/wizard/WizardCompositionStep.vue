@@ -223,11 +223,11 @@ function mergeLine(merge: MergedOverlap): string {
           })
         }}
       </IonChip>
-      <!-- FR-27.7: the preparation todos the trip inherits from its positions -->
+      <!-- FR-27.7: the preparations the trip inherits from its positions -->
       <IonChip v-if="taskCount > 0" outline data-testid="wizard-task-count">
         📋 {{ t('wizard.taskCount', { n: taskCount }) }}
       </IonChip>
-      <!-- FR-7.4: the trip todos, on their own line — they prepare no row -->
+      <!-- FR-7.4: the trip's own tasks, on their own line — they prepare no row -->
       <IonChip v-if="generation.tripTasks.length > 0" outline data-testid="wizard-trip-task-count">
         ✅ {{ t('wizard.tripTaskCount', { n: generation.tripTasks.length }) }}
       </IonChip>

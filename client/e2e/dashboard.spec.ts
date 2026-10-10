@@ -11,7 +11,7 @@ import {
 import type { Locator, Page } from '@playwright/test'
 import { PATH } from './routes'
 import { openTripView } from './helpers/trips'
-import { addBuyRowOnM4, addTripTodo, openTasks, packRow } from './helpers/m4'
+import { addBuyRowOnM4, addOwnTask, openTasks, packRow } from './helpers/m4'
 import { setDateField } from './helpers/ionic'
 import { browserDay, expectFiguresPaired, setClock, writesLanded } from './helpers/page'
 
@@ -168,7 +168,7 @@ test.describe('M1 dashboard @local @m1', () => {
    * too — it is listed in the *Tasks* card, named by the chip of the row it
    * prepares, and reported without anything to tick, because M1 takes no
    * actions. Resolving it where it lives is what clears
-   * the card, which is the positive signal that the card reads the todos
+   * the card, which is the positive signal that the card reads the trip's tasks
    * rather than a copy of them.
    *
    * One card, not a *Prep to do* card of its own grouped by item (FR-7.6):
@@ -177,14 +177,14 @@ test.describe('M1 dashboard @local @m1', () => {
   test('E2E-M1-02: a row’s preparation is listed among the trip’s tasks, with nothing to tick', async ({
     page,
   }) => {
-    const TODO = 'Akku laden'
+    const PREP = 'Akku laden'
     await activeTripWith(page, ['Kamera'])
 
     await visible(page).getByTestId('m4-row-Kamera').click()
     await expect(page.getByTestId('m5-sheet')).toBeVisible()
-    await page.getByTestId('m5-todo-input').locator('input').fill(TODO)
+    await page.getByTestId('m5-todo-input').locator('input').fill(PREP)
     await page.getByTestId('m5-todo-add').click()
-    await expect(page.getByTestId(`m5-todo-${TODO}`)).toBeVisible()
+    await expect(page.getByTestId(`m5-todo-${PREP}`)).toBeVisible()
     await page.getByTestId('m5-close').click()
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 
@@ -199,7 +199,7 @@ test.describe('M1 dashboard @local @m1', () => {
     await expect(head).toContainText('1')
     await expect(card).toHaveClass(/jp-card/)
     // The task itself, and the chip that says which row owes it.
-    await expect(card.getByTestId(`dashboard-trip-todo-${TODO}`)).toBeVisible()
+    await expect(card.getByTestId(`dashboard-trip-todo-${PREP}`)).toBeVisible()
     await expect(card.getByTestId('task-item-Kamera')).toBeVisible()
     // Reported, not operated: nothing on the card can be ticked.
     await expect(card.locator('ion-checkbox')).toHaveCount(0)
@@ -208,17 +208,17 @@ test.describe('M1 dashboard @local @m1', () => {
     // so, which is where the merged card differs from the *Prep to do* one it
     // replaced: a trip whose tasks are all done is reported as done (FR-7.4),
     // not dropped. The task line going is the signal that the card reads the
-    // todos rather than a copy of them.
+    // the trip's tasks rather than a copy of them.
     await card.getByTestId('task-item-Kamera').click()
     await expect(page.getByTestId('m5-sheet')).toBeVisible()
-    await page.getByTestId(`m5-todo-${TODO}`).click()
+    await page.getByTestId(`m5-todo-${PREP}`).click()
     await page.getByTestId('m5-close').click()
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
     await writesLanded(page)
     await page.goto(PATH.dashboard)
     await expect(visible(page).getByTestId(`dashboard-trip-${TRIP.name}`)).toBeVisible()
     const after = visible(page).getByTestId('dashboard-trip-todos')
-    await expect(after.getByTestId(`dashboard-trip-todo-${TODO}`)).toHaveCount(0)
+    await expect(after.getByTestId(`dashboard-trip-todo-${PREP}`)).toHaveCount(0)
     await expect(after.getByTestId(`trip-todos-status-${TRIP.name}`)).toHaveText('✓ All tasks done')
   })
 
@@ -358,25 +358,25 @@ test.describe('M1 — the three promises @local @m1', () => {
     await expect(visible(page).getByTestId('dashboard-delegated')).toHaveCount(0)
   })
 
-  // --- FR-7.4: the trip's own todos, written in M4 and reported here ---
+  // --- FR-7.4: the trip's own tasks, written in M4 and reported here ---
 
   /**
-   * E2E-M1-10 (FR-7.4): M1 reports every active trip's open trip todos,
+   * E2E-M1-10 (FR-7.4): M1 reports every active trip's open tasks of its own,
    * read-only, and leads into the trip where they are written.
    *
-   * Two trips, one with todos and one without: the second's absence from the
-   * card is only an assertion because the first is on it. A resolved todo
+   * Two trips, one with tasks and one without: the second's absence from the
+   * card is only an assertion because the first is on it. A resolved task
    * leaves the list while the trip's own check counts it, which says the list
    * filters by state rather than having missed the row.
    */
-  test('E2E-M1-10: M1 lists open trip todos read-only and leads into the trip', async ({
+  test('E2E-M1-10: M1 lists open tasks of the trip read-only and leads into the trip', async ({
     page,
   }) => {
     await createTripViaWizard(page, { ...TRIP, name: 'Elba 2026', startDate: '2026-11-02' })
     await tripAction(page, 'start')
     await activeTripWith(page, ['Zelt'])
-    await addTripTodo(page, 'Water the plants', 'during')
-    await addTripTodo(page, 'Empty the fridge', 'during')
+    await addOwnTask(page, 'Water the plants', 'during')
+    await addOwnTask(page, 'Empty the fridge', 'during')
     // Ticked on M25 (FR-7.7), for the road: the trip is under way, so a new
     // task is not for before it (FR-7.14).
     const tasks = await openTasks(page, 'during')
@@ -429,17 +429,17 @@ test.describe('M1 — the three promises @local @m1', () => {
     const share = hero.getByTestId('hero-progress')
     const tasks = hero.getByTestId(`dashboard-tasks-${TRIP.name}`)
 
-    // Fully packed, and no trip todo: no second figure at all.
+    // Fully packed, and no task of the trip's own: no second figure at all.
     await expect(share).toHaveText('1/1 packed')
     await expect(tasks).toHaveCount(0)
 
-    // An open todo leaves the trip fully packed.
+    // An open task leaves the trip fully packed.
     await openHeroOnPacking(page, hero)
-    await addTripTodo(page, 'Water the plants', 'during')
+    await addOwnTask(page, 'Water the plants', 'during')
     await page.goto(PATH.dashboard)
     await expect(tasks).toHaveText('0/1 tasks')
     await expect(share).toHaveText('1/1 packed')
-    // Fully packed carries no detail, one open todo does: the pair still aligns.
+    // Fully packed carries no detail, one open task does: the pair still aligns.
     await expectFiguresPaired(hero)
     // And on a phone, where the two columns do not fit, it stacks rather than
     // cutting a sentence short.
@@ -664,8 +664,8 @@ test.describe('M1 — the hero on the road @local @m1', () => {
     })
     await tripAction(page, 'start')
     await quickAdd(page, ['Zelt'])
-    await addTripTodo(page, 'Leave a key', 'during')
-    await addTripTodo(page, 'Renew the passport', 'during')
+    await addOwnTask(page, 'Leave a key', 'during')
+    await addOwnTask(page, 'Renew the passport', 'during')
 
     const road = await openTasks(page, 'during')
     const sheet = page.getByTestId('task-sheet')
@@ -722,7 +722,7 @@ test.describe('M1 — the hero on the road @local @m1', () => {
     await tripAction(page, 'start')
     await quickAdd(page, ['Zelt'])
     // Started, the trip takes tasks for the road only (FR-7.14).
-    await addTripTodo(page, 'Book the train', 'during')
+    await addOwnTask(page, 'Book the train', 'during')
 
     const road = await openTasks(page, 'during')
     const sheet = page.getByTestId('task-sheet')

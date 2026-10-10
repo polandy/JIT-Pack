@@ -310,7 +310,7 @@ const lineFacts: ListFacts<ExcursionItem> = {
   assignableRow: () => false,
   masterOf: (item) => masterOf(item.source_item_id),
   clusterMaster: (cluster) => masterOf(cluster.sourceItemId),
-  openTodoCount: () => 0,
+  openPrepTaskCount: () => 0,
   borrowedBy: () => [],
 }
 

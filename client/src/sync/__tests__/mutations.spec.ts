@@ -396,11 +396,11 @@ describe('createMutations', () => {
     expect(mutation.fields?.['name']).toBe('Soap')
   })
 
-  // --- Preparation Todos (FR-7.3) ---
+  // --- Preparation tasks (FR-7.3) ---
 
-  it('addTodo creates insert on comments table', () => {
+  it('addTask creates insert on comments table', () => {
     const m = createMutations(mockHLC())
-    const { mutation, id } = m.addTodo('t1', 'i1', 'u1', 'Charge battery', 'before')
+    const { mutation, id } = m.addTask('t1', 'i1', 'u1', 'Charge battery', 'before')
     expect(mutation.op).toBe('insert')
     expect(mutation.table).toBe('comments')
     expect(mutation.id).toBe(id)
@@ -426,19 +426,19 @@ describe('createMutations', () => {
    * push can land days later. The *who* is absent on purpose: the server
    * stamps it (invariant 3), and in Local Mode there is nobody to name.
    */
-  it('resolveTodo sets task_state to resolved and names the tap', () => {
+  it('resolveTask sets task_state to resolved and names the tap', () => {
     const m = createMutations(mockHLC())
-    const mut = m.resolveTodo('todo1')
+    const mut = m.resolveTask('task1')
     expect(mut.op).toBe('upsert')
     expect(mut.table).toBe('comments')
-    expect(mut.id).toBe('todo1')
+    expect(mut.id).toBe('task1')
     expect(mut.fields).toEqual({ task_state: 'resolved', resolved_at: expect.any(String) })
     expect(mut.fields?.['resolved_by_user_id']).toBeUndefined()
   })
 
-  it('reopenTodo sets task_state to open and clears the record with it', () => {
+  it('reopenTask sets task_state to open and clears the record with it', () => {
     const m = createMutations(mockHLC())
-    const mut = m.reopenTodo('todo1')
+    const mut = m.reopenTask('task1')
     expect(mut.fields).toEqual({ task_state: 'open', resolved_at: null })
   })
 
@@ -449,10 +449,10 @@ describe('createMutations', () => {
    */
   it('setTaskPhase writes the phase alone', () => {
     const m = createMutations(mockHLC())
-    expect(m.setTaskPhase('todo1', 'during').fields).toEqual({ phase: 'during' })
+    expect(m.setTaskPhase('task1', 'during').fields).toEqual({ phase: 'during' })
     // Null is a legal value, not an omission: it is what a task written
     // before FR-7.7 carries, and an undo has to be able to put it back.
-    expect(m.setTaskPhase('todo1', null).fields).toEqual({ phase: null })
+    expect(m.setTaskPhase('task1', null).fields).toEqual({ phase: null })
   })
 
   /*
@@ -464,39 +464,39 @@ describe('createMutations', () => {
    */
   it('setTaskTag writes the tag alone, and can write it away', () => {
     const m = createMutations(mockHLC())
-    expect(m.setTaskTag('todo1', 'tt-apotheke').fields).toEqual({ task_tag_id: 'tt-apotheke' })
-    expect(m.setTaskTag('todo1', null).fields).toEqual({ task_tag_id: null })
+    expect(m.setTaskTag('task1', 'tt-apotheke').fields).toEqual({ task_tag_id: 'tt-apotheke' })
+    expect(m.setTaskTag('task1', null).fields).toEqual({ task_tag_id: null })
     // The task's own table, not the tag's: the row being changed is the task.
-    expect(m.setTaskTag('todo1', null).table).toBe(TABLE.comments)
+    expect(m.setTaskTag('task1', null).table).toBe(TABLE.comments)
   })
 
   // FR-7.11: a day or none, and nothing beside it — a date set on one device
   // and a tag set on another must both survive the merge (NFR-4.2a).
   it('setTaskDueDate writes the day alone, and can write it away', () => {
     const m = createMutations(mockHLC())
-    expect(m.setTaskDueDate('todo1', '2026-07-09').fields).toEqual({ due_date: '2026-07-09' })
-    expect(m.setTaskDueDate('todo1', null).fields).toEqual({ due_date: null })
-    expect(m.setTaskDueDate('todo1', null).table).toBe(TABLE.comments)
+    expect(m.setTaskDueDate('task1', '2026-07-09').fields).toEqual({ due_date: '2026-07-09' })
+    expect(m.setTaskDueDate('task1', null).fields).toEqual({ due_date: null })
+    expect(m.setTaskDueDate('task1', null).table).toBe(TABLE.comments)
   })
 
   // FR-7.14: the words alone, with no note's edit stamp — a task is shared
   // work, not a signed entry.
   it('setTaskBody writes the words alone', () => {
     const m = createMutations(mockHLC())
-    expect(m.setTaskBody('todo1', 'Pass verlängern').fields).toEqual({ body: 'Pass verlängern' })
-    expect(m.setTaskBody('todo1', 'x').table).toBe(TABLE.comments)
+    expect(m.setTaskBody('task1', 'Pass verlängern').fields).toEqual({ body: 'Pass verlängern' })
+    expect(m.setTaskBody('task1', 'x').table).toBe(TABLE.comments)
   })
 
   // FR-7.14: a task filed as it is typed carries its tag and day in the one
   // insert; one typed without them is written exactly as before.
-  it('addTodo files a tag and a day only where they were named', () => {
+  it('addTask files a tag and a day only where they were named', () => {
     const m = createMutations(mockHLC())
-    const filed = m.addTodo('t1', null, 'u1', 'Salbe holen', 'before', {
+    const filed = m.addTask('t1', null, 'u1', 'Salbe holen', 'before', {
       taskTagId: 'tt-apo',
       dueDate: '2026-07-09',
     }).mutation.fields
     expect(filed).toMatchObject({ task_tag_id: 'tt-apo', due_date: '2026-07-09' })
-    const plain = m.addTodo('t1', null, 'u1', 'Salbe holen', 'before', {
+    const plain = m.addTask('t1', null, 'u1', 'Salbe holen', 'before', {
       taskTagId: null,
       dueDate: null,
     }).mutation.fields
@@ -535,12 +535,12 @@ describe('createMutations', () => {
     })
   })
 
-  it('deleteTodo creates delete mutation', () => {
+  it('deleteTask creates delete mutation', () => {
     const m = createMutations(mockHLC())
-    const mut = m.deleteTodo('todo1')
+    const mut = m.deleteTask('task1')
     expect(mut.op).toBe('delete')
     expect(mut.table).toBe('comments')
-    expect(mut.id).toBe('todo1')
+    expect(mut.id).toBe('task1')
   })
 
   it('addItemDependency inserts a master-partition relation (FR-20.1)', () => {

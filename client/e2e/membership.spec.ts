@@ -218,7 +218,7 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
     // Two left — Andy's 2 and Mia's 1, which is what the head reports (FR-25.22).
     await expect(visiblePage(page).getByTestId(`m4-cluster-${ITEM}`)).toContainText('0/3')
 
-    // Mia's row carries nothing — no progress, no thread, no todo — so it is
+    // Mia's row carries nothing — no progress, no thread, no preparation — so it is
     // written without a question. The unlit toggle is the positive signal; the
     // absent question is what proves it is raised by cost and not by the
     // control. The strip is still open: the item went from a cluster to a lone
@@ -245,17 +245,17 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
     await setMemberInM5(page, 'Leonardo', 3)
     await closeItem(page)
 
-    // A preparation todo on Leonardo's row (FR-7.3). It makes his the survivor
+    // A preparation on Leonardo's row (FR-7.3). It makes his the survivor
     // — content leads the ladder — and it is the thing ADR-036's keep-and-repoint
     // exists to protect: delete-and-recreate would collapse the amounts just as
     // correctly and lose this.
-    const TODO = 'Groesse pruefen'
+    const PREP = 'Groesse pruefen'
     await openCluster(page, ITEM)
     await visiblePage(page).getByTestId(`m4-child-${ITEM}-Leonardo`).click()
     await expect(page.getByTestId('m5-sheet')).toBeVisible()
-    await page.getByTestId('m5-todo-input').locator('input').fill(TODO)
+    await page.getByTestId('m5-todo-input').locator('input').fill(PREP)
     await page.getByTestId('m5-todo-add').click()
-    await expect(page.getByTestId('m5-sheet')).toContainText(TODO)
+    await expect(page.getByTestId('m5-sheet')).toContainText(PREP)
     await page.getByTestId('m5-close').click()
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 
@@ -270,7 +270,7 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
 
     // The surviving row is the row, not a new one wearing its name.
     await visiblePage(page).getByTestId(`m4-row-${ITEM}`).click()
-    await expect(page.getByTestId('m5-sheet')).toContainText(TODO)
+    await expect(page.getByTestId('m5-sheet')).toContainText(PREP)
   })
   /*
    * FR-25.28. M5 is open on *one* instance and its strip acts on all of them,

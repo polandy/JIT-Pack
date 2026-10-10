@@ -5,7 +5,7 @@
  * doc comment draws that line already — this is its inline counterpart.
  * Content is a slot so each caller keeps its own i18n string.
  *
- * The default spacing matches the two byte-identical sites (`TripTodoList`,
+ * The default spacing matches the two byte-identical sites (`TripTaskList`,
  * `TripNoteList`). A caller whose spacing genuinely differs overrides it
  * with a passed `class` (layout stays with the caller, same as
  * `RemoveButton.vue`'s `.rm-gap`), never a prop — there is nothing here to

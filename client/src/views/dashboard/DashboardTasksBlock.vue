@@ -19,7 +19,7 @@ import { useTaskActs } from '@/composables/useTaskActs'
 import { useTripIdentity } from '@/composables/shared/useTripIdentity'
 import { useTripTasks } from '@/composables/useTripTasks'
 import { openDueDay } from '@/domain/taskDue'
-import { dashboardTasks, type TripTask } from '@/domain/tripTodos'
+import { dashboardTasks, type TripTask } from '@/domain/tripTasks'
 import { t } from '@/i18n'
 import { DUE_BLOCK_TASKS, dueBlockAnchor } from '@/kernel/tripCards'
 import { tripSubPath } from '@/router/paths'
@@ -88,7 +88,7 @@ const empty = computed(() => {
 
 /** Written in the phase in front of the trip, which is what the field's label promised. */
 function add(text: string) {
-  const id = orchestrator.comments.addTripTodo(
+  const id = orchestrator.comments.addOwnTask(
     props.tripId,
     CLIENT_ACTOR_PLACEHOLDER,
     text,

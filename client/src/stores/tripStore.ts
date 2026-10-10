@@ -23,9 +23,9 @@ import type {
   ExcursionTrack,
   ExcursionTraveler,
   ItemComment,
-  ItemTodo,
+  PrepTask,
   NoteAck,
-  TripTodo,
+  OwnTask,
   TripMember,
   TripTemplateSource,
 } from '@/types/domain'
@@ -35,8 +35,8 @@ import { unitsOf } from '@/domain/packState'
 import {
   encodedRow,
   KERNEL_TABLE_SPECS,
-  todoCodec,
-  tripTodoCodec,
+  prepTaskCodec,
+  ownTaskCodec,
   type SyncRow,
 } from '@/sync/tableRegistry'
 import {
@@ -52,15 +52,15 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   const tripItems = ref<Map<string, TripItem[]>>(new Map())
   const travelers = ref<Map<string, Traveler[]>>(new Map())
   const containers = ref<Map<string, Container[]>>(new Map())
-  const todos = ref<Map<string, ItemTodo[]>>(new Map())
+  const prepTasks = ref<Map<string, PrepTask[]>>(new Map())
   const comments = ref<Map<string, ItemComment[]>>(new Map())
   // FR-7.9: a note's per-person ticks, bucketed by trip_id like every other
   // trip-partition row (note_acks carries its own, rather than only a
   // comment_id — see schema.sql).
   const noteAcks = ref<Map<string, NoteAck[]>>(new Map())
-  // FR-7.4: a separate bucket rather than a filter over `todos`, so that
-  // every packing figure reading `todos` cannot count a trip task by mistake.
-  const tripTodos = ref<Map<string, TripTodo[]>>(new Map())
+  // FR-7.4: a separate bucket rather than a filter over `prepTasks`, so that
+  // every packing figure reading `prepTasks` cannot count a trip task by mistake.
+  const ownTasks = ref<Map<string, OwnTask[]>>(new Map())
   // FR-31 (ADR-077): an excursion, who goes on it, and its own lines —
   // three trip-partition tables, bucketed by trip_id like the rest.
   const excursions = ref<Map<string, Excursion[]>>(new Map())
@@ -83,8 +83,8 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   const memberRows = bucketedRows(members, (r) => r.trip_id)
   const commentRows = bucketedRows(comments, (r) => r.trip_id)
   const noteAckRows = bucketedRows(noteAcks, (r) => r.trip_id)
-  const todoRows = bucketedRows(todos, (r) => r.trip_id)
-  const tripTodoRows = bucketedRows(tripTodos, (r) => r.trip_id)
+  const prepTaskRows = bucketedRows(prepTasks, (r) => r.trip_id)
+  const ownTaskRows = bucketedRows(ownTasks, (r) => r.trip_id)
   const excursionRows = bucketedRows(excursions, (r) => r.trip_id)
   const excursionTravelerRows = bucketedRows(excursionTravelers, (r) => r.trip_id)
   const excursionItemRows = bucketedRows(excursionItems, (r) => r.trip_id)
@@ -190,20 +190,20 @@ export const useTripStore = defineStore(TABLE.trips, () => {
       .sort((a, b) => b.created_at.localeCompare(a.created_at) || a.id.localeCompare(b.id))
   }
 
-  function getTodos(tripId: string): ItemTodo[] {
-    return todos.value.get(tripId) ?? []
+  function getPrepTasks(tripId: string): PrepTask[] {
+    return prepTasks.value.get(tripId) ?? []
   }
 
-  function getItemTodos(tripId: string, tripItemId: string): ItemTodo[] {
-    return getTodos(tripId).filter((t) => t.trip_item_id === tripItemId)
+  function getRowPrepTasks(tripId: string, tripItemId: string): PrepTask[] {
+    return getPrepTasks(tripId).filter((t) => t.trip_item_id === tripItemId)
   }
 
   /**
-   * The trip's own todos (FR-7.4), open first, each half by text — an order
+   * The trip's own tasks (FR-7.4), open first, each half by text — an order
    * that survives a reload, which the store's insertion order does not.
    */
-  function getTripTodos(tripId: string): TripTodo[] {
-    return [...(tripTodos.value.get(tripId) ?? [])].sort(
+  function getOwnTasks(tripId: string): OwnTask[] {
+    return [...(ownTasks.value.get(tripId) ?? [])].sort(
       (a, b) =>
         Number(a.task_state === 'resolved') - Number(b.task_state === 'resolved') ||
         a.body.localeCompare(b.body) ||
@@ -253,18 +253,18 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     return noteAcks.value.get(tripId) ?? []
   }
 
-  /** Items that are packed but still have open prep todos. */
-  function itemsWithOpenPrep(tripId: string): Array<{ item: TripItem; openTodos: ItemTodo[] }> {
+  /** Items that are packed but still have an open preparation. */
+  function itemsWithOpenPrep(tripId: string): Array<{ item: TripItem; openPrepTasks: PrepTask[] }> {
     const items = getItems(tripId)
-    const tripTodos = getTodos(tripId)
-    const result: Array<{ item: TripItem; openTodos: ItemTodo[] }> = []
+    const prepared = getPrepTasks(tripId)
+    const result: Array<{ item: TripItem; openPrepTasks: PrepTask[] }> = []
 
     for (const item of items) {
-      const openTodos = tripTodos.filter(
+      const openPrepTasks = prepared.filter(
         (t) => t.trip_item_id === item.id && t.task_state === 'open',
       )
-      if (openTodos.length > 0) {
-        result.push({ item, openTodos })
+      if (openPrepTasks.length > 0) {
+        result.push({ item, openPrepTasks })
       }
     }
     return result
@@ -273,12 +273,12 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   /**
    * `hidden` names rows the caller no longer shows although they are still
    * stored — FR-25.31's removals waiting for their undo to lapse. A hidden
-   * trip item takes its own todos out of the count with it.
+   * trip item takes its own preparations out of the count with it.
    */
   function kpis(tripId: string, hidden: ReadonlySet<string> = new Set()): TripKPIs {
     const items = getItems(tripId).filter((item) => !hidden.has(item.id))
-    const tripTodos = getTodos(tripId).filter(
-      (todo) => !hidden.has(todo.id) && !(todo.trip_item_id && hidden.has(todo.trip_item_id)),
+    const prepared = getPrepTasks(tripId).filter(
+      (task) => !hidden.has(task.id) && !(task.trip_item_id && hidden.has(task.trip_item_id)),
     )
     let totalItems = 0
     let packedItems = 0
@@ -303,8 +303,8 @@ export const useTripStore = defineStore(TABLE.trips, () => {
       }
     }
 
-    const totalTodos = tripTodos.length
-    const resolvedTodos = tripTodos.filter((t) => t.task_state === 'resolved').length
+    const totalPrepTasks = prepared.length
+    const resolvedPrepTasks = prepared.filter((t) => t.task_state === 'resolved').length
 
     return {
       totalItems,
@@ -313,8 +313,8 @@ export const useTripStore = defineStore(TABLE.trips, () => {
       packedWeight,
       totalValue,
       packedValue,
-      totalTodos,
-      resolvedTodos,
+      totalPrepTasks,
+      resolvedPrepTasks,
     }
   }
 
@@ -342,11 +342,11 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     [TABLE.comments]: {
       set: (c: ItemComment) => commentRows.upsert(c),
       get: (id) => commentRows.find(id),
-      rows: () => [...commentRows.all(), ...todoRows.all(), ...tripTodoRows.all()],
+      rows: () => [...commentRows.all(), ...prepTaskRows.all(), ...ownTaskRows.all()],
       remove: (id) => {
         commentRows.remove(id)
-        todoRows.remove(id)
-        tripTodoRows.remove(id)
+        prepTaskRows.remove(id)
+        ownTaskRows.remove(id)
       },
     },
     [TABLE.noteAcks]: bucketSink(noteAckRows),
@@ -375,9 +375,9 @@ export const useTripStore = defineStore(TABLE.trips, () => {
         commentRows.upsert(KERNEL_TABLE_SPECS[TABLE.comments].parse(change.id, row))
       } else if (row['trip_item_id'] == null) {
         // FR-7.4: a task with no row is the trip's own.
-        tripTodoRows.upsert(tripTodoCodec.parse(change.id, row))
+        ownTaskRows.upsert(ownTaskCodec.parse(change.id, row))
       } else {
-        todoRows.upsert(todoCodec.parse(change.id, row))
+        prepTaskRows.upsert(prepTaskCodec.parse(change.id, row))
       }
       return
     }
@@ -399,10 +399,10 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     if (table !== TABLE.comments) return currentRowIn(sinks, table, id)
     const comment = commentRows.find(id)
     if (comment) return encodedRow(KERNEL_TABLE_SPECS[TABLE.comments], comment)
-    const todo = todoRows.find(id)
-    if (todo) return (todoCodec.encode as (t: ItemTodo) => SyncRow)(todo)
-    const tripTodo = tripTodoRows.find(id)
-    return tripTodo && (tripTodoCodec.encode as (t: TripTodo) => SyncRow)(tripTodo)
+    const prepTask = prepTaskRows.find(id)
+    if (prepTask) return (prepTaskCodec.encode as (t: PrepTask) => SyncRow)(prepTask)
+    const ownTask = ownTaskRows.find(id)
+    return ownTask && (ownTaskCodec.encode as (t: OwnTask) => SyncRow)(ownTask)
   }
 
   return {
@@ -418,9 +418,9 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     getTemplateSources,
     getGeneratedPositions,
     getAppliedChanges,
-    getTodos,
-    getItemTodos,
-    getTripTodos,
+    getPrepTasks,
+    getRowPrepTasks,
+    getOwnTasks,
     getComments,
     getItemComments,
     getTripComments,

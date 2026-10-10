@@ -39,13 +39,13 @@ function fakeTripReads(asked: string[] = []): TripReads {
     getTrip: () => undefined,
     getItems: (tripId) => (asked.push('getItems'), tripId === TRIP_ID ? [ITEM] : []),
     getTravelers: () => [],
-    getTripTodos: () => [],
+    getOwnTasks: () => [],
     getMembers: () => [],
     getContainers: (tripId) => (
       asked.push('getContainers'),
       tripId === TRIP_ID ? [LEFT, RIGHT] : []
     ),
-    getTodos: () => [],
+    getPrepTasks: () => [],
     getTemplateSources: () => [],
     getGeneratedPositions: () => [],
     sinks: {},

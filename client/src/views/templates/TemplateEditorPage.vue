@@ -62,7 +62,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { TaskPhase, TemplateItem, TemplateKind, TemplateTask } from '@/types/domain'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING } from '@/types/domain'
-import { taskPhaseOf } from '@/domain/tripTodos'
+import { taskPhaseOf } from '@/domain/tripTasks'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { useTemplateQuickAdd } from './useTemplateQuickAdd'
 
@@ -814,7 +814,7 @@ const mergeLines = computed(() =>
         />
 
         <!-- FR-7.4: tasks for the trip itself — every generated trip starts
-             with them as open trip todos, on no row, so they hold up no
+             with them as open tasks of its own, on no row, so they hold up no
              packing list. Below the positions, which they are not. -->
         <SectionHead
           :title="t('templates.tripTasks')"

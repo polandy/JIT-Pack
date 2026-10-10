@@ -85,7 +85,7 @@ describe('spreadOverEveryTraveler (FR-25.13g)', () => {
       ['tr-b', 1],
       ['tr-c', 1],
     ])
-    // ADR-036: the row that was there is still there, so its comments, todos
+    // ADR-036: the row that was there is still there, so its comments, tasks
     // and packing progress came through the spread with it.
     expect(rowsOf().map((row) => row.id)).toContain(SHARED_ROW)
   })

@@ -1,17 +1,17 @@
 /**
- * Comment and todo actions (FR-7.1/7.2/7.3/7.4) — one group, because they are one
- * table: a todo is a comment with `is_task = 1`, and `flagCommentAsTask`
+ * Comment and task actions (FR-7.1/7.2/7.3/7.4) — one group, because they are one
+ * table: a task is a comment with `is_task = 1`, and `flagCommentAsTask`
  * carries a row across the line. Moved out of the orchestrator closure under
  * R-4; moves only, so `useSyncOrchestrator`'s return shape is untouched.
  *
  * `toggleNoteTick` (FR-7.9) sits here too: a note is the same trip-level
- * comment shape, and its tick hangs off `comment.id` the way a todo's
+ * comment shape, and its tick hangs off `comment.id` the way a task's
  * resolution hangs off the same row.
  */
 import { optimisticDelete } from '@/sync/optimistic'
 import { cascadeChanges } from '@/sync/cascade'
 import { TABLE } from '@/api/tables'
-import type { ItemComment, ItemTodo, NoteAck, TaskPhase, TripTodo } from '@/types/domain'
+import type { ItemComment, PrepTask, NoteAck, TaskPhase, OwnTask } from '@/types/domain'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING } from '@/types/domain'
 import type { SyncContext } from '../context'
 import type { NoteThreadFields, TaskFiling } from '@/sync/mutations'
@@ -19,7 +19,7 @@ import { phaseForNewTask } from '@/domain/closePacking'
 import { isPackingClosed } from '@/domain/shared/tripPhase'
 import { nextPosition } from '@/domain/shared/handOrder'
 
-/** createCommentActions binds the comment/todo group to one sync context. */
+/** createCommentActions binds the comment/task group to one sync context. */
 export function createCommentActions(ctx: SyncContext) {
   const { mutations, write, tripStore, masterStore } = ctx
 
@@ -110,14 +110,14 @@ export function createCommentActions(ctx: SyncContext) {
    * unless the caller says otherwise — M5 writes one while packing, M25 can
    * write one for the road.
    */
-  function addPrepTodo(
+  function addPrepTask(
     tripId: string,
     tripItemId: string,
     authorId: string,
     body: string,
     phase: TaskPhase = TASK_PHASE_BEFORE,
   ) {
-    const { mutation } = mutations.addTodo(
+    const { mutation } = mutations.addTask(
       tripId,
       tripItemId,
       authorId,
@@ -127,17 +127,17 @@ export function createCommentActions(ctx: SyncContext) {
     write(mutation)
   }
 
-  function resolvePrepTodo(todo: ItemTodo) {
-    write(mutations.resolveTodo(todo.id))
+  function resolvePrepTask(task: PrepTask) {
+    write(mutations.resolveTask(task.id))
   }
 
-  function reopenPrepTodo(todo: ItemTodo) {
-    write(mutations.reopenTodo(todo.id))
+  function reopenPrepTask(task: PrepTask) {
+    write(mutations.reopenTask(task.id))
   }
 
-  // --- Trip todos (FR-7.4): the same row with no anchor ---
+  // --- The trip's own tasks (FR-7.4): the same row with no anchor ---
 
-  function addTripTodo(
+  function addOwnTask(
     tripId: string,
     authorId: string,
     body: string,
@@ -147,9 +147,9 @@ export function createCommentActions(ctx: SyncContext) {
     // FR-7.17: at the end of whichever group it is filed in — past every
     // task of the trip, so past every task of that group.
     const position = nextPosition(
-      [...tripStore.getTripTodos(tripId), ...tripStore.getTodos(tripId)].map((t) => t.position),
+      [...tripStore.getOwnTasks(tripId), ...tripStore.getPrepTasks(tripId)].map((t) => t.position),
     )
-    const { mutation, id } = mutations.addTodo(
+    const { mutation, id } = mutations.addTask(
       tripId,
       null,
       authorId,
@@ -161,17 +161,17 @@ export function createCommentActions(ctx: SyncContext) {
     return id
   }
 
-  function resolveTripTodo(todo: TripTodo) {
-    write(mutations.resolveTodo(todo.id))
+  function resolveOwnTask(task: OwnTask) {
+    write(mutations.resolveTask(task.id))
   }
 
-  function reopenTripTodo(todo: TripTodo) {
-    write(mutations.reopenTodo(todo.id))
+  function reopenOwnTask(task: OwnTask) {
+    write(mutations.reopenTask(task.id))
   }
 
   /** FR-7.5: `null` hands it back to everybody. */
-  function assignTripTodo(todo: TripTodo, userId: string | null) {
-    write(mutations.setTodoAssignee(todo.id, userId))
+  function assignOwnTask(task: OwnTask, userId: string | null) {
+    write(mutations.setTaskAssignee(task.id, userId))
   }
 
   /**
@@ -180,8 +180,8 @@ export function createCommentActions(ctx: SyncContext) {
    * optimistic update is rebuilt from, because the two kinds live in
    * different buckets of the store.
    */
-  function assignPrepTodo(todo: ItemTodo, userId: string | null) {
-    write(mutations.setTodoAssignee(todo.id, userId))
+  function assignPrepTask(task: PrepTask, userId: string | null) {
+    write(mutations.setTaskAssignee(task.id, userId))
   }
 
   /**
@@ -189,35 +189,35 @@ export function createCommentActions(ctx: SyncContext) {
    * about it changes. Both kinds pass through here — the caller says which
    * row to rebuild, because that is the only difference.
    */
-  function setTaskPhase(todo: ItemTodo | TripTodo, phase: TaskPhase | null) {
-    write(mutations.setTaskPhase(todo.id, phase))
+  function setTaskPhase(task: PrepTask | OwnTask, phase: TaskPhase | null) {
+    write(mutations.setTaskPhase(task.id, phase))
   }
 
   /**
    * FR-7.8: the one tag a task carries, given, changed or taken off. One
    * field, like the phase beside it — the task keeps everything else it was.
    */
-  function setTaskTag(todo: ItemTodo | TripTodo, taskTagId: string | null) {
-    write(mutations.setTaskTag(todo.id, taskTagId))
+  function setTaskTag(task: PrepTask | OwnTask, taskTagId: string | null) {
+    write(mutations.setTaskTag(task.id, taskTagId))
   }
 
   /** FR-7.11: the day a task is due, set, moved or taken off — one field. */
-  function setTaskDueDate(todo: ItemTodo | TripTodo, dueDate: string | null) {
-    write(mutations.setTaskDueDate(todo.id, dueDate))
+  function setTaskDueDate(task: PrepTask | OwnTask, dueDate: string | null) {
+    write(mutations.setTaskDueDate(task.id, dueDate))
   }
 
   /** FR-7.17: a task's place inside its group, either kind — one field. */
-  function placeTask(todo: ItemTodo | TripTodo, position: number) {
-    write(mutations.placeTask(todo.id, position))
+  function placeTask(task: PrepTask | OwnTask, position: number) {
+    write(mutations.placeTask(task.id, position))
   }
 
   /** FR-7.14: a task's words, corrected — either kind, one field. */
-  function setTaskBody(todo: ItemTodo | TripTodo, body: string) {
-    write(mutations.setTaskBody(todo.id, body))
+  function setTaskBody(task: PrepTask | OwnTask, body: string) {
+    write(mutations.setTaskBody(task.id, body))
   }
 
-  function deleteTripTodo(todo: TripTodo) {
-    write(mutations.deleteTodo(todo.id))
+  function deleteOwnTask(task: OwnTask) {
+    write(mutations.deleteTask(task.id))
   }
 
   return {
@@ -227,19 +227,19 @@ export function createCommentActions(ctx: SyncContext) {
     editNote,
     setNoteExcursion,
     toggleNoteTick,
-    addPrepTodo,
-    resolvePrepTodo,
-    reopenPrepTodo,
-    addTripTodo,
-    resolveTripTodo,
-    reopenTripTodo,
-    assignTripTodo,
-    assignPrepTodo,
+    addPrepTask,
+    resolvePrepTask,
+    reopenPrepTask,
+    addOwnTask,
+    resolveOwnTask,
+    reopenOwnTask,
+    assignOwnTask,
+    assignPrepTask,
     setTaskPhase,
     setTaskTag,
     placeTask,
     setTaskDueDate,
     setTaskBody,
-    deleteTripTodo,
+    deleteOwnTask,
   }
 }

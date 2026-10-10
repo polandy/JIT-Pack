@@ -14,7 +14,7 @@ import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 import { useRowUndo } from '../useRowUndo'
 import { useTaskActs } from '../useTaskActs'
 
-const deleteTripTodo = vi.fn()
+const deleteOwnTask = vi.fn()
 
 function actsFor() {
   const announceAct = vi.fn()
@@ -34,14 +34,14 @@ function actsFor() {
         return () => null
       },
     }),
-    { global: { provide: { [ORCHESTRATOR]: { comments: { deleteTripTodo } } } } },
+    { global: { provide: { [ORCHESTRATOR]: { comments: { deleteOwnTask } } } } },
   )
   return { acts, announceAct, rowUndo }
 }
 
 beforeEach(() => {
   setActivePinia(createPinia())
-  deleteTripTodo.mockClear()
+  deleteOwnTask.mockClear()
 })
 
 describe('useTaskActs.added (FR-7.10)', () => {

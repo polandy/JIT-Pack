@@ -17,8 +17,8 @@ const KPIS: TripKPIs = {
   packedWeight: 0,
   totalValue: 0,
   packedValue: 0,
-  totalTodos: 0,
-  resolvedTodos: 0,
+  totalPrepTasks: 0,
+  resolvedPrepTasks: 0,
 }
 
 function mountHeadline(opts: { collapsed?: boolean; loaded?: boolean; search?: string } = {}) {
@@ -29,15 +29,15 @@ function mountHeadline(opts: { collapsed?: boolean; loaded?: boolean; search?: s
       loaded: opts.loaded ?? true,
       collapsed: opts.collapsed ?? false,
       tasks: [],
-      todoState: 'open',
-      todoLine: null,
+      taskState: 'open',
+      taskLine: null,
       presenceUsers: [],
       participants: [],
       isDesktop: false,
     },
     slots: opts.search === undefined ? {} : { search: opts.search },
     global: {
-      stubs: { ProgressFigure: true, TripTodoFigure: true, PresenceFacepile: true },
+      stubs: { ProgressFigure: true, TripTaskFigure: true, PresenceFacepile: true },
     },
   })
 }

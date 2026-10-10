@@ -175,7 +175,7 @@ export function seedSampleTrip(
   buyOneShoppingRow(id, orchestrator)
   seedShoppingEntries(id, orchestrator)
   seedItemComment(id, orchestrator)
-  seedTripTodos(id, orchestrator)
+  seedOwnTasks(id, orchestrator)
   seedPreparations(id, orchestrator)
   seedTripNotes(id, orchestrator)
   seedExcursions(id, orchestrator)
@@ -603,7 +603,7 @@ function seedTripNotes(tripId: string, orchestrator: Orchestrator): void {
  * and its folded *erledigt* line, and M25 opens with something in both of its
  * sections. Through the orchestrator's own actions, like the comment below.
  */
-const SEED_TRIP_TODOS = [
+const SEED_OWN_TASKS = [
   // FR-7.8: `tag` names one of `sampleMaster`'s task tags, or none — so a
   // fresh device shows the grouping with something in it *and* the two
   // untagged headings, which are the halves a reader has to tell apart.
@@ -620,13 +620,13 @@ const SEED_TRIP_TODOS = [
   },
 ] as const
 
-function seedTripTodos(tripId: string, orchestrator: Orchestrator): void {
+function seedOwnTasks(tripId: string, orchestrator: Orchestrator): void {
   const tags = new Map(useMasterStore().taskTagList.map((tag) => [tag.name, tag.id]))
-  for (const { body, phase, tag, due } of SEED_TRIP_TODOS) {
-    const id = orchestrator.comments.addTripTodo(tripId, SEED_AUTHOR_ID, body, phase)
+  for (const { body, phase, tag, due } of SEED_OWN_TASKS) {
+    const id = orchestrator.comments.addOwnTask(tripId, SEED_AUTHOR_ID, body, phase)
     const live = () =>
       useTripStore()
-        .getTripTodos(tripId)
+        .getOwnTasks(tripId)
         .find((row) => row.id === id)
     const tagId = tag === null ? null : (tags.get(tag) ?? null)
     const tagged = live()
@@ -635,9 +635,9 @@ function seedTripTodos(tripId: string, orchestrator: Orchestrator): void {
     if (due !== null && dated) orchestrator.comments.setTaskDueDate(dated, localDay(due))
   }
   const done = useTripStore()
-    .getTripTodos(tripId)
-    .find((todo) => todo.body === SEED_TRIP_TODOS[1].body)
-  if (done) orchestrator.comments.resolveTripTodo(done)
+    .getOwnTasks(tripId)
+    .find((task) => task.body === SEED_OWN_TASKS[1].body)
+  if (done) orchestrator.comments.resolveOwnTask(done)
 }
 
 /**
@@ -655,7 +655,7 @@ function seedPreparations(tripId: string, orchestrator: Orchestrator): void {
     .find((item) => item.name === SEED_PREPARED_ROW)
   if (!row) return
   for (const body of SEED_PREPARATIONS) {
-    orchestrator.comments.addPrepTodo(tripId, row.id, SEED_AUTHOR_ID, body)
+    orchestrator.comments.addPrepTask(tripId, row.id, SEED_AUTHOR_ID, body)
   }
 }
 

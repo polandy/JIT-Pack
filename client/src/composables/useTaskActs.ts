@@ -16,12 +16,12 @@ import type { Ref } from 'vue'
 
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import type { RowUndo } from '@/composables/useRowUndo'
-import { tasksToMove, tasksToRetag, type TripTask } from '@/domain/tripTodos'
+import { tasksToMove, tasksToRetag, type TripTask } from '@/domain/tripTasks'
 import { t } from '@/i18n'
 import { shortDueDay } from '@/lib/taskDueText'
 import type { Placement } from '@/domain/shared/handOrder'
 import { useTripStore } from '@/stores/tripStore'
-import type { ItemTodo, TaskPhase, TodoState, TripTodo } from '@/types/domain'
+import type { PrepTask, TaskPhase, TaskState, OwnTask } from '@/types/domain'
 import { TASK_PHASE_DURING } from '@/types/domain'
 
 /** What a screen lends the acts: its undo, its voice, its pickers. */
@@ -49,18 +49,18 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
   const { rowUndo, announceAct, announceTaskDone, pickAssignee, nameOf, removing } = deps
 
   /** The trip's own task as it is now, or null once it has left the trip. */
-  function liveTripTodo(id: string): TripTodo | null {
-    return tripStore.getTripTodos(tripId()).find((row) => row.id === id) ?? null
+  function liveOwnTask(id: string): OwnTask | null {
+    return tripStore.getOwnTasks(tripId()).find((row) => row.id === id) ?? null
   }
 
   /** A row's preparation as it is now, for the same reason. */
-  function liveItemTodo(itemId: string, id: string): ItemTodo | null {
-    return tripStore.getItemTodos(tripId(), itemId).find((row) => row.id === id) ?? null
+  function livePrepTask(itemId: string, id: string): PrepTask | null {
+    return tripStore.getRowPrepTasks(tripId(), itemId).find((row) => row.id === id) ?? null
   }
 
   /** Either kind, found by the task's own id — the sheet and the move need it. */
-  function liveTask(task: TripTask): ItemTodo | TripTodo | null {
-    return task.item ? liveItemTodo(task.item.id, task.id) : liveTripTodo(task.id)
+  function liveTask(task: TripTask): PrepTask | OwnTask | null {
+    return task.item ? livePrepTask(task.item.id, task.id) : liveOwnTask(task.id)
   }
 
   /**
@@ -70,57 +70,57 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
    */
   function toggle(task: TripTask) {
     if (task.item) {
-      const prep = liveItemTodo(task.item.id, task.id)
+      const prep = livePrepTask(task.item.id, task.id)
       if (prep) togglePrep(prep)
       return
     }
-    const todo = liveTripTodo(task.id)
-    if (todo) toggleOwn(todo)
+    const own = liveOwnTask(task.id)
+    if (own) toggleOwn(own)
   }
 
-  function toggleOwn(todo: TripTodo) {
-    const live = () => liveTripTodo(todo.id)
-    if (todo.task_state === 'open') {
-      orchestrator.comments.resolveTripTodo(todo)
-      rowUndo.armAction(todo.body, () => {
+  function toggleOwn(task: OwnTask) {
+    const live = () => liveOwnTask(task.id)
+    if (task.task_state === 'open') {
+      orchestrator.comments.resolveOwnTask(task)
+      rowUndo.armAction(task.body, () => {
         const row = live()
-        if (row?.task_state === 'resolved') orchestrator.comments.reopenTripTodo(row)
+        if (row?.task_state === 'resolved') orchestrator.comments.reopenOwnTask(row)
       })
-      void announceTaskDone(todo.body)
+      void announceTaskDone(task.body)
     } else {
-      orchestrator.comments.reopenTripTodo(todo)
-      rowUndo.armAction(todo.body, () => {
+      orchestrator.comments.reopenOwnTask(task)
+      rowUndo.armAction(task.body, () => {
         const row = live()
-        if (row?.task_state === 'open') orchestrator.comments.resolveTripTodo(row)
+        if (row?.task_state === 'open') orchestrator.comments.resolveOwnTask(row)
       })
-      void announceAct(t('packing.taskReopenedToast', { body: todo.body }))
+      void announceAct(t('packing.taskReopenedToast', { body: task.body }))
     }
   }
 
-  function togglePrep(todo: ItemTodo) {
-    const live = () => liveItemTodo(todo.trip_item_id, todo.id)
-    if (todo.task_state === 'open') {
-      orchestrator.comments.resolvePrepTodo(todo)
-      rowUndo.armAction(todo.body, () => {
+  function togglePrep(task: PrepTask) {
+    const live = () => livePrepTask(task.trip_item_id, task.id)
+    if (task.task_state === 'open') {
+      orchestrator.comments.resolvePrepTask(task)
+      rowUndo.armAction(task.body, () => {
         const row = live()
-        if (row?.task_state === 'resolved') orchestrator.comments.reopenPrepTodo(row)
+        if (row?.task_state === 'resolved') orchestrator.comments.reopenPrepTask(row)
       })
-      void announceTaskDone(todo.body)
+      void announceTaskDone(task.body)
     } else {
-      orchestrator.comments.reopenPrepTodo(todo)
-      rowUndo.armAction(todo.body, () => {
+      orchestrator.comments.reopenPrepTask(task)
+      rowUndo.armAction(task.body, () => {
         const row = live()
-        if (row?.task_state === 'open') orchestrator.comments.resolvePrepTodo(row)
+        if (row?.task_state === 'open') orchestrator.comments.resolvePrepTask(row)
       })
-      void announceAct(t('packing.taskReopenedToast', { body: todo.body }))
+      void announceAct(t('packing.taskReopenedToast', { body: task.body }))
     }
   }
 
   /** The composer wrote one: the undo takes it out again. */
   function added(id: string, body: string, message?: string) {
     rowUndo.armAction(body, () => {
-      const live = liveTripTodo(id)
-      if (live) orchestrator.comments.deleteTripTodo(live)
+      const live = liveOwnTask(id)
+      if (live) orchestrator.comments.deleteOwnTask(live)
     })
     void announceAct(message ?? t('packing.taskAddedToast', { body }))
   }
@@ -131,26 +131,26 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
    * the same, the optimistic row is not.
    */
   async function assign(task: TripTask) {
-    const todo = liveTask(task)
-    if (!todo) return
-    const picked = await pickAssignee(todo.body, todo.assignee_user_id)
-    if (picked === undefined || picked === todo.assignee_user_id) return
-    const previous = todo.assignee_user_id
-    rowUndo.armAction(todo.body, () => {
-      const live = liveTask(task)
-      if (live) writeAssignee(live, previous)
+    const live = liveTask(task)
+    if (!live) return
+    const picked = await pickAssignee(live.body, live.assignee_user_id)
+    if (picked === undefined || picked === live.assignee_user_id) return
+    const previous = live.assignee_user_id
+    rowUndo.armAction(live.body, () => {
+      const row = liveTask(task)
+      if (row) writeAssignee(row, previous)
     })
-    writeAssignee(todo, picked)
+    writeAssignee(live, picked)
     void announceAct(
       picked === null
-        ? t('packing.unassignedToast', { name: todo.body })
-        : t('packing.assignedToast', { name: todo.body, who: nameOf(picked) ?? '' }),
+        ? t('packing.unassignedToast', { name: live.body })
+        : t('packing.assignedToast', { name: live.body, who: nameOf(picked) ?? '' }),
     )
   }
 
-  function writeAssignee(todo: ItemTodo | TripTodo, userId: string | null) {
-    if ('trip_item_id' in todo) orchestrator.comments.assignPrepTodo(todo, userId)
-    else orchestrator.comments.assignTripTodo(todo, userId)
+  function writeAssignee(task: PrepTask | OwnTask, userId: string | null) {
+    if ('trip_item_id' in task) orchestrator.comments.assignPrepTask(task, userId)
+    else orchestrator.comments.assignOwnTask(task, userId)
   }
 
   /** Hidden now and deleted when the undo lapses — the confirmed removal's reason. */
@@ -160,8 +160,8 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
       task.body,
       () => removing.value.delete(id),
       () => {
-        const live = liveTripTodo(id)
-        if (live) orchestrator.comments.deleteTripTodo(live)
+        const live = liveOwnTask(id)
+        if (live) orchestrator.comments.deleteOwnTask(live)
         removing.value.delete(id)
       },
     )
@@ -177,17 +177,17 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
    * during" would be a statement nobody made.
    */
   function move(task: TripTask, phase: TaskPhase) {
-    const todo = liveTask(task)
-    if (!todo) return
-    const previous = todo.phase
-    rowUndo.armAction(todo.body, () => {
-      const live = liveTask(task)
-      if (live) orchestrator.comments.setTaskPhase(live, previous)
+    const live = liveTask(task)
+    if (!live) return
+    const previous = live.phase
+    rowUndo.armAction(live.body, () => {
+      const row = liveTask(task)
+      if (row) orchestrator.comments.setTaskPhase(row, previous)
     })
-    orchestrator.comments.setTaskPhase(todo, phase)
+    orchestrator.comments.setTaskPhase(live, phase)
     void announceAct(
       t(phase === TASK_PHASE_DURING ? 'tasks.movedToDuring' : 'tasks.movedToBefore', {
-        body: todo.body,
+        body: live.body,
       }),
     )
   }
@@ -197,18 +197,18 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
    * the date it had — null included, which is a state and not a gap.
    */
   function setDue(task: TripTask, dueDate: string | null) {
-    const todo = liveTask(task)
-    if (!todo || todo.due_date === dueDate) return
-    const previous = todo.due_date
-    rowUndo.armAction(todo.body, () => {
-      const live = liveTask(task)
-      if (live) orchestrator.comments.setTaskDueDate(live, previous)
+    const live = liveTask(task)
+    if (!live || live.due_date === dueDate) return
+    const previous = live.due_date
+    rowUndo.armAction(live.body, () => {
+      const row = liveTask(task)
+      if (row) orchestrator.comments.setTaskDueDate(row, previous)
     })
-    orchestrator.comments.setTaskDueDate(todo, dueDate)
+    orchestrator.comments.setTaskDueDate(live, dueDate)
     void announceAct(
       dueDate === null
-        ? t('tasks.dueClearedToast', { body: todo.body })
-        : t('tasks.dueSetToast', { body: todo.body, date: shortDueDay(dueDate) }),
+        ? t('tasks.dueClearedToast', { body: live.body })
+        : t('tasks.dueSetToast', { body: live.body, date: shortDueDay(dueDate) }),
     )
   }
 
@@ -224,9 +224,9 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
    * movement is the defect.
    */
   function retag(task: TripTask, phase: TaskPhase, taskTagId: string | null) {
-    const todo = liveTask(task)
-    if (!todo) return
-    const before = { tag: todo.task_tag_id, phase: todo.phase }
+    const live = liveTask(task)
+    if (!live) return
+    const before = { tag: live.task_tag_id, phase: live.phase }
     const movedTag = before.tag !== taskTagId
     const movedPhase = before.phase !== phase
     // A drop that changed nothing writes nothing and arms nothing. The
@@ -234,15 +234,15 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     // snackbar for a non-event would be noise.
     if (!movedTag && !movedPhase) return
 
-    rowUndo.armAction(todo.body, () => {
-      const live = liveTask(task)
-      if (!live) return
-      if (movedTag) orchestrator.comments.setTaskTag(live, before.tag)
-      if (movedPhase) orchestrator.comments.setTaskPhase(live, before.phase)
+    rowUndo.armAction(live.body, () => {
+      const row = liveTask(task)
+      if (!row) return
+      if (movedTag) orchestrator.comments.setTaskTag(row, before.tag)
+      if (movedPhase) orchestrator.comments.setTaskPhase(row, before.phase)
     })
-    if (movedTag) orchestrator.comments.setTaskTag(todo, taskTagId)
-    if (movedPhase) orchestrator.comments.setTaskPhase(todo, phase)
-    void announceAct(t('tasks.movedToast', { body: todo.body }))
+    if (movedTag) orchestrator.comments.setTaskTag(live, taskTagId)
+    if (movedPhase) orchestrator.comments.setTaskPhase(live, phase)
+    void announceAct(t('tasks.movedToast', { body: live.body }))
   }
 
   /**
@@ -252,8 +252,8 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
    */
   function place(placements: readonly Placement<TripTask>[]) {
     for (const { item, position } of placements) {
-      const todo = liveTask(item)
-      if (todo) orchestrator.comments.placeTask(todo, position)
+      const live = liveTask(item)
+      if (live) orchestrator.comments.placeTask(live, position)
     }
   }
 
@@ -271,8 +271,8 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
   function retagMany(tasks: readonly TripTask[], taskTagId: string | null): number {
     return writeBatch(
       tasksToRetag(tasks, taskTagId),
-      (todo) => todo.task_tag_id,
-      (todo, value) => orchestrator.comments.setTaskTag(todo, value),
+      (task) => task.task_tag_id,
+      (task, value) => orchestrator.comments.setTaskTag(task, value),
       taskTagId,
       (n) => t('tasks.bulkRetagged', { n }),
     )
@@ -281,8 +281,8 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
   function moveMany(tasks: readonly TripTask[], phase: TaskPhase): number {
     return writeBatch(
       tasksToMove(tasks, phase),
-      (todo) => todo.phase,
-      (todo, value) => orchestrator.comments.setTaskPhase(todo, value),
+      (task) => task.phase,
+      (task, value) => orchestrator.comments.setTaskPhase(task, value),
       phase,
       (n) =>
         t(phase === TASK_PHASE_DURING ? 'tasks.bulkMovedToDuring' : 'tasks.bulkMovedToBefore', {
@@ -299,9 +299,9 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
   function resolveMany(tasks: readonly TripTask[]): number {
     return writeBatch(
       tasks.filter((task) => task.task_state === 'open'),
-      (todo) => todo.task_state,
-      (todo, state) => writeState(todo, state),
-      'resolved' as TodoState,
+      (task) => task.task_state,
+      (task, state) => writeState(task, state),
+      'resolved' as TaskState,
       (n) => t('tasks.bulkResolved', { n }),
     )
   }
@@ -310,8 +310,8 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
   function dueMany(tasks: readonly TripTask[], dueDate: string | null): number {
     return writeBatch(
       tasks.filter((task) => task.due_date !== dueDate),
-      (todo) => todo.due_date,
-      (todo, value) => orchestrator.comments.setTaskDueDate(todo, value),
+      (task) => task.due_date,
+      (task, value) => orchestrator.comments.setTaskDueDate(task, value),
       dueDate,
       (n) =>
         dueDate === null
@@ -327,8 +327,8 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
   function assignMany(tasks: readonly TripTask[], userId: string | null): number {
     return writeBatch(
       tasks.filter((task) => task.assignee_user_id !== userId),
-      (todo) => todo.assignee_user_id,
-      (todo, value) => writeAssignee(todo, value),
+      (task) => task.assignee_user_id,
+      (task, value) => writeAssignee(task, value),
       userId,
       (n) =>
         userId === null
@@ -351,8 +351,8 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
       () => ids.forEach((id) => removing.value.delete(id)),
       () => {
         for (const id of ids) {
-          const live = liveTripTodo(id)
-          if (live) orchestrator.comments.deleteTripTodo(live)
+          const live = liveOwnTask(id)
+          if (live) orchestrator.comments.deleteOwnTask(live)
           removing.value.delete(id)
         }
       },
@@ -367,46 +367,46 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
    * words it had.
    */
   function rename(task: TripTask, body: string) {
-    const todo = liveTask(task)
-    if (!todo || todo.body === body) return
-    const previous = todo.body
+    const live = liveTask(task)
+    if (!live || live.body === body) return
+    const previous = live.body
     rowUndo.armAction(body, () => {
-      const live = liveTask(task)
-      if (live) orchestrator.comments.setTaskBody(live, previous)
+      const row = liveTask(task)
+      if (row) orchestrator.comments.setTaskBody(row, previous)
     })
-    orchestrator.comments.setTaskBody(todo, body)
+    orchestrator.comments.setTaskBody(live, body)
     void announceAct(t('tasks.renamedToast', { body }))
   }
 
   /** Resolve or reopen either kind, to the state asked for. */
-  function writeState(todo: ItemTodo | TripTodo, state: TodoState) {
-    if (todo.task_state === state) return
-    if ('trip_item_id' in todo) {
-      if (state === 'resolved') orchestrator.comments.resolvePrepTodo(todo)
-      else orchestrator.comments.reopenPrepTodo(todo)
-    } else if (state === 'resolved') orchestrator.comments.resolveTripTodo(todo)
-    else orchestrator.comments.reopenTripTodo(todo)
+  function writeState(task: PrepTask | OwnTask, state: TaskState) {
+    if (task.task_state === state) return
+    if ('trip_item_id' in task) {
+      if (state === 'resolved') orchestrator.comments.resolvePrepTask(task)
+      else orchestrator.comments.reopenPrepTask(task)
+    } else if (state === 'resolved') orchestrator.comments.resolveOwnTask(task)
+    else orchestrator.comments.reopenOwnTask(task)
   }
 
   function writeBatch<V>(
     changing: readonly TripTask[],
-    read: (todo: ItemTodo | TripTodo) => V,
-    write: (todo: ItemTodo | TripTodo, value: V) => void,
+    read: (task: PrepTask | OwnTask) => V,
+    write: (task: PrepTask | OwnTask, value: V) => void,
     value: V,
     message: (n: number) => string,
   ): number {
     const writes = changing.flatMap((task) => {
-      const todo = liveTask(task)
-      return todo ? [{ task, todo, previous: read(todo) }] : []
+      const live = liveTask(task)
+      return live ? [{ task, live, previous: read(live) }] : []
     })
     if (writes.length === 0) return 0
     rowUndo.armAction(message(writes.length), () => {
       for (const { task, previous } of writes) {
-        const live = liveTask(task)
-        if (live) write(live, previous)
+        const row = liveTask(task)
+        if (row) write(row, previous)
       }
     })
-    for (const { todo } of writes) write(todo, value)
+    for (const { live } of writes) write(live, value)
     void announceAct(message(writes.length))
     return writes.length
   }
@@ -427,7 +427,7 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     assignMany,
     removeMany,
     rename,
-    liveTripTodo,
-    liveItemTodo,
+    liveOwnTask,
+    livePrepTask,
   }
 }

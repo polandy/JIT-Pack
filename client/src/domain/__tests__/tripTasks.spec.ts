@@ -15,21 +15,21 @@ import {
   tasksInPhase,
   tasksOfAssignee,
   tripTasks,
-  tripTodoPercent,
-  tripTodoProgress,
-  tripTodoStatus,
-  tripTodosUnfolded,
+  tripTaskPercent,
+  tripTaskProgress,
+  tripTaskStatus,
+  tripTasksUnfolded,
   type TripTask,
-} from '../tripTodos'
-import type { ItemTodo, TaskPhase, TodoState, TripTodo } from '@/types/domain'
+} from '../tripTasks'
+import type { PrepTask, TaskPhase, TaskState, OwnTask } from '@/types/domain'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING } from '@/types/domain'
 
 /** FR-7.11: the day every due rule below is read against. */
 const TODAY = '2026-07-08'
 
-describe('tripTodoProgress (FR-7.4)', () => {
+describe('tripTaskProgress (FR-7.4)', () => {
   it.each([
-    { name: 'no todos', states: [], want: { open: 0, done: 0, total: 0 } },
+    { name: 'no tasks', states: [], want: { open: 0, done: 0, total: 0 } },
     { name: 'all open', states: ['open', 'open'], want: { open: 2, done: 0, total: 2 } },
     {
       name: 'mixed',
@@ -38,42 +38,42 @@ describe('tripTodoProgress (FR-7.4)', () => {
     },
     { name: 'all done', states: ['resolved'], want: { open: 0, done: 1, total: 1 } },
   ] as const)('counts $name', ({ states, want }) => {
-    expect(tripTodoProgress(states.map((task_state) => ({ task_state })))).toEqual(want)
+    expect(tripTaskProgress(states.map((task_state) => ({ task_state })))).toEqual(want)
   })
 })
 
-describe('tripTodoStatus (FR-7.4)', () => {
-  it('is silent about a trip with no todos, rather than calling it done', () => {
-    expect(tripTodoStatus({ open: 0, done: 0, total: 0 })).toBe('none')
+describe('tripTaskStatus (FR-7.4)', () => {
+  it('is silent about a trip with no tasks, rather than calling it done', () => {
+    expect(tripTaskStatus({ open: 0, done: 0, total: 0 })).toBe('none')
   })
-  it('is open while any todo is', () => {
-    expect(tripTodoStatus({ open: 1, done: 2, total: 3 })).toBe('open')
+  it('is open while any task is', () => {
+    expect(tripTaskStatus({ open: 1, done: 2, total: 3 })).toBe('open')
   })
   it('is all done once none is open', () => {
-    expect(tripTodoStatus({ open: 0, done: 2, total: 2 })).toBe('allDone')
+    expect(tripTaskStatus({ open: 0, done: 2, total: 2 })).toBe('allDone')
   })
 })
 
-describe('tripTodoPercent (FR-7.4)', () => {
+describe('tripTaskPercent (FR-7.4)', () => {
   it.each([
     { name: 'none done', progress: { open: 4, done: 0, total: 4 }, want: 0 },
     { name: 'one of four', progress: { open: 3, done: 1, total: 4 }, want: 25 },
     { name: 'all done', progress: { open: 0, done: 2, total: 2 }, want: 100 },
-    { name: 'no todos, not a division by zero', progress: { open: 0, done: 0, total: 0 }, want: 0 },
+    { name: 'no tasks, not a division by zero', progress: { open: 0, done: 0, total: 0 }, want: 0 },
   ])('is $want for $name', ({ progress, want }) => {
-    expect(tripTodoPercent(progress)).toBe(want)
+    expect(tripTaskPercent(progress)).toBe(want)
   })
 })
 
-describe('tripTodosUnfolded (FR-7.4): M4 opens the section on what is still owed', () => {
-  it('is open while a todo is open, and nobody folded it', () => {
-    expect(tripTodosUnfolded('open', null)).toBe(true)
+describe('tripTasksUnfolded (FR-7.4): M4 opens the section on what is still owed', () => {
+  it('is open while a task is open, and nobody folded it', () => {
+    expect(tripTasksUnfolded('open', null)).toBe(true)
   })
-  it('folds to its one line once every todo is done', () => {
-    expect(tripTodosUnfolded('allDone', null)).toBe(false)
+  it('folds to its one line once every task is done', () => {
+    expect(tripTasksUnfolded('allDone', null)).toBe(false)
   })
-  it('stays shut on a trip with no todo, where it is only the way to the first one', () => {
-    expect(tripTodosUnfolded('none', null)).toBe(false)
+  it('stays shut on a trip with no task, where it is only the way to the first one', () => {
+    expect(tripTasksUnfolded('none', null)).toBe(false)
   })
   it.each([
     { status: 'open', fold: false, want: false },
@@ -82,7 +82,7 @@ describe('tripTodosUnfolded (FR-7.4): M4 opens the section on what is still owed
   ] as const)(
     'follows the user over the default ($status, folded open: $fold)',
     ({ status, fold, want }) => {
-      expect(tripTodosUnfolded(status, fold)).toBe(want)
+      expect(tripTasksUnfolded(status, fold)).toBe(want)
     },
   )
 })
@@ -90,10 +90,10 @@ describe('tripTodosUnfolded (FR-7.4): M4 opens the section on what is still owed
 describe('tripTasks (FR-7.6): one list, two kinds of task', () => {
   const row = (id: string, name: string, icon: string | null = null) => ({ id, name, icon })
 
-  const tripTodo = (
+  const ownTask = (
     id: string,
     body: string,
-    state: TodoState = 'open',
+    state: TaskState = 'open',
     assignee: string | null = null,
   ) =>
     ({
@@ -103,13 +103,13 @@ describe('tripTasks (FR-7.6): one list, two kinds of task', () => {
       body,
       task_state: state,
       assignee_user_id: assignee,
-    }) as TripTodo
+    }) as OwnTask
 
-  const itemTodo = (
+  const prepTask = (
     id: string,
     itemId: string,
     body: string,
-    state: TodoState = 'open',
+    state: TaskState = 'open',
     assignee: string | null = null,
   ) =>
     ({
@@ -120,12 +120,12 @@ describe('tripTasks (FR-7.6): one list, two kinds of task', () => {
       body,
       task_state: state,
       assignee_user_id: assignee,
-    }) as ItemTodo
+    }) as PrepTask
 
   it('names the row a preparation prepares, and nothing for the trip’s own', () => {
     const tasks = tripTasks(
-      [tripTodo('t1', 'Water the plants')],
-      [itemTodo('p1', 'i1', 'Charge the batteries')],
+      [ownTask('t1', 'Water the plants')],
+      [prepTask('p1', 'i1', 'Charge the batteries')],
       [row('i1', 'Camera', '📷')],
     )
     expect(
@@ -139,7 +139,7 @@ describe('tripTasks (FR-7.6): one list, two kinds of task', () => {
   it('carries the row id, so the chip can lead back to it', () => {
     const tasks = tripTasks(
       [],
-      [itemTodo('p1', 'i1', 'Charge the batteries')],
+      [prepTask('p1', 'i1', 'Charge the batteries')],
       [row('i1', 'Camera')],
     )
     expect(tasks[0]?.item?.id).toBe('i1')
@@ -155,14 +155,14 @@ describe('tripTasks (FR-7.6): one list, two kinds of task', () => {
   it('keeps a preparation’s own assignee (FR-7.7, reversing FR-7.5)', () => {
     const tasks = tripTasks(
       [],
-      [itemTodo('p1', 'i1', 'Charge', 'open', 'user-2')],
+      [prepTask('p1', 'i1', 'Charge', 'open', 'user-2')],
       [row('i1', 'Camera')],
     )
     expect(tasks[0]?.assignee_user_id).toBe('user-2')
   })
 
-  it('keeps the trip todo’s assignee (FR-7.5)', () => {
-    const tasks = tripTasks([tripTodo('t1', 'Water', 'open', 'user-1')], [], [])
+  it('keeps the trip’s own task’s assignee (FR-7.5)', () => {
+    const tasks = tripTasks([ownTask('t1', 'Water', 'open', 'user-1')], [], [])
     expect(tasks[0]?.assignee_user_id).toBe('user-1')
   })
 
@@ -174,8 +174,8 @@ describe('tripTasks (FR-7.6): one list, two kinds of task', () => {
    */
   it('drops a preparation whose row the trip no longer carries', () => {
     const tasks = tripTasks(
-      [tripTodo('t1', 'Water the plants')],
-      [itemTodo('p1', 'gone', 'Charge the batteries'), itemTodo('p2', 'i1', 'Wash it')],
+      [ownTask('t1', 'Water the plants')],
+      [prepTask('p1', 'gone', 'Charge the batteries'), prepTask('p2', 'i1', 'Wash it')],
       [row('i1', 'Jacket')],
     )
     expect(tasks.map((task) => task.body)).toEqual(['Water the plants', 'Wash it'])
@@ -183,12 +183,12 @@ describe('tripTasks (FR-7.6): one list, two kinds of task', () => {
 
   it('orders open before done, the trip’s own before a row’s, then by row and text', () => {
     const tasks = tripTasks(
-      [tripTodo('t1', 'Water the plants'), tripTodo('t2', 'Empty the fridge', 'resolved')],
+      [ownTask('t1', 'Water the plants'), ownTask('t2', 'Empty the fridge', 'resolved')],
       [
-        itemTodo('p1', 'i2', 'Wash it'),
-        itemTodo('p2', 'i1', 'Format the card'),
-        itemTodo('p3', 'i1', 'Charge the batteries'),
-        itemTodo('p4', 'i1', 'Clean the lens', 'resolved'),
+        prepTask('p1', 'i2', 'Wash it'),
+        prepTask('p2', 'i1', 'Format the card'),
+        prepTask('p3', 'i1', 'Charge the batteries'),
+        prepTask('p4', 'i1', 'Clean the lens', 'resolved'),
       ],
       [row('i1', 'Camera'), row('i2', 'Jacket')],
     )
@@ -204,11 +204,11 @@ describe('tripTasks (FR-7.6): one list, two kinds of task', () => {
 
   it('counts both kinds in the one check the figure states', () => {
     const tasks = tripTasks(
-      [tripTodo('t1', 'Water the plants', 'resolved')],
-      [itemTodo('p1', 'i1', 'Charge the batteries')],
+      [ownTask('t1', 'Water the plants', 'resolved')],
+      [prepTask('p1', 'i1', 'Charge the batteries')],
       [row('i1', 'Camera')],
     )
-    expect(tripTodoProgress(tasks)).toEqual({ open: 1, done: 1, total: 2 })
+    expect(tripTaskProgress(tasks)).toEqual({ open: 1, done: 1, total: 2 })
   })
 
   it('is empty for a trip with neither kind', () => {
@@ -239,13 +239,13 @@ describe('the two windows on one list (FR-7.7)', () => {
       item?: { id: string; name: string; icon: string | null } | null
       phase?: TaskPhase
       assignee?: string | null
-      state?: TodoState
+      state?: TaskState
       due?: string | null
     } = {},
   ) => ({
     id,
     body: id,
-    task_state: opts.state ?? ('open' as TodoState),
+    task_state: opts.state ?? ('open' as TaskState),
     item: opts.item ?? null,
     assignee_user_id: opts.assignee ?? null,
     phase: opts.phase ?? TASK_PHASE_BEFORE,
@@ -333,7 +333,7 @@ describe('taskGroups (FR-7.8): one tag, and the headings it makes', () => {
     ({
       id,
       body: id,
-      task_state: 'open' as TodoState,
+      task_state: 'open' as TaskState,
       item: over.item ?? null,
       assignee_user_id: null,
       phase: TASK_PHASE_BEFORE,
@@ -452,7 +452,7 @@ describe('dashboardTasks (FR-7.10): what the hero lists of a trip’s tasks', ()
     opts: {
       phase?: TaskPhase
       assignee?: string | null
-      state?: TodoState
+      state?: TaskState
       due?: string | null
     } = {},
   ): TripTask => ({

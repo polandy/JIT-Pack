@@ -66,7 +66,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { isPackingClosed } from '@/domain/shared/tripPhase'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODES, isShoppingMode } from '@/types/domain'
-import type { ItemComment, ItemMode, ItemTodo, ReviewFlag, TripParticipant } from '@/types/domain'
+import type { ItemComment, ItemMode, PrepTask, ReviewFlag, TripParticipant } from '@/types/domain'
 import { lockNoteText, nameFrom, packedStampText, responsibleNote } from '@/lib/rowFacts'
 import { stateLabel as stateLabelFor } from '@/lib/stateLabels'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
@@ -190,22 +190,22 @@ function nameOf(userId: string | null): string | null {
 }
 
 // --- Preparation (FR-7.3) ---
-const itemTodos = computed(() => tripStore.getItemTodos(props.tripId, props.itemId))
-const openTodoCount = computed(() => itemTodos.value.filter((t) => t.task_state === 'open').length)
-const hasPrepWithPacked = computed(() => item.value?.state === 'packed' && openTodoCount.value > 0)
-const newTodoText = ref('')
+const prepTasks = computed(() => tripStore.getRowPrepTasks(props.tripId, props.itemId))
+const openPrepCount = computed(() => prepTasks.value.filter((t) => t.task_state === 'open').length)
+const hasPrepWithPacked = computed(() => item.value?.state === 'packed' && openPrepCount.value > 0)
+const newPrepTaskText = ref('')
 
-function addTodo() {
-  const body = newTodoText.value.trim()
+function addPrepTask() {
+  const body = newPrepTaskText.value.trim()
   if (!body || isLocked.value) return
-  orchestrator.comments.addPrepTodo(props.tripId, props.itemId, CLIENT_ACTOR_PLACEHOLDER, body)
-  newTodoText.value = ''
+  orchestrator.comments.addPrepTask(props.tripId, props.itemId, CLIENT_ACTOR_PLACEHOLDER, body)
+  newPrepTaskText.value = ''
 }
 
-function toggleTodo(todo: ItemTodo) {
+function togglePrepTask(task: PrepTask) {
   if (isLocked.value) return
-  if (todo.task_state === 'open') orchestrator.comments.resolvePrepTodo(todo)
-  else orchestrator.comments.reopenPrepTodo(todo)
+  if (task.task_state === 'open') orchestrator.comments.resolvePrepTask(task)
+  else orchestrator.comments.reopenPrepTask(task)
 }
 
 // --- Notes (FR-7.1/7.2) ---
@@ -569,36 +569,36 @@ const packedStamp = computed(() => {
     <section class="sec">
       <h2 class="sl">
         {{ t('packing.prepSection') }}
-        <span class="n">{{ t('packing.openPrep', { n: openTodoCount }) }}</span>
+        <span class="n">{{ t('packing.openPrep', { n: openPrepCount }) }}</span>
       </h2>
       <label
-        v-for="todo in itemTodos"
-        :key="todo.id"
-        class="todo"
-        :class="{ done: todo.task_state === 'resolved' }"
+        v-for="task in prepTasks"
+        :key="task.id"
+        class="task"
+        :class="{ done: task.task_state === 'resolved' }"
       >
-        <span class="todo-body">{{ todo.body }}</span>
+        <span class="task-body">{{ task.body }}</span>
         <!-- The tick sits at the end, where M4 puts the control it stands
              for — a task is ticked at the row's edge on both screens. -->
         <IonCheckbox
-          :checked="todo.task_state === 'resolved'"
+          :checked="task.task_state === 'resolved'"
           :disabled="isLocked"
-          :data-testid="`m5-todo-${todo.body}`"
-          @ion-change="toggleTodo(todo)"
+          :data-testid="`m5-todo-${task.body}`"
+          @ion-change="togglePrepTask(task)"
         />
       </label>
       <div v-if="!isLocked" class="composer">
         <IonInput
-          v-model="newTodoText"
+          v-model="newPrepTaskText"
           data-testid="m5-todo-input"
           :placeholder="t('item.addPrep')"
-          @keydown.enter="addTodo"
+          @keydown.enter="addPrepTask"
         />
         <IonButton
           fill="outline"
-          :disabled="!newTodoText.trim()"
+          :disabled="!newPrepTaskText.trim()"
           data-testid="m5-todo-add"
-          @click="addTodo"
+          @click="addPrepTask"
         >
           {{ t('common.add') }}
         </IonButton>
@@ -968,19 +968,19 @@ const packedStamp = computed(() => {
   color: var(--ct-overlay0);
 }
 
-.todo {
+.task {
   display: flex;
   align-items: center;
   gap: 11px;
   padding: 7px 0;
 }
 
-.todo .todo-body {
+.task .task-body {
   flex: 1;
   min-width: 0;
 }
 
-.todo.done .todo-body {
+.task.done .task-body {
   color: var(--ct-overlay0);
   text-decoration: line-through;
 }

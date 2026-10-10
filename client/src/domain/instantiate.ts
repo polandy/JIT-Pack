@@ -95,7 +95,7 @@ export interface GeneratedItem {
   per_person: boolean
   /**
    * FR-27.7: the preparation tasks of the contributing position(s), which the
-   * caller writes as ordinary FR-7.3 todos on the created row. Empty rather
+   * caller writes as ordinary FR-7.3 preparations on the created row. Empty rather
    * than absent, so a caller never has to distinguish "none" from "unknown".
    */
   tasks: string[]
@@ -297,7 +297,7 @@ export interface GenerationResult {
    */
   unassignable: UnassignableItem[]
   /**
-   * FR-7.4: the trip todos the trip starts with — every source's trip tasks
+   * FR-7.4: the trip's own tasks the trip starts with — every source's trip tasks
    * in source order, the same text once however many groups say it. Each
    * carries the phase its template gave it (FR-7.7), so a Vorlage can author
    * „am Bahnhof die Zugverbindung abklären" for the trip itself.
@@ -416,7 +416,7 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
           existing.sources.push(source)
           // A merge keeps the union of the preparation tasks: dropping the
           // second group's task would lose exactly the knowledge FR-27.7 is
-          // for. Identical text is one todo, not two — the same task learned
+          // for. Identical text is one task, not two — the same task learned
           // by two groups is still one thing to do.
           for (const t of tasks) {
             if (!existing.item.tasks.includes(t)) existing.item.tasks.push(t)
@@ -472,7 +472,7 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
     // FR-5.5 decides this *after* the merge, not per contribution: a position
     // asking for 0 is "considered and left behind", but another group may have
     // lifted the same item above 0, in which case the preparation does apply.
-    // A todo on a skipped row would count as open preparation on a row FR-25.2
+    // A preparation on a skipped row would count as open preparation on a row FR-25.2
     // hides — work nobody can reach and nobody will do.
     if (entry.item.quantity === 0) entry.item.tasks = []
     items.push(entry.item)

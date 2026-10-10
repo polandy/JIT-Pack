@@ -10,16 +10,10 @@ import { DAY_PLAN_EXCURSION, DAY_PLAN_TASK } from '@/domain/shared/dayPlanLine'
 import { withExtraUnits, type ExcursionExtraLine } from '@/kernel/excursionExtraLines'
 import { sumUnits } from '@/domain/excursionLines'
 import { spanOf } from '@/domain/excursionSchedule'
-import type { TripTask } from '@/domain/tripTodos'
+import type { TripTask } from '@/domain/tripTasks'
 import { t } from '@/i18n'
 import { tripExcursionsPath, tripSubPath } from '@/router/paths'
-import type {
-  Excursion,
-  ExcursionItem,
-  ExcursionTraveler,
-  ItemTodo,
-  TripTodo,
-} from '@/types/domain'
+import type { Excursion, ExcursionItem, ExcursionTraveler, PrepTask, OwnTask } from '@/types/domain'
 
 /** What the source reads — the trip store's excursions and the trip's tasks. */
 export interface DayPlanReads {
@@ -106,16 +100,16 @@ export function createDayPlanSource(reads: DayPlanReads, writes: DayPlanWrites):
 
 /** The task writes a tick on the plan needs — the orchestrator's, as M25 uses them. */
 export interface TaskTickWrites {
-  resolveTripTodo(todo: TripTodo): void
-  reopenTripTodo(todo: TripTodo): void
-  resolvePrepTodo(todo: ItemTodo): void
-  reopenPrepTodo(todo: ItemTodo): void
+  resolveOwnTask(task: OwnTask): void
+  reopenOwnTask(task: OwnTask): void
+  resolvePrepTask(task: PrepTask): void
+  reopenPrepTask(task: PrepTask): void
 }
 
 /** The live rows a tick is written against, so the optimistic baseline is current. */
 export interface TaskTickReads {
-  getTripTodos(tripId: string): TripTodo[]
-  getItemTodos(tripId: string, itemId: string): ItemTodo[]
+  getOwnTasks(tripId: string): OwnTask[]
+  getRowPrepTasks(tripId: string, itemId: string): PrepTask[]
 }
 
 /**
@@ -130,14 +124,14 @@ export function toggleTask(
   task: TripTask,
 ): void {
   if (task.item) {
-    const prep = reads.getItemTodos(tripId, task.item.id).find((row) => row.id === task.id)
+    const prep = reads.getRowPrepTasks(tripId, task.item.id).find((row) => row.id === task.id)
     if (!prep) return
-    if (prep.task_state === 'open') writes.resolvePrepTodo(prep)
-    else writes.reopenPrepTodo(prep)
+    if (prep.task_state === 'open') writes.resolvePrepTask(prep)
+    else writes.reopenPrepTask(prep)
     return
   }
-  const todo = reads.getTripTodos(tripId).find((row) => row.id === task.id)
-  if (!todo) return
-  if (todo.task_state === 'open') writes.resolveTripTodo(todo)
-  else writes.reopenTripTodo(todo)
+  const own = reads.getOwnTasks(tripId).find((row) => row.id === task.id)
+  if (!own) return
+  if (own.task_state === 'open') writes.resolveOwnTask(own)
+  else writes.reopenOwnTask(own)
 }

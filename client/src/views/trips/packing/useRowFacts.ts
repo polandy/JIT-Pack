@@ -26,7 +26,7 @@ export interface ListFacts<R extends PackableRow = PackableRow> {
   assignableRow(item: R): boolean
   masterOf(item: R): MasterItem | null
   clusterMaster(cluster: PackingCluster<R>): MasterItem | null
-  openTodoCount(itemId: string): number
+  openPrepTaskCount(itemId: string): number
   borrowedBy(itemId: string): readonly string[]
 }
 
@@ -39,8 +39,8 @@ export interface RowFacts extends ListFacts<TripItem> {
 export function useRowFacts(core: PackingCore): RowFacts {
   const { tripId, tripStore, masterStore, orchestrator, nameOf, locked } = core
 
-  function openTodoCount(itemId: string): number {
-    return tripStore.getItemTodos(tripId, itemId).filter((todo) => todo.task_state === 'open')
+  function openPrepTaskCount(itemId: string): number {
+    return tripStore.getRowPrepTasks(tripId, itemId).filter((task) => task.task_state === 'open')
       .length
   }
 
@@ -147,7 +147,7 @@ export function useRowFacts(core: PackingCore): RowFacts {
     assignableRow,
     masterOf,
     clusterMaster,
-    openTodoCount,
+    openPrepTaskCount,
     borrowedBy,
   }
 }

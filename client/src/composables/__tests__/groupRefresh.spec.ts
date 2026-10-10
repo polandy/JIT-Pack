@@ -283,7 +283,7 @@ describe('acceptTripRefresh — the answer yes (FR-27.4)', () => {
     expect(changed[0]).toMatchObject({ detail: { field: 'quantity', from: 1, to: 3 } })
   })
 
-  it('materialises an FR-27.7 task as a preparation todo on the row it generated', async () => {
+  it('materialises an FR-27.7 task as a preparation on the row it generated', async () => {
     const orch = await localOrchestrator()
     const tripStore = useTripStore()
     seedWorld()
@@ -297,7 +297,7 @@ describe('acceptTripRefresh — the answer yes (FR-27.4)', () => {
     orch.groupRefresh.acceptTripRefresh(TRIP_ID)
 
     const item = tripStore.getItems(TRIP_ID)[0]!
-    expect(tripStore.getItemTodos(TRIP_ID, item.id).map((t) => t.body)).toEqual(['Akkus laden'])
+    expect(tripStore.getRowPrepTasks(TRIP_ID, item.id).map((t) => t.body)).toEqual(['Akkus laden'])
   })
 })
 

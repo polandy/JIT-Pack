@@ -22,16 +22,16 @@ import { computed } from 'vue'
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
 import { useTripTasks } from '@/composables/useTripTasks'
 import {
-  tripTodoPercent,
-  tripTodoProgress,
-  tripTodoStatus,
+  tripTaskPercent,
+  tripTaskProgress,
+  tripTaskStatus,
   type TripTask,
-} from '@/domain/tripTodos'
+} from '@/domain/tripTasks'
 import { t } from '@/i18n'
 
 const props = withDefaults(
   defineProps<{
-    /** The trip whose todos are counted. */
+    /** The trip whose tasks are counted. */
     tripId: string
     /**
      * The ring's diameter — the packing figure beside it sets the scale.
@@ -58,15 +58,15 @@ const props = withDefaults(
 
 const { tasksOf } = useTripTasks()
 
-const progress = computed(() => tripTodoProgress(props.tasks ?? tasksOf(props.tripId)))
-const shown = computed(() => tripTodoStatus(progress.value) !== 'none')
+const progress = computed(() => tripTaskProgress(props.tasks ?? tasksOf(props.tripId)))
+const shown = computed(() => tripTaskStatus(progress.value) !== 'none')
 </script>
 
 <template>
   <ProgressFigure
     v-if="shown"
-    class="trip-todo-figure"
-    :percent="tripTodoPercent(progress)"
+    class="trip-task-figure"
+    :percent="tripTaskPercent(progress)"
     :headline="
       t(tasks ? 'tripTodos.figurePacking' : 'tripTodos.figure', {
         done: progress.done,

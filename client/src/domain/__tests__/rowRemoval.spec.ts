@@ -45,7 +45,7 @@ describe('planRemoval (FR-5.8)', () => {
     expect(removalNeedsConfirm(plan)).toBe(true)
   })
 
-  it('a row with notes asks first — its comments and todos cascade (FR-7.3)', () => {
+  it('a row with notes asks first — its comments and preparations cascade (FR-7.3)', () => {
     const tent = row('tent')
     const plan = planRemoval(tent, [tent], [], 3)
     expect(plan.notes).toBe(3)

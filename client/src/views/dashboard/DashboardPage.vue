@@ -70,9 +70,9 @@ import { useTripHero } from '@/composables/useTripHero'
 import TripPhase from '@/components/trips/TripPhase.vue'
 import DashboardTasksBlock from './DashboardTasksBlock.vue'
 import { taskPhaseInFront, tripDay } from '@/domain/tripDay'
-import TripTodoFigure from '@/views/trips/tasks/TripTodoFigure.vue'
-import TripTodosOverview from '@/views/trips/tasks/TripTodosOverview.vue'
-import { tripTodoProgress, tripTodoStatus } from '@/domain/tripTodos'
+import TripTaskFigure from '@/views/trips/tasks/TripTaskFigure.vue'
+import TripTasksOverview from '@/views/trips/tasks/TripTasksOverview.vue'
+import { tripTaskProgress, tripTaskStatus } from '@/domain/tripTasks'
 import { useDueLine } from '@/composables/useDueLine'
 import { callBlock } from '@/composables/blockCall'
 
@@ -234,8 +234,8 @@ function openItemCount(tripId: string): number {
  * rather than claiming „all done" about nothing.
  */
 function taskLine(trip: Trip): string | null {
-  const progress = tripTodoProgress(tasksOf(trip.id))
-  const status = tripTodoStatus(progress)
+  const progress = tripTaskProgress(tasksOf(trip.id))
+  const status = tripTaskStatus(progress)
   if (status === 'none') return null
   if (status === 'allDone') return t('dashboard.taskLineDone')
   return t('dashboard.taskLineOpen', { n: progress.open })
@@ -548,7 +548,7 @@ async function handleRefresh(event: CustomEvent) {
 
       <!-- FR-7.6: every open task of every active trip, its own and its
            rows' preparations, reported; they are written in the trip. -->
-      <TripTodosOverview :trips="overviewTrips" />
+      <TripTasksOverview :trips="overviewTrips" />
 
       <!--
         The trip that is next, as a card rather than as a row (FR-21.13).
@@ -612,10 +612,10 @@ async function handleRefresh(event: CustomEvent) {
             <span aria-hidden="true">›</span>
           </RouterLink>
         </template>
-        <!-- FR-7.4: the trip's todos as a second figure beside the share,
+        <!-- FR-7.4: the trip's tasks as a second figure beside the share,
              read-only like the rest of the card; they are ticked in M4. -->
         <template v-if="!movedOn(heroTrip) && taskLine(heroTrip)" #beside="{ ringSize }">
-          <TripTodoFigure
+          <TripTaskFigure
             :trip-id="heroTrip.id"
             :ring-size="ringSize"
             :testid="`dashboard-tasks-${heroTrip.name}`"

@@ -13,7 +13,7 @@ import type { DayPlanTravelers } from '@/domain/shared/dayPlanLine'
 import type { MealContext } from '@/domain/shared/mealContext'
 import { pendingExcursionCount, spanOf } from '@/domain/excursionSchedule'
 import { newNoteCount } from '@/domain/tripNotes'
-import type { TripTask } from '@/domain/tripTodos'
+import type { TripTask } from '@/domain/tripTasks'
 import { localIsoDate } from '@/domain/trips'
 import type { ItemComment, NoteAck, Trip } from '@/types/domain'
 import {

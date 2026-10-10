@@ -112,11 +112,11 @@ describe('commitImport (FR-16.2)', () => {
 
     // '?' noise → open task on the imported trip item (NFR-4.7).
     const regen = items2023.find((i) => i.name === 'Regenschutz Rucksack')!
-    const todos = trips.getItemTodos(t2023.id, regen.id)
-    expect(todos).toHaveLength(1)
-    expect(todos[0]!.task_state).toBe('open')
+    const prepTasks = trips.getRowPrepTasks(t2023.id, regen.id)
+    expect(prepTasks).toHaveLength(1)
+    expect(prepTasks[0]!.task_state).toBe('open')
     // NFR-4.12: the body is the catalogue's, in the language that is active.
-    expect(todos[0]!.body).toBe(t('import.wizard.noiseTodo', { name: regen.name }))
+    expect(prepTasks[0]!.body).toBe(t('import.wizard.noiseTodo', { name: regen.name }))
   })
 
   /**
@@ -135,9 +135,9 @@ describe('commitImport (FR-16.2)', () => {
       const result = orch.tripCreation.commitImport(plan)
 
       const row = trips.getItems(result.tripIds[0]!).find((i) => i.name === 'Regenschutz Rucksack')!
-      const [todo] = trips.getItemTodos(result.tripIds[0]!, row.id)
-      expect(todo!.body).toContain('klären')
-      expect(todo!.body).not.toContain('clarify')
+      const [prepTask] = trips.getRowPrepTasks(result.tripIds[0]!, row.id)
+      expect(prepTask!.body).toContain('klären')
+      expect(prepTask!.body).not.toContain('clarify')
     } finally {
       setLocale('en')
     }

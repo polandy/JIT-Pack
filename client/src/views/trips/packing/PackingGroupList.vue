@@ -224,7 +224,7 @@ function onRowPress(item: R, event: PointerEvent): void {
             :notes="facts.rowNotes(entry.item)"
             :traveler="entry.traveler"
             :master="facts.masterOf(entry.item)"
-            :prep-count="facts.openTodoCount(entry.item.id)"
+            :prep-count="facts.openPrepTaskCount(entry.item.id)"
             :borrowed-by="facts.borrowedBy(entry.item.id)"
             :edge-avatar="facts.edgeAvatarFor(entry.item)"
             :assignable="facts.assignableRow(entry.item)"

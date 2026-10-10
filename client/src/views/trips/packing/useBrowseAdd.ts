@@ -163,7 +163,7 @@ export function useBrowseAdd(core: PackingCore, facts: RowFacts) {
   function rowsWithContent(rows: TripItem[]): string[] {
     return rowsCarryingContent(rows, {
       hasComments: (rowId) => tripStore.getItemComments(tripId, rowId).length > 0,
-      hasTodo: (rowId) => tripStore.getTodos(tripId).some((t) => t.trip_item_id === rowId),
+      hasPrepTask: (rowId) => tripStore.getPrepTasks(tripId).some((t) => t.trip_item_id === rowId),
     })
   }
 

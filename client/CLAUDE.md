@@ -86,7 +86,7 @@ as M4's row or feeds M4's view model; a feature module owns tables only it write
 contracts in `kernel/` and the rules in `domain/shared/` (ADR-097, after ADR-071). Tasks and excursions are kernel
 areas; an excursion's parts live in `views/trips/excursion/` beside its pages, its rules in
 `domain/excursion{Lines,Suitcase,Schedule}.ts`; a task's parts in `views/trips/tasks/` beside M25, its rules in
-`domain/task*.ts` and `domain/tripTodos.ts`.
+`domain/task*.ts` and `domain/tripTasks.ts`.
 
 - `client/src/domain` — the pure client-side rules: quantities, template instantiation, dependencies, containers,
   analytics, review, clone, spreadsheet import, the portable format (`portable.ts`, `portableImport.ts`), members. No

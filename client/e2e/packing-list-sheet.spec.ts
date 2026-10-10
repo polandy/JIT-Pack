@@ -13,7 +13,7 @@ import { PATH } from './routes'
 import {
   M4_TRIP,
   SCROLL_ROWS,
-  openTripTodos,
+  openTripTasks,
   packListOffset,
   packRow,
   quickAddRows,
@@ -582,23 +582,23 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
    *
    * `packingView.spec.ts` covers the arithmetic — a packed row with open prep
    * is not done. This is the rendered half, and it is where the defect the FR
-   * was amended for actually showed: open-prep must be derived from the todos
+   * was amended for actually showed: open-prep must be derived from the preparations
    * at read time, and the prototype's stored count meant that resolving the
-   * last todo left the row on the list forever. Resolving the badge away and
+   * last preparation left the row on the list forever. Resolving the badge away and
    * watching the row leave is the only assertion that catches that.
    */
-  test('E2E-M4-08, E2E-M4-25: a packed row with open prep stays on the list until the todo is resolved', async ({
+  test('E2E-M4-08, E2E-M4-25: a packed row with open prep stays on the list until the preparation is resolved', async ({
     page,
   }) => {
-    const TODO = 'Akku laden'
+    const PREP = 'Akku laden'
     await createTripViaWizard(page, M4_TRIP)
     await quickAddRows(page, ['Kamera'])
 
     await page.getByTestId('m4-row-Kamera').click()
     await expect(page.getByTestId('m5-sheet')).toBeVisible()
-    await page.getByTestId('m5-todo-input').locator('input').fill(TODO)
+    await page.getByTestId('m5-todo-input').locator('input').fill(PREP)
     await page.getByTestId('m5-todo-add').click()
-    await expect(page.getByTestId(`m5-todo-${TODO}`)).toBeVisible()
+    await expect(page.getByTestId(`m5-todo-${PREP}`)).toBeVisible()
     await page.getByTestId('m5-close').click()
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 
@@ -615,16 +615,16 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
 
     await visible(page).getByTestId('m4-row-Kamera').click()
     await expect(page.getByTestId('m5-sheet')).toBeVisible()
-    await page.getByTestId(`m5-todo-${TODO}`).click()
+    await page.getByTestId(`m5-todo-${PREP}`).click()
     await page.getByTestId('m5-close').click()
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 
-    // The last todo resolved: the row is done and leaves.
+    // The last preparation resolved: the row is done and leaves.
     await expect(visible(page).getByTestId('m4-row-Kamera')).toHaveCount(0)
     await expect(visible(page).getByTestId('m4-done-bar')).toBeVisible()
 
     // Revealed, it comes back without a badge — the badge counts *open* prep,
-    // so a badge surviving its todo would be the stored-count defect again.
+    // so a badge surviving its preparation would be the stored-count defect again.
     await visible(page).getByTestId('m4-done-bar').click()
     await expect(visible(page).getByTestId('m4-row-Kamera')).toBeVisible()
     await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toHaveCount(0)
@@ -636,23 +636,23 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
    * is the positive signal that the reopened task is the row's own again.
    */
   test('E2E-M4-106: a ticked-off prep task is taken back from the snackbar', async ({ page }) => {
-    const TODO = 'Akku laden'
+    const PREP = 'Akku laden'
     await createTripViaWizard(page, M4_TRIP)
     await quickAddRows(page, ['Kamera'])
     await page.getByTestId('m4-row-Kamera').click()
-    await page.getByTestId('m5-todo-input').locator('input').fill(TODO)
+    await page.getByTestId('m5-todo-input').locator('input').fill(PREP)
     await page.getByTestId('m5-todo-add').click()
-    await expect(page.getByTestId(`m5-todo-${TODO}`)).toBeVisible()
+    await expect(page.getByTestId(`m5-todo-${PREP}`)).toBeVisible()
     await page.getByTestId('m5-close').click()
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 
     // FR-7.6: the row's preparation is ticked in the trip's one task section.
-    const tasks = await openTripTodos(page)
-    await tasks.getByTestId(`trip-todo-${TODO}`).locator('ion-checkbox').click()
+    const tasks = await openTripTasks(page)
+    await tasks.getByTestId(`trip-todo-${PREP}`).locator('ion-checkbox').click()
     await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toHaveCount(0)
 
     const toast = page.locator('ion-toast.pack-toast')
-    await expect(toast).toContainText(TODO)
+    await expect(toast).toContainText(PREP)
     await toast.getByRole('button', { name: /undo/i }).click()
     await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toContainText('1')
     await writesLanded(page)

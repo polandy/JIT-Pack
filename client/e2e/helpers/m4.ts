@@ -308,7 +308,7 @@ export async function setMemberInM5(page: Page, name: string, quantity: number):
  * FR-7.4: unfold M4's *Aufgaben für die Reise* section if it is closed, and
  * return it. It mounts closed, so every visit to a trip starts here.
  */
-export async function openTripTodos(page: Page): Promise<Locator> {
+export async function openTripTasks(page: Page): Promise<Locator> {
   const section = visiblePage(page).getByTestId('m4-trip-todos')
   const toggle = section.getByTestId('m4-trip-todos-toggle')
   if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click()
@@ -422,7 +422,7 @@ export async function addTripNote(page: Page, body: string, title?: string): Pro
  *
  * Ends with the write landed, so a caller may reload straight after.
  */
-export async function addTripTodo(
+export async function addOwnTask(
   page: Page,
   body: string,
   phase: 'before' | 'during' = 'before',
@@ -463,7 +463,7 @@ export async function removeTaskFromSheet(page: Page, body: string): Promise<voi
  * FR-7.3: a preparation, declared where it lives — on the row's own sheet.
  * M4's task window is made of these, so most of the section's cases need one.
  */
-export async function addPrepTodo(page: Page, rowName: string, body: string): Promise<void> {
+export async function addPrepTask(page: Page, rowName: string, body: string): Promise<void> {
   await visiblePage(page).getByTestId(`m4-row-${rowName}`).click()
   await page.getByTestId('m5-todo-input').locator('input').fill(body)
   await page.getByTestId('m5-todo-add').click()

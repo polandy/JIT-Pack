@@ -18,10 +18,10 @@ import { computed } from 'vue'
 
 import ListGroup from '@/components/global/ListGroup.vue'
 import ListSection from '@/components/global/ListSection.vue'
-import TripTodoList from '@/views/trips/tasks/TripTodoList.vue'
+import TripTaskList from '@/views/trips/tasks/TripTaskList.vue'
 import type { RowSelection } from '@/composables/shared/useRowSelection'
 import type { PhaseShelf } from '@/domain/taskBoard'
-import { TASK_ORIGIN_PREP, type TaskGroup, type TripTask } from '@/domain/tripTodos'
+import { TASK_ORIGIN_PREP, type TaskGroup, type TripTask } from '@/domain/tripTasks'
 import { t } from '@/i18n'
 import { TASK_PHASE_BEFORE, type TaskPhase } from '@/types/domain'
 
@@ -108,7 +108,7 @@ function groupName(group: TaskGroup): string {
         :droppable="!readonly"
         :data-testid="`m25-group-${group.key}`"
       >
-        <TripTodoList
+        <TripTaskList
           :trip-id="tripId"
           :tasks="group.tasks"
           :assignable="assignable"
@@ -125,7 +125,7 @@ function groupName(group: TaskGroup): string {
       </ListGroup>
     </IonList>
     <!-- FR-7.14: one fold per phase, at its end. -->
-    <TripTodoList
+    <TripTaskList
       v-if="shelf.resolved.length > 0"
       :trip-id="tripId"
       :tasks="shelf.resolved"

@@ -152,25 +152,25 @@ describe('createTripFromWizard on the seam (FR-2.x)', () => {
     })
 
     expect(tablesOf('trip')).toEqual([TABLE.tripItems, TABLE.comments, TABLE.comments])
-    const todos = queued
+    const ownTasks = queued
       .filter((q) => q.type === 'trip')
       .flatMap((q) => q.muts)
       .slice(1)
       .map((m) => m.mutation.fields)
-    for (const fields of todos) {
+    for (const fields of ownTasks) {
       expect(fields).toMatchObject({ trip_item_id: null, is_task: 1, task_state: 'open' })
     }
     // FR-7.7: each keeps the phase its template gave it.
-    expect(todos.map((fields) => [fields?.['body'], fields?.['phase']])).toEqual([
+    expect(ownTasks.map((fields) => [fields?.['body'], fields?.['phase']])).toEqual([
       ['Pflanzen giessen', 'before'],
       ['Zugverbindung abklären', 'during'],
     ])
-    expect(ctx.tripStore.getTripTodos(tripId).map((t) => t.body)).toEqual([
+    expect(ctx.tripStore.getOwnTasks(tripId).map((t) => t.body)).toEqual([
       'Pflanzen giessen',
       'Zugverbindung abklären',
     ])
-    // No row gained a preparation todo on the way.
-    expect(ctx.tripStore.getTodos(tripId)).toEqual([])
+    // No row gained a preparation on the way.
+    expect(ctx.tripStore.getPrepTasks(tripId)).toEqual([])
   })
 
   it('assigns the generated item to the traveler its index names', () => {

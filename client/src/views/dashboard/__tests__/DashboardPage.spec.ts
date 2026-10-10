@@ -52,12 +52,12 @@ const orchestratorFake = {
   ensureTripData: vi.fn(() => Promise.resolve()),
   subscribeTrip: vi.fn(),
   comments: {
-    resolvePrepTodo: vi.fn(),
-    reopenPrepTodo: vi.fn(),
-    addTripTodo: vi.fn(() => 'new-task'),
-    resolveTripTodo: vi.fn(),
-    reopenTripTodo: vi.fn(),
-    deleteTripTodo: vi.fn(),
+    resolvePrepTask: vi.fn(),
+    reopenPrepTask: vi.fn(),
+    addOwnTask: vi.fn(() => 'new-task'),
+    resolveOwnTask: vi.fn(),
+    reopenOwnTask: vi.fn(),
+    deleteOwnTask: vi.fn(),
     toggleNoteTick: vi.fn(),
   },
   tripDataLoaded: vi.fn(() => true),
@@ -286,7 +286,7 @@ describe('M1 — the hero once the packing is finished (FR-7.10)', () => {
     await flushPromises()
     await page.find('[data-testid="dashboard-tasks-Samedan-row-check"]').trigger('click')
 
-    expect(orchestratorFake.comments.resolveTripTodo).toHaveBeenCalledTimes(1)
+    expect(orchestratorFake.comments.resolveOwnTask).toHaveBeenCalledTimes(1)
   })
 
   it('adds a task in the phase in front of the trip and keeps the field for the next', async () => {
@@ -298,7 +298,7 @@ describe('M1 — the hero once the packing is finished (FR-7.10)', () => {
     await input.setValue('  Post nachsenden  ')
     await page.find('[data-testid="dashboard-tasks-Samedan-add"]').trigger('submit')
 
-    expect(orchestratorFake.comments.addTripTodo).toHaveBeenCalledWith(
+    expect(orchestratorFake.comments.addOwnTask).toHaveBeenCalledWith(
       't1',
       expect.anything(),
       'Post nachsenden',
@@ -315,7 +315,7 @@ describe('M1 — the hero once the packing is finished (FR-7.10)', () => {
     await page.find('[data-testid="dashboard-tasks-Samedan-add-input"]').setValue('   ')
     await page.find('[data-testid="dashboard-tasks-Samedan-add"]').trigger('submit')
 
-    expect(orchestratorFake.comments.addTripTodo).not.toHaveBeenCalled()
+    expect(orchestratorFake.comments.addOwnTask).not.toHaveBeenCalled()
   })
 
   it('stays, with its field and a sentence, when nothing is left to do', async () => {
@@ -572,7 +572,7 @@ describe('M1 — the hero once the packing is finished (FR-7.10)', () => {
       await input.setValue('Post nachsenden')
       await page.find('[data-testid="dashboard-tasks-Samedan-add"]').trigger('submit')
 
-      expect(orchestratorFake.comments.addTripTodo).toHaveBeenCalledWith(
+      expect(orchestratorFake.comments.addOwnTask).toHaveBeenCalledWith(
         't1',
         expect.anything(),
         'Post nachsenden',

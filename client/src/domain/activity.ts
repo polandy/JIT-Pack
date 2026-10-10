@@ -29,18 +29,18 @@ import {
   STATE_PACKING_NOW,
   STATE_SKIPPED,
   type ItemState,
-  type ItemTodo,
+  type PrepTask,
   type MasterItem,
   type NoteAck,
   type Tag,
-  type TodoState,
+  type TaskState,
   type TripItem,
 } from '@/types/domain'
 
 export type { ActivityArea, ActivityKind } from './shared/activityReader'
 
 const STATE_PARTIAL = 'partial' as const satisfies ItemState
-const TASK_RESOLVED = 'resolved' as const satisfies TodoState
+const TASK_RESOLVED = 'resolved' as const satisfies TaskState
 
 /**
  * The columns the rules below read, each checked against the row type it
@@ -58,10 +58,10 @@ const FIELD = {
   packedBy: 'packed_by_user_id' satisfies keyof TripItem,
   packedAt: 'packed_at' satisfies keyof TripItem,
   shoppingPosition: 'shopping_position' satisfies keyof TripItem,
-  taskState: 'task_state' satisfies keyof ItemTodo,
-  resolvedAt: 'resolved_at' satisfies keyof ItemTodo,
-  resolvedBy: 'resolved_by_user_id' satisfies keyof ItemTodo,
-  position: 'position' satisfies keyof ItemTodo,
+  taskState: 'task_state' satisfies keyof PrepTask,
+  resolvedAt: 'resolved_at' satisfies keyof PrepTask,
+  resolvedBy: 'resolved_by_user_id' satisfies keyof PrepTask,
+  position: 'position' satisfies keyof PrepTask,
   // A wire column the client folds into which list a comment sits in; no
   // row type carries it.
   isTask: 'is_task',

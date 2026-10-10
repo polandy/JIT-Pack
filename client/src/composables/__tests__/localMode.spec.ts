@@ -285,7 +285,7 @@ describe('Local Mode', () => {
     expect(left).toEqual(['templates/grp1'])
   })
 
-  it('a deleted trip item takes its comments and todos off the device', async () => {
+  it('a deleted trip item takes its comments and preparations off the device', async () => {
     const persistence = new IndexedDBPersistence()
     await persistence.save([
       { seq: 0, table: 'trips', id: 't1', deleted: false, row: { name: 'Engadin', year: 2026 } },
@@ -306,7 +306,7 @@ describe('Local Mode', () => {
       {
         seq: 0,
         table: 'comments',
-        id: 'todo1',
+        id: 'prep1',
         deleted: false,
         row: {
           trip_id: 't1',
@@ -359,7 +359,7 @@ describe('Local Mode', () => {
           late_packer: false,
           traveler_index: 0,
           per_person: true,
-          // FR-27.7 in Local Mode (invariant 5): the todo is generated on the
+          // FR-27.7 in Local Mode (invariant 5): the preparation is generated on the
           // device, so it has to persist without a server having seen it.
           tasks: ['Waschen nicht vergessen'],
         },
@@ -376,7 +376,7 @@ describe('Local Mode', () => {
     const item = useTripStore().getItems(tripId)[0]!
     expect(
       useTripStore()
-        .getItemTodos(tripId, item.id)
+        .getRowPrepTasks(tripId, item.id)
         .map((t) => t.body),
     ).toEqual(['Waschen nicht vergessen'])
   })

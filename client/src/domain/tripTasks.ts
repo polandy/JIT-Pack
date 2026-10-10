@@ -11,54 +11,54 @@
  * task counts nothing the packing list measures, so that neither a houseplant
  * nor an uncharged battery can hold a finished rucksack below 100 %.
  */
-import type { ItemTodo, TaskPhase, TaskTag, TodoState, TripTodo } from '@/types/domain'
+import type { PrepTask, TaskPhase, TaskTag, TaskState, OwnTask } from '@/types/domain'
 import { TASK_PHASE_BEFORE } from '@/types/domain'
 import { byDue, isDuePressing, pressingFirst } from './taskDue'
 import { daysBetween } from '@/domain/shared/calendar'
 import { byHand, dropInto, renumber, type Placement } from '@/domain/shared/handOrder'
 
-/** How far a trip's todos are, as the two figures M1 states. */
-export interface TripTodoProgress {
-  /** Todos still open. */
+/** How far a trip's tasks are, as the two figures M1 states. */
+export interface TripTaskProgress {
+  /** Tasks still open. */
   open: number
-  /** Todos resolved. */
+  /** Tasks resolved. */
   done: number
-  /** Every todo of the trip — zero means the trip has none to report. */
+  /** Every task of the trip — zero means the trip has none to report. */
   total: number
 }
 
-/** tripTodoProgress counts a trip's todos by state. */
-export function tripTodoProgress(todos: readonly Pick<TripTodo, 'task_state'>[]): TripTodoProgress {
-  const done = todos.filter((todo) => todo.task_state === 'resolved').length
-  return { open: todos.length - done, done, total: todos.length }
+/** tripTaskProgress counts a trip's tasks by state. */
+export function tripTaskProgress(tasks: readonly Pick<TripTask, 'task_state'>[]): TripTaskProgress {
+  const done = tasks.filter((task) => task.task_state === 'resolved').length
+  return { open: tasks.length - done, done, total: tasks.length }
 }
 
-/** The two readings a trip's todos have in words, or none when it has none. */
-export type TripTodoStatus = 'none' | 'open' | 'allDone'
+/** The two readings a trip's tasks have in words, or none when it has none. */
+export type TripTaskStatus = 'none' | 'open' | 'allDone'
 
 /**
- * tripTodoStatus names which sentence a trip's todos call for. Several places
+ * tripTaskStatus names which sentence a trip's tasks call for. Several places
  * say it — M4's section head, M1's overview and each M1 trip card — so the
- * rule that "no todos" is silence rather than „all done" lives once.
+ * rule that "no tasks" is silence rather than „all done" lives once.
  */
-export function tripTodoStatus(progress: TripTodoProgress): TripTodoStatus {
+export function tripTaskStatus(progress: TripTaskProgress): TripTaskStatus {
   if (progress.total === 0) return 'none'
   return progress.open === 0 ? 'allDone' : 'open'
 }
 
-/** tripTodoPercent is the share of a trip's todos that is done, 0–100; 0 for none. */
-export function tripTodoPercent(progress: TripTodoProgress): number {
+/** tripTaskPercent is the share of a trip's tasks that is done, 0–100; 0 for none. */
+export function tripTaskPercent(progress: TripTaskProgress): number {
   return progress.total === 0 ? 0 : (progress.done / progress.total) * 100
 }
 
 /**
- * tripTodosUnfolded says whether M4's *Aufgaben für die Reise* section is
+ * tripTasksUnfolded says whether M4's *Aufgaben für die Reise* section is
  * open. It opens on what is still owed and folds to its one line once
  * nothing is — the section sits above the list, and a finished one should
  * give the rows their room back. A fold the user made this visit wins
  * (`fold`, null while they have not touched it).
  */
-export function tripTodosUnfolded(status: TripTodoStatus, fold: boolean | null): boolean {
+export function tripTasksUnfolded(status: TripTaskStatus, fold: boolean | null): boolean {
   return fold ?? status === 'open'
 }
 
@@ -86,7 +86,7 @@ export interface TripTask {
   /** The `comments` row (FR-7.2) this task is. */
   id: string
   body: string
-  task_state: TodoState
+  task_state: TaskState
   /** The row it prepares, or null when the task is the trip's own. */
   item: TripTaskItem | null
   /**
@@ -130,7 +130,7 @@ export function taskPhaseOf(task: { phase: TaskPhase | null }): TaskPhase {
 }
 
 /**
- * tripTasks puts a trip's own todos and its rows' preparations in the one
+ * tripTasks puts a trip's own tasks and its rows' preparations in the one
  * list FR-7.6 asks for: open first, the trip's own before a row's, a row's
  * grouped by the row and each group by text.
  *
@@ -141,31 +141,31 @@ export function taskPhaseOf(task: { phase: TaskPhase | null }): TaskPhase {
  * — a task nobody could reach, since the chip leads to a row that is gone.
  */
 export function tripTasks(
-  tripTodos: readonly TripTodo[],
-  itemTodos: readonly ItemTodo[],
+  ownTasks: readonly OwnTask[],
+  prepTasks: readonly PrepTask[],
   rows: readonly TripTaskItem[],
 ): TripTask[] {
   const byId = new Map(rows.map((row) => [row.id, row]))
 
-  const own: TripTask[] = tripTodos.map((todo) => ({
-    id: todo.id,
-    body: todo.body,
-    task_state: todo.task_state,
+  const own: TripTask[] = ownTasks.map((task) => ({
+    id: task.id,
+    body: task.body,
+    task_state: task.task_state,
     item: null,
-    ...factsOf(todo),
-    ...(todo.idea_id ? { idea_id: todo.idea_id } : {}),
+    ...factsOf(task),
+    ...(task.idea_id ? { idea_id: task.idea_id } : {}),
   }))
 
   const prepared: TripTask[] = []
-  for (const todo of itemTodos) {
-    const row = byId.get(todo.trip_item_id)
+  for (const task of prepTasks) {
+    const row = byId.get(task.trip_item_id)
     if (!row) continue
     prepared.push({
-      id: todo.id,
-      body: todo.body,
-      task_state: todo.task_state,
+      id: task.id,
+      body: task.body,
+      task_state: task.task_state,
       item: row,
-      ...factsOf(todo),
+      ...factsOf(task),
     })
   }
 
@@ -179,17 +179,17 @@ export function tripTasks(
  * names somebody: a task is handed over like a pack item, and a preparation is
  * a task.
  */
-function factsOf(todo: ItemTodo | TripTodo) {
+function factsOf(task: PrepTask | OwnTask) {
   return {
-    task_tag_id: todo.task_tag_id,
-    due_date: todo.due_date,
-    assignee_user_id: todo.assignee_user_id,
-    phase: taskPhaseOf(todo),
-    author_id: todo.author_id,
-    created_at: todo.created_at,
-    resolved_at: todo.resolved_at,
-    resolved_by_user_id: todo.resolved_by_user_id,
-    position: todo.position ?? null,
+    task_tag_id: task.task_tag_id,
+    due_date: task.due_date,
+    assignee_user_id: task.assignee_user_id,
+    phase: taskPhaseOf(task),
+    author_id: task.author_id,
+    created_at: task.created_at,
+    resolved_at: task.resolved_at,
+    resolved_by_user_id: task.resolved_by_user_id,
+    position: task.position ?? null,
   }
 }
 

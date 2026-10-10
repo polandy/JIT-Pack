@@ -10,7 +10,7 @@ import {
   expectTripActionOffered,
   visiblePage as visible,
 } from './fixtures'
-import { FOR_WHOM_M5, openTripTodos } from './helpers/m4'
+import { FOR_WHOM_M5, openTripTasks } from './helpers/m4'
 
 /**
  * M5 — item detail (UI-Test-Spec §4), a sheet over the packing list.
@@ -416,15 +416,15 @@ test.describe('M5 item detail @local @m5', () => {
     await expect(page.getByTestId('m5-glance')).toContainText('Unused')
   })
 
-  // E2E-M5-05 (FR-7.1/7.2): a note and a preparation todo are the same
+  // E2E-M5-05 (FR-7.1/7.2): a note and a preparation are the same
   // record — a task-type comment (`is_task = 1`) — rendered by two
   // sections of the same sheet. The promotion is therefore not a field
   // changing on a row but a row *changing collection*, and the assertion
   // that carries the case is that it left one section as it entered the
-  // other. A case that only looked for the todo would pass just as well
+  // other. A case that only looked for the preparation would pass just as well
   // against a build that rendered the row in both places at once.
   //
-  // The third reader is M4: the row's prep badge counts the same todos, so
+  // The third reader is M4: the row's prep badge counts the same preparations, so
   // closing the sheet is what proves the promotion is a trip-level fact
   // rather than something the sheet remembers about itself.
   test('E2E-M5-05: a note promoted to a task leaves the notes and joins the preparation', async ({
@@ -460,7 +460,7 @@ test.describe('M5 item detail @local @m5', () => {
     // section under the chip of the row it prepares, and counted with the
     // rest — as well as badged on the row itself.
     await expect(visible(page).getByTestId('m4-trip-todos-status')).toHaveText('0 of 1 done')
-    const tasks = await openTripTodos(page)
+    const tasks = await openTripTasks(page)
     await expect(tasks.getByTestId('trip-todo-Akku laden')).toBeVisible()
     await expect(tasks.getByTestId('task-item-Kamera')).toBeVisible()
     await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toContainText('1')
@@ -492,7 +492,7 @@ test.describe('M5 item detail @local @m5', () => {
     const line = await page.getByTestId('m5-sheet').evaluate((sheet) => {
       const tick = sheet.querySelector('[data-testid="m5-todo-Akku laden"]')!
       const row = tick.parentElement!.getBoundingClientRect()
-      const words = tick.parentElement!.querySelector('.todo-body')!.getBoundingClientRect()
+      const words = tick.parentElement!.querySelector('.task-body')!.getBoundingClientRect()
       const box = tick.getBoundingClientRect()
       return { pastTheWords: box.left - words.right, fromLineEnd: row.right - box.right }
     })

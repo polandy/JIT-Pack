@@ -70,8 +70,8 @@ const rows = computed(() => (item.value ? membershipRows(allItems.value, item.va
 const rowsWithContent = computed(() =>
   rowsCarryingContent(rows.value, {
     hasComments: (rowId) => tripStore.getItemComments(props.tripId, rowId).length > 0,
-    hasTodo: (rowId) =>
-      tripStore.getTodos(props.tripId).some((todo) => todo.trip_item_id === rowId),
+    hasPrepTask: (rowId) =>
+      tripStore.getPrepTasks(props.tripId).some((task) => task.trip_item_id === rowId),
   }),
 )
 

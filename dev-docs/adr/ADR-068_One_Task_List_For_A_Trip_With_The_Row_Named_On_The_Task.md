@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Related:** FR-7.6, FR-7.3, FR-7.4, FR-7.5, FR-27.7, FR-25.31, FR-5.8, UI-Spec M1/M4,
-`client/src/domain/tripTodos.ts` (`tripTasks`), `client/src/composables/useTripTasks.ts`,
+`client/src/domain/tripTasks.ts` (`tripTasks`), `client/src/composables/useTripTasks.ts`,
 `client/src/views/trips/tasks/TaskItemChip.vue`, E2E-M4-136, E2E-M4-137, E2E-M1-02, E2E-M1-07
 
 **Context.** The owner asked on 2026-09-20 for tasks that are declared *on a packing item* and have to be done before
@@ -33,7 +33,7 @@ untouched, the header's detail line freed, templates unchanged.
 
 ### Option A — One list, the row named on the task by a chip *(recommended, accepted)*
 
-`tripTasks` in `client/src/domain/tripTodos.ts` projects the trip's own todos and its rows' preparations into one
+`tripTasks` in `client/src/domain/tripTasks.ts` projects the trip's own todos and its rows' preparations into one
 ordered list of `TripTask`; `useTripTasks` is the only place the two stores are joined, and M4's section, M4's figure,
 M1's card and M1's trip-card line all read it. A task that prepares a row ends in `TaskItemChip` — the row's mark and
 name, linking to the row's sheet; a task of the trip carries the FR-7.5 seat and the ✕ instead. M4's prep section and

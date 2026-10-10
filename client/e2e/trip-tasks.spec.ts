@@ -1,10 +1,10 @@
 import { test, expect, visiblePage as visible } from './fixtures'
 import {
-  addPrepTodo,
-  addTripTodo,
+  addPrepTask,
+  addOwnTask,
   chooseInRowMenu,
   openTasks,
-  openTripTodos,
+  openTripTasks,
   removeTaskFromSheet,
   openRowMenu,
   startTrip,
@@ -35,7 +35,7 @@ test.describe('M4 — the trip’s tasks (FR-7.4, FR-7.6) @local @m4', () => {
   })
 
   /**
-   * E2E-M4-97 (FR-7.4): the todos are where the trip is read, not at its foot.
+   * E2E-M4-97 (FR-7.4): the tasks are where the trip is read, not at its foot.
    *
    * The section sits above the list and opens by itself while anything is
    * owed — asserted after a reload, where no helper has touched the toggle —
@@ -44,7 +44,7 @@ test.describe('M4 — the trip’s tasks (FR-7.4, FR-7.6) @local @m4', () => {
    * fold's absence is asserted against its own status line, which is the
    * positive signal that the section rendered.
    */
-  test('E2E-M4-97: trip todos head the list, open while owed, with a figure in the header', async ({
+  test('E2E-M4-97: trip tasks head the list, open while owed, with a figure in the header', async ({
     page,
   }) => {
     await tripWithRows(page, ['Zelt'], 'Samedan')
@@ -61,15 +61,15 @@ test.describe('M4 — the trip’s tasks (FR-7.4, FR-7.6) @local @m4', () => {
 
     // FR-7.7: the window is made of preparations — what M4 keeps is what you
     // do as part of packing, and a trip's own chore is not in it.
-    await addPrepTodo(page, 'Zelt', 'Water the plants')
-    await addPrepTodo(page, 'Zelt', 'Empty the fridge')
+    await addPrepTask(page, 'Zelt', 'Water the plants')
+    await addPrepTask(page, 'Zelt', 'Empty the fridge')
 
     // Above the list, and open on arrival while anything is owed.
     await page.reload()
     await expect(toggle).toHaveAttribute('aria-expanded', 'true')
     await expect(section.getByTestId('trip-todo-Water the plants')).toBeVisible()
     await expect(fraction).toHaveText('While packing 0/2')
-    // A pair: the packing share has no detail line and the todos do („2
+    // A pair: the packing share has no detail line and the tasks do („2
     // open"), which is exactly the case that put the tracks on two levels.
     await expectFiguresPaired(visible(page).getByTestId('m4-header'))
     const sectionTop = (await section.boundingBox())!.y
@@ -108,15 +108,15 @@ test.describe('M4 — the trip’s tasks (FR-7.4, FR-7.6) @local @m4', () => {
    * preparation, which is removed where it lives.
    *
    * The row badge is the cross-signal that the section writes the row's own
-   * todo rather than a copy: ticking the task in the section clears the badge
+   * preparation rather than a copy: ticking the task in the section clears the badge
    * on the row, which reads its own store.
    */
   test('E2E-M4-136: a row’s preparation is a task of the trip, named by its row', async ({
     page,
   }) => {
     await tripWithRows(page, ['Kamera'], 'Samedan')
-    await addPrepTodo(page, 'Kamera', 'Water the plants')
-    await addPrepTodo(page, 'Kamera', 'Charge the battery')
+    await addPrepTask(page, 'Kamera', 'Water the plants')
+    await addPrepTask(page, 'Kamera', 'Charge the battery')
 
     // One figure for both kinds (FR-7.6), and the header does not repeat the
     // preparation count in its detail line.
@@ -124,14 +124,14 @@ test.describe('M4 — the trip’s tasks (FR-7.4, FR-7.6) @local @m4', () => {
     await expect(fraction).toHaveText('While packing 0/2')
     await expect(visible(page).getByTestId('m4-header')).not.toContainText('preparation')
 
-    const section = await openTripTodos(page)
+    const section = await openTripTasks(page)
     const prepared = section.getByTestId('trip-todo-Charge the battery')
     await expect(prepared.getByTestId('task-item-Kamera')).toBeVisible()
     // FR-7.6's ✕ rule, unchanged by FR-7.7: a preparation is removed on its
     // row, so the window offers none — and the seat it *did* gain is there.
     await expect(prepared.getByTestId('trip-todo-remove-Charge the battery')).toHaveCount(0)
 
-    // Ticked here, cleared on the row: one todo, read by two surfaces.
+    // Ticked here, cleared on the row: one preparation, read by two surfaces.
     await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toContainText('2')
     await prepared.locator('ion-checkbox').click()
     await expect(fraction).toHaveText('While packing 1/2')
@@ -143,7 +143,7 @@ test.describe('M4 — the trip’s tasks (FR-7.4, FR-7.6) @local @m4', () => {
     )
 
     // The chip is the way back to the row it names.
-    const reopened = await openTripTodos(page)
+    const reopened = await openTripTasks(page)
     await reopened.getByTestId('trip-todos-resolved').click()
     // Scoped to the task, because both preparations name the same row now.
     await reopened
@@ -176,10 +176,10 @@ test.describe('M4 — the trip’s tasks (FR-7.4, FR-7.6) @local @m4', () => {
     page,
   }) => {
     await tripWithRows(page, ['Kamera'], 'Samedan')
-    await addPrepTodo(page, 'Kamera', 'Water the plants')
-    await addPrepTodo(page, 'Kamera', 'Charge the battery')
+    await addPrepTask(page, 'Kamera', 'Water the plants')
+    await addPrepTask(page, 'Kamera', 'Charge the battery')
 
-    const section = await openTripTodos(page)
+    const section = await openTripTasks(page)
     await expect(section.getByTestId('trip-todo-Water the plants')).toBeVisible()
     await expect(section.getByTestId('trip-todo-Charge the battery')).toBeVisible()
     await expect(visible(page).getByTestId('m4-row-Kamera')).toBeVisible()
@@ -235,10 +235,10 @@ test.describe('M4 — the trip’s tasks (FR-7.4, FR-7.6) @local @m4', () => {
     await tripWithRows(page, ['Kamera', 'Zelt'], 'Samedan')
     // The sibling that has to survive is a second row's preparation, since
     // FR-7.7 — a trip's own task is not in this window at all.
-    await addPrepTodo(page, 'Zelt', 'Water the plants')
-    await addPrepTodo(page, 'Kamera', 'Charge the battery')
+    await addPrepTask(page, 'Zelt', 'Water the plants')
+    await addPrepTask(page, 'Kamera', 'Charge the battery')
 
-    const section = await openTripTodos(page)
+    const section = await openTripTasks(page)
     await expect(section.getByTestId('trip-todo-Charge the battery')).toBeVisible()
     await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText(
       'While packing 0/2',
@@ -308,8 +308,8 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
   }) => {
     await tripWithRows(page, ['Zelt'], 'Samedan')
 
-    await addTripTodo(page, 'Water the plants')
-    await addTripTodo(page, 'Ask about the train', 'during')
+    await addOwnTask(page, 'Water the plants')
+    await addOwnTask(page, 'Ask about the train', 'during')
 
     const before = await openTasks(page, 'before')
     const during = visible(page).getByTestId('m25-during')
@@ -365,7 +365,7 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
    */
   test('E2E-M25-02: a ticked-off task is taken back from the snackbar', async ({ page }) => {
     await tripWithRows(page, ['Zelt'], 'Samedan')
-    await addTripTodo(page, 'Water the plants')
+    await addOwnTask(page, 'Water the plants')
 
     const before = await openTasks(page, 'before')
     await before.getByTestId('trip-todo-Water the plants').locator('ion-checkbox').click()
@@ -397,7 +397,7 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
    */
   test('E2E-M25-03: no seat and no “mine” where there is nobody to assign to', async ({ page }) => {
     await tripWithRows(page, ['Zelt'], 'Samedan')
-    await addTripTodo(page, 'Water the plants')
+    await addOwnTask(page, 'Water the plants')
 
     const before = await openTasks(page, 'before')
     const task = before.getByTestId('trip-todo-Water the plants')
@@ -422,7 +422,7 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     page,
   }) => {
     await tripWithRows(page, ['Zelt'], 'Samedan')
-    await addTripTodo(page, 'Salbe holen')
+    await addOwnTask(page, 'Salbe holen')
 
     const before = await openTasks(page, 'before')
     await expect(before.getByTestId('m25-group-trip')).toContainText('No tag')
@@ -472,8 +472,8 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
    */
   test('E2E-M25-08: a task is dragged from one tag into another @m25', async ({ page }) => {
     await tripWithRows(page, ['Zelt'], 'Samedan')
-    await addTripTodo(page, 'Salbe holen')
-    await addTripTodo(page, 'Pflanzen giessen')
+    await addOwnTask(page, 'Salbe holen')
+    await addOwnTask(page, 'Pflanzen giessen')
 
     // Two tags to drag between, made the way the app makes them.
     const section = await openTasks(page, 'before')
@@ -542,9 +542,9 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     page,
   }) => {
     await tripWithRows(page, ['Zelt'], 'Samedan')
-    await addTripTodo(page, 'Pflanzen giessen')
-    await addTripTodo(page, 'Post abbestellen')
-    await addTripTodo(page, 'Katze bringen')
+    await addOwnTask(page, 'Pflanzen giessen')
+    await addOwnTask(page, 'Post abbestellen')
+    await addOwnTask(page, 'Katze bringen')
     await writesLanded(page)
 
     await openTasks(page, 'before')
@@ -581,8 +581,8 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
    */
   test('E2E-M25-09: a group refuses a task it could not honestly head @m25', async ({ page }) => {
     await tripWithRows(page, ['Kamera'], 'Samedan')
-    await addPrepTodo(page, 'Kamera', 'Akku laden')
-    await addTripTodo(page, 'Pflanzen giessen')
+    await addPrepTask(page, 'Kamera', 'Akku laden')
+    await addOwnTask(page, 'Pflanzen giessen')
 
     await openTasks(page, 'before')
     const host = visible(page).getByTestId('m25-page')
@@ -621,8 +621,8 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     page,
   }) => {
     await tripWithRows(page, ['Zelt'], 'Samedan')
-    await addTripTodo(page, 'Salbe holen')
-    await addTripTodo(page, 'Pflanzen giessen')
+    await addOwnTask(page, 'Salbe holen')
+    await addOwnTask(page, 'Pflanzen giessen')
 
     const before = await openTasks(page, 'before')
     const host = visible(page).getByTestId('m25-page')
@@ -694,10 +694,10 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     page,
   }) => {
     const trip = await tripWithRows(page, ['Kulturbeutel'], 'Samedan')
-    await addPrepTodo(page, 'Kulturbeutel', 'Fetch the salve')
+    await addPrepTask(page, 'Kulturbeutel', 'Fetch the salve')
 
     // It starts where a preparation starts: on the packing list.
-    const window = await openTripTodos(page)
+    const window = await openTripTasks(page)
     await expect(window.getByTestId('trip-todo-Fetch the salve')).toBeVisible()
 
     const before = await openTasks(page, 'before')
@@ -731,7 +731,7 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     await page.getByTestId('task-sheet-move').click()
     await writesLanded(page)
     await page.goto(trip)
-    const back = await openTripTodos(page)
+    const back = await openTripTasks(page)
     await expect(back.getByTestId('trip-todo-Fetch the salve')).toBeVisible()
   })
 
@@ -757,8 +757,8 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     // the trip's name is already on screen for the helper to read — right
     // after a fresh load WebKit showed the screen's generic title instead.
     await startTrip(page)
-    await addTripTodo(page, 'Buy a map', 'during')
-    await addTripTodo(page, 'Renew the passport', 'during')
+    await addOwnTask(page, 'Buy a map', 'during')
+    await addOwnTask(page, 'Renew the passport', 'during')
 
     const iso = await browserDay(page, 1)
 
@@ -807,7 +807,7 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     page,
   }) => {
     await tripWithRows(page, ['Zelt'], 'Samedan')
-    await addTripTodo(page, 'Water the plants')
+    await addOwnTask(page, 'Water the plants')
     const before = await openTasks(page, 'before')
     await expect(visible(page).getByTestId('m25-due')).toHaveCount(0)
 
@@ -867,7 +867,7 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     page,
   }) => {
     await tripWithRows(page, ['Zelt'], 'Samedan')
-    await addTripTodo(page, 'Pas holen')
+    await addOwnTask(page, 'Pas holen')
     const before = await openTasks(page, 'before')
 
     await before.getByTestId('trip-todo-open-Pas holen').click()
@@ -908,9 +908,9 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     page,
   }) => {
     await tripWithRows(page, ['Zelt'], 'Samedan')
-    await addTripTodo(page, 'Buy a map')
-    await addTripTodo(page, 'Water the plants')
-    await addTripTodo(page, 'Cancel the paper')
+    await addOwnTask(page, 'Buy a map')
+    await addOwnTask(page, 'Water the plants')
+    await addOwnTask(page, 'Cancel the paper')
     const before = await openTasks(page, 'before')
 
     await before.getByTestId('trip-todo-open-Buy a map').click({ button: 'right' })
@@ -1000,7 +1000,7 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
       String(ahead.getDate()).padStart(2, '0'),
     ].join('-')
     await createTripViaWizard(page, { name: 'Früh los', startDate, travelers: ['Andy'] })
-    await addTripTodo(page, 'Pass holen')
+    await addOwnTask(page, 'Pass holen')
     await startTrip(page)
 
     const during = await openTasks(page, 'during')

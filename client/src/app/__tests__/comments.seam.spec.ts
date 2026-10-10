@@ -1,5 +1,5 @@
 /**
- * The comment/todo group runs on a context, not on the orchestrator (R-4).
+ * The comment/task group runs on a context, not on the orchestrator (R-4).
  *
  * Asserted rather than assumed: the group is constructed here with a
  * hand-written context — no `fetch`, no WebSocket, no outbox, no
@@ -14,7 +14,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createCommentActions } from '../actions/comments'
 import { makeSeamContext, pullIn, type Recorded, paintedRow, type SeamContext } from './seamContext'
 import { TABLE } from '@/api/tables'
-import type { ItemComment, ItemTodo, TripTodo } from '@/types/domain'
+import type { ItemComment, PrepTask, OwnTask } from '@/types/domain'
 
 const TRIP_ID = 'trip-1'
 const AUTHOR = 'user-a'
@@ -115,8 +115,8 @@ describe('createCommentActions without an orchestrator', () => {
     expect(queued[0]!.muts[0]!.mutation.id).toBe('cm-1')
   })
 
-  it('addPrepTodo writes a comment row that is already a task (FR-7.3)', () => {
-    createCommentActions(ctx).addPrepTodo(TRIP_ID, 'ti-1', AUTHOR, 'Akku laden')
+  it('addPrepTask writes a comment row that is already a task (FR-7.3)', () => {
+    createCommentActions(ctx).addPrepTask(TRIP_ID, 'ti-1', AUTHOR, 'Akku laden')
 
     expect(queued[0]!.muts[0]!.mutation.table).toBe(TABLE.comments)
     expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({
@@ -126,7 +126,7 @@ describe('createCommentActions without an orchestrator', () => {
     })
   })
 
-  it('resolvePrepTodo keeps the row a task while it changes its state', () => {
+  it('resolvePrepTask keeps the row a task while it changes its state', () => {
     pullIn(ctx.tripStore, TABLE.comments, 'td-1', {
       trip_id: TRIP_ID,
       trip_item_id: 'ti-1',
@@ -135,9 +135,9 @@ describe('createCommentActions without an orchestrator', () => {
       is_task: 1,
       task_state: 'open',
     })
-    const todo = ctx.tripStore.getItemTodos(TRIP_ID, 'ti-1')[0] as ItemTodo
+    const prepTask = ctx.tripStore.getRowPrepTasks(TRIP_ID, 'ti-1')[0] as PrepTask
 
-    createCommentActions(ctx).resolvePrepTodo(todo)
+    createCommentActions(ctx).resolvePrepTask(prepTask)
 
     expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ task_state: 'resolved' })
     expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({
@@ -148,8 +148,8 @@ describe('createCommentActions without an orchestrator', () => {
 
   // --- FR-7.4: the same row with no anchor ---
 
-  it('addTripTodo writes a task on the trip itself and files it as the trip’s', () => {
-    const id = createCommentActions(ctx).addTripTodo(TRIP_ID, AUTHOR, 'Pflanzen giessen')
+  it('addOwnTask writes a task on the trip itself and files it as the trip’s', () => {
+    const id = createCommentActions(ctx).addOwnTask(TRIP_ID, AUTHOR, 'Pflanzen giessen')
 
     expect(queued[0]!.type).toBe('trip')
     expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({
@@ -158,11 +158,11 @@ describe('createCommentActions without an orchestrator', () => {
       is_task: 1,
       task_state: 'open',
     })
-    expect(ctx.tripStore.getTripTodos(TRIP_ID).map((t) => t.id)).toEqual([id])
-    expect(ctx.tripStore.getTodos(TRIP_ID)).toEqual([])
+    expect(ctx.tripStore.getOwnTasks(TRIP_ID).map((t) => t.id)).toEqual([id])
+    expect(ctx.tripStore.getPrepTasks(TRIP_ID)).toEqual([])
   })
 
-  it('addTripTodo puts a task typed by hand past every task of the trip (FR-7.17)', () => {
+  it('addOwnTask puts a task typed by hand past every task of the trip (FR-7.17)', () => {
     pullIn(ctx.tripStore, TABLE.comments, 'tt-1', {
       trip_id: TRIP_ID,
       trip_item_id: null,
@@ -172,7 +172,7 @@ describe('createCommentActions without an orchestrator', () => {
       task_state: 'open',
       position: 4,
     })
-    createCommentActions(ctx).addTripTodo(TRIP_ID, AUTHOR, 'Visum')
+    createCommentActions(ctx).addOwnTask(TRIP_ID, AUTHOR, 'Visum')
     expect(queued.at(-1)!.muts[0]!.mutation.fields).toMatchObject({ body: 'Visum', position: 5 })
   })
 
@@ -185,13 +185,13 @@ describe('createCommentActions without an orchestrator', () => {
       is_task: 1,
       task_state: 'open',
     })
-    const todo = ctx.tripStore.getTripTodos(TRIP_ID)[0]!
-    createCommentActions(ctx).placeTask(todo, 2)
+    const ownTask = ctx.tripStore.getOwnTasks(TRIP_ID)[0]!
+    createCommentActions(ctx).placeTask(ownTask, 2)
     expect(queued.at(-1)!.muts[0]!.mutation.fields).toEqual({ position: 2 })
-    expect(ctx.tripStore.getTripTodos(TRIP_ID)[0]!.position).toBe(2)
+    expect(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!.position).toBe(2)
   })
 
-  it('resolveTripTodo keeps the anchor null, so the row stays the trip’s', () => {
+  it('resolveOwnTask keeps the anchor null, so the row stays the trip’s', () => {
     pullIn(ctx.tripStore, TABLE.comments, 'tt-1', {
       trip_id: TRIP_ID,
       trip_item_id: null,
@@ -200,22 +200,22 @@ describe('createCommentActions without an orchestrator', () => {
       is_task: 1,
       task_state: 'open',
     })
-    const todo = ctx.tripStore.getTripTodos(TRIP_ID)[0] as TripTodo
+    const ownTask = ctx.tripStore.getOwnTasks(TRIP_ID)[0] as OwnTask
 
-    createCommentActions(ctx).resolveTripTodo(todo)
+    createCommentActions(ctx).resolveOwnTask(ownTask)
 
     expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({
       trip_item_id: null,
       is_task: 1,
       task_state: 'resolved',
     })
-    expect(ctx.tripStore.getTripTodos(TRIP_ID).map((t) => t.task_state)).toEqual(['resolved'])
+    expect(ctx.tripStore.getOwnTasks(TRIP_ID).map((t) => t.task_state)).toEqual(['resolved'])
 
-    createCommentActions(ctx).reopenTripTodo(ctx.tripStore.getTripTodos(TRIP_ID)[0]!)
-    expect(ctx.tripStore.getTripTodos(TRIP_ID).map((t) => t.task_state)).toEqual(['open'])
+    createCommentActions(ctx).reopenOwnTask(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!)
+    expect(ctx.tripStore.getOwnTasks(TRIP_ID).map((t) => t.task_state)).toEqual(['open'])
   })
 
-  it('deleteTripTodo queues a tombstone and the todo leaves the list', () => {
+  it('deleteOwnTask queues a tombstone and the task leaves the list', () => {
     pullIn(ctx.tripStore, TABLE.comments, 'tt-1', {
       trip_id: TRIP_ID,
       trip_item_id: null,
@@ -225,13 +225,13 @@ describe('createCommentActions without an orchestrator', () => {
       task_state: 'open',
     })
 
-    createCommentActions(ctx).deleteTripTodo(ctx.tripStore.getTripTodos(TRIP_ID)[0]!)
+    createCommentActions(ctx).deleteOwnTask(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!)
 
     expect(queued[0]!.muts[0]!.mutation).toMatchObject({ op: 'delete', id: 'tt-1' })
-    expect(ctx.tripStore.getTripTodos(TRIP_ID)).toEqual([])
+    expect(ctx.tripStore.getOwnTasks(TRIP_ID)).toEqual([])
   })
 
-  it('assignTripTodo writes the assignment alone, and the todo stays the trip’s (FR-7.5)', () => {
+  it('assignOwnTask writes the assignment alone, and the task stays the trip’s (FR-7.5)', () => {
     pullIn(ctx.tripStore, TABLE.comments, 'tt-1', {
       trip_id: TRIP_ID,
       trip_item_id: null,
@@ -241,7 +241,7 @@ describe('createCommentActions without an orchestrator', () => {
       task_state: 'open',
     })
 
-    createCommentActions(ctx).assignTripTodo(ctx.tripStore.getTripTodos(TRIP_ID)[0]!, 'user-b')
+    createCommentActions(ctx).assignOwnTask(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!, 'user-b')
 
     // Only the one field travels: a body or a state riding along would
     // overwrite whatever another device wrote to them (ADR-022).
@@ -249,10 +249,10 @@ describe('createCommentActions without an orchestrator', () => {
     expect(mutation).toMatchObject({ op: 'upsert', id: 'tt-1' })
     expect(mutation.fields).toEqual({ assignee_user_id: 'user-b' })
     expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({ trip_item_id: null, is_task: 1 })
-    expect(ctx.tripStore.getTripTodos(TRIP_ID).map((t) => t.assignee_user_id)).toEqual(['user-b'])
+    expect(ctx.tripStore.getOwnTasks(TRIP_ID).map((t) => t.assignee_user_id)).toEqual(['user-b'])
 
-    createCommentActions(ctx).assignTripTodo(ctx.tripStore.getTripTodos(TRIP_ID)[0]!, null)
-    expect(ctx.tripStore.getTripTodos(TRIP_ID).map((t) => t.assignee_user_id)).toEqual([null])
+    createCommentActions(ctx).assignOwnTask(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!, null)
+    expect(ctx.tripStore.getOwnTasks(TRIP_ID).map((t) => t.assignee_user_id)).toEqual([null])
   })
 
   it('setTaskTag writes the tag alone, and takes it off again (FR-7.8)', () => {
@@ -266,7 +266,7 @@ describe('createCommentActions without an orchestrator', () => {
       phase: 'before',
     })
 
-    createCommentActions(ctx).setTaskTag(ctx.tripStore.getTripTodos(TRIP_ID)[0]!, 'tt-apo')
+    createCommentActions(ctx).setTaskTag(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!, 'tt-apo')
 
     const { mutation } = queued[0]!.muts[0]!
     expect(mutation).toMatchObject({ op: 'upsert', id: 'tt-1' })
@@ -284,10 +284,10 @@ describe('createCommentActions without an orchestrator', () => {
       phase: 'before',
       task_tag_id: 'tt-apo',
     })
-    expect(ctx.tripStore.getTripTodos(TRIP_ID).map((t) => t.task_tag_id)).toEqual(['tt-apo'])
+    expect(ctx.tripStore.getOwnTasks(TRIP_ID).map((t) => t.task_tag_id)).toEqual(['tt-apo'])
 
-    createCommentActions(ctx).setTaskTag(ctx.tripStore.getTripTodos(TRIP_ID)[0]!, null)
-    expect(ctx.tripStore.getTripTodos(TRIP_ID).map((t) => t.task_tag_id)).toEqual([null])
+    createCommentActions(ctx).setTaskTag(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!, null)
+    expect(ctx.tripStore.getOwnTasks(TRIP_ID).map((t) => t.task_tag_id)).toEqual([null])
   })
 
   it('setTaskDueDate writes the day alone, and takes it off again (FR-7.11)', () => {
@@ -303,7 +303,7 @@ describe('createCommentActions without an orchestrator', () => {
     })
 
     const actions = createCommentActions(ctx)
-    actions.setTaskDueDate(ctx.tripStore.getTripTodos(TRIP_ID)[0]!, '2026-07-09')
+    actions.setTaskDueDate(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!, '2026-07-09')
 
     const { mutation } = queued[0]!.muts[0]!
     expect(mutation).toMatchObject({ op: 'upsert', id: 'tt-1' })
@@ -315,10 +315,10 @@ describe('createCommentActions without an orchestrator', () => {
       task_tag_id: 'tt-amt',
       due_date: '2026-07-09',
     })
-    expect(ctx.tripStore.getTripTodos(TRIP_ID)[0]!.due_date).toBe('2026-07-09')
+    expect(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!.due_date).toBe('2026-07-09')
 
-    actions.setTaskDueDate(ctx.tripStore.getTripTodos(TRIP_ID)[0]!, null)
-    expect(ctx.tripStore.getTripTodos(TRIP_ID)[0]!.due_date).toBeNull()
+    actions.setTaskDueDate(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!, null)
+    expect(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!.due_date).toBeNull()
   })
 
   /*
@@ -336,12 +336,12 @@ describe('createCommentActions without an orchestrator', () => {
     })
 
     it('writes a new trip task for the road', () => {
-      createCommentActions(ctx).addTripTodo(TRIP_ID, AUTHOR, 'Post holen', 'before')
+      createCommentActions(ctx).addOwnTask(TRIP_ID, AUTHOR, 'Post holen', 'before')
       expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ phase: 'during' })
     })
 
     it('writes a new preparation for the road', () => {
-      createCommentActions(ctx).addPrepTodo(TRIP_ID, 'ti-1', AUTHOR, 'Akku laden')
+      createCommentActions(ctx).addPrepTask(TRIP_ID, 'ti-1', AUTHOR, 'Akku laden')
       expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ phase: 'during' })
     })
 
@@ -363,7 +363,7 @@ describe('createCommentActions without an orchestrator', () => {
     })
 
     it('leaves a task already asked for the road alone', () => {
-      createCommentActions(ctx).addTripTodo(TRIP_ID, AUTHOR, 'Karte kaufen', 'during')
+      createCommentActions(ctx).addOwnTask(TRIP_ID, AUTHOR, 'Karte kaufen', 'during')
       expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ phase: 'during' })
     })
   })
@@ -378,7 +378,7 @@ describe('createCommentActions without an orchestrator', () => {
       task_state: 'open',
     })
 
-    createCommentActions(ctx).setTaskTag(ctx.tripStore.getTodos(TRIP_ID)[0]!, 'tt-apo')
+    createCommentActions(ctx).setTaskTag(ctx.tripStore.getPrepTasks(TRIP_ID)[0]!, 'tt-apo')
 
     // The anchor survives: a preparation that lost its trip_item_id would
     // leave the packing row it belongs to and become the trip's own chore.
@@ -387,6 +387,6 @@ describe('createCommentActions without an orchestrator', () => {
       is_task: 1,
       task_tag_id: 'tt-apo',
     })
-    expect(ctx.tripStore.getTodos(TRIP_ID).map((t) => t.task_tag_id)).toEqual(['tt-apo'])
+    expect(ctx.tripStore.getPrepTasks(TRIP_ID).map((t) => t.task_tag_id)).toEqual(['tt-apo'])
   })
 })

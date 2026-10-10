@@ -14,7 +14,7 @@
  */
 import ItemMark from '@/components/items/ItemMark.vue'
 import { t } from '@/i18n'
-import type { TripTaskItem } from '@/domain/tripTodos'
+import type { TripTaskItem } from '@/domain/tripTasks'
 
 const props = defineProps<{
   /** The row this task prepares. */
