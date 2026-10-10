@@ -16,8 +16,7 @@ import type { MasterItemEdit } from '@/sync/mutations'
 import type { MasterItem, Tag } from '@/types/domain'
 
 /** The typed fields — an input shows text and hands text back. */
-export const ITEM_TEXT_FIELDS = ['name', 'weight', 'price'] as const
-export type ItemTextField = (typeof ITEM_TEXT_FIELDS)[number]
+export type ItemTextField = 'name' | 'weight' | 'price'
 
 /** One editor field set, in whichever mode the page is. */
 export interface ItemFieldPort {
