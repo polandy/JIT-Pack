@@ -4,12 +4,13 @@
  */
 
 import { TABLE } from '@/api/tables'
+import type { BrowseDecision } from '@/domain/browseRows'
 import { stateFor } from '@/domain/packState'
 import { clampQuantity } from '@/domain/quantityChoices'
 import { dbBool } from '@/sync/columns'
 import { newId } from '@/lib/ids'
 import type { Mutation } from '@/api/types'
-import { type Excursion, type ExcursionItem, STATE_SKIPPED } from '@/types/domain'
+import { type Excursion, type ExcursionItem, STATE_PACKED, STATE_SKIPPED } from '@/types/domain'
 import type { MutationContext } from './context'
 
 export function createExcursionsMutations({ make }: MutationContext) {
@@ -73,7 +74,11 @@ export function createExcursionsMutations({ make }: MutationContext) {
     return make('delete', TABLE.excursionTravelers, rowId)
   }
 
-  /** FR-31.4: one line of an excursion's list, open, with its link settled by the caller. */
+  /**
+   * FR-31.4: one line of an excursion's list, with its link settled by the
+   * caller — open, or with the browse sheet's decision already made
+   * (FR-25.13f): all of it in the rucksack, or skipped at an amount of zero.
+   */
   function addExcursionItem(
     tripId: string,
     excursionId: string,
@@ -89,9 +94,11 @@ export function createExcursionsMutations({ make }: MutationContext) {
       | 'not_in_luggage'
       | 'for_all_participants'
     >,
+    decided?: BrowseDecision,
   ): { mutation: Mutation; id: string } {
     const id = newId()
-    const quantity = clampQuantity(line.quantity)
+    const quantity = decided === STATE_SKIPPED ? 0 : clampQuantity(line.quantity)
+    const packedCount = decided === STATE_PACKED ? quantity : 0
     const mutation = make('insert', TABLE.excursionItems, id, {
       trip_id: tripId,
       excursion_id: excursionId,
@@ -101,8 +108,8 @@ export function createExcursionsMutations({ make }: MutationContext) {
       category_name: line.category_name,
       assigned_traveler_id: line.assigned_traveler_id,
       quantity,
-      packed_count: 0,
-      state: stateFor(0, quantity),
+      packed_count: packedCount,
+      state: stateFor(packedCount, quantity),
       mode: line.mode,
       bought_at: null,
       not_in_luggage: dbBool(line.not_in_luggage),

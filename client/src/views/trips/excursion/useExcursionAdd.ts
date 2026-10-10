@@ -8,7 +8,7 @@ import type { ComputedRef } from 'vue'
 
 import { presentToast } from '@/composables/shared/toast'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
-import type { BrowseAddition } from '@/domain/browseRows'
+import type { BrowseAddition, BrowseDecision } from '@/domain/browseRows'
 import { draftLinesFor, lineForOf, type LineFor } from '@/domain/excursionLines'
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
@@ -37,7 +37,7 @@ export function useExcursionAdd(target: ExcursionAddTarget) {
     return target.lines.value.filter((line) => line.source_item_id === itemId)
   }
 
-  function addFrom(item: BrowseAddition, lineFor: LineFor) {
+  function addFrom(item: BrowseAddition, lineFor: LineFor, decided?: BrowseDecision) {
     const written = orchestrator.excursions.addLines(
       tripId,
       excursionId,
@@ -55,6 +55,7 @@ export function useExcursionAdd(target: ExcursionAddTarget) {
         lineFor,
         participants.value,
       ),
+      decided,
     )
     if (item.sourceItemId) verbs.remember(item.sourceItemId, written.undo)
   }
@@ -133,7 +134,8 @@ export function useExcursionAdd(target: ExcursionAddTarget) {
 
   /** The browse sheet's adds, for `useBrowseVerbs`' `onBrowse`. */
   const browseAdds: BrowseAdds = {
-    add: (item) => onQuickAdd({ ...item, travelerIds: [] }),
+    // A sheet add answers *for whom* per line (FR-25.13g/h): a free line is shared.
+    add: (item, decided) => addFrom(item, { kind: 'shared' }, decided),
     addForAll: onQuickAddForAll,
     assign: onAssignForTravelers,
     spread: onSpread,

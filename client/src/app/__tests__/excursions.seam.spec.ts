@@ -540,6 +540,72 @@ describe('addGroupLines — FR-31.2 on an existing excursion', () => {
   })
 })
 
+describe('addLines with a decision — the browse sheet’s ✓ and ✕ (FR-25.13f)', () => {
+  function lamp() {
+    return {
+      source_item_id: 'item-lamp',
+      name: 'Stirnlampe',
+      category_name: null,
+      assigned_traveler_id: null,
+      quantity: 1,
+      mode: 'pack' as const,
+      for_all_participants: false,
+      weight_grams: null,
+      value_cents: null,
+      source_template_id: null,
+    }
+  }
+
+  function emptyExcursion(actions: ReturnType<typeof build>) {
+    return actions.createExcursion(TRIP_ID, {
+      name: 'H',
+      startsOn: null,
+      endsOn: null,
+      travelerIds: null,
+      templateId: null,
+    })!.excursionId
+  }
+
+  it('writes a packed line, linked into the suitcase like an open add', () => {
+    seedTrip()
+    const actions = build()
+    const excursionId = emptyExcursion(actions)
+
+    const written = actions.addLines(TRIP_ID, excursionId, [lamp()], 'packed')
+
+    const row = ctx.tripStore.getItems(TRIP_ID)[0]!
+    expect(row).toMatchObject({ name: 'Stirnlampe', state: 'open' })
+    expect(lines()[0]).toMatchObject({
+      trip_item_id: row.id,
+      quantity: 1,
+      packed_count: 1,
+      state: 'packed',
+    })
+
+    written.undo()
+
+    expect(lines()).toEqual([])
+    expect(ctx.tripStore.getItems(TRIP_ID)).toEqual([])
+  })
+
+  it('writes a skipped line at an amount of zero, and the suitcase gains nothing for it', () => {
+    seedTrip()
+    const actions = build()
+    const excursionId = emptyExcursion(actions)
+
+    actions.addLines(TRIP_ID, excursionId, [lamp()], 'skipped')
+
+    expect(ctx.tripStore.getItems(TRIP_ID)).toEqual([])
+    expect(lines()[0]).toMatchObject({
+      trip_item_id: null,
+      quantity: 0,
+      packed_count: 0,
+      state: 'skipped',
+      not_in_luggage: false,
+    })
+  })
+})
+
 describe('setForWhom — FR-31.5 from the line’s sheet', () => {
   it('makes a shared line one per participant, and undoes it as one', () => {
     seedTrip()

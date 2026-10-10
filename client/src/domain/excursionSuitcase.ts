@@ -131,6 +131,29 @@ export function planLinks(
   return { lines, suitcase }
 }
 
+/**
+ * planBorrowOnly settles the links of lines added *nicht einpacken* from the
+ * browse sheet (FR-25.13f): the suitcase gains nothing for a thing decided
+ * against — no row created, none raised, the way M4's skip-add pulls no
+ * companions. A line still borrows the row the suitcase already has, and is
+ * never *nicht im Gepäck*: it claims nothing to be missing.
+ */
+export function planBorrowOnly(
+  drafts: readonly DraftLine[],
+  tripItems: readonly TripItem[],
+): LinkPlan {
+  return {
+    lines: drafts.map((draft) => {
+      const row =
+        draft.mode === ITEM_MODE_BUY_LOCAL || isExcursionOnly(draft)
+          ? null
+          : suitcaseRowFor(draft, tripItems)
+      return { draft, link: row ? { existing: row.id } : null, not_in_luggage: false }
+    }),
+    suitcase: [],
+  }
+}
+
 /** A line as the draft it would be written from — to link one that exists. */
 export function draftOf(line: ExcursionItem): DraftLine {
   return {

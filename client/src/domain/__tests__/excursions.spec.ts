@@ -33,6 +33,7 @@ import {
   canJoinPackingList,
   excursionMenuEntries,
   inventoryItemFor,
+  planBorrowOnly,
   planLinks,
 } from '../excursionSuitcase'
 import type {
@@ -405,6 +406,35 @@ describe('planLinks — FR-31.4, FR-31.7', () => {
       [{ existing: 'ti-lamp' }, true],
       [null, true],
     ])
+  })
+})
+
+describe('planBorrowOnly — a line added nicht einpacken (FR-25.13f)', () => {
+  it('borrows the row the suitcase has, raises nothing, and creates nothing', () => {
+    const bottle = tripItem('ti-bottle', 'Trinkflasche', {
+      source_item_id: 'item-bottle',
+      quantity: 1,
+    })
+    const plan = planBorrowOnly(
+      [
+        draft('Trinkflasche', { source_item_id: 'item-bottle', quantity: 3 }),
+        draft('Stirnlampe', { source_item_id: 'item-lamp' }),
+      ],
+      [bottle],
+    )
+    expect(plan.suitcase).toEqual([])
+    expect(plan.lines.map((l) => [l.link, l.not_in_luggage])).toEqual([
+      [{ existing: 'ti-bottle' }, false],
+      [null, false],
+    ])
+  })
+
+  it('links no suitcase row to a vor-Ort line or one of the excursion alone', () => {
+    const plan = planBorrowOnly(
+      [draft('Proviant', { mode: 'buy_local' }), draft('Schokoriegel', { source_item_id: null })],
+      [tripItem('ti-food', 'Proviant'), tripItem('ti-bar', 'Schokoriegel')],
+    )
+    expect(plan.lines.map((l) => l.link)).toEqual([null, null])
   })
 })
 
