@@ -21,7 +21,7 @@
  * to happen, the action writes it, and the undo puts back exactly these rows.
  */
 import { stateFor } from './packState'
-import { taskPhaseOf } from './tripTodos'
+import { taskPhaseOf } from './tripTasks'
 
 import {
   ITEM_MODE_BUY_BEFORE,
@@ -31,16 +31,16 @@ import {
   TASK_PHASE_DURING,
   type TaskPhase,
   type TaskTag,
-  type ItemTodo,
+  type PrepTask,
   type TripItem,
-  type TripTodo,
+  type OwnTask,
 } from '@/types/domain'
 
 /**
  * A task as the close reads it — either kind (FR-7.3's preparation or
- * FR-7.4's trip todo), because both cross.
+ * FR-7.4's own task), because both cross.
  */
-export type ClosingTask = ItemTodo | TripTodo
+export type ClosingTask = PrepTask | OwnTask
 
 /** What closing the packing would do, and what the reader is owed first. */
 export interface ClosePackingPlan {
@@ -205,9 +205,9 @@ export function rowsCrossingToLocal(items: readonly TripItem[]): TripItem[] {
  * where the task came from, and a row's preparation is filed under its row
  * already (*Aus Packliste*, FR-7.6); moving it out would lose that.
  */
-export function tasksToFileAsCarried(crossing: readonly ClosingTask[]): TripTodo[] {
+export function tasksToFileAsCarried(crossing: readonly ClosingTask[]): OwnTask[] {
   return crossing.filter(
-    (task): task is TripTodo => !('trip_item_id' in task) && task.task_tag_id === null,
+    (task): task is OwnTask => !('trip_item_id' in task) && task.task_tag_id === null,
   )
 }
 

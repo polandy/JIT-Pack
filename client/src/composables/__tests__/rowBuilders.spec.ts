@@ -42,7 +42,7 @@ import type {
   DestinationProfile,
   ItemComment,
   ItemDependency,
-  ItemTodo,
+  PrepTask,
   MasterItem,
   NoteAck,
   Excursion,
@@ -521,7 +521,7 @@ const CASES: BuilderCase[] = [
     } satisfies Record<keyof TripMember, unknown>,
   },
   {
-    builder: 'todoRow',
+    builder: 'prepTaskRow',
     seed: () =>
       pullIn(useTripStore(), TABLE.comments, 'td-1', {
         trip_id: TRIP_ID,
@@ -529,12 +529,12 @@ const CASES: BuilderCase[] = [
         author_id: 'user-a',
         body: 'Zeltstangen prüfen',
         is_task: 1,
-        // Not `open`: `rowToTodo` falls back to it.
+        // Not `open`: `rowToPrepTask` falls back to it.
         task_state: 'resolved',
       }),
     read: () =>
       useTripStore()
-        .getTodos(TRIP_ID)
+        .getPrepTasks(TRIP_ID)
         .find((t) => t.id === 'td-1') as unknown as Record<string, unknown>,
     // Two entries and they defend the same four columns, because both
     // writers change `task_state` and nothing else — so `task_state` is the
@@ -543,7 +543,7 @@ const CASES: BuilderCase[] = [
     // column.
     acts: [
       {
-        act: (t) => newOrch().comments.reopenPrepTodo(t),
+        act: (t) => newOrch().comments.reopenPrepTask(t),
         changed: 'task_state',
         becomes: 'open',
         // FR-7.7: unticking clears the record with the state it described.
@@ -551,7 +551,7 @@ const CASES: BuilderCase[] = [
         also: { resolved_at: null },
       },
       {
-        act: (t) => newOrch().comments.resolvePrepTodo(t),
+        act: (t) => newOrch().comments.resolvePrepTask(t),
         changed: 'task_state',
         becomes: 'resolved',
         // FR-7.7: the tap's own moment, named by the client (FR-25.17's
@@ -577,7 +577,7 @@ const CASES: BuilderCase[] = [
       resolved_at: null,
       resolved_by_user_id: null,
       position: null,
-    } satisfies Record<keyof ItemTodo, unknown>,
+    } satisfies Record<keyof PrepTask, unknown>,
   },
   {
     builder: 'profileRow',
@@ -792,13 +792,13 @@ describe.each(CASES)('$builder', (testCase) => {
  * the case.
  *
  * Its one writer is `flagCommentAsTask`, which promotes the row from comment
- * to todo (FR-7.2) — the store moves it between two maps, so it cannot be
- * read back as the entity the seed produced. What can be read is the todo,
- * and every column `ItemTodo` names has to have survived the promotion.
+ * to preparation (FR-7.2) — the store moves it between two maps, so it cannot be
+ * read back as the entity the seed produced. What can be read is the preparation,
+ * and every column `PrepTask` names has to have survived the promotion.
  *
  * One of its columns is unreachable, and not by oversight: `is_task: 0`. The
  * only writer sets it to 1, so dropping the constant changes nothing today.
- * `todoRow`'s `is_task: 1` *is* defended, because resolve and reopen both
+ * `prepTaskRow`'s `is_task: 1` *is* defended, because resolve and reopen both
  * rebuild a row that has to stay a task. The asymmetry is worth knowing: a
  * hard-coded column is only as defended as the writer that contradicts it.
  *
@@ -839,14 +839,14 @@ describe('commentRow', () => {
     expect(useTripStore().getItemComments(TRIP_ID, 'ti-1')).toEqual([expected])
   })
 
-  it('promoting the comment to a task keeps every column the todo can show', () => {
+  it('promoting the comment to a task keeps every column the preparation can show', () => {
     seedComment()
     const comment = useTripStore().getItemComments(TRIP_ID, 'ti-1')[0]!
 
     newOrch().comments.flagCommentAsTask(TRIP_ID, comment)
 
     expect(useTripStore().getItemComments(TRIP_ID, 'ti-1')).toEqual([])
-    expect(useTripStore().getTodos(TRIP_ID)).toEqual([
+    expect(useTripStore().getPrepTasks(TRIP_ID)).toEqual([
       {
         id: COMMENT_ID,
         trip_id: TRIP_ID,
@@ -867,7 +867,7 @@ describe('commentRow', () => {
         resolved_at: null,
         resolved_by_user_id: null,
         position: null,
-      } satisfies Record<keyof ItemTodo, unknown>,
+      } satisfies Record<keyof PrepTask, unknown>,
     ])
   })
 })

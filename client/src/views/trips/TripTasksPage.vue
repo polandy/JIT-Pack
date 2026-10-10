@@ -54,7 +54,7 @@ import TaskComposer from '@/views/trips/tasks/TaskComposer.vue'
 import TaskPhaseSection from '@/views/trips/tasks/TaskPhaseSection.vue'
 import TaskTagChooser from '@/views/trips/tasks/TaskTagChooser.vue'
 import TripTaskSheet from '@/views/trips/tasks/TripTaskSheet.vue'
-import TripTodoList from '@/views/trips/tasks/TripTodoList.vue'
+import TripTaskList from '@/views/trips/tasks/TripTaskList.vue'
 import { setHeaderActions } from '@/composables/shared/useHeaderActions'
 import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
@@ -78,7 +78,7 @@ import {
   tasksToMove,
   type TaskGroup,
   type TripTask,
-} from '@/domain/tripTodos'
+} from '@/domain/tripTasks'
 import { useDragToGroup, type DropPlace } from '@/composables/shared/useDragToGroup'
 import { usePhasedShelves } from '@/composables/shared/usePhasedShelves'
 import { useMasterStore } from '@/stores/masterStore'
@@ -524,7 +524,7 @@ function onSheetRemove() {
           :count="board.due.length"
           testid="m25-due"
         >
-          <TripTodoList
+          <TripTaskList
             :trip-id="tripId"
             :tasks="board.due"
             :assignable="assignable"

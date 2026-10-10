@@ -70,7 +70,7 @@ import { composeModules, provideComposition } from '@/kernel/moduleContribution'
 import { kernelPorts } from '@/kernel/kernelPorts'
 import { FEATURE_MODULES } from '@/featureModules'
 import { defaultNowMs } from '@/lib/clock'
-import { tripTodoProgress } from '@/domain/tripTodos'
+import { tripTaskProgress } from '@/domain/tripTasks'
 import { useTripTasks } from '@/composables/useTripTasks'
 import { LIVE_LOCATION, browserGeo, createLiveLocation } from '@/composables/shared/useLiveLocation'
 import { useTripStore } from '@/stores/tripStore'
@@ -252,7 +252,7 @@ if (orchestrator && composition) {
     // Without a planner there is no plan to open on.
     dayPlanEmpty: composition.dayPlanEmpty ?? (() => true),
     shoppingOpen: composition.viewCounts.shopping ?? (() => 0),
-    tasksOpen: (tripId) => tripTodoProgress(useTripTasks().tasksOf(tripId)).open,
+    tasksOpen: (tripId) => tripTaskProgress(useTripTasks().tasksOf(tripId)).open,
   })
 }
 /** Components the modules mount once, beside the outlet. */

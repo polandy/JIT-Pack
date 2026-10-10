@@ -517,7 +517,7 @@ describe('the composition travels with the file (FR-27.1/27.7, ADR-017)', () => 
     ).doc
     expect(template?.trip_tasks).toEqual(['Pflanzen giessen', 'Post'])
 
-    // A trip's own todos are not in the format; a key on one is ignored
+    // A trip's own tasks are not in the format; a key on one is ignored
     // rather than read as something the restore would have to place.
     const trip = parsePortable(
       'kind: trip\nname: Samedan\nyear: 2026\ntrip_tasks: [Post]\nitems: []\n',

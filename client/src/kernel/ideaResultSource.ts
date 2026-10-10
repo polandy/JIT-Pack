@@ -11,12 +11,12 @@ import {
   type IdeaResultSource,
 } from '@/domain/shared/ideaBridge'
 import { tripExcursionsPath, tripSubPath } from '@/router/paths'
-import type { Excursion, TripTodo } from '@/types/domain'
+import type { Excursion, OwnTask } from '@/types/domain'
 
 /** What the source reads — the trip store's excursions and trip tasks. */
 export interface IdeaResultReads {
   getExcursions(tripId: string): Excursion[]
-  getTripTodos(tripId: string): TripTodo[]
+  getOwnTasks(tripId: string): OwnTask[]
 }
 
 export function createIdeaResultSource(reads: IdeaResultReads): IdeaResultSource {
@@ -33,7 +33,7 @@ export function createIdeaResultSource(reads: IdeaResultReads): IdeaResultSource
           path: tripExcursionsPath(tripId, excursion.id),
         }))
       const tasks = reads
-        .getTripTodos(tripId)
+        .getOwnTasks(tripId)
         .filter((task) => task.idea_id === ideaId)
         .map((task) => ({
           key: `task:${task.id}`,

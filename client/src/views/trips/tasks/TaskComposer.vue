@@ -90,7 +90,7 @@ function toggleTag(id: string) {
 }
 
 function write(body: string, filing: { taskTagId: string | null; dueDate: string | null }) {
-  const id = orchestrator.comments.addTripTodo(
+  const id = orchestrator.comments.addOwnTask(
     props.tripId,
     CLIENT_ACTOR_PLACEHOLDER,
     body,

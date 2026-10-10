@@ -15,9 +15,9 @@ import type { Page } from '@playwright/test'
 import { PATH } from './routes'
 import { createItem } from './helpers/m9'
 import {
-  addPrepTodo,
+  addPrepTask,
   addTripNote,
-  addTripTodo,
+  addOwnTask,
   openNotes,
   openTasks,
   openThread,
@@ -295,9 +295,9 @@ test('E2E-VIS-13: visual: M25 a trip’s tasks @local @visual', async ({ page, s
   await freeze(page)
   await seedMode({ mode: 'local' })
   await packingList(page, ['Kulturbeutel', 'Zelt'])
-  await addPrepTodo(page, 'Kulturbeutel', 'Salbe in der Apotheke holen')
-  await addTripTodo(page, 'Pflanzen giessen')
-  await addTripTodo(page, 'Am Bahnhof die Zugverbindung abklären', 'during')
+  await addPrepTask(page, 'Kulturbeutel', 'Salbe in der Apotheke holen')
+  await addOwnTask(page, 'Pflanzen giessen')
+  await addOwnTask(page, 'Am Bahnhof die Zugverbindung abklären', 'during')
   await openTasks(page, 'before')
   // FR-7.8: one task carries a tag, so the baseline shows all three kinds of
   // heading — a tag, what came from the packing list, and what has none.

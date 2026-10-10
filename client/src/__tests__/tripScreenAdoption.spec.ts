@@ -37,7 +37,7 @@ const NOT_TRIP_PARTITION: Record<string, string> = {
   'src/views/trips/packing/PackingGroupList.vue':
     'M4’s list body, rendered by `PackingListPage` and `TripExcursionPage`, each of which loads the partition for it',
   'src/views/trips/packing/PackingHeadline.vue': PART_OF_M4,
-  'src/views/trips/packing/TripTodosSection.vue': PART_OF_M4,
+  'src/views/trips/packing/TripTasksSection.vue': PART_OF_M4,
   'src/views/trips/tasks/TaskComposer.vue': PART_OF_M25,
   'src/views/trips/tasks/TaskPhaseSection.vue': PART_OF_M25,
   'src/views/trips/TripMembersPage.vue':

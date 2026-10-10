@@ -20,8 +20,8 @@ function trips(overrides: Partial<KernelTripReads> = {}): KernelTripReads {
     getExcursions: () => [],
     getExcursionItems: () => [],
     getExcursionTravelers: () => [],
-    getTripTodos: () => [],
-    getItemTodos: () => [],
+    getOwnTasks: () => [],
+    getRowPrepTasks: () => [],
     getTripComments: () => [],
     getNoteAcks: () => [],
     ...overrides,
@@ -37,10 +37,10 @@ function deps(reads: KernelTripReads): KernelPortDeps {
     packing: { buyItem: vi.fn(), unbuyItem: vi.fn(), placeOnShopping: vi.fn() },
     excursions: { markBought: vi.fn(), placeLineOnShopping: vi.fn() },
     comments: {
-      resolveTripTodo: vi.fn(),
-      reopenTripTodo: vi.fn(),
-      resolvePrepTodo: vi.fn(),
-      reopenPrepTodo: vi.fn(),
+      resolveOwnTask: vi.fn(),
+      reopenOwnTask: vi.fn(),
+      resolvePrepTask: vi.fn(),
+      reopenPrepTask: vi.fn(),
     },
   }
 }

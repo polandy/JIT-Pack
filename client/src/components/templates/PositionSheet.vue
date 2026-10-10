@@ -195,7 +195,7 @@ function removeTask(taskId: string) {
       </div>
     </section>
 
-    <!-- FR-27.7: each task becomes an FR-7.3 todo on the generated trip item. -->
+    <!-- FR-27.7: each task becomes an FR-7.3 preparation on the generated trip item. -->
     <section class="sec">
       <h2 class="sl">
         {{ t('templates.prepSection') }}
@@ -231,7 +231,7 @@ function removeTask(taskId: string) {
       @click="detailsOpen = !detailsOpen"
     >
       <IonIcon :icon="chevronForwardOutline" class="caret" />
-      <span class="details-label">{{ t('item.details') }}</span>
+      <span class="details-label">{{ t('row.details') }}</span>
       <span v-if="!detailsOpen" class="details-hint">{{ t('templates.detailsHint') }}</span>
     </button>
 

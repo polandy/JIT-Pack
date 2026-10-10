@@ -23,15 +23,15 @@ export interface TaskFiling {
 }
 
 export function createTasksMutations({ make, nowIso }: MutationContext) {
-  // --- Preparation todo mutations (FR-7.3) ---
+  // --- Task mutations, either kind (FR-7.3/FR-7.4) ---
   //
   // See CLIENT_ACTOR_PLACEHOLDER for what callers pass as the author.
 
   /**
-   * addTodo creates an open task: on a row (FR-7.3) when `tripItemId` names
+   * addTask creates an open task: on a row (FR-7.3) when `tripItemId` names
    * one, on the trip itself (FR-7.4) when it is null.
    */
-  function addTodo(
+  function addTask(
     tripId: string,
     tripItemId: string | null,
     authorId: string,
@@ -79,16 +79,16 @@ export function createTasksMutations({ make, nowIso }: MutationContext) {
    * (invariant 3), which is why nothing here names one: in Local Mode there
    * is nobody to name, and the line then says when without saying who (G-8).
    */
-  function resolveTodo(todoId: string): Mutation {
-    return make('upsert', TABLE.comments, todoId, {
+  function resolveTask(taskId: string): Mutation {
+    return make('upsert', TABLE.comments, taskId, {
       task_state: 'resolved',
       resolved_at: nowIso(),
     })
   }
 
   /** Unticking clears the record with the state it described. */
-  function reopenTodo(todoId: string): Mutation {
-    return make('upsert', TABLE.comments, todoId, {
+  function reopenTask(taskId: string): Mutation {
+    return make('upsert', TABLE.comments, taskId, {
       task_state: 'open',
       resolved_at: null,
     })
@@ -100,22 +100,22 @@ export function createTasksMutations({ make, nowIso }: MutationContext) {
    * that changes about it: it is the same task, still open, still whosever it
    * was, and it keeps the day it was written.
    */
-  function setTaskPhase(todoId: string, phase: TaskPhase | null): Mutation {
-    return make('upsert', TABLE.comments, todoId, { phase })
+  function setTaskPhase(taskId: string, phase: TaskPhase | null): Mutation {
+    return make('upsert', TABLE.comments, taskId, { phase })
   }
 
-  function deleteTodo(todoId: string): Mutation {
-    return make('delete', TABLE.comments, todoId)
+  function deleteTask(taskId: string): Mutation {
+    return make('delete', TABLE.comments, taskId)
   }
 
   /**
-   * setTodoAssignee hands a task to somebody, or back to everybody (FR-7.5)
+   * setTaskAssignee hands a task to somebody, or back to everybody (FR-7.5)
    * — `setPacker`'s counterpart, and like it the client's to choose; the
    * server turns it into the FR-6.2 delegation notification. Since FR-7.7 it
    * reaches both kinds of task: a preparation can be somebody's job too.
    */
-  function setTodoAssignee(todoId: string, userId: string | null): Mutation {
-    return make('upsert', TABLE.comments, todoId, { assignee_user_id: userId })
+  function setTaskAssignee(taskId: string, userId: string | null): Mutation {
+    return make('upsert', TABLE.comments, taskId, { assignee_user_id: userId })
   }
 
   // --- Task tag mutations (FR-7.8) ---
@@ -143,8 +143,8 @@ export function createTasksMutations({ make, nowIso }: MutationContext) {
    * One field, because that is the only thing that changes: the task keeps
    * its words, its phase, its assignee and the day it was written.
    */
-  function setTaskTag(todoId: string, taskTagId: string | null): Mutation {
-    return make('upsert', TABLE.comments, todoId, { task_tag_id: taskTagId })
+  function setTaskTag(taskId: string, taskTagId: string | null): Mutation {
+    return make('upsert', TABLE.comments, taskId, { task_tag_id: taskTagId })
   }
 
   /**
@@ -152,16 +152,16 @@ export function createTasksMutations({ make, nowIso }: MutationContext) {
    * field, like the tag: a date set on one device and a tag on another
    * both stand (NFR-4.2a).
    */
-  function setTaskDueDate(todoId: string, dueDate: string | null): Mutation {
-    return make('upsert', TABLE.comments, todoId, { due_date: dueDate })
+  function setTaskDueDate(taskId: string, dueDate: string | null): Mutation {
+    return make('upsert', TABLE.comments, taskId, { due_date: dueDate })
   }
 
   /**
    * FR-7.17: where the task stands inside its group, by hand (ADR-083). One
    * field, so a move on one device and a retag on another both stand.
    */
-  function placeTask(todoId: string, position: number): Mutation {
-    return make('upsert', TABLE.comments, todoId, { position })
+  function placeTask(taskId: string, position: number): Mutation {
+    return make('upsert', TABLE.comments, taskId, { position })
   }
 
   /**
@@ -171,17 +171,17 @@ export function createTasksMutations({ make, nowIso }: MutationContext) {
    * signed entry, so any member may reword it — the server's author rule
    * reaches notes only.
    */
-  function setTaskBody(todoId: string, body: string): Mutation {
-    return make('upsert', TABLE.comments, todoId, { body })
+  function setTaskBody(taskId: string, body: string): Mutation {
+    return make('upsert', TABLE.comments, taskId, { body })
   }
 
   return {
-    addTodo,
-    resolveTodo,
-    reopenTodo,
+    addTask,
+    resolveTask,
+    reopenTask,
     setTaskPhase,
-    deleteTodo,
-    setTodoAssignee,
+    deleteTask,
+    setTaskAssignee,
     createTaskTag,
     setTaskTag,
     setTaskDueDate,

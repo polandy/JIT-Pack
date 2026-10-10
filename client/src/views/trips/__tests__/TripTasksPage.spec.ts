@@ -9,7 +9,7 @@
  * where there is anybody to be.
  *
  * The rules themselves are pure and tested without a screen
- * (`domain/__tests__/tripTodos.spec.ts`, `lib/__tests__/taskFacts.spec.ts`).
+ * (`domain/__tests__/tripTasks.spec.ts`, `lib/__tests__/taskFacts.spec.ts`).
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import { IonInput, IonSearchbar } from '@ionic/vue'
@@ -75,14 +75,14 @@ const people = [
 const acts = {
   comments: {
     setTaskTag: vi.fn(),
-    addTripTodo: vi.fn(() => 'new-task'),
-    deleteTripTodo: vi.fn(),
-    resolveTripTodo: vi.fn(),
-    reopenTripTodo: vi.fn(),
-    resolvePrepTodo: vi.fn(),
-    reopenPrepTodo: vi.fn(),
-    assignTripTodo: vi.fn(),
-    assignPrepTodo: vi.fn(),
+    addOwnTask: vi.fn(() => 'new-task'),
+    deleteOwnTask: vi.fn(),
+    resolveOwnTask: vi.fn(),
+    reopenOwnTask: vi.fn(),
+    resolvePrepTask: vi.fn(),
+    reopenPrepTask: vi.fn(),
+    assignOwnTask: vi.fn(),
+    assignPrepTask: vi.fn(),
     setTaskPhase: vi.fn(),
     setTaskDueDate: vi.fn(),
     setTaskBody: vi.fn(),
@@ -254,7 +254,7 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
       ])
 
       await composer.get('form').trigger('submit')
-      expect(acts.comments.addTripTodo).toHaveBeenLastCalledWith(
+      expect(acts.comments.addOwnTask).toHaveBeenLastCalledWith(
         't1',
         expect.any(String),
         body,
@@ -269,7 +269,7 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
       // The next task is the list's own again.
       await composer.findComponent(IonInput).setValue('Tanken')
       await composer.get('form').trigger('submit')
-      expect(acts.comments.addTripTodo).toHaveBeenLastCalledWith(
+      expect(acts.comments.addOwnTask).toHaveBeenLastCalledWith(
         't1',
         expect.any(String),
         'Tanken',
@@ -294,7 +294,7 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
     await composer.findComponent(IonInput).setValue('Zugverbindung abklären')
     await composer.get('form').trigger('submit')
 
-    expect(acts.comments.addTripTodo).toHaveBeenCalledWith(
+    expect(acts.comments.addOwnTask).toHaveBeenCalledWith(
       't1',
       expect.any(String),
       'Zugverbindung abklären',
@@ -315,7 +315,7 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
     await composer.get('[data-testid="due-chip-today"]').trigger('click')
     await composer.get('form').trigger('submit')
 
-    expect(acts.comments.addTripTodo).toHaveBeenLastCalledWith(
+    expect(acts.comments.addOwnTask).toHaveBeenLastCalledWith(
       't1',
       expect.any(String),
       'Salbe holen',
@@ -325,7 +325,7 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
     // The tag stays chosen for the next task of the same errand; the day does not.
     await composer.findComponent(IonInput).setValue('Rezept abholen')
     await composer.get('form').trigger('submit')
-    expect(acts.comments.addTripTodo).toHaveBeenLastCalledWith(
+    expect(acts.comments.addOwnTask).toHaveBeenLastCalledWith(
       't1',
       expect.any(String),
       'Rezept abholen',
@@ -382,7 +382,7 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
     await composer.get('[data-testid="m25-entry-confirm"]').trigger('click')
     await flushPromises()
 
-    expect(acts.comments.addTripTodo).toHaveBeenLastCalledWith(
+    expect(acts.comments.addOwnTask).toHaveBeenLastCalledWith(
       't1',
       expect.any(String),
       'Salbe holen',
@@ -432,7 +432,7 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
       page.find('[data-testid="m25-during"] [data-testid="trip-todos-resolved"]').exists(),
     ).toBe(false)
     await page.get('[data-testid="trip-todo-Zug abklären"] ion-checkbox').trigger('ionChange')
-    expect(acts.comments.reopenTripTodo).toHaveBeenCalledTimes(1)
+    expect(acts.comments.reopenOwnTask).toHaveBeenCalledTimes(1)
   })
 
   /*
@@ -515,7 +515,7 @@ describe('M25 — the sheet in the order acts are wanted (FR-7.14)', () => {
     await page.get('[data-testid="task-sheet-done"]').trigger('click')
     await flushPromises()
 
-    expect(acts.comments.resolveTripTodo).toHaveBeenCalledWith(
+    expect(acts.comments.resolveOwnTask).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'Pass holen' }),
     )
     expect(page.find('[data-testid="task-sheet"]').exists()).toBe(false)
@@ -642,7 +642,7 @@ describe('M25 — whose task it is (FR-7.5/FR-7.7)', () => {
     picked = undefined
     await before.get('[data-testid="trip-todo-assign-Salbe holen"]').trigger('click')
     await flushPromises()
-    expect(acts.comments.assignTripTodo).not.toHaveBeenCalled()
+    expect(acts.comments.assignOwnTask).not.toHaveBeenCalled()
     // … and the tick's undo is still the one on offer, untouched.
     expect(undo.pending.value.map((record) => record.name)).toEqual(['Salbe holen'])
 
@@ -652,7 +652,7 @@ describe('M25 — whose task it is (FR-7.5/FR-7.7)', () => {
     picked = 'u-sia'
     await before.get('[data-testid="trip-todo-assign-Salbe holen"]').trigger('click')
     await flushPromises()
-    expect(acts.comments.assignTripTodo).toHaveBeenCalledTimes(1)
+    expect(acts.comments.assignOwnTask).toHaveBeenCalledTimes(1)
   })
 
   /*
@@ -673,7 +673,7 @@ describe('M25 — whose task it is (FR-7.5/FR-7.7)', () => {
 
 /**
  * FR-7.8: one tag per task, and the headings it makes. The rule itself is
- * pure (`domain/__tests__/tripTodos.spec.ts`); what is pinned here is the
+ * pure (`domain/__tests__/tripTasks.spec.ts`); what is pinned here is the
  * screen's half — that the groups are rendered as drop targets, that the
  * sheet writes the tag, and that a movement is **one** undo.
  */
@@ -947,13 +947,13 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
     await page.get('[data-testid="m25-bulk-done"]').trigger('click')
     await flushPromises()
 
-    expect(acts.comments.resolveTripTodo).toHaveBeenCalledTimes(1)
-    expect(acts.comments.resolvePrepTodo).toHaveBeenCalledTimes(1)
+    expect(acts.comments.resolveOwnTask).toHaveBeenCalledTimes(1)
+    expect(acts.comments.resolvePrepTask).toHaveBeenCalledTimes(1)
     expect(barSelection()).toBeNull()
     ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
     // The store still reads them open (the stub wrote nothing), so the undo
     // has nothing to reopen — it must not reopen anything else either.
-    expect(acts.comments.reopenTripTodo).not.toHaveBeenCalled()
+    expect(acts.comments.reopenOwnTask).not.toHaveBeenCalled()
   })
 
   it('dates the whole selection from one sheet of chips (FR-7.14)', async () => {
@@ -990,18 +990,18 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
     await page.get('[data-testid="m25-bulk-assign"]').trigger('click')
     await flushPromises()
 
-    expect(acts.comments.assignTripTodo).toHaveBeenCalledTimes(1)
-    expect(acts.comments.assignTripTodo.mock.calls[0]![0]).toMatchObject({ body: 'Salbe holen' })
-    expect(acts.comments.assignTripTodo.mock.calls[0]![1]).toBe('u-sia')
+    expect(acts.comments.assignOwnTask).toHaveBeenCalledTimes(1)
+    expect(acts.comments.assignOwnTask.mock.calls[0]![0]).toMatchObject({ body: 'Salbe holen' })
+    expect(acts.comments.assignOwnTask.mock.calls[0]![1]).toBe('u-sia')
     expect(barSelection()).toBeNull()
 
     // A dismissed picker keeps the selection and writes nothing.
-    acts.comments.assignTripTodo.mockClear()
+    acts.comments.assignOwnTask.mockClear()
     await page.get('[data-testid="trip-todo-Salbe holen"] ion-label').trigger('contextmenu')
     picked = undefined
     await page.get('[data-testid="m25-bulk-assign"]').trigger('click')
     await flushPromises()
-    expect(acts.comments.assignTripTodo).not.toHaveBeenCalled()
+    expect(acts.comments.assignOwnTask).not.toHaveBeenCalled()
     expect(barSelection()).not.toBeNull()
   })
 
@@ -1039,7 +1039,7 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
     // Hidden at once, deleted when the undo lapses — and one undo brings both back.
     expect(page.find('[data-testid="trip-todo-Salbe holen"]').exists()).toBe(false)
     expect(page.find('[data-testid="trip-todo-Pass holen"]').exists()).toBe(false)
-    expect(acts.comments.deleteTripTodo).not.toHaveBeenCalled()
+    expect(acts.comments.deleteOwnTask).not.toHaveBeenCalled()
     ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
     await flushPromises()
     expect(page.find('[data-testid="trip-todo-Salbe holen"]').exists()).toBe(true)
@@ -1225,7 +1225,7 @@ describe('M25 — the composer writes for the road once the trip has begun (FR-7
     const composer = page.findComponent(TaskComposer)
     await composer.findComponent(IonInput).setValue('Maut zahlen')
     await composer.get('form').trigger('submit')
-    expect(acts.comments.addTripTodo).toHaveBeenLastCalledWith(
+    expect(acts.comments.addOwnTask).toHaveBeenLastCalledWith(
       't1',
       expect.any(String),
       'Maut zahlen',

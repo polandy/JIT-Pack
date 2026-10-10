@@ -59,12 +59,12 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
   /**
    * Rows whose confirmed removal is still inside the snackbar's undo (FR-25.31).
    * They leave the screen at once and the trip only when the undo lapses — the
-   * row, its comments and its todos are never deleted and re-created, so the
+   * row, its comments and its preparations are never deleted and re-created, so the
    * undo cannot resurrect a note under the wrong author (invariant 3).
    */
   const removingRows = ref(new Set<string>())
   /** The same for the trip's own tasks (FR-7.4). */
-  const removingTodos = ref(new Set<string>())
+  const removingOwn = ref(new Set<string>())
 
   const allItems = computed(() =>
     tripStore.getItems(tripId).filter((row) => !removingRows.value.has(row.id)),
@@ -106,12 +106,12 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
   })
 
   /**
-   * FR-7.5: who a trip todo can be handed to — every member, *me included*.
+   * FR-7.5: who the trip's own task can be handed to — every member, *me included*.
    * A row leaves me out because an unassigned row is already mine to see
-   * (FR-25.20); a todo has no such filter, and „I'll do it" is the most
+   * (FR-25.20); the trip's own task has no such filter, and „I'll do it" is the most
    * common thing a household says about one.
    */
-  const todoAssignees = computed(() => {
+  const ownTaskAssignees = computed(() => {
     const members = new Set(tripStore.getMembers(tripId).map((m) => m.user_id))
     return participants.value.filter((person) => members.has(person.user_id))
   })
@@ -202,7 +202,7 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
     loadIdentity,
     closingPass,
     removingRows,
-    removingTodos,
+    removingOwn,
     allItems,
     travelers,
     active,
@@ -212,7 +212,7 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
     rowsOf,
     liveRow,
     assignableMembers,
-    todoAssignees,
+    ownTaskAssignees,
     pickAssignee,
     ...announcer,
     actUndoably,

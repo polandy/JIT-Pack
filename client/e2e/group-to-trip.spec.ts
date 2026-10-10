@@ -10,7 +10,7 @@ import {
   visiblePage as visible,
 } from './fixtures'
 import type { Page } from '@playwright/test'
-import { openTripTodos } from './helpers/m4'
+import { openTripTasks } from './helpers/m4'
 import { PATH } from './routes'
 
 /**
@@ -100,7 +100,7 @@ test.describe('FR-27.10 — adding a whole group to a running trip', () => {
     // The result is reported, never silent.
     await expect(page.locator('ion-toast')).toContainText('Group “Makro” added — 2 positions')
 
-    // FR-27.7: the position's task arrives as an ordinary FR-7.3 prep todo on
+    // FR-27.7: the position's task arrives as an ordinary FR-7.3 preparation on
     // the row it was generated for, and blocks it like a hand-added one. Under
     // FR-7.6 it is a task of the trip like any other: counted in the header
     // figure, listed in the one section, and naming its row on the line
@@ -108,7 +108,7 @@ test.describe('FR-27.10 — adding a whole group to a running trip', () => {
     await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText(
       'While packing 0/1',
     )
-    const tasks = await openTripTodos(page)
+    const tasks = await openTripTasks(page)
     await expect(tasks.getByTestId('trip-todo-Akkus laden')).toBeVisible()
     await expect(tasks.getByTestId('task-item-Kamera')).toBeVisible()
 

@@ -29,7 +29,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { KERNEL_TABLE_SPECS, todoCodec, tripTodoCodec } from '../tableRegistry'
+import { KERNEL_TABLE_SPECS, prepTaskCodec, ownTaskCodec } from '../tableRegistry'
 import { ALL_ROW_SPECS, CODEC_SOURCES } from '@/__tests__/rowSpecs'
 import { TABLE, TABLE_COLUMNS, type SyncTable } from '@/api/tables'
 
@@ -111,19 +111,19 @@ const PAIRS: Array<{ table: SyncTable; parse: string; encode: string; encodeOnly
   { table: TABLE.tripItems, parse: 'rowToTripItem', encode: 'itemRow' },
   { table: TABLE.travelers, parse: 'rowToTraveler', encode: 'travelerRow' },
   { table: TABLE.containers, parse: 'rowToContainer', encode: 'containerRow' },
-  // FR-7.2: `comments` is read three ways — a note, an item todo, a trip
-  // todo — and `is_task` is the column the *store* routes on, before any
-  // parser runs, so every builder writes it and none reads it. The two
-  // todo codecs are not in `KERNEL_TABLE_SPECS` (it is keyed by table), so they are
-  // named here by hand.
+  // FR-7.2: `comments` is read three ways — a note, a preparation, the
+  // trip's own task — and `is_task` is the column the *store* routes on,
+  // before any parser runs, so every builder writes it and none reads it.
+  // The two task codecs are not in `KERNEL_TABLE_SPECS` (it is keyed by
+  // table), so they are named here by hand.
   { table: TABLE.comments, parse: 'rowToComment', encode: 'commentRow', encodeOnly: ['is_task'] },
-  { table: TABLE.comments, parse: 'rowToTodo', encode: 'todoRow', encodeOnly: ['is_task'] },
-  // FR-7.4: a trip todo has no anchor by definition — the builder writes
+  { table: TABLE.comments, parse: 'rowToPrepTask', encode: 'prepTaskRow', encodeOnly: ['is_task'] },
+  // FR-7.4: the trip's own task has no anchor by definition — the builder writes
   // the null `trip_item_id` and the parser has nothing to read from it.
   {
     table: TABLE.comments,
-    parse: 'rowToTripTodo',
-    encode: 'tripTodoRow',
+    parse: 'rowToOwnTask',
+    encode: 'ownTaskRow',
     encodeOnly: ['trip_item_id', 'is_task'],
   },
   { table: TABLE.noteAcks, parse: 'rowToNoteAck', encode: 'noteAckRow' },
@@ -211,9 +211,9 @@ describe('the registry covers the wire', () => {
     expect(encoded).toEqual([...new Set(PAIRS.map((p) => p.table))].sort())
   })
 
-  it('names the todo codecs of comments by the functions they hold', () => {
+  it('names the task codecs of comments by the functions they hold', () => {
     const named = PAIRS.filter((p) => p.table === TABLE.comments).map((p) => [p.parse, p.encode])
-    for (const codec of [KERNEL_TABLE_SPECS[TABLE.comments], todoCodec, tripTodoCodec]) {
+    for (const codec of [KERNEL_TABLE_SPECS[TABLE.comments], prepTaskCodec, ownTaskCodec]) {
       expect(named).toContainEqual([codec.parse.name, codec.encode?.name])
     }
   })

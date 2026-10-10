@@ -13,7 +13,7 @@
 import type { TaskPhase } from '@/types/domain'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING } from '@/types/domain'
 import { byDue, isDuePressing } from './taskDue'
-import type { TripTask } from './tripTodos'
+import type { TripTask } from './tripTasks'
 
 /** One phase of M25, split the way the screen draws it. */
 export interface PhaseShelf {

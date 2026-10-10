@@ -19,7 +19,7 @@ import {
   type DueState,
   type DueTally,
 } from '@/domain/shared/dueDay'
-import type { TodoState } from '@/types/domain'
+import type { TaskState } from '@/types/domain'
 
 export { DUE_LATER, DUE_OVERDUE, DUE_SOON, DUE_SOON_DAYS, DUE_TODAY }
 export type { DueState }
@@ -27,7 +27,7 @@ export type { DueState }
 /** What the rules read off a task. */
 export interface DueFacts {
   due_date: string | null
-  task_state: TodoState
+  task_state: TaskState
 }
 
 /** The day that counts: an open task's date, and none for a finished one. */

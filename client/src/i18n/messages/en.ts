@@ -14,8 +14,12 @@ import { inventoryEn } from './inventory/en'
 import { templatesEn } from './templates/en'
 import { packingEn } from './packing/en'
 import { tripsEn } from './trips/en'
+import { tasksEn } from './tasks/en'
+import { dashboardEn } from './dashboard/en'
 import { excursionsEn } from './excursions/en'
+import { tracksEn } from './tracks/en'
 import { settingsEn } from './settings/en'
+import { syncEn } from './sync/en'
 
 export const en = {
   ...sharedEn,
@@ -23,6 +27,10 @@ export const en = {
   ...templatesEn,
   ...packingEn,
   ...tripsEn,
+  ...tasksEn,
+  ...dashboardEn,
   ...excursionsEn,
+  ...tracksEn,
   ...settingsEn,
+  ...syncEn,
 } as const

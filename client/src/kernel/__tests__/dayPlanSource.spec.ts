@@ -5,14 +5,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { createDayPlanSource, toggleTask } from '../dayPlanSource'
-import type { TripTask } from '@/domain/tripTodos'
-import type {
-  Excursion,
-  ExcursionItem,
-  ExcursionTraveler,
-  ItemTodo,
-  TripTodo,
-} from '@/types/domain'
+import type { TripTask } from '@/domain/tripTasks'
+import type { Excursion, ExcursionItem, ExcursionTraveler, PrepTask, OwnTask } from '@/types/domain'
 
 function excursion(id: string, startsOn: string | null, endsOn: string | null): Excursion {
   return {
@@ -152,40 +146,40 @@ describe('the day plan source (FR-29.15)', () => {
 describe('ticking a task from the day plan (FR-7.6)', () => {
   function writes() {
     return {
-      resolveTripTodo: vi.fn(),
-      reopenTripTodo: vi.fn(),
-      resolvePrepTodo: vi.fn(),
-      reopenPrepTodo: vi.fn(),
+      resolveOwnTask: vi.fn(),
+      reopenOwnTask: vi.fn(),
+      resolvePrepTask: vi.fn(),
+      reopenPrepTask: vi.fn(),
     }
   }
 
   it('resolves an open task of the trip’s own and reopens a resolved one, by its live row', () => {
     const w = writes()
-    const live = { id: 'open', task_state: 'open' } as TripTodo
-    const reads = { getTripTodos: () => [live], getItemTodos: () => [] }
+    const live = { id: 'open', task_state: 'open' } as OwnTask
+    const reads = { getOwnTasks: () => [live], getRowPrepTasks: () => [] }
 
     toggleTask(w, reads, 't', task('open', '2026-07-14', 'resolved'))
-    expect(w.resolveTripTodo).toHaveBeenCalledWith(live)
+    expect(w.resolveOwnTask).toHaveBeenCalledWith(live)
 
     toggleTask(
       w,
-      { ...reads, getTripTodos: () => [{ ...live, task_state: 'resolved' }] },
+      { ...reads, getOwnTasks: () => [{ ...live, task_state: 'resolved' }] },
       't',
       task('open', null),
     )
-    expect(w.reopenTripTodo).toHaveBeenCalled()
+    expect(w.reopenOwnTask).toHaveBeenCalled()
   })
 
   it('writes a row’s preparation through its row, and nothing for one that is gone', () => {
     const w = writes()
-    const prep = { id: 'p', task_state: 'open', trip_item_id: 'row-1' } as ItemTodo
+    const prep = { id: 'p', task_state: 'open', trip_item_id: 'row-1' } as PrepTask
     const withItem = { ...task('p', '2026-07-14'), item: { id: 'row-1', name: 'Zelt', icon: null } }
 
-    toggleTask(w, { getTripTodos: () => [], getItemTodos: () => [prep] }, 't', withItem)
-    expect(w.resolvePrepTodo).toHaveBeenCalledWith(prep)
+    toggleTask(w, { getOwnTasks: () => [], getRowPrepTasks: () => [prep] }, 't', withItem)
+    expect(w.resolvePrepTask).toHaveBeenCalledWith(prep)
 
-    toggleTask(w, { getTripTodos: () => [], getItemTodos: () => [] }, 't', withItem)
-    expect(w.resolvePrepTodo).toHaveBeenCalledTimes(1)
+    toggleTask(w, { getOwnTasks: () => [], getRowPrepTasks: () => [] }, 't', withItem)
+    expect(w.resolvePrepTask).toHaveBeenCalledTimes(1)
   })
 
   it('counts a picnic taken along in the excursion’s share and names it (FR-33.6)', () => {

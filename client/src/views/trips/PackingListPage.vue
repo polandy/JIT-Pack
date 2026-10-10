@@ -94,7 +94,7 @@ import { ITEM_QUERY_PARAM, tripItemPath, tripPath, tripSubPath } from '@/router/
 import PackingGroupList from './packing/PackingGroupList.vue'
 import PackingHeadline from './packing/PackingHeadline.vue'
 import RowQuantityPopover from './packing/RowQuantityPopover.vue'
-import TripTodosSection from './packing/TripTodosSection.vue'
+import TripTasksSection from './packing/TripTasksSection.vue'
 import { useBrowseAdd } from './packing/useBrowseAdd'
 import { useForWhom } from './packing/useForWhom'
 import { usePackingClose } from './packing/usePackingClose'
@@ -185,19 +185,19 @@ const filterOpen = ref(false)
 const quickAdd = ref<InstanceType<typeof QuickAddItem> | null>(null)
 /**
  * FR-7.4: the user's own fold of *Aufgaben für die Reise* this visit; null
- * while untouched, and then the tasks decide (`tripTodosUnfolded`).
+ * while untouched, and then the tasks decide (`tripTasksUnfolded`).
  */
-const tripTodosFold = ref<boolean | null>(null)
+const tripTasksFold = ref<boolean | null>(null)
 /** FR-7.4: the section itself, which the header figure scrolls to. */
-const todosSection = ref<InstanceType<typeof TripTodosSection> | null>(null)
+const tasksSection = ref<InstanceType<typeof TripTasksSection> | null>(null)
 
 /**
- * FR-7.4: the header figure leads to the todos — unfolded, and in view,
+ * FR-7.4: the header figure leads to the tasks — unfolded, and in view,
  * because the header line stays while the section may be scrolled past.
  */
-function revealTripTodos() {
-  tripTodosFold.value = true
-  todosSection.value?.scrollIntoView()
+function revealTripTasks() {
+  tripTasksFold.value = true
+  tasksSection.value?.scrollIntoView()
 }
 
 /** Whether the composer is open — the ＋ has nothing to add while it is. */
@@ -291,7 +291,7 @@ onUnmounted(() => orchestrator.presence.setViewing(null))
 const presenceUsers = computed(() => orchestrator.presence.getPresence(props.tripId))
 
 const kpis = computed(() =>
-  tripStore.kpis(props.tripId, new Set([...core.removingRows.value, ...core.removingTodos.value])),
+  tripStore.kpis(props.tripId, new Set([...core.removingRows.value, ...core.removingOwn.value])),
 )
 
 /**
@@ -526,12 +526,12 @@ setHeaderTitle(
         :loaded="rowsLoaded"
         :collapsed="headCollapsed"
         :tasks="tasks.windowTasks.value"
-        :todo-state="tasks.state.value"
-        :todo-line="tasks.line.value"
+        :task-state="tasks.state.value"
+        :task-line="tasks.line.value"
         :presence-users="presenceUsers"
         :participants="participants"
         :is-desktop="isDesktop"
-        @reveal-todos="revealTripTodos"
+        @reveal-tasks="revealTripTasks"
       >
         <!-- FR-25.11k: the field exists only while it is being used, and
              opens in the sticky band under the switcher (G-12). -->
@@ -562,20 +562,20 @@ setHeaderTitle(
         @select="selectTraveler"
       />
 
-      <!-- FR-7.4: the trip's own todos. Above the list, because at its foot
+      <!-- FR-7.4: the trip's tasks. Above the list, because at its foot
            they went unseen. Always present, because the section is where the
            first one is found — but only once the partition is here
            (ADR-033): before that it would read „folded" and then spring open
            under a tap that was meant to open it, which closes it again. -->
-      <TripTodosSection
+      <TripTasksSection
         v-if="rowsLoaded && !closingPass"
-        ref="todosSection"
-        v-model:fold="tripTodosFold"
+        ref="tasksSection"
+        v-model:fold="tripTasksFold"
         :trip-id="tripId"
         :tasks="tasks.windowTasks.value"
         :state="tasks.state.value"
         :line="tasks.line.value"
-        :assignable="core.todoAssignees.value.length > 1"
+        :assignable="core.ownTaskAssignees.value.length > 1"
         :name-of="nameOf"
         :today="orchestrator.today()"
         @assign="tasks.acts.assign"

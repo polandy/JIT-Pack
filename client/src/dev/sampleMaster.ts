@@ -35,7 +35,7 @@ import {
  * - a Ferien-Vorlage that **owns one position beside its two groups**, so the
  *   resolved count differs from both the group count and the own count;
  * - an FR-27.7 preparation task on a shared position, so a generated trip
- *   starts with a real prep todo;
+ *   starts with a real preparation;
  * - two FR-7.4 trip tasks on the Vorlage, so a generated trip starts with
  *   house chores on M1 that hold up none of its packing;
  * - a third, unincluded group, so M8's picker and M3's *Zusätzliche Gruppen*
@@ -182,7 +182,7 @@ interface PositionSeed {
   buyBefore?: boolean
   /** FR-31.8: bought on the spot — an excursion's lunch. */
   onSite?: boolean
-  /** FR-27.7: becomes a prep todo on every row generated from this position. */
+  /** FR-27.7: becomes a preparation on every row generated from this position. */
   task?: string
 }
 

@@ -14,7 +14,7 @@
  */
 import ItemMark from '@/components/items/ItemMark.vue'
 import { t } from '@/i18n'
-import type { TripTaskItem } from '@/domain/tripTodos'
+import type { TripTaskItem } from '@/domain/tripTasks'
 
 const props = defineProps<{
   /** The row this task prepares. */
@@ -31,7 +31,7 @@ const MARK_SIZE = 15
   <RouterLink
     class="task-chip"
     :to="to"
-    :aria-label="t('tripTodos.forItem', { name: props.item.name })"
+    :aria-label="t('tripTasks.forItem', { name: props.item.name })"
     :data-testid="`task-item-${props.item.name}`"
     @click.stop
   >

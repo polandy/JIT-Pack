@@ -19,7 +19,7 @@ import { followsGroups } from '../trips'
 import type {
   CategorisedMasterItem,
   GeneratedPosition,
-  ItemTodo,
+  PrepTask,
   Template,
   TemplateInclude,
   TemplateItem,
@@ -119,12 +119,12 @@ function traveler(id: string, name: string): Traveler {
   return { id, trip_id: TRIP_ID, name, linked_user_id: null }
 }
 
-function todo(
+function prepTask(
   id: string,
   tripItemId: string,
   body: string,
-  extra: Partial<ItemTodo> = {},
-): ItemTodo {
+  extra: Partial<PrepTask> = {},
+): PrepTask {
   return {
     id,
     trip_id: TRIP_ID,
@@ -187,7 +187,7 @@ function input(extra: Partial<RefreshInput> = {}): RefreshInput {
     masterItems: [masterItem('item-kamera', 'Kamera')],
     travelers: [],
     items: [],
-    todos: [],
+    prepTasks: [],
     ledger: [],
     today: TODAY,
     ...extra,
@@ -527,18 +527,18 @@ describe('planRefresh — preparation tasks (FR-27.7 through FR-27.4)', () => {
   function withTask(
     tasks: TemplateItemTask[],
     ledger: GeneratedPosition[],
-    todos: ItemTodo[] = [],
+    prepTasks: PrepTask[] = [],
   ) {
     const entry = ledger[0]!
     return input({
       templateItemTasks: tasks,
       items: [tripItem(entry.trip_item_id, { source_item_id: 'item-kamera', name: 'Kamera' })],
       ledger,
-      todos,
+      prepTasks,
     })
   }
 
-  it('materialises a task the group gained as an FR-7.3 todo on the row', () => {
+  it('materialises a task the group gained as an FR-7.3 preparation on the row', () => {
     const plan = planRefresh(
       withTask(
         [{ id: 'task-1', template_item_id: 'pos-1', task: 'Akkus laden' }],
@@ -549,24 +549,24 @@ describe('planRefresh — preparation tasks (FR-27.7 through FR-27.4)', () => {
     expect(plan.log[0]).toMatchObject({ kind: 'changed', detail: { field: 'tasks' } })
   })
 
-  it('removes the open todo of a task the group dropped', () => {
+  it('removes the open preparation of a task the group dropped', () => {
     const entry = ledgerEntry('item-kamera', { tasks: ['Akkus laden'] })
     const plan = planRefresh(
-      withTask([], [entry], [todo('todo-1', entry.trip_item_id, 'Akkus laden')]),
+      withTask([], [entry], [prepTask('prep-1', entry.trip_item_id, 'Akkus laden')]),
     )
-    expect(plan.update[0]?.removeTodos.map((t) => t.id)).toEqual(['todo-1'])
+    expect(plan.update[0]?.removePrepTasks.map((t) => t.id)).toEqual(['prep-1'])
   })
 
-  it('keeps a resolved todo when the group drops its task — a done thing is a record', () => {
+  it('keeps a resolved preparation when the group drops its task — a done thing is a record', () => {
     const entry = ledgerEntry('item-kamera', { tasks: ['Akkus laden'] })
     const plan = planRefresh(
       withTask(
         [],
         [entry],
-        [todo('todo-1', entry.trip_item_id, 'Akkus laden', { task_state: 'resolved' })],
+        [prepTask('prep-1', entry.trip_item_id, 'Akkus laden', { task_state: 'resolved' })],
       ),
     )
-    expect(plan.update[0]?.removeTodos ?? []).toEqual([])
+    expect(plan.update[0]?.removePrepTasks ?? []).toEqual([])
   })
 })
 

@@ -9,15 +9,15 @@ import { IonIcon } from '@ionic/vue'
 import { checkmarkDoneOutline, chevronDownOutline, chevronForwardOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 
-import TripTodoList from '@/views/trips/tasks/TripTodoList.vue'
-import { tripTodosUnfolded, type TripTask, type TripTodoStatus } from '@/domain/tripTodos'
+import TripTaskList from '@/views/trips/tasks/TripTaskList.vue'
+import { tripTasksUnfolded, type TripTask, type TripTaskStatus } from '@/domain/tripTasks'
 import { t } from '@/i18n'
 import { tripSubPath } from '@/router/paths'
 
 const props = defineProps<{
   tripId: string
   tasks: readonly TripTask[]
-  state: TripTodoStatus
+  state: TripTaskStatus
   /** The head's own check, or null while there is no task. */
   line: string | null
   /** FR-7.5: whether there is anybody to hand a task to. */
@@ -35,12 +35,12 @@ defineEmits<{
 
 /**
  * The user's own fold of *Aufgaben für die Reise* this visit; null while
- * untouched, and then the tasks decide (`tripTodosUnfolded`).
+ * untouched, and then the tasks decide (`tripTasksUnfolded`).
  */
 const fold = defineModel<boolean | null>('fold', { required: true })
 
 /** Open while anything is owed, one line once nothing is. */
-const unfolded = computed(() => tripTodosUnfolded(props.state, fold.value))
+const unfolded = computed(() => tripTasksUnfolded(props.state, fold.value))
 
 const root = ref<HTMLElement | null>(null)
 
@@ -78,14 +78,14 @@ defineExpose({ scrollIntoView })
          packing row, and a trip task typed here would be written into a
          list that cannot show it. It is written on M25, which the line
          below leads to. -->
-    <TripTodoList
+    <TripTaskList
       v-if="unfolded"
       :trip-id="tripId"
       :tasks="tasks"
       :assignable="assignable"
       :name-of="nameOf"
       :today="today"
-      :empty-text="t('tripTodos.allDone')"
+      :empty-text="t('tripTasks.allDone')"
       @assign="(task: TripTask) => $emit('assign', task)"
       @toggle="(task: TripTask) => $emit('toggle', task)"
       @remove="(task: TripTask) => $emit('remove', task)"

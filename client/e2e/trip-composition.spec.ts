@@ -8,7 +8,7 @@ import {
 } from './fixtures'
 import type { Page } from '@playwright/test'
 import { fillIonic } from './helpers/ionic'
-import { openTripTodos } from './helpers/m4'
+import { openTripTasks } from './helpers/m4'
 import { PATH } from './routes'
 import { openGroupFromList } from './helpers/templates'
 
@@ -18,7 +18,7 @@ import { openGroupFromList } from './helpers/templates'
  * Covers E2E-M3-11 (the two scopes as separate sections, and a composition
  * that resolves for real: deduped count, merge named with both groups) and
  * E2E-M3-13 (the FR-27.7 task count in the preview, and the task arriving on
- * the generated row as an FR-7.3 todo) and E2E-M3-21 (a per-person position an
+ * the generated row as an FR-7.3 preparation) and E2E-M3-21 (a per-person position an
  * empty roster cannot place is named rather than dropped).
  *
  * Local Mode throughout, and deliberately: generation, include expansion and
@@ -322,7 +322,7 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     await expect(visible(page).getByTestId('wizard-item-count')).toContainText('2 items')
   })
 
-  test('E2E-M3-13: a position task is previewed and lands as a prep todo on the generated row', async ({
+  test('E2E-M3-13: a position task is previewed and lands as a preparation on the generated row', async ({
     page,
   }) => {
     await seedOneGroup(page)
@@ -344,13 +344,13 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     await page.getByTestId('wizard-create').click()
     await expectTripOpen(page, 'Fototour 2026')
 
-    // FR-27.7 on the trip: an ordinary FR-7.3 todo, on the row it came from,
+    // FR-27.7 on the trip: an ordinary FR-7.3 preparation, on the row it came from,
     // counted in the header figure and listed in the trip's one task section
     // (FR-7.6), where the chip names the row it prepares.
     await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText(
       'While packing 0/1',
     )
-    const tasks = await openTripTodos(page)
+    const tasks = await openTripTasks(page)
     await expect(tasks.getByTestId('trip-todo-Akkus laden')).toBeVisible()
     await expect(tasks.getByTestId('task-item-Kamera')).toBeVisible()
 
@@ -361,7 +361,7 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
 
   /**
    * E2E-M3-23 (FR-7.4): a Vorlage's trip tasks and its group's reach the trip
-   * as its own todos, the same chore once.
+   * as its own tasks, the same chore once.
    *
    * The duplicate is the case: a count of three is what a concatenation
    * without the dedup shows. The position task beside them is the positive

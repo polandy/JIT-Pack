@@ -66,7 +66,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { isPackingClosed } from '@/domain/shared/tripPhase'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODES, isShoppingMode } from '@/types/domain'
-import type { ItemComment, ItemMode, ItemTodo, ReviewFlag, TripParticipant } from '@/types/domain'
+import type { ItemComment, ItemMode, PrepTask, ReviewFlag, TripParticipant } from '@/types/domain'
 import { lockNoteText, nameFrom, packedStampText, responsibleNote } from '@/lib/rowFacts'
 import { stateLabel as stateLabelFor } from '@/lib/stateLabels'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
@@ -190,22 +190,22 @@ function nameOf(userId: string | null): string | null {
 }
 
 // --- Preparation (FR-7.3) ---
-const itemTodos = computed(() => tripStore.getItemTodos(props.tripId, props.itemId))
-const openTodoCount = computed(() => itemTodos.value.filter((t) => t.task_state === 'open').length)
-const hasPrepWithPacked = computed(() => item.value?.state === 'packed' && openTodoCount.value > 0)
-const newTodoText = ref('')
+const prepTasks = computed(() => tripStore.getRowPrepTasks(props.tripId, props.itemId))
+const openPrepCount = computed(() => prepTasks.value.filter((t) => t.task_state === 'open').length)
+const hasPrepWithPacked = computed(() => item.value?.state === 'packed' && openPrepCount.value > 0)
+const newPrepTaskText = ref('')
 
-function addTodo() {
-  const body = newTodoText.value.trim()
+function addPrepTask() {
+  const body = newPrepTaskText.value.trim()
   if (!body || isLocked.value) return
-  orchestrator.comments.addPrepTodo(props.tripId, props.itemId, CLIENT_ACTOR_PLACEHOLDER, body)
-  newTodoText.value = ''
+  orchestrator.comments.addPrepTask(props.tripId, props.itemId, CLIENT_ACTOR_PLACEHOLDER, body)
+  newPrepTaskText.value = ''
 }
 
-function toggleTodo(todo: ItemTodo) {
+function togglePrepTask(task: PrepTask) {
   if (isLocked.value) return
-  if (todo.task_state === 'open') orchestrator.comments.resolvePrepTodo(todo)
-  else orchestrator.comments.reopenPrepTodo(todo)
+  if (task.task_state === 'open') orchestrator.comments.resolvePrepTask(task)
+  else orchestrator.comments.reopenPrepTask(task)
 }
 
 // --- Notes (FR-7.1/7.2) ---
@@ -569,36 +569,36 @@ const packedStamp = computed(() => {
     <section class="sec">
       <h2 class="sl">
         {{ t('packing.prepSection') }}
-        <span class="n">{{ t('packing.openPrep', { n: openTodoCount }) }}</span>
+        <span class="n">{{ t('packing.openPrep', { n: openPrepCount }) }}</span>
       </h2>
       <label
-        v-for="todo in itemTodos"
-        :key="todo.id"
-        class="todo"
-        :class="{ done: todo.task_state === 'resolved' }"
+        v-for="task in prepTasks"
+        :key="task.id"
+        class="task"
+        :class="{ done: task.task_state === 'resolved' }"
       >
-        <span class="todo-body">{{ todo.body }}</span>
+        <span class="task-body">{{ task.body }}</span>
         <!-- The tick sits at the end, where M4 puts the control it stands
              for — a task is ticked at the row's edge on both screens. -->
         <IonCheckbox
-          :checked="todo.task_state === 'resolved'"
+          :checked="task.task_state === 'resolved'"
           :disabled="isLocked"
-          :data-testid="`m5-todo-${todo.body}`"
-          @ion-change="toggleTodo(todo)"
+          :data-testid="`m5-todo-${task.body}`"
+          @ion-change="togglePrepTask(task)"
         />
       </label>
       <div v-if="!isLocked" class="composer">
         <IonInput
-          v-model="newTodoText"
+          v-model="newPrepTaskText"
           data-testid="m5-todo-input"
-          :placeholder="t('item.addPrep')"
-          @keydown.enter="addTodo"
+          :placeholder="t('row.addPrep')"
+          @keydown.enter="addPrepTask"
         />
         <IonButton
           fill="outline"
-          :disabled="!newTodoText.trim()"
+          :disabled="!newPrepTaskText.trim()"
           data-testid="m5-todo-add"
-          @click="addTodo"
+          @click="addPrepTask"
         >
           {{ t('common.add') }}
         </IonButton>
@@ -608,7 +608,7 @@ const packedStamp = computed(() => {
     <!-- FR-7.1/7.2 -->
     <section class="sec">
       <h2 class="sl">
-        {{ t('item.notes') }}
+        {{ t('row.notes') }}
         <span class="n">{{ itemComments.length }}</span>
       </h2>
       <article
@@ -628,8 +628,8 @@ const packedStamp = computed(() => {
           v-if="!isLocked"
           fill="clear"
           size="small"
-          :aria-label="t('item.flagAsTask')"
-          :title="t('item.flagAsTask')"
+          :aria-label="t('row.flagAsTask')"
+          :title="t('row.flagAsTask')"
           :data-testid="`m5-note-flag-${comment.body}`"
           @click="flagAsTask(comment)"
         >
@@ -640,7 +640,7 @@ const packedStamp = computed(() => {
         <IonInput
           v-model="newCommentText"
           data-testid="m5-note-input"
-          :placeholder="t('item.addNote')"
+          :placeholder="t('row.addNote')"
           @keydown.enter="addComment"
         />
         <IonButton
@@ -660,7 +660,7 @@ const packedStamp = computed(() => {
       class="sec"
       data-testid="m5-companions"
     >
-      <h2 class="sl"><IonIcon :icon="linkOutline" /> {{ t('item.companions') }}</h2>
+      <h2 class="sl"><IonIcon :icon="linkOutline" /> {{ t('row.companions') }}</h2>
       <IonChip
         v-for="companion in suggestedCompanions"
         :key="companion.item_id"
@@ -680,8 +680,8 @@ const packedStamp = computed(() => {
       @click="detailsOpen = !detailsOpen"
     >
       <IonIcon :icon="chevronForwardOutline" class="caret" />
-      <span class="details-label">{{ t('item.details') }}</span>
-      <span v-if="!detailsOpen" class="details-hint">{{ t('item.detailsHint') }}</span>
+      <span class="details-label">{{ t('row.details') }}</span>
+      <span v-if="!detailsOpen" class="details-hint">{{ t('row.detailsHint') }}</span>
     </button>
 
     <IonList v-if="detailsOpen" class="details-body">
@@ -713,7 +713,7 @@ const packedStamp = computed(() => {
            no members, and in Single-User the sole user is already every row's
            packer. -->
       <IonItem v-if="assignable.length > 0">
-        <IonLabel>{{ t('item.assignedTo') }}</IonLabel>
+        <IonLabel>{{ t('row.assignedTo') }}</IonLabel>
         <IonSelect
           :value="item.packer_user_id"
           interface="popover"
@@ -721,7 +721,7 @@ const packedStamp = computed(() => {
           data-testid="m5-assignee"
           @ion-change="(e: CustomEvent) => onAssigneeChange(e.detail.value)"
         >
-          <IonSelectOption :value="null">{{ t('item.assignedToNobody') }}</IonSelectOption>
+          <IonSelectOption :value="null">{{ t('row.assignedToNobody') }}</IonSelectOption>
           <IonSelectOption
             v-for="member in assignable"
             :key="member.user_id"
@@ -732,7 +732,7 @@ const packedStamp = computed(() => {
         </IonSelect>
       </IonItem>
       <IonItem>
-        <IonLabel>{{ t('item.luggageOptional') }}</IonLabel>
+        <IonLabel>{{ t('row.luggageOptional') }}</IonLabel>
         <IonSelect
           :value="item.container_id"
           interface="popover"
@@ -753,7 +753,7 @@ const packedStamp = computed(() => {
       <IonItem>
         <IonLabel>
           <h3>{{ t('mode.latePacker') }}</h3>
-          <p>{{ t('item.latePackerHint') }}</p>
+          <p>{{ t('row.latePackerHint') }}</p>
         </IonLabel>
         <IonToggle
           slot="end"
@@ -770,7 +770,7 @@ const packedStamp = computed(() => {
           <IonIcon slot="start" :icon="removeCircleOutline" />
           <IonLabel>
             <h3>{{ t('facet.flagUnused') }}</h3>
-            <p>{{ t('item.flagUnusedHint') }}</p>
+            <p>{{ t('row.flagUnusedHint') }}</p>
           </IonLabel>
           <IonToggle
             slot="end"
@@ -784,7 +784,7 @@ const packedStamp = computed(() => {
           <IonIcon slot="start" :icon="alertCircleOutline" />
           <IonLabel>
             <h3>{{ t('facet.flagMissing') }}</h3>
-            <p>{{ t('item.flagMissingHint') }}</p>
+            <p>{{ t('row.flagMissingHint') }}</p>
           </IonLabel>
           <IonToggle
             slot="end"
@@ -802,7 +802,7 @@ const packedStamp = computed(() => {
   </section>
 
   <section v-else class="missing" data-testid="m5-missing">
-    <p>{{ t('item.notFound') }}</p>
+    <p>{{ t('row.notFound') }}</p>
   </section>
 </template>
 
@@ -968,19 +968,19 @@ const packedStamp = computed(() => {
   color: var(--ct-overlay0);
 }
 
-.todo {
+.task {
   display: flex;
   align-items: center;
   gap: 11px;
   padding: 7px 0;
 }
 
-.todo .todo-body {
+.task .task-body {
   flex: 1;
   min-width: 0;
 }
 
-.todo.done .todo-body {
+.task.done .task-body {
   color: var(--ct-overlay0);
   text-decoration: line-through;
 }

@@ -191,7 +191,7 @@ describe('createTripFromWizard', () => {
     await vi.waitFor(() => expect(fetchMock.mock.calls.length).toBe(4))
   })
 
-  it('materialises FR-27.7 template tasks as open prep todos on the generated row', async () => {
+  it('materialises FR-27.7 template tasks as open preparations on the generated row', async () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const tripStore = useTripStore()
     mockPush()
@@ -214,22 +214,22 @@ describe('createTripFromWizard', () => {
 
     const charger = tripStore.getItems(tripId).find((i) => i.name === 'Ladegerät')!
     const tent = tripStore.getItems(tripId).find((i) => i.name === 'Zelt')!
-    const todos = tripStore.getTodos(tripId)
+    const prepTasks = tripStore.getPrepTasks(tripId)
 
-    expect(todos).toHaveLength(1)
-    expect(todos[0]).toMatchObject({
+    expect(prepTasks).toHaveLength(1)
+    expect(prepTasks[0]).toMatchObject({
       trip_item_id: charger.id,
       body: 'Akkus laden',
       task_state: 'open',
     })
-    // The row without tasks stays clean — a todo on it would block it from
+    // The row without tasks stays clean — a preparation on it would block it from
     // ever counting as done (FR-7.3).
-    expect(tripStore.getItemTodos(tripId, tent.id)).toHaveLength(0)
+    expect(tripStore.getRowPrepTasks(tripId, tent.id)).toHaveLength(0)
 
     await vi.waitFor(() => expect(fetchMock.mock.calls.length).toBe(4))
   })
 
-  it('pushes a prep todo after the row it hangs off (FK ordering)', async () => {
+  it('pushes a preparation after the row it hangs off (FK ordering)', async () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const tripStore = useTripStore()
     mockPush()
@@ -259,12 +259,12 @@ describe('createTripFromWizard', () => {
     }[]
 
     const rowIndex = mutations.findIndex((m) => m.table === 'trip_items' && m.id === charger.id)
-    const todoIndex = mutations.findIndex((m) => m.table === 'comments')
+    const prepTaskIndex = mutations.findIndex((m) => m.table === 'comments')
     expect(rowIndex).toBeGreaterThanOrEqual(0)
     // The comments row carries trip_item_id as a foreign key: pushed first, the
     // server rejects it.
-    expect(todoIndex).toBeGreaterThan(rowIndex)
-    expect(mutations[todoIndex]!.fields).toMatchObject({
+    expect(prepTaskIndex).toBeGreaterThan(rowIndex)
+    expect(mutations[prepTaskIndex]!.fields).toMatchObject({
       trip_item_id: charger.id,
       is_task: 1,
       task_state: 'open',

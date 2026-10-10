@@ -143,10 +143,10 @@ turn out to be one contract; or a file in `domain/shared/` that needs a rule fro
 The tasks' later step is taken as the excursions' was: M25's parts — the composer, the phase section, the list, the
 sheet, the tag chooser, the item chip, M1's figure and overview — move from `components/trips/` into
 `views/trips/tasks/` beside `TripTasksPage.vue`. M4 and M1 import them from there, as they import an excursion's sheet.
-What stays put stays by the same rule: M4's own slices of the list (`packing/TripTodosSection.vue`,
+What stays put stays by the same rule: M4's own slices of the list (`packing/TripTasksSection.vue`,
 `usePackingTasks.ts`) are packing's, `useTripTasks`/`useTaskActs` serve three screens from `composables/`,
-`lib/taskDueText.ts` is read by every module, and the rules keep their `domain/task*.ts` names — `tripTodos.ts` is
-renamed with ARCH-27's glossary, not before it.
+`lib/taskDueText.ts` is read by every module, and the rules keep their `domain/task*.ts` names — `tripTasks.ts`
+among them, which took its name from ARCH-27's glossary (`dev-docs/glossary.md`).
 
 ## Amendment, 2026-10-09: a line is M4's row by port, not by disguise (ARCH-22)
 

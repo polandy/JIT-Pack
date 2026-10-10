@@ -227,7 +227,7 @@ export interface PackingViewInput<R extends PackableRow = PackableRow> {
    * says "collapsed" while holding the exceptions to shut is a trap.
    */
   expandedClusters?: string[]
-  /** Ids of items carrying an unresolved preparation todo (FR-7.3). */
+  /** Ids of items carrying an unresolved preparation (FR-7.3). */
   itemsWithOpenPrep: string[]
   /**
    * FR-9.3's closing pass: list only what was actually packed. An
@@ -239,7 +239,7 @@ export interface PackingViewInput<R extends PackableRow = PackableRow> {
 
 /**
  * A row is done when it needs no further action: fully packed, or consciously
- * skipped (FR-5.5). A packed row with an open preparation todo is deliberately
+ * skipped (FR-5.5). A packed row with an open preparation is deliberately
  * *not* done — FR-7.3's "packed with open prep" still has work attached, and
  * hiding it is exactly the false "all done" the state exists to prevent.
  */

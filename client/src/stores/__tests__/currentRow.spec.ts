@@ -40,16 +40,16 @@ describe('currentRow', () => {
   })
 
   // FR-7.2/7.4: one table, three readings. Each list encodes its own type, so
-  // a todo read back as a plain comment would lose its task columns.
+  // a task read back as a plain comment would lose its task columns.
   it.each([
     ['a plain comment', { ...COMMENT, trip_item_id: 'ti1', is_task: 0 }, 'body'],
     [
-      'an item todo',
+      'a preparation',
       { ...COMMENT, trip_item_id: 'ti1', is_task: 1, task_state: 'open' },
       'task_state',
     ],
     [
-      'a trip todo',
+      'the trip’s own task',
       { ...COMMENT, trip_item_id: null, is_task: 1, task_state: 'open' },
       'task_state',
     ],

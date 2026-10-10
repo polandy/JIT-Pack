@@ -5,7 +5,7 @@
  * with its own quantity (FR-25.1). This module is the only place that turns
  * a *picked* membership into the rows expressing it, and ADR-036 is the shape
  * it implements: rows are rewritten in place rather than deleted and recreated,
- * because comments (FR-7.1), preparation todos (FR-7.3) and packing progress
+ * because comments (FR-7.1), preparations (FR-7.3) and packing progress
  * are the expensive content on a row and membership is cheap metadata.
  *
  * Two rules carry the whole design:
@@ -58,7 +58,7 @@ export interface MembershipInput {
   /** The trip's roster, in trip order: it decides both ladders below. */
   travelers: Traveler[]
   /**
-   * Rows carrying comments or preparation todos. Passed in rather than read,
+   * Rows carrying comments or preparations. Passed in rather than read,
    * because those live in other stores and this module has no I/O.
    */
   rowsWithContent: string[]
@@ -318,7 +318,7 @@ function planPerPerson(
   const insert: MembershipInsert[] = []
   let unskipped: MembershipPlan['unskipped'] = null
   // ADR-036's keep-and-repoint: the shared row becomes the first selected
-  // traveler's, so its thread, todos and progress survive the conversion.
+  // traveler's, so its thread, tasks and progress survive the conversion.
   let repointable: TripItem | null = survivorOf(unassigned, withContent, order) ?? null
 
   for (const m of members) {
@@ -490,7 +490,7 @@ export function membershipQuestion(
 
 /**
  * Which of these rows a delete would cost more than the row itself: a comment
- * thread (FR-7.1) or a preparation todo (FR-7.3). This module has no I/O, so
+ * thread (FR-7.1) or a preparation (FR-7.3). This module has no I/O, so
  * the two questions are asked of the caller — one callback each rather than
  * two prepared lists, so a caller cannot pass a list it built for other rows.
  *
@@ -500,9 +500,9 @@ export function membershipQuestion(
  */
 export function rowsCarryingContent(
   rows: TripItem[],
-  content: { hasComments: (rowId: string) => boolean; hasTodo: (rowId: string) => boolean },
+  content: { hasComments: (rowId: string) => boolean; hasPrepTask: (rowId: string) => boolean },
 ): string[] {
   return rows
-    .filter((row) => content.hasComments(row.id) || content.hasTodo(row.id))
+    .filter((row) => content.hasComments(row.id) || content.hasPrepTask(row.id))
     .map((row) => row.id)
 }

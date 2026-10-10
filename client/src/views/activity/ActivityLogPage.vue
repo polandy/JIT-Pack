@@ -144,8 +144,8 @@ const SHOWN_FIELDS: ReadonlySet<string> = new Set(
 function isTask(commentId: string): boolean | undefined {
   if (!props.tripId) return undefined
   const id = props.tripId
-  if (trips.getTodos(id).some((c) => c.id === commentId)) return true
-  if (trips.getTripTodos(id).some((c) => c.id === commentId)) return true
+  if (trips.getPrepTasks(id).some((c) => c.id === commentId)) return true
+  if (trips.getOwnTasks(id).some((c) => c.id === commentId)) return true
   if (trips.getComments(id).some((c) => c.id === commentId)) return false
   return undefined
 }

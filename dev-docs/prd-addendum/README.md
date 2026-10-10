@@ -50,7 +50,7 @@ sections (3.1–3.9), Part C the non-functional requirements.
 | 3.4 Multi-User & Collaboration | [`3.4-multi-user-collaboration.md`](3.4-multi-user-collaboration.md) |
 | 3.5 Packing Workflow | [`3.5-packing-workflow.md`](3.5-packing-workflow.md) |
 | 3.6 Notifications & Delegation | [`3.6-notifications-delegation.md`](3.6-notifications-delegation.md) |
-| 3.7a Preparation Todos | [`3.7a-preparation-todos.md`](3.7a-preparation-todos.md) |
+| 3.7a Preparation Tasks | [`3.7a-preparation-tasks.md`](3.7a-preparation-tasks.md) |
 | 3.9 Trip Feedback & Post-Trip Review | [`3.9-trip-feedback-post-trip.md`](3.9-trip-feedback-post-trip.md) |
 | Part C — Refined & New Non-Functional Requirements | [`nfr.md`](nfr.md) |
 ## Architecture-Phase Decisions (Resolved)

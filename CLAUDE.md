@@ -80,7 +80,7 @@ Test-first: every behaviour starts as a failing test that reads as its specifica
 - **A feature PR is complete**: backend + the client UI that exposes it + the spec update in `dev-docs/` + an ADR when a real tradeoff was decided + the `docs/` page when visible to whoever runs the instance. Never "UI in a follow-up", never "docs later".
 - **A UI change ships a *running* Playwright case** (owner's rule; details in `client/CLAUDE.md`). Render a UI change and let the maintainer eyeball it before the case is finalized — never judge it from the stylesheet.
 - **An ADR is owed only for a real tradeoff** — options weighed, one chosen at a cost.
-- **English throughout — including quoting the owner** (translated, never a pasted „…" quote). Exception: German that is **content** (UI copy, seed data, mark keywords, the `de` catalogue). Comments justify *why*, never *what*; godoc on exported symbols is mandatory.
+- **English throughout — including quoting the owner** (translated, never a pasted „…" quote). Exception: German that is **content** (UI copy, seed data, mark keywords, the `de` catalogue). A type, file, i18n prefix or spec file takes its word from `dev-docs/glossary.md` (a *task*, never a todo; a *row* is the trip's, an *item* the inventory's). Comments justify *why*, never *what*; godoc on exported symbols is mandatory.
 - **No magic strings or numbers** (CODING_PRINCIPLES §4a): `store.Table*`/`RoleOwner` in Go, `TABLE` in `client/src/api/tables.ts` (generated).
 - Standard library first — a new dependency needs a one-line justification (NFR-4.3).
 - Conventional Commits: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci` (`build:` only from Dependabot). Reference spec ids.

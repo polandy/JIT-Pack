@@ -15,7 +15,7 @@
   case follows the chain to the prep badge on the imported row — the positive signal the note stands against. The task
   body is on the catalogue (NFR-4.12), asserted in the *other* locale by `composables/__tests__/import.spec.ts`, because
   a body read through `t()` in the default language is equally satisfied by an English literal. The body is
-  `import.wizard.noiseTodo`, rendered with `t()` in `app/actions/tripCreation.ts`. The rule underneath —
+  `import.wizard.noiseTask`, rendered with `t()` in `app/actions/tripCreation.ts`. The rule underneath —
   a trailing `?` becomes an item plus an open task on its trip row; `buildImportPlan` strips it and sets
   `hasOpenTask`, `commitImport` writes the todo — is unit-covered at both levels
   (`domain/__tests__/spreadsheet.spec.ts`, `composables/__tests__/import.spec.ts`, which asserts the todo lands `open`).

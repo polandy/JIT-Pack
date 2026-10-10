@@ -2,7 +2,7 @@
  * FR-27.10 write path: a whole group added to a trip that already exists.
  * The resolution itself is specified in `domain/__tests__/groupAdd.spec.ts`;
  * what is asserted here is what actually lands — the rows and their
- * provenance, the FR-27.7 todos, the FR-27.4 registration, and the flag that
+ * provenance, the FR-27.7 preparations, the FR-27.4 registration, and the flag that
  * is deliberately *not* set.
  */
 import { describe, it, expect, beforeEach } from 'vitest'
@@ -96,7 +96,7 @@ describe('addGroupToTrip (FR-27.10)', () => {
     expect(tripStore.getItems(TRIP_ID).map((r) => r.flag_missing)).toEqual([false])
   })
 
-  it('materialises FR-27.7 preparation tasks as todos on the generated row', async () => {
+  it('materialises FR-27.7 preparation tasks as preparations on the generated row', async () => {
     const orch = await localOrchestrator()
     const tripStore = useTripStore()
     seedWorld()
@@ -110,8 +110,8 @@ describe('addGroupToTrip (FR-27.10)', () => {
     orch.tripLifecycle.addGroupToTrip(TRIP_ID, GROUP_ID)
 
     const row = tripStore.getItems(TRIP_ID)[0]
-    const todos = tripStore.getTodos(TRIP_ID).filter((t) => t.trip_item_id === row?.id)
-    expect(todos.map((t) => t.body)).toEqual(['Akkus laden'])
+    const prepTasks = tripStore.getPrepTasks(TRIP_ID).filter((t) => t.trip_item_id === row?.id)
+    expect(prepTasks.map((t) => t.body)).toEqual(['Akkus laden'])
   })
 
   it('carries the FR-2.5b positions no traveler could take through to the report', async () => {

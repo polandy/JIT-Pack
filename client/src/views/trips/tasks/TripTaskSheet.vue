@@ -30,7 +30,7 @@ import { computed, ref, watch } from 'vue'
 import DueChips from '@/components/global/DueChips.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import TaskTagChooser from '@/views/trips/tasks/TaskTagChooser.vue'
-import { filedTagOf, type TripTask } from '@/domain/tripTodos'
+import { filedTagOf, type TripTask } from '@/domain/tripTasks'
 import { t } from '@/i18n'
 import type { NameOf } from '@/lib/rowFacts'
 import { createdStampText, resolvedStampText } from '@/lib/taskFacts'
@@ -150,7 +150,7 @@ const facts = computed(() =>
       ? {
           key: 'item',
           icon: cubeOutline,
-          text: t('tripTodos.forItem', { name: props.task.item.name }),
+          text: t('tripTasks.forItem', { name: props.task.item.name }),
         }
       : null,
     factLine('created', createOutline, createdStampText(props.task, props.nameOf)),
@@ -268,7 +268,7 @@ function factLine(key: string, icon: string, text: string | null) {
       @click="emit('remove')"
     >
       <IonIcon slot="start" :icon="trashOutline" />
-      {{ t('tripTodos.remove') }}
+      {{ t('tripTasks.remove') }}
     </IonButton>
   </div>
 </template>

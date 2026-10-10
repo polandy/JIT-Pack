@@ -14,11 +14,11 @@ import type { ItemState } from '@/types/domain'
 
 /** The catalogue key for each `state` value. */
 export const STATE_KEYS = {
-  open: 'item.stateOpen',
-  partial: 'item.statePartial',
-  packed: 'item.statePacked',
-  skipped: 'item.stateSkipped',
-  packing_now: 'item.statePackingNow',
+  open: 'row.stateOpen',
+  partial: 'row.statePartial',
+  packed: 'row.statePacked',
+  skipped: 'row.stateSkipped',
+  packing_now: 'row.statePackingNow',
 } as const satisfies Record<ItemState, MessageKey>
 
 /**
@@ -29,6 +29,6 @@ export const STATE_KEYS = {
  * open to say. It outranks the state because it is the more surprising half.
  */
 export function stateLabel(state: ItemState, options: { prepOpen?: boolean } = {}): string {
-  if (options.prepOpen) return t('item.statePackedOpenPrep')
+  if (options.prepOpen) return t('row.statePackedOpenPrep')
   return t(STATE_KEYS[state])
 }

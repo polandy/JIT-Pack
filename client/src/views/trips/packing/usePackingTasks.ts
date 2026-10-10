@@ -8,10 +8,10 @@ import { useTaskActs } from '@/composables/useTaskActs'
 import { useTripTasks } from '@/composables/useTripTasks'
 import {
   packingWindowTasks,
-  tripTodoProgress,
-  tripTodoStatus,
+  tripTaskProgress,
+  tripTaskStatus,
   type TripTask,
-} from '@/domain/tripTodos'
+} from '@/domain/tripTasks'
 import { t } from '@/i18n'
 import type { TaskPhase } from '@/types/domain'
 
@@ -34,7 +34,7 @@ export function usePackingTasks(core: PackingCore) {
   const tasks = computed(() =>
     tasksOf(tripId).filter(
       (task) =>
-        !core.removingTodos.value.has(task.id) &&
+        !core.removingOwn.value.has(task.id) &&
         !(task.item !== null && core.removingRows.value.has(task.item.id)),
     ),
   )
@@ -48,14 +48,14 @@ export function usePackingTasks(core: PackingCore) {
    * reader is not looking at.
    */
   const windowTasks = computed(() => packingWindowTasks(tasks.value, orchestrator.today()))
-  const count = computed(() => tripTodoProgress(windowTasks.value))
-  const state = computed(() => tripTodoStatus(count.value))
+  const count = computed(() => tripTaskProgress(windowTasks.value))
+  const state = computed(() => tripTaskStatus(count.value))
 
   /** FR-7.4/7.6: the section head's own check, apart from every packing figure. */
   const line = computed(() => {
     if (state.value === 'none') return null
-    if (state.value === 'allDone') return t('tripTodos.allDone')
-    return t('tripTodos.progress', { done: count.value.done, total: count.value.total })
+    if (state.value === 'allDone') return t('tripTasks.allDone')
+    return t('tripTasks.progress', { done: count.value.done, total: count.value.total })
   })
 
   /**
@@ -68,9 +68,10 @@ export function usePackingTasks(core: PackingCore) {
     rowUndo: core.rowUndo,
     announceAct: core.announceAct,
     announceTaskDone: core.announceTaskDone,
-    pickAssignee: (header, current) => core.pickAssignee(header, current, core.todoAssignees.value),
+    pickAssignee: (header, current) =>
+      core.pickAssignee(header, current, core.ownTaskAssignees.value),
     nameOf: core.nameOf,
-    removing: core.removingTodos,
+    removing: core.removingOwn,
   })
 
   /**

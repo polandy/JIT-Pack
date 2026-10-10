@@ -24,7 +24,7 @@ import type {
   AppliedChange,
   ChangeDetail,
   GeneratedPosition,
-  ItemTodo,
+  PrepTask,
   CategorisedMasterItem,
   Template,
   TemplateInclude,
@@ -57,17 +57,17 @@ export type GeneratedTripItemEdit = Partial<
   >
 >
 
-/** A row the refresh will update in place, and the todos that follow it. */
+/** A row the refresh will update in place, and the preparations that follow it. */
 export interface PlannedUpdate {
   item: TripItem
   /** Only the fields that actually differ — an empty object never occurs.
    * The mutation takes the same type, so the plan cannot name a field the FR-27.4
    * refresh is not allowed to overwrite. */
   fields: GeneratedTripItemEdit
-  /** FR-27.7 tasks the group gained, to be written as FR-7.3 todos. */
+  /** FR-27.7 tasks the group gained, to be written as FR-7.3 preparations. */
   addTasks: string[]
-  /** Open todos whose task the group lost. Resolved ones are a record, and stay. */
-  removeTodos: ItemTodo[]
+  /** Open preparations whose task the group lost. Resolved ones are a record, and stay. */
+  removePrepTasks: PrepTask[]
   ledger: GeneratedPosition
 }
 
@@ -104,7 +104,7 @@ export interface RefreshInput {
   masterItems: CategorisedMasterItem[]
   travelers: Traveler[]
   items: TripItem[]
-  todos: ItemTodo[]
+  prepTasks: PrepTask[]
   ledger: GeneratedPosition[]
   /** Today as ISO `YYYY-MM-DD` — see followsGroups; never read from the clock here. */
   today: string
@@ -349,16 +349,16 @@ export function planRefresh(input: RefreshInput): RefreshPlan {
     const fields = changedFields(entry, next)
     const addTasks = next.tasks.filter((t) => !entry.tasks.includes(t))
     const lostTasks = entry.tasks.filter((t) => !next.tasks.includes(t))
-    const removeTodos = input.todos.filter(
-      (todo) =>
-        todo.trip_item_id === row.id && todo.task_state === 'open' && lostTasks.includes(todo.body),
+    const removePrepTasks = input.prepTasks.filter(
+      (task) =>
+        task.trip_item_id === row.id && task.task_state === 'open' && lostTasks.includes(task.body),
     )
 
-    if (Object.keys(fields).length === 0 && addTasks.length === 0 && removeTodos.length === 0) {
+    if (Object.keys(fields).length === 0 && addTasks.length === 0 && removePrepTasks.length === 0) {
       continue
     }
 
-    plan.update.push({ item: row, fields, addTasks, removeTodos, ledger: next })
+    plan.update.push({ item: row, fields, addTasks, removePrepTasks, ledger: next })
     plan.ledgerUpsert.push(next)
     for (const detail of describeFieldChanges(entry, next)) {
       plan.log.push({
@@ -370,7 +370,7 @@ export function planRefresh(input: RefreshInput): RefreshPlan {
         detail,
       })
     }
-    if (addTasks.length > 0 || removeTodos.length > 0) {
+    if (addTasks.length > 0 || removePrepTasks.length > 0) {
       plan.log.push({
         trip_id: input.trip.id,
         source_template_id: sourceTemplateId,

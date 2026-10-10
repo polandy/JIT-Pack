@@ -6,8 +6,8 @@
  * What is worth pinning: a preparation names the row it belongs to and leads
  * to it, and carries no ✕ — it is removed where it lives; the trip's own
  * carries one. For FR-7.5: the seat exists only where somebody can be picked
- * (G-8), a todo already assigned still names its person where nothing can be
- * changed, and a finished todo names but offers nothing.
+ * (G-8), a task already assigned still names its person where nothing can be
+ * changed, and a finished task names but offers nothing.
  *
  * **The seat is on both kinds** (FR-7.7: a task is handed over like a pack
  * item), and the composer belongs to the screen rather than the list — M4's
@@ -19,10 +19,10 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
-import type { TripTask } from '@/domain/tripTodos'
+import type { TripTask } from '@/domain/tripTasks'
 
 import ListRows from '@/components/global/ListRows.vue'
-import TripTodoList from '../TripTodoList.vue'
+import TripTaskList from '../TripTaskList.vue'
 
 /** A task of the trip itself (FR-7.4): no row, and therefore a seat. */
 function ownTask(
@@ -63,7 +63,7 @@ function preparation(
 const names: Record<string, string> = { 'u-sia': 'Sia' }
 
 function mountList(tasks: TripTask[], assignable = true, extra: Record<string, unknown> = {}) {
-  return mount(TripTodoList, {
+  return mount(TripTaskList, {
     props: {
       tripId: 't1',
       tasks,
@@ -78,7 +78,7 @@ function mountList(tasks: TripTask[], assignable = true, extra: Record<string, u
   })
 }
 
-describe('TripTodoList — one list, two kinds of task (FR-7.6)', () => {
+describe('TripTaskList — one list, two kinds of task (FR-7.6)', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
   })
@@ -146,12 +146,12 @@ describe('TripTodoList — one list, two kinds of task (FR-7.6)', () => {
   })
 })
 
-describe('TripTodoList — whose job a todo is (FR-7.5)', () => {
+describe('TripTaskList — whose job a task is (FR-7.5)', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
   })
 
-  it('ends every open todo in a seat: the assignee, or an empty one', () => {
+  it('ends every open task in a seat: the assignee, or an empty one', () => {
     const wrapper = mountList([
       ownTask('Pflanzen giessen', 'open', 'u-sia'),
       ownTask('Kühlschrank leeren', 'open'),
@@ -165,7 +165,7 @@ describe('TripTodoList — whose job a todo is (FR-7.5)', () => {
     expect(empty.attributes('aria-label')).toBe('Assign to somebody')
   })
 
-  it('reports a tap on the seat with the todo, and nothing else', async () => {
+  it('reports a tap on the seat with the task, and nothing else', async () => {
     const wrapper = mountList([ownTask('Pflanzen giessen', 'open')])
 
     await wrapper.get('[data-testid="trip-todo-assign-Pflanzen giessen"]').trigger('click')
@@ -188,7 +188,7 @@ describe('TripTodoList — whose job a todo is (FR-7.5)', () => {
     )
   })
 
-  it('names who had a finished todo, and offers no seat on it', async () => {
+  it('names who had a finished task, and offers no seat on it', async () => {
     const wrapper = mountList([ownTask('Pflanzen giessen', 'resolved', 'u-sia')])
 
     await wrapper.get('[data-testid="trip-todos-resolved"]').trigger('click')
@@ -205,7 +205,7 @@ describe('TripTodoList — whose job a todo is (FR-7.5)', () => {
  * across the screen. Both kinds of task and both states are pinned, because
  * the open row and the resolved one are written out separately.
  */
-describe('TripTodoList — the tick stands at the row edge, as a packing row does', () => {
+describe('TripTaskList — the tick stands at the row edge, as a packing row does', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
   })
@@ -272,7 +272,7 @@ describe('TripTodoList — the tick stands at the row edge, as a packing row doe
  * FR-7.7 on the line: the way into the task's own sheet, where Q3 B's
  * provenance line lives (not on the row itself).
  */
-describe('TripTodoList — what a line says about itself (FR-7.7)', () => {
+describe('TripTaskList — what a line says about itself (FR-7.7)', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
   })
@@ -317,7 +317,7 @@ describe('TripTodoList — what a line says about itself (FR-7.7)', () => {
   })
 })
 
-describe('TripTodoList — when a task is due (FR-7.11)', () => {
+describe('TripTaskList — when a task is due (FR-7.11)', () => {
   const TODAY = '2026-07-08'
   const dated = (body: string, due: string, state: 'open' | 'resolved' = 'open'): TripTask => ({
     ...ownTask(body, state),
@@ -350,7 +350,7 @@ describe('TripTodoList — when a task is due (FR-7.11)', () => {
   })
 })
 
-describe('TripTodoList — a closed phase is history (FR-7.12)', () => {
+describe('TripTaskList — a closed phase is history (FR-7.12)', () => {
   it('offers no seat, no ✕ and no tick that works — the words still open the sheet', async () => {
     const list = mountList(
       [ownTask('Pflanzen', 'open', 'u-sia'), ownTask('Post', 'resolved')],
@@ -375,7 +375,7 @@ describe('TripTodoList — a closed phase is history (FR-7.12)', () => {
   })
 })
 
-describe('TripTodoList — M25’s two-line rows (FR-7.14)', () => {
+describe('TripTaskList — M25’s two-line rows (FR-7.14)', () => {
   const TODAY = '2026-07-08'
   const list = (tasks: TripTask[], extra: Record<string, unknown> = {}) =>
     mountList(tasks, true, { variant: 'list', today: TODAY, ...extra })

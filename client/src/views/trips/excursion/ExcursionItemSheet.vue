@@ -256,7 +256,7 @@ function onModeChange(mode: ExcursionItemMode) {
       @click="detailsOpen = !detailsOpen"
     >
       <IonIcon :icon="chevronForwardOutline" class="caret" />
-      <span class="details-label">{{ t('item.details') }}</span>
+      <span class="details-label">{{ t('row.details') }}</span>
       <span v-if="!detailsOpen" class="details-hint">{{ t('excursions.detailsHint') }}</span>
     </button>
 
@@ -289,7 +289,7 @@ function onModeChange(mode: ExcursionItemMode) {
   </section>
 
   <section v-else class="missing" data-testid="m27-line-missing">
-    <p>{{ t('item.notFound') }}</p>
+    <p>{{ t('row.notFound') }}</p>
   </section>
 </template>
 

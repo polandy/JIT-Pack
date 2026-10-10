@@ -34,7 +34,7 @@ export async function pickAssignee(
         },
       })),
       {
-        text: t('item.assignedToNobody'),
+        text: t('row.assignedToNobody'),
         icon: removeCircleOutline,
         role: current === null ? 'selected' : undefined,
         handler: () => {

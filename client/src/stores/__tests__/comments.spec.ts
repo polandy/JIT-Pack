@@ -1,6 +1,6 @@
 /**
  * Comments & tickets (FR-7.1/7.2): plain comments are their own layer,
- * flagging one as task promotes it into the existing task/todo
+ * flagging one as task promotes it into the existing task
  * machinery (FR-7.3 supersedes hard completion-blocking with the
  * "packed with open prep" state).
  */
@@ -33,7 +33,7 @@ describe('tripStore comments (FR-7.1)', () => {
     tripStore.applyChange(commentChange('c2', { is_task: 1, task_state: 'open' }))
 
     expect(tripStore.getItemComments('t1', 'ti1').map((c) => c.id)).toEqual(['c1'])
-    expect(tripStore.getItemTodos('t1', 'ti1').map((t) => t.id)).toEqual(['c2'])
+    expect(tripStore.getRowPrepTasks('t1', 'ti1').map((t) => t.id)).toEqual(['c2'])
   })
 
   it('keeps trip-level comments (null trip_item_id) retrievable', () => {
@@ -50,11 +50,11 @@ describe('tripStore comments (FR-7.1)', () => {
 
     tripStore.applyChange(commentChange('c1', { is_task: 1, task_state: 'open' }))
     expect(tripStore.getItemComments('t1', 'ti1')).toHaveLength(0)
-    expect(tripStore.getItemTodos('t1', 'ti1')).toHaveLength(1)
+    expect(tripStore.getRowPrepTasks('t1', 'ti1')).toHaveLength(1)
 
     tripStore.applyChange(commentChange('c1', { is_task: 0 }))
     expect(tripStore.getItemComments('t1', 'ti1')).toHaveLength(1)
-    expect(tripStore.getItemTodos('t1', 'ti1')).toHaveLength(0)
+    expect(tripStore.getRowPrepTasks('t1', 'ti1')).toHaveLength(0)
   })
 
   it('deletion removes the comment wherever it lives', () => {
@@ -238,7 +238,7 @@ describe('orchestrator comment actions', () => {
     installHarness().mockDrain()
   })
 
-  it('addComment applies optimistically; flag as task moves it to todos', () => {
+  it('addComment applies optimistically; flag as task moves it to preparations', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const tripStore = useTripStore()
 
@@ -247,9 +247,9 @@ describe('orchestrator comment actions', () => {
 
     orch.comments.flagCommentAsTask('t1', tripStore.getItemComments('t1', 'ti1')[0]!)
     expect(tripStore.getItemComments('t1', 'ti1')).toHaveLength(0)
-    const todos = tripStore.getItemTodos('t1', 'ti1')
-    expect(todos).toHaveLength(1)
-    expect(todos[0]).toMatchObject({ id, body: 'Ventil prüfen', task_state: 'open' })
+    const prepTasks = tripStore.getRowPrepTasks('t1', 'ti1')
+    expect(prepTasks).toHaveLength(1)
+    expect(prepTasks[0]).toMatchObject({ id, body: 'Ventil prüfen', task_state: 'open' })
   })
 
   /**

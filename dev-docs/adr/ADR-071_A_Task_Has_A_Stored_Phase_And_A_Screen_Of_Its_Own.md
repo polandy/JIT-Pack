@@ -4,7 +4,7 @@
 **Related:** FR-7.7, FR-7.3, FR-7.4, FR-7.5, FR-7.6, FR-5.10, FR-25.17, FR-25.31, FR-30.3, ADR-068, ADR-070,
 ADR-051 amendment 1, ADR-066, ADR-022, ADR-067, UI-Spec M25/M4/M8, `internal/store/schema.sql` (`comments.phase`,
 `comments.resolved_at`, `comments.resolved_by_user_id`, `template_tasks.phase`),
-`client/src/domain/tripTodos.ts` (`taskPhaseOf`, `packingWindowTasks`), `client/src/domain/closePacking.ts`
+`client/src/domain/tripTasks.ts` (`taskPhaseOf`, `packingWindowTasks`), `client/src/domain/closePacking.ts`
 (`tasksCrossing`), `client/src/views/trips/TripTasksPage.vue`, E2E-M25-01…04, E2E-M4-141
 
 **Context.** A trip has two kinds of moment, and the app knew only one. The owner's story on 2026-09-20: fetching a
@@ -174,7 +174,7 @@ know what a packing row is — it meets packing through a kernel contract (`kern
 composition root binds. A task could not be given that treatment without inventing a contract to express „the row this
 prepares", which is the coupling, not an accident of where the code sits.
 
-So the tasks stay kernel code: the rule in `client/src/domain/tripTodos.ts`, the acts in
+So the tasks stay kernel code: the rule in `client/src/domain/tripTasks.ts`, the acts in
 `client/src/composables/useTaskActs.ts` (shared by M4 and M25 so the two screens cannot drift), the screen in
 `client/src/views/trips/`. **A module boundary is worth drawing where the two sides genuinely do not need each other.**
 Drawing one here would produce a contract whose only purpose was to carry a foreign key across it.

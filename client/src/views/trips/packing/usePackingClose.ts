@@ -95,7 +95,7 @@ export function usePackingClose(core: PackingCore) {
       // FR-7.7: the tasks that would cross with the close. Read into the plan
       // rather than counted beside it, so the sentence the reader confirms and
       // the write that follows cannot disagree about how many move.
-      tasks: [...tripStore.getTripTodos(tripId), ...tripStore.getTodos(tripId)],
+      tasks: [...tripStore.getOwnTasks(tripId), ...tripStore.getPrepTasks(tripId)],
     }),
   )
 

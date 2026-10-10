@@ -12,7 +12,7 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
-import type { TripTask } from '@/domain/tripTodos'
+import type { TripTask } from '@/domain/tripTasks'
 import TripTaskSheet from '../TripTaskSheet.vue'
 
 function task(over: Partial<TripTask> = {}): TripTask {

@@ -3,7 +3,7 @@
  *
  * Its own store rather than a bucket in `tripStore`, so nothing the packing
  * list measures can reach an entry by accident — the same reason FR-7.4 gave
- * trip todos their own bucket, one step further. The orchestrator reaches it
+ * the trip's own tasks their own bucket, one step further. The orchestrator reaches it
  * only as the `FeatureStore` below, handed in by the composition root
  * (FR-30.3, ADR-066).
  */

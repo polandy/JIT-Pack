@@ -15,7 +15,7 @@ import { installHarness } from '@/__tests__/harness'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { dueStateOf } from '@/domain/taskDue'
 import { localIsoDate } from '@/domain/trips'
-import { taskGroups, tripTasks } from '@/domain/tripTodos'
+import { taskGroups, tripTasks } from '@/domain/tripTasks'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -121,7 +121,7 @@ describe('seedSampleTrip (dev)', () => {
       name: item.name,
       icon: null,
     }))
-    const tasks = tripTasks(trip.getTripTodos(tripId), trip.getTodos(tripId), rows)
+    const tasks = tripTasks(trip.getOwnTasks(tripId), trip.getPrepTasks(tripId), rows)
 
     // The trip's own chores (FR-7.4), and at least one that prepares a row.
     expect(tasks.filter((task) => task.item === null).length).toBeGreaterThan(0)
@@ -163,7 +163,7 @@ describe('seedSampleTrip (dev)', () => {
     const master = useMasterStore()
 
     const rows = trip.getItems(tripId).map((item) => ({ id: item.id, name: item.name, icon: null }))
-    const tasks = tripTasks(trip.getTripTodos(tripId), trip.getTodos(tripId), rows)
+    const tasks = tripTasks(trip.getOwnTasks(tripId), trip.getPrepTasks(tripId), rows)
     const groups = taskGroups(tasks, master.taskTagList, localIsoDate(Date.now()))
 
     const byTag = groups.filter((group) => group.tag !== null)
@@ -183,8 +183,8 @@ describe('seedSampleTrip (dev)', () => {
     const { tripId, trip } = seed()
     const today = localIsoDate(Date.now())
     const states = trip
-      .getTripTodos(tripId)
-      .map((todo) => dueStateOf(todo, today))
+      .getOwnTasks(tripId)
+      .map((task) => dueStateOf(task, today))
       .filter((state) => state !== null)
     expect(states.sort()).toEqual(['overdue', 'soon'])
   })
@@ -192,10 +192,10 @@ describe('seedSampleTrip (dev)', () => {
   it('hangs its preparations off a row the trip actually carries', () => {
     const { tripId, trip } = seed()
 
-    const prepared = trip.getTodos(tripId)
+    const prepared = trip.getPrepTasks(tripId)
     expect(prepared.length).toBeGreaterThan(0)
     const rowIds = new Set(trip.getItems(tripId).map((item) => item.id))
-    for (const todo of prepared) expect(rowIds.has(todo.trip_item_id)).toBe(true)
+    for (const task of prepared) expect(rowIds.has(task.trip_item_id)).toBe(true)
   })
 
   /**

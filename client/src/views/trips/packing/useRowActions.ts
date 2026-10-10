@@ -251,7 +251,7 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
   /**
    * FR-25.31: a confirmed removal has an undo too. Its companions are skipped
    * now — an ordinary write the snackbar can take back — but the rows themselves
-   * only leave the screen: deleting them would take their comments and todos
+   * only leave the screen: deleting them would take their comments and preparations
    * along, and those cannot be written back under their own authors. The delete
    * is what lapses, with ADR-065's prune after it.
    */

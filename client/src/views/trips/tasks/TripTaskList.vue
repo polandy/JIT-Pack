@@ -43,7 +43,7 @@ import RemoveButton from '@/components/global/RemoveButton.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import type { RowSelection } from '@/composables/shared/useRowSelection'
 import { openDueDay } from '@/domain/taskDue'
-import type { TripTask } from '@/domain/tripTodos'
+import type { TripTask } from '@/domain/tripTasks'
 import { t } from '@/i18n'
 import { IDEA_LOOKUP } from '@/kernel/ideaBridge'
 import { tripItemPath } from '@/router/paths'
@@ -138,7 +138,7 @@ function assigneeOf(task: TripTask) {
  */
 function onLift(ev: PointerEvent, task: TripTask) {
   if (!props.lift) return
-  const row = (ev.currentTarget as HTMLElement).closest('.todo-row') as HTMLElement | null
+  const row = (ev.currentTarget as HTMLElement).closest('.task-row') as HTMLElement | null
   if (row) props.lift(ev, task, row)
 }
 
@@ -181,7 +181,7 @@ function hasFacts(task: TripTask): boolean {
 </script>
 
 <template>
-  <div class="trip-todo-list" :class="variant ?? 'window'" data-testid="trip-todo-list">
+  <div class="trip-task-list" :class="variant ?? 'window'" data-testid="trip-todo-list">
     <InlineHint v-if="emptyText && tasks.length === 0" data-testid="trip-todo-empty">
       {{ emptyText }}
     </InlineHint>
@@ -195,7 +195,7 @@ function hasFacts(task: TripTask): boolean {
         :key="task.id"
         :data-drop-index="index"
         :lines="isList ? undefined : 'none'"
-        class="todo-row"
+        class="task-row"
         :checked="selecting ? null : false"
         :tick-disabled="readonly"
         :selected="selecting && !!selection?.selected.value.has(task.id)"
@@ -215,7 +215,7 @@ function hasFacts(task: TripTask): boolean {
           <DragGrip
             v-else-if="lift"
             slot="start"
-            :label="t('tripTodos.drag', { body: task.body })"
+            :label="t('tripTasks.drag', { body: task.body })"
             :data-testid="`trip-todo-grip-${task.body}`"
             @pointerdown.stop="onLift($event, task)"
           />
@@ -285,7 +285,7 @@ function hasFacts(task: TripTask): boolean {
             />
           </template>
           <!-- M4's window keeps its one-line cluster at the row's edge. -->
-          <span v-else slot="end" class="todo-end">
+          <span v-else slot="end" class="task-end">
             <DueBadge
               v-if="today"
               :day="openDueDay(task)"
@@ -312,7 +312,7 @@ function hasFacts(task: TripTask): boolean {
             />
             <RemoveButton
               v-if="!task.item && !readonly"
-              :label="t('tripTodos.remove')"
+              :label="t('tripTasks.remove')"
               :data-testid="`trip-todo-remove-${task.body}`"
               @click="emit('remove', task)"
             />
@@ -326,7 +326,7 @@ function hasFacts(task: TripTask): boolean {
     <template v-if="resolved.length > 0">
       <FoldToggle
         v-if="!unfolded"
-        :label="t('tripTodos.resolved', { n: resolved.length })"
+        :label="t('tripTasks.resolved', { n: resolved.length })"
         :open="showResolved"
         testid="trip-todos-resolved"
         @toggle="showResolved = !showResolved"
@@ -336,7 +336,7 @@ function hasFacts(task: TripTask): boolean {
           v-for="task in resolved"
           :key="task.id"
           :lines="isList ? undefined : 'none'"
-          class="todo-row resolved"
+          class="task-row resolved"
           done
           :checked="true"
           :tick-disabled="readonly"
@@ -376,7 +376,7 @@ function hasFacts(task: TripTask): boolean {
               :seed="task.assignee_user_id"
               :data-testid="`trip-todo-assignee-${task.body}`"
             />
-            <span v-else slot="end" class="todo-end">
+            <span v-else slot="end" class="task-end">
               <TaskItemChip
                 v-if="task.item"
                 :item="task.item"
@@ -391,7 +391,7 @@ function hasFacts(task: TripTask): boolean {
               />
               <RemoveButton
                 v-if="!task.item && !readonly"
-                :label="t('tripTodos.remove')"
+                :label="t('tripTasks.remove')"
                 :data-testid="`trip-todo-remove-${task.body}`"
                 @click="emit('remove', task)"
               />
@@ -404,13 +404,13 @@ function hasFacts(task: TripTask): boolean {
 </template>
 
 <style scoped>
-.trip-todo-list.window {
+.trip-task-list.window {
   padding: 0 4px 12px;
 }
 
 /* M4's window is a handful of compact lines; M25's list rows keep Ionic's own
    height, the one M6's rows have. */
-.window .todo-row {
+.window .task-row {
   --min-height: 36px;
 }
 
@@ -447,7 +447,7 @@ function hasFacts(task: TripTask): boolean {
   margin-inline-start: 8px;
 }
 
-.todo-end {
+.task-end {
   display: flex;
   align-items: center;
   gap: 6px;

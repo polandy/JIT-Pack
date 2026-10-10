@@ -172,10 +172,10 @@ describe('cascadeOf', () => {
     expect(names(TABLE.destinationProfiles, 'p1')).toEqual(['destination_checklist_items/c1'])
   })
 
-  it("takes a trip item's comments and todos, and leaves the trip-level ones", () => {
+  it("takes a trip item's comments and preparations, and leaves the trip-level ones", () => {
     stores.tripStore.applyChanges([
       row(TABLE.comments, 'com1', { trip_id: 't1', trip_item_id: 'ti1', body: 'Kratzer' }),
-      row(TABLE.comments, 'todo1', {
+      row(TABLE.comments, 'prep1', {
         trip_id: 't1',
         trip_item_id: 'ti1',
         body: 'Akku laden',
@@ -185,7 +185,7 @@ describe('cascadeOf', () => {
       row(TABLE.comments, 'com2', { trip_id: 't1', body: 'Karte mitnehmen' }),
     ])
 
-    expect(names(TABLE.tripItems, 'ti1').sort()).toEqual(['comments/com1', 'comments/todo1'])
+    expect(names(TABLE.tripItems, 'ti1').sort()).toEqual(['comments/com1', 'comments/prep1'])
   })
 
   // SQLite follows a cascade as far as it reaches; the mirror has to as well,

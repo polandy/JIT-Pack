@@ -212,8 +212,8 @@ export interface PortableDocument {
   includes: PortableGroup[]
   items: PortableItem[]
   /**
-   * FR-7.4: the template's trip tasks. Empty on trips — a trip's own todos
-   * are not in the portable shape, like its FR-7.3 todos — and on every file
+   * FR-7.4: the template's trip tasks. Empty on trips — a trip's own tasks
+   * are not in the portable shape, like its FR-7.3 preparations — and on every file
    * written before the field existed.
    */
   trip_tasks: string[]

@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
 
 import type { HeadMetaPart } from '@/composables/shared/useHeaderTitle'
-import type { TripTask } from '@/domain/tripTodos'
+import type { TripTask } from '@/domain/tripTasks'
 import { setLocale } from '@/i18n'
 import type { DueTally } from '@/domain/shared/dueDay'
 import { DUE_BLOCK_SHOPPING, DUE_BLOCK_TASKS } from '@/kernel/tripCards'

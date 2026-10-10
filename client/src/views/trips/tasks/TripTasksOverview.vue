@@ -20,7 +20,7 @@ import { computed } from 'vue'
 import SectionHead from '@/components/global/SectionHead.vue'
 import TaskItemChip from '@/views/trips/tasks/TaskItemChip.vue'
 import { useTripTasks } from '@/composables/useTripTasks'
-import { tripTodoProgress, tripTodoStatus } from '@/domain/tripTodos'
+import { tripTaskProgress, tripTaskStatus } from '@/domain/tripTasks'
 import { t } from '@/i18n'
 import { nameFrom } from '@/lib/rowFacts'
 import { tripItemPath, tripOpenPath } from '@/router/paths'
@@ -39,12 +39,12 @@ const groups = computed(() =>
   props.trips
     .map((trip) => {
       const tasks = tasksOf(trip.id)
-      const progress = tripTodoProgress(tasks)
+      const progress = tripTaskProgress(tasks)
       return {
         trip,
         open: tasks.filter((task) => task.task_state === 'open'),
         progress,
-        status: tripTodoStatus(progress),
+        status: tripTaskStatus(progress),
       }
     })
     .filter((group) => group.status !== 'none'),
@@ -56,15 +56,15 @@ const openTotal = computed(() => groups.value.reduce((sum, g) => sum + g.progres
 <template>
   <template v-if="groups.length > 0">
     <SectionHead
-      :title="t('dashboard.tripTodos')"
+      :title="t('dashboard.tripTasks')"
       :count="openTotal"
       data-testid="dashboard-trip-todos-head"
     />
-    <div class="jp-card todos-card" data-testid="dashboard-trip-todos">
+    <div class="jp-card tasks-card" data-testid="dashboard-trip-todos">
       <div
         v-for="group in groups"
         :key="group.trip.id"
-        class="todo-group"
+        class="task-group"
         :data-testid="`trip-todos-${group.trip.name}`"
       >
         <!-- The block's head is the way into the trip; a task's chip is the
@@ -82,8 +82,8 @@ const openTotal = computed(() => groups.value.reduce((sum, g) => sum + g.progres
           >
             {{
               group.status === 'allDone'
-                ? t('tripTodos.allDone')
-                : t('tripTodos.progress', {
+                ? t('tripTasks.allDone')
+                : t('tripTasks.progress', {
                     done: group.progress.done,
                     total: group.progress.total,
                   })
@@ -117,19 +117,19 @@ const openTotal = computed(() => groups.value.reduce((sum, g) => sum + g.progres
 </template>
 
 <style scoped>
-.todos-card {
+.tasks-card {
   display: block;
   margin-bottom: 12px;
   padding: 6px 0;
 }
 
-.todo-group {
+.task-group {
   display: block;
   padding: 10px 16px;
   color: inherit;
 }
 
-.todo-group + .todo-group {
+.task-group + .task-group {
   border-top: 1px solid var(--jp-surface-border);
 }
 

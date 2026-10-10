@@ -5,7 +5,7 @@ import {
   openRowMenu,
   openTasks,
   removeTaskFromSheet,
-  addTripTodo,
+  addOwnTask,
   packRow,
   row,
   startTrip,
@@ -180,7 +180,7 @@ test.describe('FR-25.31 — the list takes back what it wrote', () => {
   }) => {
     test.slow()
     await tripWithRows(page, ['Zelt'], 'Rückgängigprobe')
-    await addTripTodo(page, 'Pass erneuern')
+    await addOwnTask(page, 'Pass erneuern')
     const section = await openTasks(page, 'before')
     const task = section.getByTestId('trip-todo-Pass erneuern')
 

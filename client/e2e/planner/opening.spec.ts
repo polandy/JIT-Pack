@@ -4,7 +4,7 @@ import { addIdea, ideasBoard, moveIdea, openIdea, openIdeas, planIdea } from '..
 import { addDayEntry, dayPlan, openDayPlan, timelineLines } from '../helpers/m29'
 import { browserDay } from '../helpers/page'
 import { askToStart, openTripView } from '../helpers/trips'
-import { addTripTodo } from '../helpers/m4'
+import { addOwnTask } from '../helpers/m4'
 import { openListComposer } from '../helpers/composer'
 import type { Page } from '@playwright/test'
 
@@ -141,7 +141,7 @@ test.describe('Trip opening and the Heute card @local @planner', () => {
 
     // Nothing to buy, a task open: the tasks.
     await openTripView(page, 'packing')
-    await addTripTodo(page, 'Velo pumpen', 'during')
+    await addOwnTask(page, 'Velo pumpen', 'during')
     await openFromTripList(page, 'Engadin jetzt')
     await expect(visiblePage(page).getByTestId('m25-page')).toBeVisible()
     await expect(page.getByTestId('trip-view-tasks')).toHaveAttribute('aria-current', 'page')

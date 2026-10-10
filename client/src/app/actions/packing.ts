@@ -435,7 +435,7 @@ export function createPackingActions(ctx: SyncContext) {
     )
   }
 
-  /** The notes and FR-7.3 todos a row's removal takes along — its replies included, its ticks not. */
+  /** The notes and FR-7.3 preparations a row's removal takes along — its replies included, its ticks not. */
   function notesGoingWith(item: TripItem): number {
     return cascadeOf(TABLE.tripItems, item.id, tripStore).filter(
       (row) => row.table === TABLE.comments,

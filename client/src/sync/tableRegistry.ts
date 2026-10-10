@@ -34,7 +34,7 @@ import type {
   ItemComment,
   ItemDependency,
   ItemTag,
-  ItemTodo,
+  PrepTask,
   NoteAck,
   Excursion,
   ExcursionItem,
@@ -46,7 +46,7 @@ import type {
   TaskFacts,
   TaskTag,
   TaskPhase,
-  TripTodo,
+  OwnTask,
   MasterItem,
   Tag,
   Template,
@@ -82,8 +82,8 @@ import {
   seriesRow,
   templateItemRow,
   templateRow,
-  todoRow,
-  tripTodoRow,
+  prepTaskRow,
+  ownTaskRow,
   travelerRow,
   tripRow,
   itemRow,
@@ -549,14 +549,14 @@ function rowToExcursionItem(id: string, row: Record<string, unknown>): Excursion
   }
 }
 
-function rowToTodo(id: string, row: Record<string, unknown>): ItemTodo {
+function rowToPrepTask(id: string, row: Record<string, unknown>): PrepTask {
   return {
     id,
     trip_id: row['trip_id'] as string,
     trip_item_id: row['trip_item_id'] as string,
     author_id: row['author_id'] as string,
     body: row['body'] as string,
-    task_state: (row['task_state'] as ItemTodo['task_state']) ?? 'open',
+    task_state: (row['task_state'] as PrepTask['task_state']) ?? 'open',
     ...taskFacts(row),
   }
 }
@@ -658,12 +658,12 @@ export const KERNEL_TABLE_SPECS = {
   },
   // FR-7.2: one table, two domain types. `is_task` decides which, and the
   // store routes on it — the codec named here is the plain comment, with the
-  // todo's beside it because a registry keyed by table cannot hold two.
+  // preparation's beside it because a registry keyed by table cannot hold two.
   [TABLE.comments]: {
     ...TRIP_ROWS,
     parse: rowToComment,
     encode: commentRow,
-    // A row's notes and FR-7.3 todos go with it — a trip-level one carries a
+    // A row's notes and FR-7.3 preparations go with it — a trip-level one carries a
     // null trip_item_id — and a first note takes its replies (FR-7.13).
     cascadeParents: alsoWith(
       goesWith('trip_item_id', TABLE.tripItems),
@@ -702,31 +702,31 @@ export const KERNEL_TABLE_SPECS = {
 } satisfies Partial<Record<SyncTable, TableSpec>>
 
 /**
- * The todo half of `comments` (FR-7.2). It is not in `KERNEL_TABLE_SPECS` because
+ * The preparation half of `comments` (FR-7.2). It is not in `KERNEL_TABLE_SPECS` because
  * that map is keyed by table and this is the same table read as the other
  * type; `tripStore` picks between them on `is_task`. Being outside the map,
  * it is named by hand in `tableRegistry.spec.ts`'s pairs, as is
- * `tripTodoCodec`.
+ * `ownTaskCodec`.
  */
-export const todoCodec: TableCodec<ItemTodo> = { parse: rowToTodo, encode: todoRow }
+export const prepTaskCodec: TableCodec<PrepTask> = { parse: rowToPrepTask, encode: prepTaskRow }
 
-function rowToTripTodo(id: string, row: Record<string, unknown>): TripTodo {
+function rowToOwnTask(id: string, row: Record<string, unknown>): OwnTask {
   return {
     id,
     trip_id: row['trip_id'] as string,
     author_id: row['author_id'] as string,
     body: row['body'] as string,
-    task_state: (row['task_state'] as TripTodo['task_state']) ?? 'open',
+    task_state: (row['task_state'] as OwnTask['task_state']) ?? 'open',
     ...taskFacts(row),
     idea_id: (row['idea_id'] as string | null | undefined) ?? null,
   }
 }
 
 /**
- * The FR-7.4 trip todo's codec — the third reading of a `comments` row,
+ * The FR-7.4 own task's codec — the third reading of a `comments` row,
  * chosen by `tripStore` when `is_task` is set and no row anchors it.
  */
-export const tripTodoCodec: TableCodec<TripTodo> = { parse: rowToTripTodo, encode: tripTodoRow }
+export const ownTaskCodec: TableCodec<OwnTask> = { parse: rowToOwnTask, encode: ownTaskRow }
 
 /**
  * encodedRow turns a stored row back into the row it travels as, by its
