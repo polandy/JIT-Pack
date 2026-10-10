@@ -1,10 +1,11 @@
-// Package store — guard.go is the per-table half of a partition's write gate
+// guard.go is the per-table half of a partition's write gate
 // (G-2). Which rule a table's writes must pass is declared once, as
 // tableSpec.guard; the partition's scope applies what is the partition's own
 // (membership in the trip whose endpoint was called) and then the table's
 // guard. A table that needs no rule of its own says so with `unguarded` and
 // the reason beside it, so a missing rule is a failing test
 // (TestEverySpecDeclaresAWriteGuard) rather than a silent default.
+
 package store
 
 import (

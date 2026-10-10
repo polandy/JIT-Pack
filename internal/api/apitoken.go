@@ -1,10 +1,11 @@
-// Package api — apitoken.go mints the long-lived credentials of FR-23.7.
+// apitoken.go mints the long-lived credentials of FR-23.7.
 //
 // An API token is an ordinary session JWT with a longer life and three extra
 // claims. **Nothing about it is stored** (ADR-039): it cannot be listed and
 // cannot be revoked one at a time, and rotating the signing secret is what
 // revokes them all. The trade is written up in the ADR; what lives here is
 // the shape.
+
 package api
 
 import (

@@ -1,4 +1,4 @@
-// Package api — masterdelete.go serves the direct delete of a single master
+// masterdelete.go serves the direct delete of a single master
 // row (ADR-038): the door for everything that is not the app itself.
 //
 // The app writes through the sync push instead, because its writes have to
@@ -6,6 +6,7 @@
 // Both doors reach the same rule: this handler mints the mutation the caller
 // would otherwise compose and hands it to the same store pipeline, so
 // FR-24.3's retire-or-remove decision has exactly one implementation.
+
 package api
 
 import (

@@ -1,9 +1,10 @@
-// Package store — stamp.go is invariant 3's step in the write pipeline: the
+// stamp.go is invariant 3's step in the write pipeline: the
 // columns the server owns are taken out of every mutation before anything
 // reads it, and written back from the authenticated actor alone. Which
 // columns those are is declared once per table, as tableSpec.serverOwned, so
 // "which columns does the server own?" has one answer, and a push and a
 // conflict revert (NFR-4.2a) both pass through it.
+
 package store
 
 import (

@@ -8,7 +8,7 @@ import (
 )
 
 // storeConsts is the part of a store package the registry's keys and columns
-// resolve against — kept in its own file, as `store.go` keeps it.
+// resolve against — kept in its own file, as `vocabulary.go` keeps it.
 const storeConsts = `package store
 
 const (
@@ -76,7 +76,7 @@ CREATE TABLE trip_items (
 func generateTables(t *testing.T, registry, schema string) string {
 	t.Helper()
 	out, err := wiregen.GenerateTables(
-		map[string][]byte{"store.go": []byte(storeConsts), "tables.go": []byte(registry)},
+		map[string][]byte{"vocabulary.go": []byte(storeConsts), "tables.go": []byte(registry)},
 		[]byte(schema))
 	if err != nil {
 		t.Fatalf("GenerateTables: %v", err)
@@ -264,7 +264,7 @@ func TestGenerateTables_RefusesWhatItCannotStateTruthfully(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := wiregen.GenerateTables(
-				map[string][]byte{"store.go": []byte(storeConsts), "tables.go": []byte(tc.registry)},
+				map[string][]byte{"vocabulary.go": []byte(storeConsts), "tables.go": []byte(tc.registry)},
 				[]byte(tc.schema))
 			if err == nil {
 				t.Fatal("want a refusal, got none")

@@ -4,7 +4,8 @@ package main
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,7 +17,6 @@ import (
 	_ "time/tzdata"
 
 	"jitpack/internal/api"
-	"jitpack/internal/linkpreview"
 	"jitpack/internal/store"
 	"jitpack/internal/webui"
 )
@@ -27,10 +27,18 @@ import (
 // nothing a release could be compared against.
 var version = "dev"
 
+// fatal logs err at the given step and exits 1. Every startup failure goes
+// through it, so a reader of the log never has to tell a fatal apart from
+// an ordinary error by whether the process happens to still be running.
+func fatal(step string, err error) {
+	slog.Error(step, "error", err)
+	os.Exit(1)
+}
+
 func main() {
 	cfg, err := LoadConfig()
 	if err != nil {
-		log.Fatalf("config: %v", err)
+		fatal("config", err)
 	}
 
 	// Before the store is opened and before OIDC discovery, which exits the
@@ -40,62 +48,29 @@ func main() {
 		if err := runTokenCreate(context.Background(), os.Args[3:], tokenEnv{
 			cfg: cfg, stdout: os.Stdout, stdoutIsTerminal: isTerminal(os.Stdout),
 		}); err != nil {
-			log.Fatalf("%s create: %v", cmdToken, err)
+			fatal(fmt.Sprintf("%s create", cmdToken), err)
 		}
 		return
 	}
 
 	st, err := store.Open(cfg.DBPath)
 	if err != nil {
-		log.Fatalf("store: %v", err)
+		fatal("store", err)
 	}
 	defer st.Close()
 
-	// Every startup-time choice in one value, so the shape of a
-	// configured instance is readable in one place (api.Options).
-	opts := api.Options{
-		Currency:    cfg.Currency,
-		PushContact: cfg.PushContact,
-		AdminEmails: cfg.AdminEmails,
-		Version:     version,
-		UpdateCheck: cfg.UpdateCheck,
-		NoMapTiles:  !cfg.MapTiles,
-		NoTimetable: !cfg.Timetable,
-		RoutingURL:  cfg.RoutingURL,
-	}
-	if cfg.LinkPreviews {
-		opts.LinkPreviews = linkpreview.NewFetcher()
-		log.Printf("link previews on: pasted links' pages are read from the internet (FR-29.16, JITPACK_LINK_PREVIEWS=false turns this off)")
-	}
-	if cfg.MapTiles {
-		log.Printf("map tiles on: devices fetch them from swisstopo and OpenStreetMap (FR-29.17, JITPACK_MAP_TILES=false turns this off)")
-	}
-	if cfg.Timetable {
-		log.Printf("timetable on: devices search transport.opendata.ch for connections (FR-29.18, JITPACK_TIMETABLE=false turns this off)")
-	}
-	if cfg.RoutingURL != "" {
-		log.Printf("routing on: devices ask %s for paths when a route is edited (FR-29.20, JITPACK_ROUTING=false turns this off)", cfg.RoutingURL)
-	}
-	if cfg.UpdateCheck {
-		// The build names itself in the line, because that is the half an
-		// operator cannot otherwise see: an image built without a release
-		// tag makes no check at all (FR-23.8).
-		log.Printf("release check on, this build is %q (an untagged build makes no check)", version)
-	}
-	if len(cfg.AdminEmails) > 0 {
-		log.Printf("instance admins: %d address(es) (FR-23.1)", len(cfg.AdminEmails))
-	}
-	if cfg.Currency != "" {
-		log.Printf("amounts are labelled %s (FR-21.9)", cfg.Currency)
+	opts := cfg.apiOptions(version)
+	for _, line := range cfg.banners(version) {
+		slog.Info(line)
 	}
 
 	var srv *api.Server
 	if cfg.SingleUser {
-		log.Printf("starting in single-user mode (user=%s)", cfg.LocalUserID)
+		slog.Info("starting in single-user mode", "user", cfg.LocalUserID)
 		// The server attributes every request to this id; seed the row so
 		// owner_id foreign keys (trips, memberships) resolve (FR-17.2).
 		if err := st.EnsureLocalSingleUserID(context.Background(), cfg.LocalUserID); err != nil {
-			log.Fatalf("seed local user: %v", err)
+			fatal("seed local user", err)
 		}
 		srv = api.NewSingleUser(st, cfg.LocalUserID, opts)
 	} else {
@@ -105,11 +80,11 @@ func main() {
 			// ID-token check (ADR-007).
 			d, err := api.FetchDiscovery(cfg.OIDCIssuer)
 			if err != nil {
-				log.Fatalf("oidc discovery: %v", err)
+				fatal("oidc discovery", err)
 			}
 			jwks, err := api.NewJWKSProvider(d.JWKSURI)
 			if err != nil {
-				log.Fatalf("jwks: %v", err)
+				fatal("jwks", err)
 			}
 			defer jwks.Close()
 			opts.OIDC = &api.OIDCConfig{
@@ -118,9 +93,9 @@ func main() {
 				ClientSecret: cfg.OIDCClientSecret,
 				JWKS:         jwks,
 			}
-			log.Printf("starting in multi-user mode (OIDC broker: %s)", cfg.OIDCIssuer)
+			slog.Info("starting in multi-user mode", "oidc_broker", cfg.OIDCIssuer)
 		} else {
-			log.Print("starting in multi-user mode (externally minted session tokens)")
+			slog.Info("starting in multi-user mode (externally minted session tokens)")
 		}
 		srv = api.New(st, []byte(cfg.SessionSecret), opts)
 	}
@@ -133,9 +108,9 @@ func main() {
 	if cfg.WebRoot != "" {
 		handler, err = webui.Handler(cfg.WebRoot, handler, api.APIPrefix, api.RouteWS, api.RouteHealth)
 		if err != nil {
-			log.Fatalf("web ui: %v", err)
+			fatal("web ui", err)
 		}
-		log.Printf("serving the client from %s", cfg.WebRoot)
+		slog.Info("serving the client", "web_root", cfg.WebRoot)
 	}
 
 	httpSrv := &http.Server{
@@ -155,28 +130,28 @@ func main() {
 	// The zone's abbreviation rather than time.Local, whose name is always
 	// "Local" and would not tell an operator whether TZ took.
 	zone, _ := time.Now().Zone()
-	log.Printf("task reminders daily at %02d:%02d %s (FR-7.11)",
-		int(cfg.TaskReminderAt/time.Hour), int(cfg.TaskReminderAt%time.Hour/time.Minute), zone)
+	slog.Info(fmt.Sprintf("task reminders daily at %02d:%02d %s (FR-7.11)",
+		int(cfg.TaskReminderAt/time.Hour), int(cfg.TaskReminderAt%time.Hour/time.Minute), zone))
 
 	go func() {
-		log.Printf("listening on %s", cfg.Listen)
+		slog.Info("listening", "addr", cfg.Listen)
 		if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %v", err)
+			fatal("listen", err)
 		}
 	}()
 
 	<-ctx.Done()
-	log.Print("shutting down…")
+	slog.Info("shutting down…")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := httpSrv.Shutdown(shutdownCtx); err != nil {
-		log.Fatalf("shutdown: %v", err)
+		fatal("shutdown", err)
 	}
 	// The requests are answered; their Web Push deliveries may not be.
 	// Same budget, because both are the one shutdown deadline.
 	if err := srv.WaitDetached(shutdownCtx); err != nil {
-		log.Printf("gave up on in-flight web push deliveries: %v", err)
+		slog.Info("gave up on in-flight web push deliveries", "error", err)
 	}
-	log.Print("stopped")
+	slog.Info("stopped")
 }

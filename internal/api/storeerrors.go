@@ -7,10 +7,9 @@ import (
 )
 
 // storeErrorResponses is the one place a store refusal becomes an HTTP
-// answer. It replaced five hand-written switches and five inline `if`s
-// across eight files, which is what made the same failure able to read
-// two ways depending on which endpoint met it — `ErrItemNotFound` was
-// already spelled out twice, identically, by hand.
+// answer, so the same failure reads the same sentence whichever endpoint
+// meets it rather than depending on a switch or an inline `if` written by
+// hand at each call site.
 //
 // A row with no message answers with the sentinel's own sentence. That is
 // deliberate and confined to the three limits whose text a user has to

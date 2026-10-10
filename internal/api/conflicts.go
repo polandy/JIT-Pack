@@ -1,8 +1,9 @@
-// Package api — conflicts.go exposes the conflict log for the G-2
+// conflicts.go exposes the conflict log for the G-2
 // conflict view (NFR-4.2a: every LWW loser is auditable *and manually
 // revertable*). There are two, one per sync partition: a trip's, read by
 // its members, and the master partition's, read per user and filtered to
 // what that user may see. Each has a revert endpoint beside its list.
+
 package api
 
 import (

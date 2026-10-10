@@ -1,6 +1,7 @@
-// Package api — notifications.go serves FR-6.2's REST endpoints: fetching
+// notifications.go serves FR-6.2's REST endpoints: fetching
 // and acknowledging notifications, and the M17 per-kind preferences. Who is
 // notified of what, and the delivery, are internal/notify's.
+
 package api
 
 import (

@@ -1,5 +1,6 @@
-// Package api — push.go serves Web Push's endpoints (NFR-4.6): the VAPID
+// push.go serves Web Push's endpoints (NFR-4.6): the VAPID
 // public key and the subscription registration. Delivery is internal/notify's.
+
 package api
 
 import (

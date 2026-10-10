@@ -1,5 +1,6 @@
-// Package api — activity.go serves the activity log (FR-32.1, ADR-084):
+// activity.go serves the activity log (FR-32.1, ADR-084):
 // a trip's, read by its members, and the inventory's, read per user.
+
 package api
 
 import (

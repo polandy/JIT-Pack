@@ -1,5 +1,6 @@
-// Package store — push.go persists Web-Push subscriptions and the
+// push.go persists Web-Push subscriptions and the
 // self-generated VAPID keypair (NFR-4.6).
+
 package store
 
 import (

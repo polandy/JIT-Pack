@@ -1,9 +1,10 @@
-// Package store — locks.go owns the one half of G-3's lock the server
+// locks.go owns the one half of G-3's lock the server
 // holds (FR-5.7, ADR-028). Everything else about a claim is a client
 // rendering rule over the synced `packing_now` fields; a *takeover* is
 // not, because only the server can say who took over (invariant 3) and
 // notify the account it was taken from. The record it leaves lives in
 // `lock_events`, deliberately beside the conflict log rather than in it.
+
 package store
 
 import (

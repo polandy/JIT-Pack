@@ -1,4 +1,4 @@
-// Package api — auth.go is the OIDC login broker (ADR-007, Sync-API §2).
+// auth.go is the OIDC login broker (ADR-007, Sync-API §2).
 // The client sends code + PKCE verifier; the broker exchanges them as a
 // confidential client, validates the ID token against the IdP's JWKS
 // (signature, issuer, audience), reads identity from the UserInfo
@@ -6,6 +6,7 @@
 // tokens. The IdP's access token is used for exactly one UserInfo call
 // per exchange and never leaves the broker — per Authelia's guidance,
 // the client is not its intended recipient.
+
 package api
 
 import (
