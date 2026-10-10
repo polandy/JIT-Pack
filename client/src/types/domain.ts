@@ -60,7 +60,7 @@ export interface TripMember {
   role: TripRole
 }
 
-export interface TripParticipant {
+export interface TripMemberProfile {
   user_id: string
   display_name: string
   avatar_url: string | null
@@ -291,20 +291,20 @@ export interface ExcursionTraveler {
 }
 
 /** An excursion line's states: M4's minus the packing-now claim (FR-31.6). */
-export type ExcursionItemState = Exclude<ItemState, 'packing_now'>
+export type ExcursionLineState = Exclude<ItemState, 'packing_now'>
 
 /**
  * An excursion line is packed or bought on the spot (FR-31.8); a purchase
  * before departure is the trip list's business, never the excursion's.
  */
-export type ExcursionItemMode = Exclude<ItemMode, 'buy_before'>
+export type ExcursionLineMode = Exclude<ItemMode, 'buy_before'>
 
 /**
  * FR-31.4: one line of an excursion's list, with its **own** packed state.
  * `trip_item_id` says the thing comes out of the suitcase and shares no tick
  * with that row; a link to a row this device does not hold is no link.
  */
-export interface ExcursionItem {
+export interface ExcursionLine {
   id: string
   trip_id: string
   excursion_id: string
@@ -315,8 +315,8 @@ export interface ExcursionItem {
   assigned_traveler_id: string | null
   quantity: number
   packed_count: number
-  state: ExcursionItemState
-  mode: ExcursionItemMode
+  state: ExcursionLineState
+  mode: ExcursionLineMode
   /** FR-31.8: when a vor-Ort line was bought, or null while still to buy. */
   bought_at: string | null
   /** FR-31.7: the suitcase was already closed when the excursion asked for it. */

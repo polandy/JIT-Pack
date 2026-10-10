@@ -38,7 +38,7 @@ import {
 } from '../excursionSuitcase'
 import type {
   CategorisedMasterItem,
-  ExcursionItem,
+  ExcursionLine,
   ExcursionTraveler,
   Template,
   TemplateItem,
@@ -113,7 +113,7 @@ function tripItem(id: string, name: string, extra: Partial<TripItem> = {}): Trip
   }
 }
 
-function line(id: string, name: string, extra: Partial<ExcursionItem> = {}): ExcursionItem {
+function line(id: string, name: string, extra: Partial<ExcursionLine> = {}): ExcursionLine {
   return {
     id,
     trip_id: 'trip-1',

@@ -347,11 +347,11 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     // FR-27.7 on the trip: an ordinary FR-7.3 preparation, on the row it came from,
     // counted in the header figure and listed in the trip's one task section
     // (FR-7.6), where the chip names the row it prepares.
-    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText(
+    await expect(visible(page).getByTestId('m4-trip-tasks-progress')).toHaveText(
       'While packing 0/1',
     )
     const tasks = await openTripTasks(page)
-    await expect(tasks.getByTestId('trip-todo-Akkus laden')).toBeVisible()
+    await expect(tasks.getByTestId('trip-task-Akkus laden')).toBeVisible()
     await expect(tasks.getByTestId('task-item-Kamera')).toBeVisible()
 
     // Only the position that carries the task gets one — the other row of the
@@ -398,21 +398,21 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     // stands for the window under it — the preparations still due before the
     // trip — and the two chores of the trip itself are M25's. The three are
     // read off M1 below, which lists all of them; the pair is the case.
-    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText(
+    await expect(visible(page).getByTestId('m4-trip-tasks-progress')).toHaveText(
       'While packing 0/1',
     )
     await tripAction(page, 'start')
 
     await page.goto(PATH.dashboard)
-    const group = visible(page).getByTestId('trip-todos-Fototour 2026')
+    const group = visible(page).getByTestId('trip-tasks-Fototour 2026')
     // Three lines rather than four is the dedup: the Vorlage and its group
     // both said „Water the plants".
-    await expect(group.locator('[data-testid^="dashboard-trip-todo-"]')).toHaveCount(3)
-    await expect(group.getByTestId('dashboard-trip-todo-Water the plants')).toHaveCount(1)
-    await expect(group.getByTestId('dashboard-trip-todo-Empty the fridge')).toBeVisible()
+    await expect(group.locator('[data-testid^="dashboard-trip-task-"]')).toHaveCount(3)
+    await expect(group.getByTestId('dashboard-trip-task-Water the plants')).toHaveCount(1)
+    await expect(group.getByTestId('dashboard-trip-task-Empty the fridge')).toBeVisible()
     // The preparation is on the same card, named by its row (FR-7.6).
-    await expect(group.getByTestId('dashboard-trip-todo-Akkus laden')).toBeVisible()
+    await expect(group.getByTestId('dashboard-trip-task-Akkus laden')).toBeVisible()
     await expect(group.getByTestId('task-item-Kamera')).toBeVisible()
-    await expect(group.getByTestId('trip-todos-status-Fototour 2026')).toHaveText('0 of 3 done')
+    await expect(group.getByTestId('trip-tasks-status-Fototour 2026')).toHaveText('0 of 3 done')
   })
 })

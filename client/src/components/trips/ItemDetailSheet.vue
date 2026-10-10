@@ -66,7 +66,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { isPackingClosed } from '@/domain/shared/tripPhase'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODES, isShoppingMode } from '@/types/domain'
-import type { ItemComment, ItemMode, PrepTask, ReviewFlag, TripParticipant } from '@/types/domain'
+import type { ItemComment, ItemMode, PrepTask, ReviewFlag, TripMemberProfile } from '@/types/domain'
 import { lockNoteText, nameFrom, packedStampText, responsibleNote } from '@/lib/rowFacts'
 import { stateLabel as stateLabelFor } from '@/lib/stateLabels'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
@@ -77,7 +77,7 @@ const props = defineProps<{
   tripId: string
   itemId: string
   /** Trip members, so the packing record can name a person (FR-25.17). */
-  participants: TripParticipant[]
+  memberProfiles: TripMemberProfile[]
   /** Who I am, so a row is never offered to me (FR-25.19). Null off-server. */
   currentUserId?: string | null
   /**
@@ -105,7 +105,7 @@ const containers = computed(() => tripStore.getContainers(props.tripId))
 const active = computed(() => isActive(trip.value))
 /**
  * FR-25.19: who a row can be handed to — the trip's **members**, not every
- * account the instance knows. The `participants` prop is the directory
+ * account the instance knows. The `memberProfiles` prop is the directory
  * plus the roster, because it also has to name whoever packed a row; a
  * picker built from it would offer people who cannot open the trip at all
  * (P-3 scopes the partition to its members), and the notification would
@@ -120,7 +120,7 @@ const active = computed(() => isActive(trip.value))
  */
 const assignable = computed(() => {
   const members = new Set(tripStore.getMembers(props.tripId).map((m) => m.user_id))
-  return props.participants.filter(
+  return props.memberProfiles.filter(
     (p) => members.has(p.user_id) && p.user_id !== props.currentUserId,
   )
 })
@@ -186,7 +186,7 @@ const glanceSays = computed(() => {
 })
 
 function nameOf(userId: string | null): string | null {
-  return nameFrom(props.participants, userId)
+  return nameFrom(props.memberProfiles, userId)
 }
 
 // --- Preparation (FR-7.3) ---
@@ -530,7 +530,7 @@ const packedStamp = computed(() => {
       class="for-whom"
       :trip-id="tripId"
       :item-id="item.id"
-      :participants="participants"
+      :member-profiles="memberProfiles"
       :locked="isLocked"
       steppers
       test-key="m5"
@@ -583,21 +583,21 @@ const packedStamp = computed(() => {
         <IonCheckbox
           :checked="task.task_state === 'resolved'"
           :disabled="isLocked"
-          :data-testid="`m5-todo-${task.body}`"
+          :data-testid="`m5-task-${task.body}`"
           @ion-change="togglePrepTask(task)"
         />
       </label>
       <div v-if="!isLocked" class="composer">
         <IonInput
           v-model="newPrepTaskText"
-          data-testid="m5-todo-input"
+          data-testid="m5-task-input"
           :placeholder="t('row.addPrep')"
           @keydown.enter="addPrepTask"
         />
         <IonButton
           fill="outline"
           :disabled="!newPrepTaskText.trim()"
-          data-testid="m5-todo-add"
+          data-testid="m5-task-add"
           @click="addPrepTask"
         >
           {{ t('common.add') }}

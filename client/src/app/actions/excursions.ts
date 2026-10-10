@@ -23,7 +23,7 @@ import {
 import { newId } from '@/lib/ids'
 import type { TrackFiles } from '@/sync/featureModule'
 import { trackSettingsColumns } from '@/sync/rows'
-import type { Excursion, ExcursionItem, ExcursionTrack, TripItem } from '@/types/domain'
+import type { Excursion, ExcursionLine, ExcursionTrack, TripItem } from '@/types/domain'
 import { ITEM_MODE_BUY_LOCAL, STATE_SKIPPED } from '@/types/domain'
 import type { SyncContext } from '../context'
 import {
@@ -83,7 +83,7 @@ export interface GroupWrites {
   addTemplateItem(
     templateId: string,
     itemId: string,
-    opts: { quantity: number; assignment: string; defaultMode: ExcursionItem['mode'] },
+    opts: { quantity: number; assignment: string; defaultMode: ExcursionLine['mode'] },
   ): string
 }
 
@@ -236,7 +236,7 @@ export function createExcursionActions(
    * into the suitcase while it is open, marked *nicht im Gepäck* once it is
    * not. Every line of the same thing goes along. Returns the undo.
    */
-  function adoptIntoInventory(tripId: string, line: ExcursionItem): (() => void) | null {
+  function adoptIntoInventory(tripId: string, line: ExcursionLine): (() => void) | null {
     if (!isExcursionOnly(line)) return null
     const set = lineSetOf(line, tripStore.getExcursionItems(tripId, line.excursion_id))
     const target = inventoryItemFor(line, masterStore.activeItemList)
@@ -460,7 +460,7 @@ export function createExcursionActions(
   }
 
   /** Puts a removed line back under its own id — an undo's other half. */
-  function restoreLine(line: ExcursionItem): void {
+  function restoreLine(line: ExcursionLine): void {
     write(mutations.restoreExcursionItem(line))
   }
 
@@ -506,37 +506,37 @@ export function createExcursionActions(
   }
 
   /** FR-31.6: how many of a line are in the rucksack. */
-  function setLineCount(line: ExcursionItem, packedCount: number): void {
+  function setLineCount(line: ExcursionLine, packedCount: number): void {
     write(mutations.setExcursionItemCount(line.id, packedCount, line.quantity))
   }
 
   /** FR-31.6: a tap on the check — all of it in, or all of it out again. */
-  function toggleLine(line: ExcursionItem): void {
+  function toggleLine(line: ExcursionLine): void {
     setLineCount(line, line.packed_count >= line.quantity ? 0 : line.quantity)
   }
 
   /** FR-31.6: a different amount; what is packed is clamped to it. */
-  function setLineQuantity(line: ExcursionItem, quantity: number): void {
+  function setLineQuantity(line: ExcursionLine, quantity: number): void {
     write(mutations.setExcursionItemCount(line.id, line.packed_count, quantity))
   }
 
   /** FR-31.6: decided against for this outing. */
-  function skipLine(line: ExcursionItem): void {
+  function skipLine(line: ExcursionLine): void {
     write(mutations.skipExcursionItem(line.id))
   }
 
   /** FR-31.6: taken back into the list at one. */
-  function unskipLine(line: ExcursionItem): void {
+  function unskipLine(line: ExcursionLine): void {
     write(mutations.setExcursionItemCount(line.id, 0, 1))
   }
 
-  function removeLine(line: ExcursionItem): () => void {
+  function removeLine(line: ExcursionLine): () => void {
     removeRow(TABLE.excursionItems, line.id)
     return () => restoreLine(line)
   }
 
   function updateLine(
-    line: ExcursionItem,
+    line: ExcursionLine,
     fields: Parameters<typeof mutations.updateExcursionItem>[1],
   ): void {
     write(mutations.updateExcursionItem(line.id, fields))
@@ -546,7 +546,7 @@ export function createExcursionActions(
    * FR-31.7: *Vor Ort besorgen* — a line not in the luggage becomes a
    * purchase on the spot, and so a line of M6's Vor-Ort list (FR-31.8).
    */
-  function buyOnTheSpot(line: ExcursionItem): void {
+  function buyOnTheSpot(line: ExcursionLine): void {
     updateLine(line, { mode: ITEM_MODE_BUY_LOCAL, bought_at: null })
   }
 
@@ -555,7 +555,7 @@ export function createExcursionActions(
    * named people's — open lines of others go, a packed one stays, new people
    * get a line linked into the suitcase like any other. One undo for all of it.
    */
-  function setForWhom(tripId: string, line: ExcursionItem, target: LineFor): () => void {
+  function setForWhom(tripId: string, line: ExcursionLine, target: LineFor): () => void {
     const set = lineSetOf(line, tripStore.getExcursionItems(tripId, line.excursion_id))
     const change = planForWhom(set, target, participants(tripId, line.excursion_id))
     for (const gone of change.remove) removeRow(TABLE.excursionItems, gone.id)
@@ -577,18 +577,18 @@ export function createExcursionActions(
    * FR-31.8: how a line is had — packed, or bought on the spot. Back to packing
    * drops the purchase record, which only a vor-Ort line can carry.
    */
-  function setLineMode(line: ExcursionItem, mode: ExcursionItem['mode']): void {
+  function setLineMode(line: ExcursionLine, mode: ExcursionLine['mode']): void {
     if (mode === line.mode) return
     updateLine(line, mode === ITEM_MODE_BUY_LOCAL ? { mode } : { mode, bought_at: null })
   }
 
   /** FR-31.8: bought on the spot, or put back on the list. */
-  function markBought(line: ExcursionItem, bought: boolean): void {
+  function markBought(line: ExcursionLine, bought: boolean): void {
     updateLine(line, { bought_at: bought ? nowIso() : null })
   }
 
   /** FR-30.13: the line's place on M6's Vor-Ort list — not on the excursion's own. */
-  function placeLineOnShopping(line: ExcursionItem, position: number): void {
+  function placeLineOnShopping(line: ExcursionLine, position: number): void {
     updateLine(line, { shopping_position: position })
   }
 
@@ -599,7 +599,7 @@ export function createExcursionActions(
    * record of the purchase and now borrows the row. Returns the undo, or null
    * where the line is no bought vor-Ort line off the list.
    */
-  function addToPackingList(tripId: string, line: ExcursionItem): (() => void) | null {
+  function addToPackingList(tripId: string, line: ExcursionLine): (() => void) | null {
     if (!canJoinPackingList(line)) return null
     const target = inventoryItemFor(line, masterStore.activeItemList)
     const createdItem = 'create' in target ? deps.groups.createMasterItem(target.create) : null

@@ -14,7 +14,7 @@ import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
 import { useMasterStore } from '@/stores/masterStore'
-import { ITEM_MODE_PACK, type ExcursionItem, type Traveler } from '@/types/domain'
+import { ITEM_MODE_PACK, type ExcursionLine, type Traveler } from '@/types/domain'
 
 import type { BrowseAdds, BrowseVerbs } from '../packing/useBrowseVerbs'
 
@@ -22,7 +22,7 @@ import type { BrowseAdds, BrowseVerbs } from '../packing/useBrowseVerbs'
 export interface ExcursionAddTarget {
   tripId: string
   excursionId: string
-  lines: ComputedRef<ExcursionItem[]>
+  lines: ComputedRef<ExcursionLine[]>
   participants: ComputedRef<Traveler[]>
   verbs: Pick<BrowseVerbs, 'remember' | 'remembers'>
 }
@@ -33,7 +33,7 @@ export function useExcursionAdd(target: ExcursionAddTarget) {
   const masterStore = useMasterStore()
   const { tripId, excursionId, participants, verbs } = target
 
-  function linesOfItem(itemId: string): ExcursionItem[] {
+  function linesOfItem(itemId: string): ExcursionLine[] {
     return target.lines.value.filter((line) => line.source_item_id === itemId)
   }
 

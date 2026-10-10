@@ -52,7 +52,7 @@ import SheetModal from '@/components/global/SheetModal.vue'
 import TrackEditor from '@/components/global/TrackEditor.vue'
 import TrackSummary from '@/components/global/TrackSummary.vue'
 import ExcursionFacts from './excursion/ExcursionFacts.vue'
-import ExcursionItemSheet from './excursion/ExcursionItemSheet.vue'
+import ExcursionLineSheet from './excursion/ExcursionLineSheet.vue'
 import ExcursionNotes from './excursion/ExcursionNotes.vue'
 import ExcursionSheet, { type ExcursionSheetResult } from './excursion/ExcursionSheet.vue'
 import { useExcursionAdd } from './excursion/useExcursionAdd'
@@ -122,7 +122,7 @@ import {
 } from '@/router/paths'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import type { ExcursionItem, ExcursionTrack, FacetKey, GroupBy } from '@/types/domain'
+import type { ExcursionLine, ExcursionTrack, FacetKey, GroupBy } from '@/types/domain'
 import { ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK } from '@/types/domain'
 
 const props = defineProps<{ tripId: string; excursionId: string }>()
@@ -231,7 +231,7 @@ const view = computed(() =>
     items: port.rows.value,
     travelers: travelers.value,
     containers: [],
-    participants: [],
+    memberProfiles: [],
     groupBy: shownGroupBy.value,
     showDone: showDone.value,
     facets: facets.value,
@@ -303,7 +303,7 @@ function masterOf(sourceItemId: string | null) {
  * line, it has no preparation and nothing borrows it — only the master's
  * photo and mark carry over (FR-28.7).
  */
-const lineFacts: ListFacts<ExcursionItem> = {
+const lineFacts: ListFacts<ExcursionLine> = {
   locked: () => false,
   rowNotes: () => NO_NOTES,
   edgeAvatarFor: () => null,
@@ -327,14 +327,14 @@ const { collapsed: headCollapsed, onScroll, onScrollEnd } = useHeadScroll(conten
 // --- the line's acts, each behind M4's snackbar and its one undo (FR-25.31) ---
 
 /** FR-5.8 on a line: off the list, M4's snackbar with its undo. */
-function removeLine(line: ExcursionItem) {
+function removeLine(line: ExcursionLine) {
   const undo = orchestrator.excursions.removeLine(line)
   rowUndo.armAction(line.name, undo)
   void announceRemoved(line.name)
 }
 
 /** FR-5.9 on a line (FR-31.8): packed, or bought on the spot. */
-function setMode(line: ExcursionItem, mode: typeof ITEM_MODE_BUY_LOCAL | typeof ITEM_MODE_PACK) {
+function setMode(line: ExcursionLine, mode: typeof ITEM_MODE_BUY_LOCAL | typeof ITEM_MODE_PACK) {
   const before = { mode: line.mode, bought_at: line.bought_at }
   actUndoably(
     port,
@@ -348,12 +348,12 @@ function setMode(line: ExcursionItem, mode: typeof ITEM_MODE_BUY_LOCAL | typeof 
 }
 
 /** FR-31.7: *Vor Ort besorgen* — the same change of mode, from the fact line. */
-function buyOnSite(line: ExcursionItem) {
+function buyOnSite(line: ExcursionLine) {
   setMode(line, ITEM_MODE_BUY_LOCAL)
 }
 
 /** FR-31.8: bought on the spot, or back on the list. */
-function markBought(line: ExcursionItem, bought: boolean) {
+function markBought(line: ExcursionLine, bought: boolean) {
   const before = line.bought_at
   actUndoably(
     port,
@@ -365,7 +365,7 @@ function markBought(line: ExcursionItem, bought: boolean) {
 }
 
 /** FR-31.13: bought on the spot, kept — with the one undo the act owes. */
-function keep(line: ExcursionItem) {
+function keep(line: ExcursionLine) {
   const undo = orchestrator.excursions.addToPackingList(props.tripId, line)
   if (!undo) return
   rowUndo.armAction(line.name, undo)
@@ -373,7 +373,7 @@ function keep(line: ExcursionItem) {
 }
 
 /** FR-31.14: a line of the excursion alone becomes an inventory item, undoably. */
-function adopt(line: ExcursionItem) {
+function adopt(line: ExcursionLine) {
   const undo = orchestrator.excursions.adoptIntoInventory(props.tripId, line)
   if (!undo) return
   rowUndo.armAction(line.name, undo)
@@ -397,7 +397,7 @@ const isDesktop = useDesktopLayout()
  * for M4's reason — the release falls on the overlay, not the row.
  */
 let menuActive = false
-const hold = useLongPress<ExcursionItem>((line) => void openLine(line))
+const hold = useLongPress<ExcursionLine>((line) => void openLine(line))
 
 /**
  * Pushed, unlike M5's `?item=`: under M4 sits a tab's root, and the overlay
@@ -415,7 +415,7 @@ function closeSheet(): Promise<unknown> {
   return closeOverlayRoute(router, tripExcursionsPath(props.tripId, props.excursionId))
 }
 
-function openedLine(): ExcursionItem | undefined {
+function openedLine(): ExcursionLine | undefined {
   return openLineId.value === null ? undefined : lineById.value.get(openLineId.value)
 }
 
@@ -435,7 +435,7 @@ function buttonOf(action: ExcursionMenuAction): RowMenuButton {
     : ROW_MENU_BUTTONS[action as RowMenuAction]
 }
 
-function runMenu(action: ExcursionMenuAction, line: ExcursionItem) {
+function runMenu(action: ExcursionMenuAction, line: ExcursionLine) {
   switch (action) {
     case 'quantity':
       quantity.open(line)
@@ -469,7 +469,7 @@ function runMenu(action: ExcursionMenuAction, line: ExcursionItem) {
   }
 }
 
-async function openLine(line: ExcursionItem) {
+async function openLine(line: ExcursionLine) {
   // A touch hold fires twice — the timer and the browser's own
   // `contextmenu` — and whichever comes second must find the menu taken.
   hold.cancel()
@@ -1011,7 +1011,7 @@ setHeaderTitle(
         testid="m27-line-modal"
         @dismiss="closeSheet"
       >
-        <ExcursionItemSheet
+        <ExcursionLineSheet
           v-if="openLineId"
           :trip-id="tripId"
           :line-id="openLineId"
@@ -1023,7 +1023,7 @@ setHeaderTitle(
       </SheetModal>
       <Teleport v-if="isDesktop && openLineId" defer :to="PANEL_HOST_SELECTOR">
         <aside class="item-panel" data-testid="m27-line-panel">
-          <ExcursionItemSheet
+          <ExcursionLineSheet
             :trip-id="tripId"
             :line-id="openLineId"
             :participants="participants"

@@ -903,7 +903,9 @@ describe('M9 inventory — the selection mode (FR-24.9)', () => {
 
     expect(writes.assigned).toEqual([])
     expect(writes.moved).toEqual([])
-    expect(vi.mocked(presentToast).mock.calls.at(-1)![0].message).toBe(t('items.bulkNothingToDo'))
+    expect(vi.mocked(presentToast).mock.calls.at(-1)![0].message).toBe(
+      t('items.bulkNothingToChange'),
+    )
   })
 
   it('creates a typed tag and gives it in one step; the undo takes the new tag too (FR-24.9)', async () => {

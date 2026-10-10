@@ -259,7 +259,7 @@ func TestApplyMasterMutation_TemplateAndSeriesNamesAreInstanceWide(t *testing.T)
 }
 
 // The comments CHECK is deliberately one-directional. A task must carry a
-// state — every todo row is rendered as open or resolved, so the forward
+// state — every task row is rendered as open or resolved, so the forward
 // half buys something that is actually read. The reverse (task_state only
 // on a task) buys nothing but tidiness, and it would refuse the
 // single-field demotion below, whose whole content is `is_task = 0`.

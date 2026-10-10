@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { createDayPlanSource, toggleTask } from '../dayPlanSource'
 import type { TripTask } from '@/domain/tripTasks'
-import type { Excursion, ExcursionItem, ExcursionTraveler, PrepTask, OwnTask } from '@/types/domain'
+import type { Excursion, ExcursionLine, ExcursionTraveler, PrepTask, OwnTask } from '@/types/domain'
 
 function excursion(id: string, startsOn: string | null, endsOn: string | null): Excursion {
   return {
@@ -19,7 +19,7 @@ function excursion(id: string, startsOn: string | null, endsOn: string | null): 
   }
 }
 
-function item(id: string, packed: number, quantity: number): ExcursionItem {
+function item(id: string, packed: number, quantity: number): ExcursionLine {
   return {
     id,
     trip_id: 't',
@@ -58,7 +58,7 @@ function task(id: string, due: string | null, state: TripTask['task_state'] = 'o
 
 function source(
   excursions: Excursion[],
-  items: ExcursionItem[],
+  items: ExcursionLine[],
   tasks: TripTask[],
   goers: ExcursionTraveler[] = [],
 ) {

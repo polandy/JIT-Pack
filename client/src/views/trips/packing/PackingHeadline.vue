@@ -19,7 +19,7 @@ import { packedPercent } from '@/domain/packState'
 import type { TripTask, TripTaskStatus } from '@/domain/tripTasks'
 import { t } from '@/i18n'
 import { formatWeight } from '@/lib/format'
-import type { TripKPIs, TripParticipant } from '@/types/domain'
+import type { TripKPIs, TripMemberProfile } from '@/types/domain'
 
 const props = defineProps<{
   tripId: string
@@ -33,7 +33,7 @@ const props = defineProps<{
   taskState: TripTaskStatus
   taskLine: string | null
   presenceUsers: PresenceUser[]
-  participants: readonly TripParticipant[]
+  memberProfiles: readonly TripMemberProfile[]
   isDesktop: boolean
 }>()
 
@@ -60,7 +60,7 @@ const PRESENCE_FACES_DESKTOP = 4
  * nobody can read.
  */
 const presenceNames = computed<Record<string, string>>(() =>
-  Object.fromEntries(props.participants.map((p) => [p.user_id, p.display_name])),
+  Object.fromEntries(props.memberProfiles.map((p) => [p.user_id, p.display_name])),
 )
 
 /**
@@ -125,7 +125,7 @@ const paired = (): boolean => props.taskState !== 'none' && !searching()
       <button
         v-if="loaded && paired()"
         class="task-figure-button"
-        data-testid="m4-trip-todos-figure"
+        data-testid="m4-trip-tasks-figure"
         :aria-label="taskLine ?? undefined"
         @click="$emit('revealTasks')"
       >
@@ -133,7 +133,7 @@ const paired = (): boolean => props.taskState !== 'none' && !searching()
           :trip-id="tripId"
           :ring-size="RING_SIZE_HEADER"
           :tasks="tasks"
-          testid="m4-trip-todos-progress"
+          testid="m4-trip-tasks-progress"
         />
       </button>
       <PresenceFacepile

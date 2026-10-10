@@ -133,7 +133,7 @@ const PAIRS: Array<{ table: SyncTable; parse: string; encode: string; encodeOnly
     parse: 'rowToExcursionTraveler',
     encode: 'excursionTravelerRow',
   },
-  { table: TABLE.excursionItems, parse: 'rowToExcursionItem', encode: 'excursionItemRow' },
+  { table: TABLE.excursionItems, parse: 'rowToExcursionLine', encode: 'excursionItemRow' },
 ]
 
 describe('every codec pair agrees about its columns', () => {

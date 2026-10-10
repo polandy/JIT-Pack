@@ -46,7 +46,7 @@ import type {
   MasterItem,
   NoteAck,
   Excursion,
-  ExcursionItem,
+  ExcursionLine,
   Template,
   TemplateItem,
   Traveler,
@@ -733,13 +733,13 @@ const CASES: BuilderCase[] = [
     read: () => useTripStore().getExcursionItems(TRIP_ID)[0] as unknown as Record<string, unknown>,
     acts: [
       {
-        act: (l: ExcursionItem) => newOrch().excursions.setLineCount(l, 2),
+        act: (l: ExcursionLine) => newOrch().excursions.setLineCount(l, 2),
         changed: 'packed_count',
         becomes: 2,
         also: { state: 'packed' },
       },
       {
-        act: (l: ExcursionItem) => newOrch().excursions.buyOnTheSpot(l),
+        act: (l: ExcursionLine) => newOrch().excursions.buyOnTheSpot(l),
         changed: 'mode',
         becomes: 'buy_local',
       },
@@ -761,7 +761,7 @@ const CASES: BuilderCase[] = [
       not_in_luggage: true,
       for_all_participants: true,
       shopping_position: 2,
-    } satisfies Record<keyof ExcursionItem, unknown>,
+    } satisfies Record<keyof ExcursionLine, unknown>,
   },
 ]
 

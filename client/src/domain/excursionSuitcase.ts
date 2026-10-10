@@ -11,7 +11,7 @@ import { isExcursionOnly, normalizeName, type DraftLine } from './excursionLines
 import { whenOf } from './excursionSchedule'
 import type { GeneratedTripItemFields } from './instantiate'
 import { rowMenuEntries, type RowMenuAction } from './rowMenu'
-import type { Excursion, ExcursionItem, MasterItem, TripItem } from '@/types/domain'
+import type { Excursion, ExcursionLine, MasterItem, TripItem } from '@/types/domain'
 import { ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK, STATE_SKIPPED } from '@/types/domain'
 
 // --- Borrowing from the suitcase (FR-31.4, FR-31.7) ---
@@ -155,7 +155,7 @@ export function planBorrowOnly(
 }
 
 /** A line as the draft it would be written from — to link one that exists. */
-export function draftOf(line: ExcursionItem): DraftLine {
+export function draftOf(line: ExcursionLine): DraftLine {
   return {
     source_item_id: line.source_item_id,
     name: line.name,
@@ -204,7 +204,7 @@ function matchKey(sourceItemId: string | null, name: string, travelerId: string 
  * deleted row's link in the engine and announces nothing (FR-31.4).
  */
 export function suitcaseOf(
-  line: Pick<ExcursionItem, 'trip_item_id'>,
+  line: Pick<ExcursionLine, 'trip_item_id'>,
   tripItems: readonly TripItem[],
 ): TripItem | null {
   if (line.trip_item_id === null) return null
@@ -219,7 +219,7 @@ export function suitcaseOf(
  */
 export function borrowersByTripItem(
   excursions: readonly Excursion[],
-  lines: readonly ExcursionItem[],
+  lines: readonly ExcursionLine[],
   today: string,
 ): Map<string, string[]> {
   const names = new Map(
@@ -243,7 +243,7 @@ export function borrowersByTripItem(
  * and not yet a suitcase row. From then on it travels with the luggage — the
  * rain cape bought at the hut comes home.
  */
-export function canJoinPackingList(line: ExcursionItem): boolean {
+export function canJoinPackingList(line: ExcursionLine): boolean {
   return (
     line.mode === ITEM_MODE_BUY_LOCAL &&
     line.bought_at !== null &&
@@ -257,7 +257,7 @@ export function canJoinPackingList(line: ExcursionItem): boolean {
  * item — one meant for the rucksack. A vor-Ort line takes FR-31.13's way
  * instead, once bought.
  */
-export function canAdoptIntoInventory(line: ExcursionItem): boolean {
+export function canAdoptIntoInventory(line: ExcursionLine): boolean {
   return isExcursionOnly(line) && line.mode === ITEM_MODE_PACK && line.state !== STATE_SKIPPED
 }
 
@@ -267,7 +267,7 @@ export function canAdoptIntoInventory(line: ExcursionItem): boolean {
  * reason), else a new one under the line's name.
  */
 export function inventoryItemFor(
-  line: Pick<ExcursionItem, 'source_item_id' | 'name'>,
+  line: Pick<ExcursionLine, 'source_item_id' | 'name'>,
   masterItems: readonly MasterItem[],
 ): { itemId: string } | { create: string } {
   if (line.source_item_id !== null) return { itemId: line.source_item_id }
@@ -312,7 +312,7 @@ const SUITCASE_ONLY: ReadonlySet<RowMenuAction> = new Set([
  * offered where and as M4 offers them; the excursion's own acts go before the
  * removal, which stays last.
  */
-export function excursionMenuEntries(line: ExcursionItem): ExcursionMenuAction[] {
+export function excursionMenuEntries(line: ExcursionLine): ExcursionMenuAction[] {
   const own = rowMenuEntries(line, {
     closingPass: false,
     locked: false,

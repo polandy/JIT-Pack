@@ -228,7 +228,7 @@ CREATE TABLE template_items (
 );
 
 -- FR-27.7 preparation tasks on a template position; they materialise as
--- ordinary FR-7.3 todos on the rows a trip is generated from.
+-- ordinary FR-7.3 tasks on the rows a trip is generated from.
 CREATE TABLE template_item_tasks (
     id               TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     template_item_id TEXT NOT NULL REFERENCES template_items(id) ON DELETE CASCADE,
@@ -237,7 +237,7 @@ CREATE TABLE template_item_tasks (
     updated_hlc      TEXT NOT NULL DEFAULT ''
 );
 
--- FR-7.4 trip tasks on a template: they materialise as trip-level todos
+-- FR-7.4 trip tasks on a template: they materialise as trip-level own tasks
 -- (comments with no trip_item_id), not on any generated row. A table rather
 -- than a JSON column for the reason template_item_tasks is one: two devices
 -- editing two tasks must not overwrite each other.
@@ -415,7 +415,7 @@ CREATE TABLE comments (
     body         TEXT NOT NULL,
     is_task      INTEGER NOT NULL DEFAULT 0 CHECK (is_task IN (0,1)),       -- FR-7.2
     task_state   TEXT CHECK (task_state IN ('open','resolved')),
-    -- FR-7.5: who a trip todo (FR-7.4) is somebody's job for — the task's
+    -- FR-7.5: who an own task (FR-7.4) is somebody's job for — the task's
     -- counterpart of trip_items.packer_user_id, and like it the client's to
     -- set (invariant 3 concerns the author, not the assignment). Nullable
     -- and free of a CHECK for field-level LWW's sake: a constraint that can

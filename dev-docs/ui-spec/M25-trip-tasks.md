@@ -55,7 +55,7 @@
     *Aus Packliste*, and the undo takes the tag off again (the tag stays in the vocabulary). **An empty heading is
     not drawn**, and is therefore not a drop target. Each group is a drop target carrying its phase *and* its tag, so
     one movement may change both. The groups hold open tasks only.
-  * **One *erledigt* fold per phase**, at the section's end (*„N erledigt"*, `trip-todos-resolved`) — not one under
+  * **One *erledigt* fold per phase**, at the section's end (*„N erledigt"*, `trip-tasks-resolved`) — not one under
     every tag group, where a *„1 erledigt"* between two headings would read like a heading. Its
     rows name their tag on the second line and can be unticked.
   * **The FAB** (＋, `FAB_ANCHOR.m25`, `m25-fab`, *„Aufgabe hinzufügen"*), the one M4, M6 and M26 carry: it scrolls
@@ -144,7 +144,7 @@
   The parameter leaves the address once answered; `‹` returns to the idea (`meta.acceptsLinkedFrom`). On the task's
   second line the **💡 line** (`IdeaOrigin`, the bulb in `--jp-brand` and the idea's title, small and quiet) names the
   idea it was made from (FR-29.13); a tap opens the idea over M28 (`?idea=`), and nothing is drawn for an idea the
-  device does not hold. Its handle: `trip-todo-idea-<body>`.
+  device does not hold. Its handle: `trip-task-idea-<body>`.
 * **Modes:** all three. Local and Single-User lose the seat, the chip and the *who* of each stamp (G-8) and keep
   everything else — the phases, the move and the moments are client-side rules. **Before the trip partition has
   arrived** the screen shows nothing rather than an empty list (ADR-033).

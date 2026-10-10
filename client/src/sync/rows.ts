@@ -18,7 +18,7 @@ import type {
   PrepTask,
   NoteAck,
   Excursion,
-  ExcursionItem,
+  ExcursionLine,
   ExcursionTraveler,
   TaskFacts,
   OwnTask,
@@ -138,7 +138,7 @@ export function excursionTravelerRow(row: ExcursionTraveler): Record<string, unk
 }
 
 /** FR-31.4: one line of an excursion's list. */
-export function excursionItemRow(line: ExcursionItem): Record<string, unknown> {
+export function excursionItemRow(line: ExcursionLine): Record<string, unknown> {
   return {
     trip_id: line.trip_id,
     excursion_id: line.excursion_id,

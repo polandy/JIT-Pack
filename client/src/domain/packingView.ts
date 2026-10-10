@@ -19,7 +19,7 @@ import type {
   GroupBy,
   ItemMode,
   TripItem,
-  TripParticipant,
+  TripMemberProfile,
   Traveler,
 } from '@/types/domain'
 
@@ -199,7 +199,7 @@ export interface PackingViewInput<R extends PackableRow = PackableRow> {
   travelers: Traveler[]
   containers: Container[]
   /** Trip members, to name the people behind FR-25.20's reveal bar. */
-  participants: TripParticipant[]
+  memberProfiles: TripMemberProfile[]
   groupBy: GroupBy
   /** FR-25.2 reveal toggle — non-destructive and per-user. */
   showDone: boolean
@@ -541,9 +541,9 @@ interface Narrowed<R extends PackableRow> {
 }
 
 function narrow<R extends PackableRow>(input: PackingViewInput<R>, rules: ViewRules): Narrowed<R> {
-  const { items, participants, facets, showDone, showOthers, packedOnly = false } = input
+  const { items, memberProfiles, facets, showDone, showOthers, packedOnly = false } = input
   const { done, searching, othersJob, revealedByStatus, hiddenAsLate, hiddenAsOthers } = rules
-  const nameByUserId = new Map(participants.map((p) => [p.user_id, p.display_name]))
+  const nameByUserId = new Map(memberProfiles.map((p) => [p.user_id, p.display_name]))
 
   /** FR-9.3: taken along, in whole or in part — and not consciously left behind. */
   const wasPacked = (row: PackableRow) => row.packed_count > 0 && row.state !== 'skipped'

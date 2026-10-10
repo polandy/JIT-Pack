@@ -101,15 +101,15 @@ describe('TripTaskList — one list, two kinds of task (FR-7.6)', () => {
   it('gives a preparation a seat but no ✕ — it is removed where it lives', () => {
     const wrapper = mountList([preparation('Akkus laden', 'Kamera')])
 
-    expect(wrapper.find('[data-testid="trip-todo-assign-Akkus laden"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="trip-todo-remove-Akkus laden"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="trip-task-assign-Akkus laden"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="trip-task-remove-Akkus laden"]').exists()).toBe(false)
   })
 
   it('carries no chip on a task of the trip itself, which is what tells the two apart', () => {
     const wrapper = mountList([ownTask('Pflanzen giessen', 'open')])
 
     expect(wrapper.find('[data-testid^="task-item-"]').exists()).toBe(false)
-    expect(wrapper.find('[data-testid="trip-todo-remove-Pflanzen giessen"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="trip-task-remove-Pflanzen giessen"]').exists()).toBe(true)
   })
 
   it('reports a tick on either kind, with the task that was ticked', async () => {
@@ -118,9 +118,9 @@ describe('TripTaskList — one list, two kinds of task (FR-7.6)', () => {
       preparation('Akkus laden', 'Kamera'),
     ])
 
-    await wrapper.get('[data-testid="trip-todo-Akkus laden"] ion-checkbox').trigger('ionChange')
+    await wrapper.get('[data-testid="trip-task-Akkus laden"] ion-checkbox').trigger('ionChange')
     await wrapper
-      .get('[data-testid="trip-todo-Pflanzen giessen"] ion-checkbox')
+      .get('[data-testid="trip-task-Pflanzen giessen"] ion-checkbox')
       .trigger('ionChange')
 
     const toggled = wrapper.emitted('toggle') ?? []
@@ -136,13 +136,13 @@ describe('TripTaskList — one list, two kinds of task (FR-7.6)', () => {
       preparation('Objektiv putzen', 'Kamera', 'resolved'),
     ])
 
-    expect(wrapper.find('[data-testid="trip-todo-Objektiv putzen"]').exists()).toBe(false)
-    const fold = wrapper.get('[data-testid="trip-todos-resolved"]')
+    expect(wrapper.find('[data-testid="trip-task-Objektiv putzen"]').exists()).toBe(false)
+    const fold = wrapper.get('[data-testid="trip-tasks-resolved"]')
     expect(fold.text()).toContain('2')
 
     await fold.trigger('click')
-    expect(wrapper.find('[data-testid="trip-todo-Objektiv putzen"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="trip-todo-Kühlschrank leeren"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="trip-task-Objektiv putzen"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="trip-task-Kühlschrank leeren"]').exists()).toBe(true)
   })
 })
 
@@ -157,10 +157,10 @@ describe('TripTaskList — whose job a task is (FR-7.5)', () => {
       ownTask('Kühlschrank leeren', 'open'),
     ])
 
-    const assigned = wrapper.get('[data-testid="trip-todo-assign-Pflanzen giessen"]')
+    const assigned = wrapper.get('[data-testid="trip-task-assign-Pflanzen giessen"]')
     expect(assigned.text()).toBe('SI')
     expect(assigned.attributes('aria-label')).toBe('Assigned to')
-    const empty = wrapper.get('[data-testid="trip-todo-assign-Kühlschrank leeren"]')
+    const empty = wrapper.get('[data-testid="trip-task-assign-Kühlschrank leeren"]')
     expect(empty.find('.assign-empty').exists()).toBe(true)
     expect(empty.attributes('aria-label')).toBe('Assign to somebody')
   })
@@ -168,7 +168,7 @@ describe('TripTaskList — whose job a task is (FR-7.5)', () => {
   it('reports a tap on the seat with the task, and nothing else', async () => {
     const wrapper = mountList([ownTask('Pflanzen giessen', 'open')])
 
-    await wrapper.get('[data-testid="trip-todo-assign-Pflanzen giessen"]').trigger('click')
+    await wrapper.get('[data-testid="trip-task-assign-Pflanzen giessen"]').trigger('click')
 
     const assigned = wrapper.emitted('assign') ?? []
     expect(assigned.map(([task]) => (task as TripTask).id)).toEqual(['Pflanzen giessen'])
@@ -181,9 +181,9 @@ describe('TripTaskList — whose job a task is (FR-7.5)', () => {
       false,
     )
 
-    expect(wrapper.find('[data-testid^="trip-todo-assign-"]').exists()).toBe(false)
-    expect(wrapper.get('[data-testid="trip-todo-assignee-Pflanzen giessen"]').text()).toBe('SI')
-    expect(wrapper.find('[data-testid="trip-todo-assignee-Kühlschrank leeren"]').exists()).toBe(
+    expect(wrapper.find('[data-testid^="trip-task-assign-"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="trip-task-assignee-Pflanzen giessen"]').text()).toBe('SI')
+    expect(wrapper.find('[data-testid="trip-task-assignee-Kühlschrank leeren"]').exists()).toBe(
       false,
     )
   })
@@ -191,10 +191,10 @@ describe('TripTaskList — whose job a task is (FR-7.5)', () => {
   it('names who had a finished task, and offers no seat on it', async () => {
     const wrapper = mountList([ownTask('Pflanzen giessen', 'resolved', 'u-sia')])
 
-    await wrapper.get('[data-testid="trip-todos-resolved"]').trigger('click')
+    await wrapper.get('[data-testid="trip-tasks-resolved"]').trigger('click')
 
-    expect(wrapper.get('[data-testid="trip-todo-assignee-Pflanzen giessen"]').text()).toBe('SI')
-    expect(wrapper.find('[data-testid="trip-todo-assign-Pflanzen giessen"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="trip-task-assignee-Pflanzen giessen"]').text()).toBe('SI')
+    expect(wrapper.find('[data-testid="trip-task-assign-Pflanzen giessen"]').exists()).toBe(false)
   })
 })
 
@@ -211,7 +211,7 @@ describe('TripTaskList — the tick stands at the row edge, as a packing row doe
   })
 
   function rowOf(wrapper: ReturnType<typeof mountList>, body: string) {
-    return wrapper.get(`[data-testid="trip-todo-${body}"]`)
+    return wrapper.get(`[data-testid="trip-task-${body}"]`)
   }
 
   /** What closes the row — the tick, past everything the end cluster carries. */
@@ -251,7 +251,7 @@ describe('TripTaskList — the tick stands at the row edge, as a packing row doe
   it('unticks a finished task at the same edge, so undoing is where doing was', async () => {
     const wrapper = mountList([ownTask('Pflanzen giessen', 'resolved')])
 
-    await wrapper.get('[data-testid="trip-todos-resolved"]').trigger('click')
+    await wrapper.get('[data-testid="trip-tasks-resolved"]').trigger('click')
 
     expect(lastOf(rowOf(wrapper, 'Pflanzen giessen'))).toEqual({ tag: 'ion-checkbox', slot: 'end' })
     expect(wrapper.find('ion-checkbox[slot="start"]').exists()).toBe(false)
@@ -280,7 +280,7 @@ describe('TripTaskList — what a line says about itself (FR-7.7)', () => {
   it('reports the words being tapped, so the screen can open the sheet', async () => {
     const wrapper = mountList([ownTask('Pflanzen giessen', 'open')])
 
-    await wrapper.get('[data-testid="trip-todo-open-Pflanzen giessen"]').trigger('click')
+    await wrapper.get('[data-testid="trip-task-open-Pflanzen giessen"]').trigger('click')
 
     const opened = wrapper.emitted('open') ?? []
     expect(opened.map(([task]) => (task as TripTask).id)).toEqual(['Pflanzen giessen'])
@@ -303,15 +303,15 @@ describe('TripTaskList — what a line says about itself (FR-7.7)', () => {
       },
     ])
 
-    expect(wrapper.find('[data-testid="trip-todo-stamp-Pflanzen giessen"]').exists()).toBe(false)
-    await wrapper.get('[data-testid="trip-todos-resolved"]').trigger('click')
-    expect(wrapper.find('[data-testid="trip-todo-stamp-Kühlschrank leeren"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="trip-task-stamp-Pflanzen giessen"]').exists()).toBe(false)
+    await wrapper.get('[data-testid="trip-tasks-resolved"]').trigger('click')
+    expect(wrapper.find('[data-testid="trip-task-stamp-Kühlschrank leeren"]').exists()).toBe(false)
   })
 
   it('says what an empty list means, where the screen gave it words', () => {
     const wrapper = mountList([], true, { emptyText: 'Nothing left to do before the trip.' })
 
-    expect(wrapper.get('[data-testid="trip-todo-empty"]').text()).toBe(
+    expect(wrapper.get('[data-testid="trip-task-empty"]').text()).toBe(
       'Nothing left to do before the trip.',
     )
   })
@@ -330,7 +330,7 @@ describe('TripTaskList — when a task is due (FR-7.11)', () => {
       true,
       { today: TODAY },
     )
-    const badge = (body: string) => list.get(`[data-testid="trip-todo-due-${body}"]`)
+    const badge = (body: string) => list.get(`[data-testid="trip-task-due-${body}"]`)
     expect(badge('Pass holen').attributes('data-due')).toBe('overdue')
     expect(badge('Katze').attributes('data-due')).toBe('today')
     expect(badge('Velo').attributes('data-due')).toBe('soon')
@@ -339,12 +339,12 @@ describe('TripTaskList — when a task is due (FR-7.11)', () => {
   it('draws nothing for a task without a date, or where the screen gives no today', () => {
     expect(
       mountList([ownTask('Blumen', 'open')], true, { today: TODAY })
-        .find('[data-testid="trip-todo-due-Blumen"]')
+        .find('[data-testid="trip-task-due-Blumen"]')
         .exists(),
     ).toBe(false)
     expect(
       mountList([dated('Pass holen', '2026-07-01')])
-        .find('[data-testid="trip-todo-due-Pass holen"]')
+        .find('[data-testid="trip-task-due-Pass holen"]')
         .exists(),
     ).toBe(false)
   })
@@ -359,10 +359,10 @@ describe('TripTaskList — a closed phase is history (FR-7.12)', () => {
         readonly: true,
       },
     )
-    expect(list.find('[data-testid="trip-todo-assign-Pflanzen"]').exists()).toBe(false)
+    expect(list.find('[data-testid="trip-task-assign-Pflanzen"]').exists()).toBe(false)
     // The person is still named, where nothing can be changed.
-    expect(list.find('[data-testid="trip-todo-assignee-Pflanzen"]').exists()).toBe(true)
-    expect(list.find('[data-testid="trip-todo-remove-Pflanzen"]').exists()).toBe(false)
+    expect(list.find('[data-testid="trip-task-assignee-Pflanzen"]').exists()).toBe(true)
+    expect(list.find('[data-testid="trip-task-remove-Pflanzen"]').exists()).toBe(false)
     // A custom element takes `disabled` as a property, not an attribute.
     const boxes = list.findAll('ion-checkbox')
     expect(boxes.length).toBeGreaterThan(0)
@@ -370,7 +370,7 @@ describe('TripTaskList — a closed phase is history (FR-7.12)', () => {
       true,
     )
 
-    await list.get('[data-testid="trip-todo-open-Pflanzen"]').trigger('click')
+    await list.get('[data-testid="trip-task-open-Pflanzen"]').trigger('click')
     expect(list.emitted('open')).toHaveLength(1)
   })
 })
@@ -382,14 +382,14 @@ describe('TripTaskList — M25’s two-line rows (FR-7.14)', () => {
 
   it('puts what is known about a task under its words, the person at the edge, and no ✕', () => {
     const wrapper = list([{ ...ownTask('Pass holen', 'open'), due_date: '2026-07-01' }])
-    const facts = wrapper.get('[data-testid="trip-todo-facts-Pass holen"]')
-    expect(facts.find('[data-testid="trip-todo-due-Pass holen"]').exists()).toBe(true)
+    const facts = wrapper.get('[data-testid="trip-task-facts-Pass holen"]')
+    expect(facts.find('[data-testid="trip-task-due-Pass holen"]').exists()).toBe(true)
     // The seat is the row's, not the facts line's: it never makes a line of its own.
-    expect(facts.find('[data-testid="trip-todo-assign-Pass holen"]').exists()).toBe(false)
-    expect(wrapper.find('[data-testid="trip-todo-assign-Pass holen"]').attributes('slot')).toBe(
+    expect(facts.find('[data-testid="trip-task-assign-Pass holen"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="trip-task-assign-Pass holen"]').attributes('slot')).toBe(
       'end',
     )
-    expect(wrapper.find('[data-testid="trip-todo-remove-Pass holen"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="trip-task-remove-Pass holen"]').exists()).toBe(false)
   })
 
   it('draws its open rows in M6’s ListRows, so a task put somewhere else glides there (FR-7.17)', () => {
@@ -401,25 +401,25 @@ describe('TripTaskList — M25’s two-line rows (FR-7.14)', () => {
 
   it('draws no second line for a task with nothing to say, even with a seat to offer', () => {
     const wrapper = list([ownTask('Blumen', 'open', 'u-sia')])
-    expect(wrapper.find('[data-testid="trip-todo-facts-Blumen"]').exists()).toBe(false)
-    expect(wrapper.find('[data-testid="trip-todo-assign-Blumen"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="trip-task-facts-Blumen"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="trip-task-assign-Blumen"]').exists()).toBe(true)
   })
 
   it('names who had a finished task at the edge, as an avatar that decides nothing', () => {
     const wrapper = list([ownTask('Post', 'resolved', 'u-sia')], { unfolded: true })
-    expect(wrapper.find('[data-testid="trip-todo-facts-Post"]').exists()).toBe(false)
-    expect(wrapper.get('[data-testid="trip-todo-assignee-Post"]').attributes('slot')).toBe('end')
-    expect(wrapper.find('[data-testid="trip-todo-assign-Post"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="trip-task-facts-Post"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="trip-task-assignee-Post"]').attributes('slot')).toBe('end')
+    expect(wrapper.find('[data-testid="trip-task-assign-Post"]').exists()).toBe(false)
   })
 
   it('names the row a preparation belongs to on the second line', () => {
     const wrapper = list([preparation('Akkus laden', 'Kamera')])
-    expect(wrapper.get('[data-testid="trip-todo-facts-Akkus laden"]').text()).toContain('Kamera')
+    expect(wrapper.get('[data-testid="trip-task-facts-Akkus laden"]').text()).toContain('Kamera')
   })
 
   it('names its tag where the screen asks, the way a row outside its group must', () => {
     const wrapper = list([ownTask('Salbe', 'open')], { tagOf: () => 'Apotheke' })
-    expect(wrapper.get('[data-testid="trip-todo-tag-Salbe"]').text()).toBe('Apotheke')
+    expect(wrapper.get('[data-testid="trip-task-tag-Salbe"]').text()).toBe('Apotheke')
   })
 
   it('draws no second line for a task with nothing to say, where nobody can be named', () => {
@@ -427,6 +427,6 @@ describe('TripTaskList — M25’s two-line rows (FR-7.14)', () => {
       variant: 'list',
       today: TODAY,
     })
-    expect(wrapper.find('[data-testid="trip-todo-facts-Blumen"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="trip-task-facts-Blumen"]').exists()).toBe(false)
   })
 })

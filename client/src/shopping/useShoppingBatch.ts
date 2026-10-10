@@ -87,7 +87,7 @@ export function useShoppingBatch(host: ShoppingBatchHost) {
       results,
       (n) =>
         t(tag !== null ? 'shopping.bulkTagged' : 'shopping.bulkUntagged', { n, tag: tag ?? '' }),
-      t('shopping.bulkNothingToDo'),
+      t('shopping.bulkNothingToChange'),
     )
   }
 
@@ -105,7 +105,7 @@ export function useShoppingBatch(host: ShoppingBatchHost) {
         picked === null
           ? t('shopping.bulkUnassigned', { n })
           : t('shopping.bulkAssigned', { n, who: host.nameOf(picked) ?? '' }),
-      t('shopping.bulkNothingToDo'),
+      t('shopping.bulkNothingToChange'),
     )
   }
 

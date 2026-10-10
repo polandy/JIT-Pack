@@ -357,7 +357,7 @@ func TestApplyMasterMutation_TemplateIncludesTwoLevelsOnly(t *testing.T) {
 }
 
 // FR-27.7: a position can carry preparation tasks, which instantiate as
-// FR-7.3 todos. Deleting the template must tombstone the whole composition
+// FR-7.3 tasks. Deleting the template must tombstone the whole composition
 // — positions, their tasks, and the group includes on either side.
 func TestApplyMasterMutation_TemplateDeleteTombstonesComposition(t *testing.T) {
 	s := openTestStore(t)

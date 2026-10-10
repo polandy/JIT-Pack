@@ -13,12 +13,12 @@ import { spanOf } from '@/domain/excursionSchedule'
 import type { TripTask } from '@/domain/tripTasks'
 import { t } from '@/i18n'
 import { tripExcursionsPath, tripSubPath } from '@/router/paths'
-import type { Excursion, ExcursionItem, ExcursionTraveler, PrepTask, OwnTask } from '@/types/domain'
+import type { Excursion, ExcursionLine, ExcursionTraveler, PrepTask, OwnTask } from '@/types/domain'
 
 /** What the source reads — the trip store's excursions and the trip's tasks. */
 export interface DayPlanReads {
   getExcursions(tripId: string): Excursion[]
-  getExcursionItems(tripId: string): ExcursionItem[]
+  getExcursionItems(tripId: string): ExcursionLine[]
   /** FR-31.3: who goes on which excursion — none of an excursion's for everybody. */
   getExcursionTravelers(tripId: string): ExcursionTraveler[]
   tasksOf(tripId: string): TripTask[]

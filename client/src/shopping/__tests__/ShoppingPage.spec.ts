@@ -1299,7 +1299,7 @@ describe('M6 — multi-select and a bulk tag (FR-30.9)', () => {
 
     expect(written).toEqual([])
     const toast = vi.mocked(presentToast).mock.calls.at(-1)![0]
-    expect(toast.message).toBe(t('shopping.bulkNothingToDo'))
+    expect(toast.message).toBe(t('shopping.bulkNothingToChange'))
     expect(toast.buttons).toBeUndefined()
   })
 })

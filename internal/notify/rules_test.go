@@ -160,7 +160,7 @@ func TestPlanNotifications_EveryFR62Trigger(t *testing.T) {
 			want:  []string{"u-sarah/" + store.NotifyNote, "u-max/" + store.NotifyNote},
 		},
 		{
-			name: "a trip todo (FR-7.4, is_task true, no row) is not a note",
+			name: "an own task (FR-7.4, is_task true, no row) is not a note",
 			muts: []syncpkg.Mutation{commentMutation("c-1", map[string]any{
 				"body": "Pflanzen giessen", "is_task": true, "task_state": "open",
 			})},
@@ -424,15 +424,15 @@ func TestPlanNotifications_PreviewIsTruncated(t *testing.T) {
 	}
 }
 
-// TestPlanTodoAssignment_FR75 pins who a trip todo's assignment notifies:
+// TestPlanTaskAssignment_FR75 pins who an own task's assignment notifies:
 // the assignee, as a delegation naming the task — never the actor, never
 // somebody off the trip, and never twice for one mutation.
-func TestPlanTodoAssignment_FR75(t *testing.T) {
-	const todo = "c-todo"
+func TestPlanTaskAssignment_FR75(t *testing.T) {
+	const task = "c-task"
 	update := func(fields map[string]any) syncpkg.Mutation {
-		return syncpkg.Mutation{Op: syncpkg.OpUpsert, Table: store.TableComments, ID: todo, Fields: fields}
+		return syncpkg.Mutation{Op: syncpkg.OpUpsert, Table: store.TableComments, ID: task, Fields: fields}
 	}
-	bodies := map[string]string{store.TableComments + "/" + todo: "Pflanzen giessen"}
+	bodies := map[string]string{store.TableComments + "/" + task: "Pflanzen giessen"}
 
 	tests := []struct {
 		name   string
@@ -441,14 +441,14 @@ func TestPlanTodoAssignment_FR75(t *testing.T) {
 		want   []string
 	}{
 		{
-			name:   "assigning an existing todo notifies the assignee",
+			name:   "assigning an existing task notifies the assignee",
 			mut:    update(map[string]any{"assignee_user_id": "u-sarah"}),
 			bodies: bodies,
 			want:   []string{"u-sarah/" + store.NotifyDelegation},
 		},
 		{
-			name: "a todo written already assigned notifies the assignee",
-			mut: commentMutation(todo, map[string]any{
+			name: "a task written already assigned notifies the assignee",
+			mut: commentMutation(task, map[string]any{
 				"body": "Pflanzen giessen", "is_task": 1, "task_state": "open", "assignee_user_id": "u-sarah",
 			}),
 			bodies: nil,
@@ -456,7 +456,7 @@ func TestPlanTodoAssignment_FR75(t *testing.T) {
 		},
 		{
 			name: "an assignee who is also mentioned is notified once",
-			mut: commentMutation(todo, map[string]any{
+			mut: commentMutation(task, map[string]any{
 				"body": "@Sarah Pflanzen giessen", "is_task": 1, "task_state": "open", "assignee_user_id": "u-sarah",
 			}),
 			bodies: nil,
@@ -481,7 +481,7 @@ func TestPlanTodoAssignment_FR75(t *testing.T) {
 			want:   nil,
 		},
 		{
-			name:   "an unreadable todo earns nothing rather than a nameless push",
+			name:   "an unreadable task earns nothing rather than a nameless push",
 			mut:    update(map[string]any{"assignee_user_id": "u-sarah"}),
 			bodies: nil,
 			want:   nil,
@@ -497,17 +497,17 @@ func TestPlanTodoAssignment_FR75(t *testing.T) {
 	}
 }
 
-// TestPlanTodoAssignment_PayloadNamesTheTask pins the deep link: the trip
+// TestPlanTaskAssignment_PayloadNamesTheTask pins the deep link: the trip
 // and the comment, with the task's words where a row's name would stand, and
-// no item keys — a trip todo has no row, so the link opens the trip.
-func TestPlanTodoAssignment_PayloadNamesTheTask(t *testing.T) {
-	plan := planNotifications("trip-1", "u-actor", landedAll(syncpkg.Mutation{Op: syncpkg.OpUpsert, Table: store.TableComments, ID: "c-todo",
-		Fields: map[string]any{"assignee_user_id": "u-sarah"}}), notificationRuleMembers, fakeFacts{texts: map[string]string{store.TableComments + "/c-todo": "Pflanzen giessen"}})
+// no item keys — an own task has no row, so the link opens the trip.
+func TestPlanTaskAssignment_PayloadNamesTheTask(t *testing.T) {
+	plan := planNotifications("trip-1", "u-actor", landedAll(syncpkg.Mutation{Op: syncpkg.OpUpsert, Table: store.TableComments, ID: "c-task",
+		Fields: map[string]any{"assignee_user_id": "u-sarah"}}), notificationRuleMembers, fakeFacts{texts: map[string]string{store.TableComments + "/c-task": "Pflanzen giessen"}})
 	if len(plan) != 1 {
 		t.Fatalf("plan = %v, want one delegation", recipients(plan))
 	}
 	wantPayload(t, plan[0].Payload, map[string]any{
-		payloadTripID: "trip-1", payloadCommentID: "c-todo", payloadItemName: "Pflanzen giessen",
+		payloadTripID: "trip-1", payloadCommentID: "c-task", payloadItemName: "Pflanzen giessen",
 		payloadActorID: "u-actor", payloadActorName: "Andy",
 	})
 }

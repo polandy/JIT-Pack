@@ -179,8 +179,8 @@ defineExpose({ open, expanded, seed })
     :close-label="t('common.close')"
     :list-empty="listEmpty"
     testid="m25-composer"
-    input-testid="trip-todo-input"
-    submit-testid="trip-todo-add"
+    input-testid="trip-task-input"
+    submit-testid="trip-task-add"
     @submit="add"
     @close="onClose"
   >

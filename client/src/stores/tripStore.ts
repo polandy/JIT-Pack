@@ -19,7 +19,7 @@ import type {
   Traveler,
   Container,
   Excursion,
-  ExcursionItem,
+  ExcursionLine,
   ExcursionTrack,
   ExcursionTraveler,
   ItemComment,
@@ -65,7 +65,7 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   // three trip-partition tables, bucketed by trip_id like the rest.
   const excursions = ref<Map<string, Excursion[]>>(new Map())
   const excursionTravelers = ref<Map<string, ExcursionTraveler[]>>(new Map())
-  const excursionItems = ref<Map<string, ExcursionItem[]>>(new Map())
+  const excursionItems = ref<Map<string, ExcursionLine[]>>(new Map())
   // FR-31.15: an excursion's GPX tracks, the row of each (ADR-089).
   const excursionTracks = ref<Map<string, ExcursionTrack[]>>(new Map())
   const members = ref<Map<string, TripMember[]>>(new Map())
@@ -237,7 +237,7 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   }
 
   /** FR-31.4: the lines of a trip's excursions — of one excursion when it is named. */
-  function getExcursionItems(tripId: string, excursionId?: string): ExcursionItem[] {
+  function getExcursionItems(tripId: string, excursionId?: string): ExcursionLine[] {
     const all = excursionItems.value.get(tripId) ?? []
     return excursionId === undefined ? all : all.filter((l) => l.excursion_id === excursionId)
   }

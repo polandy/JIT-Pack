@@ -12,12 +12,12 @@ import { IonButton } from '@ionic/vue'
 import { computed } from 'vue'
 
 import { t } from '@/i18n'
-import type { ExcursionItem } from '@/types/domain'
+import type { ExcursionLine } from '@/types/domain'
 import { ITEM_MODE_BUY_LOCAL, STATE_SKIPPED } from '@/types/domain'
 
 const props = withDefaults(
   defineProps<{
-    line: ExcursionItem
+    line: ExcursionLine
     /** The line borrows a suitcase row this device holds. */
     fromLuggage?: boolean
     /** FR-31.5: its person no longer goes, and it is in the rucksack. */

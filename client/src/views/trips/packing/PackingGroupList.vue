@@ -17,7 +17,7 @@ import type { LongPress } from '@/composables/shared/useLongPress'
 import type { PackableRow, PackingCluster, PackingEntry, PackingGroup } from '@/domain/packingView'
 import { t } from '@/i18n'
 import { collapseRow } from '@/lib/rowCollapse'
-import type { TripParticipant } from '@/types/domain'
+import type { TripMemberProfile } from '@/types/domain'
 
 import type { ForWhom } from './useForWhom'
 import type { ListFacts } from './useRowFacts'
@@ -31,14 +31,14 @@ const props = withDefaults(
     /** FR-25.28's *who* column; absent where the list has none (M27). */
     forWhom?: ForWhom | null
     /** The roster the *who* strip offers; read only with {@link forWhom}. */
-    participants?: TripParticipant[]
+    memberProfiles?: TripMemberProfile[]
     /** FR-5.5's press and hold, on a row and on a cluster head. */
     rowHold: LongPress<R>
     clusterHold?: LongPress<PackingCluster> | null
     /** Whose handles the list's `data-testid`s carry, as `PackingRow`'s do. */
     screen?: 'm4' | 'm27'
   }>(),
-  { forWhom: null, participants: () => [], clusterHold: null, screen: 'm4' },
+  { forWhom: null, memberProfiles: () => [], clusterHold: null, screen: 'm4' },
 )
 
 defineSlots<{
@@ -165,7 +165,7 @@ function onRowPress(item: R, event: PointerEvent): void {
               v-if="forWhom?.openOn(entry)"
               :trip-id="tripId"
               :item-id="entry.instanceIds[0] ?? ''"
-              :participants="participants"
+              :member-profiles="memberProfiles"
               :test-key="entry.name"
             />
 
@@ -259,7 +259,7 @@ function onRowPress(item: R, event: PointerEvent): void {
             :data-for-whom-key="forWhom?.keyOf(entry)"
             :trip-id="tripId"
             :item-id="entry.item.id"
-            :participants="participants"
+            :member-profiles="memberProfiles"
             :test-key="entry.item.name"
           />
         </template>

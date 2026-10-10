@@ -9,7 +9,7 @@ import { computed, type ComputedRef } from 'vue'
 import type { PackAnnouncer } from '@/composables/usePackAnnouncer'
 import type { RowUndoRecord } from '@/composables/useRowUndo'
 import type { Orchestrator } from '@/composables/useSyncOrchestrator'
-import { STATE_SKIPPED, type Excursion, type ExcursionItem, type Traveler } from '@/types/domain'
+import { STATE_SKIPPED, type Excursion, type ExcursionLine, type Traveler } from '@/types/domain'
 
 import type { RowPort } from '../packing/rowPort'
 
@@ -23,7 +23,7 @@ export type ExcursionLineWrites = Pick<
 export interface ExcursionRowSource {
   orchestrator: ExcursionLineWrites
   excursion: ComputedRef<Excursion | null>
-  lines: ComputedRef<ExcursionItem[]>
+  lines: ComputedRef<ExcursionLine[]>
   /** The people going (FR-31.5) — whom the list, its amounts and its browse verbs are for. */
   participants: ComputedRef<Traveler[]>
   announcer: PackAnnouncer
@@ -37,7 +37,7 @@ export function useExcursionRowPort(source: ExcursionRowSource) {
   const lineById = computed(() => new Map(lines.value.map((line) => [line.id, line])))
 
   /** Write to the line as it stands now, unless it has left the excursion meanwhile. */
-  function onLine(row: ExcursionItem, write: (line: ExcursionItem) => void): void {
+  function onLine(row: ExcursionLine, write: (line: ExcursionLine) => void): void {
     const line = lineById.value.get(row.id)
     if (line) write(line)
   }
@@ -59,7 +59,7 @@ export function useExcursionRowPort(source: ExcursionRowSource) {
     }
   }
 
-  const port: RowPort<ExcursionItem> = {
+  const port: RowPort<ExcursionLine> = {
     rows: lines,
     travelers: source.participants,
     span: computed(() => ({

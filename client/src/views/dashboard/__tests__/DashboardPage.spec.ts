@@ -456,7 +456,7 @@ describe('M1 — the hero once the packing is finished (FR-7.10)', () => {
       const page = mountPage()
       await flushPromises()
 
-      expect(page.find('[data-testid="trip-todos-Samedan"]').exists()).toBe(false)
+      expect(page.find('[data-testid="trip-tasks-Samedan"]').exists()).toBe(false)
       expect(page.find('[data-testid="dashboard-tasks-Samedan"]').text()).toContain(
         'Post nachsenden',
       )

@@ -30,7 +30,7 @@ import {
 } from '@/domain/membership'
 import { t, type MessageKey } from '@/i18n'
 import { useTripStore } from '@/stores/tripStore'
-import type { TripParticipant } from '@/types/domain'
+import type { TripMemberProfile } from '@/types/domain'
 
 const props = withDefaults(
   defineProps<{
@@ -38,7 +38,7 @@ const props = withDefaults(
     /** Any row of the item; the strip acts on every instance, not on this one. */
     itemId: string
     /** G-3 wants the name, and only a caller knows the trip's people. */
-    participants: TripParticipant[]
+    memberProfiles: TripMemberProfile[]
     /** A caller's own reason to be read-only, beside the claim the strip finds itself. */
     locked?: boolean
     /** M5: a stepper under every lit avatar. */
@@ -95,7 +95,7 @@ const claimHolderId = computed(() => {
 const isLocked = computed(() => props.locked || claimHolderId.value !== null)
 
 const lockNotice = computed(() => {
-  const who = props.participants.find((p) => p.user_id === claimHolderId.value)?.display_name
+  const who = props.memberProfiles.find((p) => p.user_id === claimHolderId.value)?.display_name
   return who ? t('membership.lockedBy', { who }) : t('membership.lockedByUnknown')
 })
 

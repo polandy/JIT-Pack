@@ -10,22 +10,22 @@
  */
 import type { ShoppingLine, ShoppingSource } from '@/kernel/shoppingSources'
 import { isOpenPurchase } from '@/domain/excursionLines'
-import type { Excursion, ExcursionItem, ShoppingMode, Traveler } from '@/types/domain'
+import type { Excursion, ExcursionLine, ShoppingMode, Traveler } from '@/types/domain'
 import { ITEM_MODE_BUY_LOCAL, STATE_SKIPPED } from '@/types/domain'
 import { t } from '@/i18n'
 
 /** What the source reads off the trip store — and nothing else. */
 export interface ExcursionShoppingReads {
   getExcursions(tripId: string): Excursion[]
-  getExcursionItems(tripId: string): ExcursionItem[]
+  getExcursionItems(tripId: string): ExcursionLine[]
   getTravelers(tripId: string): Traveler[]
 }
 
 /** The one write a check-off means (FR-31.8). */
 export interface ExcursionShoppingWrites {
-  markBought(line: ExcursionItem, bought: boolean): void
+  markBought(line: ExcursionLine, bought: boolean): void
   /** FR-30.13: the line's place on M6's Vor-Ort list. */
-  placeLineOnShopping(line: ExcursionItem, position: number): void
+  placeLineOnShopping(line: ExcursionLine, position: number): void
 }
 
 /** The key prefix that keeps an excursion line apart from every other source's. */
@@ -35,7 +35,7 @@ export function createExcursionShoppingSource(
   reads: ExcursionShoppingReads,
   writes: ExcursionShoppingWrites,
 ): ShoppingSource {
-  function linesOf(tripId: string, lines: ExcursionItem[], bought: boolean): ShoppingLine[] {
+  function linesOf(tripId: string, lines: ExcursionLine[], bought: boolean): ShoppingLine[] {
     const excursions = new Map(reads.getExcursions(tripId).map((e) => [e.id, e]))
     const travelers = new Map(reads.getTravelers(tripId).map((tr) => [tr.id, tr]))
     return lines.map((line) => {

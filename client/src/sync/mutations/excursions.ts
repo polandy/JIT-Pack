@@ -10,7 +10,7 @@ import { clampQuantity } from '@/domain/quantityChoices'
 import { dbBool } from '@/sync/columns'
 import { newId } from '@/lib/ids'
 import type { Mutation } from '@/api/types'
-import { type Excursion, type ExcursionItem, STATE_PACKED, STATE_SKIPPED } from '@/types/domain'
+import { type Excursion, type ExcursionLine, STATE_PACKED, STATE_SKIPPED } from '@/types/domain'
 import type { MutationContext } from './context'
 
 export function createExcursionsMutations({ make }: MutationContext) {
@@ -83,7 +83,7 @@ export function createExcursionsMutations({ make }: MutationContext) {
     tripId: string,
     excursionId: string,
     line: Pick<
-      ExcursionItem,
+      ExcursionLine,
       | 'trip_item_id'
       | 'source_item_id'
       | 'name'
@@ -150,7 +150,7 @@ export function createExcursionsMutations({ make }: MutationContext) {
     itemId: string,
     fields: Partial<
       Pick<
-        ExcursionItem,
+        ExcursionLine,
         'trip_item_id' | 'source_item_id' | 'mode' | 'bought_at' | 'name' | 'shopping_position'
       >
     > & {
@@ -173,7 +173,7 @@ export function createExcursionsMutations({ make }: MutationContext) {
   }
 
   /** Puts a removed line back under its own id, tick and all — an undo's other half. */
-  function restoreExcursionItem(line: ExcursionItem): Mutation {
+  function restoreExcursionItem(line: ExcursionLine): Mutation {
     return make('insert', TABLE.excursionItems, line.id, {
       trip_id: line.trip_id,
       excursion_id: line.excursion_id,

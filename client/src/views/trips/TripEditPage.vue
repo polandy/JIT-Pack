@@ -51,7 +51,7 @@ const orchestrator = useOrchestrator()
 const { trip } = useTripScreen(props.tripId, orchestrator)
 const travelers = computed(() => tripStore.getTravelers(props.tripId))
 
-const { participants, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator.identity)
+const { memberProfiles, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator.identity)
 onMounted(loadIdentity)
 
 /**
@@ -67,7 +67,7 @@ onMounted(loadIdentity)
  */
 const linkable = computed(() => {
   const members = new Set(tripStore.getMembers(props.tripId).map((m) => m.user_id))
-  return participants.value.filter((p) => members.has(p.user_id))
+  return memberProfiles.value.filter((p) => members.has(p.user_id))
 })
 
 /**

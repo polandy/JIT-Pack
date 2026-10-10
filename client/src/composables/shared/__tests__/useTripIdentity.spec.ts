@@ -99,7 +99,7 @@ describe('useTripIdentity', () => {
     // would name that member by id for the rest of the screen's life.
     const identity = useTripIdentity('trip-1', source())
     await identity.load()
-    expect(identity.participants.value).toHaveLength(2)
+    expect(identity.memberProfiles.value).toHaveLength(2)
 
     useTripStore().applyChanges([
       {
@@ -111,7 +111,7 @@ describe('useTripIdentity', () => {
       },
     ])
 
-    expect(identity.participants.value).toHaveLength(3)
+    expect(identity.memberProfiles.value).toHaveLength(3)
     // Named by its own id, not dropped: the directory has no entry for it,
     // and a facepile that silently shrank would be the worse answer.
     expect(identity.nameOf('user-c')).toBe('user-c')
