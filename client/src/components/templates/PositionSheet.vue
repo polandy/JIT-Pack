@@ -231,7 +231,7 @@ function removeTask(taskId: string) {
       @click="detailsOpen = !detailsOpen"
     >
       <IonIcon :icon="chevronForwardOutline" class="caret" />
-      <span class="details-label">{{ t('item.details') }}</span>
+      <span class="details-label">{{ t('row.details') }}</span>
       <span v-if="!detailsOpen" class="details-hint">{{ t('templates.detailsHint') }}</span>
     </button>
 

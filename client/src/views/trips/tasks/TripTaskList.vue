@@ -215,7 +215,7 @@ function hasFacts(task: TripTask): boolean {
           <DragGrip
             v-else-if="lift"
             slot="start"
-            :label="t('tripTodos.drag', { body: task.body })"
+            :label="t('tripTasks.drag', { body: task.body })"
             :data-testid="`trip-todo-grip-${task.body}`"
             @pointerdown.stop="onLift($event, task)"
           />
@@ -312,7 +312,7 @@ function hasFacts(task: TripTask): boolean {
             />
             <RemoveButton
               v-if="!task.item && !readonly"
-              :label="t('tripTodos.remove')"
+              :label="t('tripTasks.remove')"
               :data-testid="`trip-todo-remove-${task.body}`"
               @click="emit('remove', task)"
             />
@@ -326,7 +326,7 @@ function hasFacts(task: TripTask): boolean {
     <template v-if="resolved.length > 0">
       <FoldToggle
         v-if="!unfolded"
-        :label="t('tripTodos.resolved', { n: resolved.length })"
+        :label="t('tripTasks.resolved', { n: resolved.length })"
         :open="showResolved"
         testid="trip-todos-resolved"
         @toggle="showResolved = !showResolved"
@@ -391,7 +391,7 @@ function hasFacts(task: TripTask): boolean {
               />
               <RemoveButton
                 v-if="!task.item && !readonly"
-                :label="t('tripTodos.remove')"
+                :label="t('tripTasks.remove')"
                 :data-testid="`trip-todo-remove-${task.body}`"
                 @click="emit('remove', task)"
               />

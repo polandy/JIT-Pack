@@ -150,7 +150,7 @@ const facts = computed(() =>
       ? {
           key: 'item',
           icon: cubeOutline,
-          text: t('tripTodos.forItem', { name: props.task.item.name }),
+          text: t('tripTasks.forItem', { name: props.task.item.name }),
         }
       : null,
     factLine('created', createOutline, createdStampText(props.task, props.nameOf)),
@@ -268,7 +268,7 @@ function factLine(key: string, icon: string, text: string | null) {
       @click="emit('remove')"
     >
       <IonIcon slot="start" :icon="trashOutline" />
-      {{ t('tripTodos.remove') }}
+      {{ t('tripTasks.remove') }}
     </IonButton>
   </div>
 </template>

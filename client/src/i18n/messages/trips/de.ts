@@ -1,4 +1,4 @@
-/** German messages for the trips, their wizard, clone and series, the dashboard, analytics, notes and tasks; exactly the key set of ./en.ts. */
+/** German messages for the trips, their wizard, clone and series, analytics and notes; exactly the key set of ./en.ts. */
 import type { tripsEn } from './en'
 
 export const tripsDe: Record<keyof typeof tripsEn, string> = {
@@ -193,135 +193,8 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
   'wizard.back': 'Zurück',
   'wizard.next': 'Weiter',
 
-  // M1 Übersicht — „was ist jetzt dran?“
-  'dashboard.greetingMorning': 'Guten Morgen',
-  'dashboard.greetingAfternoon': 'Guten Tag',
-  'dashboard.greetingEvening': 'Guten Abend',
-  // Nachts absichtlich neutral (UX-15): jede Tageszeit-Behauptung um 00:14 ist falsch.
-  'dashboard.greetingNight': 'Hallo',
-  'dashboard.subtitle': 'Was beim Packen ansteht',
-  // FR-7.11/FR-30.10: M1's due line — „2 Aufgaben (1 überfällig) · 3 Einkäufe fällig“.
-  'dashboard.dueWord': 'fällig',
-  'dashboard.overdueWord': 'überfällig',
-  'dashboard.overdueOf': '({n} überfällig)',
-  'dashboard.planTrip': 'Reise planen',
-  'dashboard.delegated': '{n} Sache für dich | {n} Sachen für dich',
-  'dashboard.delegatedNewRow': '{name} — neu',
-  'dashboard.delegatedNew': '{n} neu',
-  'dashboard.latePackers': '{n} letzte Sache | {n} letzte Sachen',
-  // FR-7.9, Entscheid 1/2 — M1s Notizen-Karte: die neusten Notizen anderer,
-  // die ich noch nicht abgehakt habe, je mit Reise-Chip und eigenem Haken.
-  'dashboard.newNotes': 'Neue Notizen',
-  'dashboard.newNotesTick': 'Als gesehen markieren',
-  'dashboard.planned': 'Geplant',
-  'dashboard.tripTodos': 'Aufgaben',
-  'tripTodos.section': 'Aufgaben für die Reise',
-  'tripTodos.progress': '{done} von {total} erledigt',
-  'tripTodos.allDone': '✓ Alle Aufgaben erledigt',
-  'tripTodos.figure': '{done}/{total} Aufgaben',
-  // FR-7.14: M4's figure counts its window, and says so.
-  'tripTodos.figurePacking': 'Beim Packen {done}/{total}',
-  'tripTodos.open': '{n} offen',
-  'tripTodos.resolved': '{n} erledigt',
-  'tripTodos.add': 'Aufgabe hinzufügen…',
-  'tripTodos.remove': 'Aufgabe entfernen',
-  'tripTodos.drag': '{body} verschieben',
-  'tripTodos.forItem': 'Gehört zu {name}',
-
-  // FR-7.7 — M25, die eigene Maske für die Aufgaben einer Reise.
-  'tasks.title': 'Aufgaben',
-  // FR-29.13: a task made from an idea, and the line naming where a result came from.
-  'tasks.fromIdea': '{title} buchen',
+  // FR-29.13: the line naming where a result came from, beside tasks.fromIdea.
   'trip.ideaOrigin': 'Aus der Idee „{title}“',
-  'tasks.before': 'Vor der Reise',
-  'tasks.during': 'Während der Reise',
-  'tasks.fab': 'Aufgabe hinzufügen',
-  'tasks.mine': 'Meine',
-  'tasks.addBefore': 'Aufgabe für vor der Reise…',
-  'tasks.addDuring': 'Aufgabe für unterwegs…',
-  'tasks.emptyBefore': 'Vor der Reise ist nichts mehr offen.',
-  'tasks.emptyDuring': 'Für unterwegs ist nichts notiert.',
-  'tasks.emptyMine': 'Dir ist gerade nichts zugewiesen.',
-  'tasks.emptyAll': 'Diese Reise hat noch keine Aufgaben.',
-  'tasks.moveToDuring': 'Auf „Während der Reise" schieben',
-  'tasks.moveToBefore': 'Zurück auf „Vor der Reise"',
-  'tasks.movedToDuring': '„{body}" ist jetzt für unterwegs',
-  'tasks.movedToBefore': '„{body}" ist wieder für vor der Reise',
-  // FR-7.7 — wer die Aufgabe geschrieben und wer sie erledigt hat, und wann.
-  // Ohne Namen bleibt der Zeitpunkt stehen: in Local Mode gibt es niemanden
-  // zu nennen (G-8), und eine Zeile sagt dann weniger statt etwas Unwahres.
-  'tasks.createdBy': 'erstellt von {who} · {when}',
-  'tasks.createdByUnknown': 'erstellt · {when}',
-  'tasks.resolvedBy': 'erledigt von {who} · {when}',
-  'tasks.resolvedByUnknown': 'erledigt · {when}',
-  'tasks.openAll': 'Alle Aufgaben',
-  // FR-7.8 — das eine Tag einer Aufgabe und die Gruppen daraus.
-  'tasks.fromPacking': 'Aus Packliste',
-  'tasks.carriedTag': 'Von vor der Abreise',
-  'tasks.noTag': 'Ohne Tag',
-  'tasks.tagLabel': 'Tag',
-  'tasks.select': 'Auswählen',
-  'tasks.bulkTag': 'Tag vergeben',
-  'tasks.bulkTagTitle': 'Tag für eine Aufgabe | Tag für {n} Aufgaben',
-  'tasks.bulkToBefore': 'Vor der Reise',
-  'tasks.bulkToDuring': 'Unterwegs',
-  'tasks.bulkRetagged': 'Tag einer Aufgabe geändert | Tag von {n} Aufgaben geändert',
-  'tasks.bulkMovedToBefore':
-    'Eine Aufgabe auf „Vor der Reise“ geschoben | {n} Aufgaben auf „Vor der Reise“ geschoben',
-  'tasks.bulkMovedToDuring':
-    'Eine Aufgabe auf „Während der Reise“ geschoben | {n} Aufgaben auf „Während der Reise“ geschoben',
-  'tasks.bulkNothingToDo': 'Nichts zu ändern — die Auswahl ist schon dort.',
-  'tasks.movedToast': '„{body}" verschoben',
-  'tasks.whilePacking': 'Beim Packen zu erledigen',
-  // FR-7.11 — das Fälligkeitsdatum einer Aufgabe: nur ein Tag, keine Zeit.
-  'tasks.dueOverdue': 'Überfällig',
-  'tasks.dueToday': 'Heute',
-  'tasks.dueTomorrow': 'Morgen',
-  'tasks.dueInDays': 'In {n} Tagen',
-  'tasks.dueField': 'Fällig',
-  'tasks.dueSetToast': '„{body}" fällig am {date}',
-  'tasks.dueClearedToast': '„{body}" hat kein Fälligkeitsdatum mehr',
-  'tasks.dueCount': '{n} Aufgabe | {n} Aufgaben',
-  'tasks.beforeLocked':
-    'Die Packliste ist abgeschlossen — hier steht, was vor der Reise erledigt wurde.',
-
-  // FR-7.14 — M25 überarbeitet: Fälliges oben, ein Eingabefeld mit Chips,
-  // zweizeilige Zeilen, ein Blatt nach Häufigkeit geordnet.
-  'tasks.addPlaceholder': 'Neue Aufgabe…',
-  'tasks.duringShort': 'Unterwegs',
-  'tasks.phaseLabel': 'Wann',
-  'tasks.tagAdd': '＋ Tag',
-  'tasks.tagFiledUnder': 'Abgelegt unter: {tag}',
-  'tasks.tagNone': 'Noch kein Tag — die Aufgabe steht unter „{group}“.',
-  'tasks.entrySheetNew': 'Neue Aufgabe',
-  'tasks.entryName': 'Aufgabe',
-  'tasks.quickBeforeDeparture': 'Vor Abreise',
-  'tasks.quickPick': 'Datum…',
-  'tasks.dueClear': 'Fällig {day} – entfernen',
-  'tasks.dueGroup': 'Fällig',
-  'tasks.beforeHistory': 'Vor der Reise · {n} erledigt',
-  'tasks.beforeHistoryEmpty': 'Vor der Reise · abgeschlossen',
-  'tasks.phaseRest': '{shelf} · nichts offen',
-  'tasks.phaseRestDone': '{shelf} · nichts offen · {n} erledigt',
-  'tasks.phaseRestDue': '{shelf} · {due} fällig',
-  'tasks.phaseRestDueDone': '{shelf} · {due} fällig · {n} erledigt',
-  'tasks.wordsLabel': 'Aufgabe',
-  'tasks.markDone': 'Erledigt',
-  'tasks.reopen': 'Wieder öffnen',
-  'tasks.renamedToast': '„{body}" geändert',
-  'tasks.bulkDone': 'Erledigt',
-  'tasks.bulkTagShort': 'Tag',
-  'tasks.bulkRemove': 'Löschen',
-  'tasks.bulkAssign': 'Zuweisen',
-  'tasks.bulkAssignTitle': 'Wer übernimmt einen Task? | Wer übernimmt {n} Tasks?',
-  'tasks.bulkAssigned': 'Ein Task → {who} | {n} Tasks → {who}',
-  'tasks.bulkUnassigned': 'Ein Task: niemand zuständig | {n} Tasks: niemand zuständig',
-  'tasks.bulkResolved': 'Eine Aufgabe erledigt | {n} Aufgaben erledigt',
-  'tasks.bulkDueSet': 'Eine Aufgabe fällig am {date} | {n} Aufgaben fällig am {date}',
-  'tasks.bulkDueCleared':
-    'Fälligkeit einer Aufgabe entfernt | Fälligkeit von {n} Aufgaben entfernt',
-  'tasks.bulkRemoved': 'Eine Aufgabe entfernt | {n} Aufgaben entfernt',
-  'tasks.bulkDueTitle': 'Fällig für eine Aufgabe | Fällig für {n} Aufgaben',
 
   // Die zwei Reise-Ansichten des Planers mit Namen, die auch der Umschalter und
   // M30 lesen; der Rest seiner Texte steht in planner/i18n/.
@@ -361,28 +234,6 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
   'notes.remove': 'Notiz löschen',
   'notes.excursion': 'Zu einem Ausflug',
   'notes.excursionLabel': 'Ausflug: {name}',
-  'dashboard.taskLineOpen': 'Aufgaben: {n} offen',
-  'dashboard.taskLineDone': 'Aufgaben: alle erledigt',
-  'dashboard.openWord': 'offen',
-  'dashboard.blockAdd': 'Hinzufügen',
-  'dashboard.tasksTitle': 'Aufgaben',
-  'dashboard.tasksTitleMine': 'Aufgaben · meine zuerst',
-  'dashboard.tasksMore': '+ {n} weitere · alle Aufgaben',
-  'dashboard.tasksAll': 'Alle Aufgaben',
-  'dashboard.tasksAdded': '„{body}“ zu Aufgaben hinzugefügt',
-  'dashboard.taskCheck': '{body} erledigt',
-  'dashboard.phasePacking': 'Packen',
-  'dashboard.phaseOnSite': 'Vor Ort',
-  'dashboard.dayBefore': 'in {n} Tag | in {n} Tagen',
-  'dashboard.dayFirst': 'Abreise heute',
-  'dashboard.dayLast': 'Letzter Tag',
-  'dashboard.dayOf': 'Tag {day} von {total}',
-  'dashboard.dayOpenEnded': 'Tag {day}',
-  'dashboard.dayRemaining': 'noch {n} Tag | noch {n} Tage',
-  'dashboard.openPackingList': 'Packliste öffnen',
-  'dashboard.openCount': '{n} offen',
-  'dashboard.packingList': 'Packliste',
-  'dashboard.moreItems': '+{n} weitere',
 
   // M16 Serie und Zielort-Profil (FR-13.1/13.2/13.3).
   'series.section': 'Serie',

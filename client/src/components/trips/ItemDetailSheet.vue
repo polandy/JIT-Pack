@@ -591,7 +591,7 @@ const packedStamp = computed(() => {
         <IonInput
           v-model="newPrepTaskText"
           data-testid="m5-todo-input"
-          :placeholder="t('item.addPrep')"
+          :placeholder="t('row.addPrep')"
           @keydown.enter="addPrepTask"
         />
         <IonButton
@@ -608,7 +608,7 @@ const packedStamp = computed(() => {
     <!-- FR-7.1/7.2 -->
     <section class="sec">
       <h2 class="sl">
-        {{ t('item.notes') }}
+        {{ t('row.notes') }}
         <span class="n">{{ itemComments.length }}</span>
       </h2>
       <article
@@ -628,8 +628,8 @@ const packedStamp = computed(() => {
           v-if="!isLocked"
           fill="clear"
           size="small"
-          :aria-label="t('item.flagAsTask')"
-          :title="t('item.flagAsTask')"
+          :aria-label="t('row.flagAsTask')"
+          :title="t('row.flagAsTask')"
           :data-testid="`m5-note-flag-${comment.body}`"
           @click="flagAsTask(comment)"
         >
@@ -640,7 +640,7 @@ const packedStamp = computed(() => {
         <IonInput
           v-model="newCommentText"
           data-testid="m5-note-input"
-          :placeholder="t('item.addNote')"
+          :placeholder="t('row.addNote')"
           @keydown.enter="addComment"
         />
         <IonButton
@@ -660,7 +660,7 @@ const packedStamp = computed(() => {
       class="sec"
       data-testid="m5-companions"
     >
-      <h2 class="sl"><IonIcon :icon="linkOutline" /> {{ t('item.companions') }}</h2>
+      <h2 class="sl"><IonIcon :icon="linkOutline" /> {{ t('row.companions') }}</h2>
       <IonChip
         v-for="companion in suggestedCompanions"
         :key="companion.item_id"
@@ -680,8 +680,8 @@ const packedStamp = computed(() => {
       @click="detailsOpen = !detailsOpen"
     >
       <IonIcon :icon="chevronForwardOutline" class="caret" />
-      <span class="details-label">{{ t('item.details') }}</span>
-      <span v-if="!detailsOpen" class="details-hint">{{ t('item.detailsHint') }}</span>
+      <span class="details-label">{{ t('row.details') }}</span>
+      <span v-if="!detailsOpen" class="details-hint">{{ t('row.detailsHint') }}</span>
     </button>
 
     <IonList v-if="detailsOpen" class="details-body">
@@ -713,7 +713,7 @@ const packedStamp = computed(() => {
            no members, and in Single-User the sole user is already every row's
            packer. -->
       <IonItem v-if="assignable.length > 0">
-        <IonLabel>{{ t('item.assignedTo') }}</IonLabel>
+        <IonLabel>{{ t('row.assignedTo') }}</IonLabel>
         <IonSelect
           :value="item.packer_user_id"
           interface="popover"
@@ -721,7 +721,7 @@ const packedStamp = computed(() => {
           data-testid="m5-assignee"
           @ion-change="(e: CustomEvent) => onAssigneeChange(e.detail.value)"
         >
-          <IonSelectOption :value="null">{{ t('item.assignedToNobody') }}</IonSelectOption>
+          <IonSelectOption :value="null">{{ t('row.assignedToNobody') }}</IonSelectOption>
           <IonSelectOption
             v-for="member in assignable"
             :key="member.user_id"
@@ -732,7 +732,7 @@ const packedStamp = computed(() => {
         </IonSelect>
       </IonItem>
       <IonItem>
-        <IonLabel>{{ t('item.luggageOptional') }}</IonLabel>
+        <IonLabel>{{ t('row.luggageOptional') }}</IonLabel>
         <IonSelect
           :value="item.container_id"
           interface="popover"
@@ -753,7 +753,7 @@ const packedStamp = computed(() => {
       <IonItem>
         <IonLabel>
           <h3>{{ t('mode.latePacker') }}</h3>
-          <p>{{ t('item.latePackerHint') }}</p>
+          <p>{{ t('row.latePackerHint') }}</p>
         </IonLabel>
         <IonToggle
           slot="end"
@@ -770,7 +770,7 @@ const packedStamp = computed(() => {
           <IonIcon slot="start" :icon="removeCircleOutline" />
           <IonLabel>
             <h3>{{ t('facet.flagUnused') }}</h3>
-            <p>{{ t('item.flagUnusedHint') }}</p>
+            <p>{{ t('row.flagUnusedHint') }}</p>
           </IonLabel>
           <IonToggle
             slot="end"
@@ -784,7 +784,7 @@ const packedStamp = computed(() => {
           <IonIcon slot="start" :icon="alertCircleOutline" />
           <IonLabel>
             <h3>{{ t('facet.flagMissing') }}</h3>
-            <p>{{ t('item.flagMissingHint') }}</p>
+            <p>{{ t('row.flagMissingHint') }}</p>
           </IonLabel>
           <IonToggle
             slot="end"
@@ -802,7 +802,7 @@ const packedStamp = computed(() => {
   </section>
 
   <section v-else class="missing" data-testid="m5-missing">
-    <p>{{ t('item.notFound') }}</p>
+    <p>{{ t('row.notFound') }}</p>
   </section>
 </template>
 

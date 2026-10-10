@@ -54,8 +54,8 @@ export function usePackingTasks(core: PackingCore) {
   /** FR-7.4/7.6: the section head's own check, apart from every packing figure. */
   const line = computed(() => {
     if (state.value === 'none') return null
-    if (state.value === 'allDone') return t('tripTodos.allDone')
-    return t('tripTodos.progress', { done: count.value.done, total: count.value.total })
+    if (state.value === 'allDone') return t('tripTasks.allDone')
+    return t('tripTasks.progress', { done: count.value.done, total: count.value.total })
   })
 
   /**

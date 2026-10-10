@@ -85,7 +85,7 @@ defineExpose({ scrollIntoView })
       :assignable="assignable"
       :name-of="nameOf"
       :today="today"
-      :empty-text="t('tripTodos.allDone')"
+      :empty-text="t('tripTasks.allDone')"
       @assign="(task: TripTask) => $emit('assign', task)"
       @toggle="(task: TripTask) => $emit('toggle', task)"
       @remove="(task: TripTask) => $emit('remove', task)"

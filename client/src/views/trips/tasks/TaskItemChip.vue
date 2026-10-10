@@ -31,7 +31,7 @@ const MARK_SIZE = 15
   <RouterLink
     class="task-chip"
     :to="to"
-    :aria-label="t('tripTodos.forItem', { name: props.item.name })"
+    :aria-label="t('tripTasks.forItem', { name: props.item.name })"
     :data-testid="`task-item-${props.item.name}`"
     @click.stop
   >

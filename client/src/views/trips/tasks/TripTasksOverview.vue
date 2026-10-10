@@ -56,7 +56,7 @@ const openTotal = computed(() => groups.value.reduce((sum, g) => sum + g.progres
 <template>
   <template v-if="groups.length > 0">
     <SectionHead
-      :title="t('dashboard.tripTodos')"
+      :title="t('dashboard.tripTasks')"
       :count="openTotal"
       data-testid="dashboard-trip-todos-head"
     />
@@ -82,8 +82,8 @@ const openTotal = computed(() => groups.value.reduce((sum, g) => sum + g.progres
           >
             {{
               group.status === 'allDone'
-                ? t('tripTodos.allDone')
-                : t('tripTodos.progress', {
+                ? t('tripTasks.allDone')
+                : t('tripTasks.progress', {
                     done: group.progress.done,
                     total: group.progress.total,
                   })

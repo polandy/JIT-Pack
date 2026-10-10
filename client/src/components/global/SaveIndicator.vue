@@ -50,7 +50,7 @@ watch(
 )
 
 const saving = computed(() => props.pending)
-const title = computed(() => (saving.value ? t('item.saving') : t('item.saved')))
+const title = computed(() => (saving.value ? t('row.saving') : t('row.saved')))
 </script>
 
 <template>

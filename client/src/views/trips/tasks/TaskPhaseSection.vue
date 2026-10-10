@@ -77,7 +77,7 @@ const emit = defineEmits<{
  */
 const count = computed(() => {
   const open = props.shelf.open.length
-  return open > 0 ? t('tripTodos.open', { n: open }) : null
+  return open > 0 ? t('tripTasks.open', { n: open }) : null
 })
 
 /** A group's heading: its tag's name, or what the untagged group is called. */

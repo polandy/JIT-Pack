@@ -68,12 +68,12 @@ const shown = computed(() => tripTaskStatus(progress.value) !== 'none')
     class="trip-task-figure"
     :percent="tripTaskPercent(progress)"
     :headline="
-      t(tasks ? 'tripTodos.figurePacking' : 'tripTodos.figure', {
+      t(tasks ? 'tripTasks.figurePacking' : 'tripTasks.figure', {
         done: progress.done,
         total: progress.total,
       })
     "
-    :detail="progress.open > 0 ? t('tripTodos.open', { n: progress.open }) : null"
+    :detail="progress.open > 0 ? t('tripTasks.open', { n: progress.open }) : null"
     :ring-size="ringSize"
     :paired="ringSize !== undefined"
     :headline-testid="testid"

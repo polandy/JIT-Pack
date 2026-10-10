@@ -14,8 +14,12 @@ import { inventoryDe } from './inventory/de'
 import { templatesDe } from './templates/de'
 import { packingDe } from './packing/de'
 import { tripsDe } from './trips/de'
+import { tasksDe } from './tasks/de'
+import { dashboardDe } from './dashboard/de'
 import { excursionsDe } from './excursions/de'
+import { tracksDe } from './tracks/de'
 import { settingsDe } from './settings/de'
+import { syncDe } from './sync/de'
 import type { en } from './en'
 
 export const de: Record<keyof typeof en, string> = {
@@ -24,6 +28,10 @@ export const de: Record<keyof typeof en, string> = {
   ...templatesDe,
   ...packingDe,
   ...tripsDe,
+  ...tasksDe,
+  ...dashboardDe,
   ...excursionsDe,
+  ...tracksDe,
   ...settingsDe,
+  ...syncDe,
 }
