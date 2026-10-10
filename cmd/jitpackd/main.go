@@ -31,8 +31,16 @@ var version = "dev"
 // through it, so a reader of the log never has to tell a fatal apart from
 // an ordinary error by whether the process happens to still be running.
 func fatal(step string, err error) {
-	slog.Error(step, "error", err)
+	slog.Error(fatalMessage(step, err))
 	os.Exit(1)
+}
+
+// fatalMessage carries the error in the message rather than as an
+// attribute: some are multi-line instructions (store.ErrSchemaStale's) that
+// an attribute would quote onto one escaped line, and docs/configuration.md
+// and docs/troubleshooting.md quote them as "step: error".
+func fatalMessage(step string, err error) string {
+	return step + ": " + err.Error()
 }
 
 func main() {

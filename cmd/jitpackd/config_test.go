@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"reflect"
 	"strings"
 	"testing"
@@ -632,5 +633,16 @@ func TestConfig_Banners(t *testing.T) {
 				t.Errorf("banners() = %v, want %v", got, tc.want)
 			}
 		})
+	}
+}
+
+// A startup failure reads as the docs quote it, "step: error", with a
+// multi-line error's line breaks and indentation intact — the stale-schema
+// refusal is instructions an operator reads straight off the log.
+func TestFatalMessage_KeepsTheErrorReadable(t *testing.T) {
+	err := errors.New("database schema is stale: /data/jitpack.db\n\tto discard it:   rm /data/jitpack.db")
+	want := "store: database schema is stale: /data/jitpack.db\n\tto discard it:   rm /data/jitpack.db"
+	if got := fatalMessage("store", err); got != want {
+		t.Errorf("fatalMessage() = %q, want %q", got, want)
 	}
 }
