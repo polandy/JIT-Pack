@@ -103,26 +103,19 @@ function rowNames(wrapper: ReturnType<typeof mountSheet>): string[] {
 }
 
 /**
- * The member of a `BrowseAction` union whose own `verb` field admits `V` —
- * `Extract` itself fails here, because several verbs (`spread`, `packCarried`,
- * `skipCarried`, `undo`, `reopen`) share one wider `verb` field rather than
- * each carrying its own literal, so `Extract<T, { verb: V }>` finds no member
- * assignable to the narrower shape and silently resolves to `never`.
- */
-type ActionWithVerb<T, V> = T extends { verb: infer VT } ? (V extends VT ? T : never) : never
-
-/**
  * The sheet's one `action` emit, filtered to the verb under test — the
  * replacement for asserting on a verb's own old emit name.
  */
 function actions<V extends BrowseAction<MasterItem>['verb']>(
   wrapper: VueWrapper<unknown>,
   verb: V,
-): ActionWithVerb<BrowseAction<MasterItem>, V>[] {
+): Extract<BrowseAction<MasterItem>, { verb: V }>[] {
   const emitted = (wrapper.emitted('action') as [BrowseAction<MasterItem>][] | undefined) ?? []
   return emitted
     .map(([action]) => action)
-    .filter((action): action is ActionWithVerb<BrowseAction<MasterItem>, V> => action.verb === verb)
+    .filter(
+      (action): action is Extract<BrowseAction<MasterItem>, { verb: V }> => action.verb === verb,
+    )
 }
 
 describe('InventoryBrowseSheet (FR-25.13d)', () => {

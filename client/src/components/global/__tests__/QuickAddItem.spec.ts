@@ -54,27 +54,19 @@ function travelerIdsOf(emitted: unknown[] | undefined): string[] {
 }
 
 /**
- * The member of a `BrowseAction` union whose own `verb` field admits `V` —
- * `Extract` itself fails here, because several verbs (`spread`, `packCarried`,
- * `skipCarried`, `undo`, `reopen`) share one wider `verb` field rather than
- * each carrying its own literal, so `Extract<T, { verb: V }>` finds no member
- * assignable to the narrower shape and silently resolves to `never`.
- */
-type ActionWithVerb<T, V> = T extends { verb: infer VT } ? (V extends VT ? T : never) : never
-
-/**
  * The composer's one `browse` emit, filtered to the verb under test — every
  * sheet action is relayed through it now, the plain add included.
  */
 function browseActions<V extends BrowseAction<BrowseAddition>['verb']>(
   wrapper: VueWrapper<unknown>,
   verb: V,
-): ActionWithVerb<BrowseAction<BrowseAddition>, V>[] {
+): Extract<BrowseAction<BrowseAddition>, { verb: V }>[] {
   const emitted = (wrapper.emitted('browse') as [BrowseAction<BrowseAddition>][] | undefined) ?? []
   return emitted
     .map(([action]) => action)
     .filter(
-      (action): action is ActionWithVerb<BrowseAction<BrowseAddition>, V> => action.verb === verb,
+      (action): action is Extract<BrowseAction<BrowseAddition>, { verb: V }> =>
+        action.verb === verb,
     )
 }
 
