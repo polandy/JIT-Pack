@@ -23,7 +23,7 @@ import type { Traveler } from '@/types/domain'
 
 const props = withDefaults(
   defineProps<{
-    travelers: Traveler[]
+    travelers: readonly Traveler[]
     /** The amount each member carries, by traveler id. A traveler absent from it is not a member. */
     amounts: ReadonlyMap<string, number>
     /**

@@ -15,7 +15,7 @@
  * name that does not is its own block at the end.
  */
 import { describe, it, expect, beforeEach } from 'vitest'
-import { flushPromises, mount } from '@vue/test-utils'
+import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
 import QuickAddItem from '../QuickAddItem.vue'
@@ -24,6 +24,12 @@ import CreateItemSheet from '@/components/items/CreateItemSheet.vue'
 import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 import { useMasterStore } from '@/stores/masterStore'
 import { TABLE } from '@/api/tables'
+import {
+  plainBrowseScope,
+  type BrowseAction,
+  type BrowseAddition,
+  type BrowseScope,
+} from '@/domain/browseRows'
 import type { MasterItem, Traveler } from '@/types/domain'
 
 const NAME = 'Sonnenhut'
@@ -32,13 +38,44 @@ const NAME = 'Sonnenhut'
 const NINA: Traveler = { id: 'trav-nina', trip_id: 't1', name: 'Nina', linked_user_id: null }
 const MILA: Traveler = { id: 'trav-mila', trip_id: 't1', name: 'Mila', linked_user_id: null }
 const LEO: Traveler = { id: 'trav-leo', trip_id: 't1', name: 'Leo', linked_user_id: null }
+
+/** A scope with nothing but this roster — no carried items, no packing states. */
+function scopeWithTravelers(travelers: Traveler[]): BrowseScope {
+  return { ...plainBrowseScope(), travelers }
+}
+
 /** Roster order — what the emitted set has to follow, whatever order it was tapped in. */
-const ROSTER = { travelerCount: 3, travelers: [NINA, MILA, LEO] }
+const ROSTER = { scope: scopeWithTravelers([NINA, MILA, LEO]) }
 
 function travelerIdsOf(emitted: unknown[] | undefined): string[] {
   const item = emitted?.[0] as { travelerIds: string[] } | undefined
   if (!item) throw new Error('nothing was added')
   return item.travelerIds
+}
+
+/**
+ * The member of a `BrowseAction` union whose own `verb` field admits `V` —
+ * `Extract` itself fails here, because several verbs (`spread`, `packCarried`,
+ * `skipCarried`, `undo`, `reopen`) share one wider `verb` field rather than
+ * each carrying its own literal, so `Extract<T, { verb: V }>` finds no member
+ * assignable to the narrower shape and silently resolves to `never`.
+ */
+type ActionWithVerb<T, V> = T extends { verb: infer VT } ? (V extends VT ? T : never) : never
+
+/**
+ * The composer's one `browse` emit, filtered to the verb under test — every
+ * sheet action is relayed through it now, the plain add included.
+ */
+function browseActions<V extends BrowseAction<BrowseAddition>['verb']>(
+  wrapper: VueWrapper<unknown>,
+  verb: V,
+): ActionWithVerb<BrowseAction<BrowseAddition>, V>[] {
+  const emitted = (wrapper.emitted('browse') as [BrowseAction<BrowseAddition>][] | undefined) ?? []
+  return emitted
+    .map(([action]) => action)
+    .filter(
+      (action): action is ActionWithVerb<BrowseAction<BrowseAddition>, V> => action.verb === verb,
+    )
 }
 
 const ITEM = { id: 'i1', name: NAME, weight_grams: null, value_cents: null } as MasterItem
@@ -129,7 +166,7 @@ describe('QuickAddItem — FR-25.28 for-whom strip', () => {
   })
 
   it('offers no strip where there is nobody to distribute over (G-8)', async () => {
-    const wrapper = open({ travelerCount: 1, travelers: [NINA] })
+    const wrapper = open({ scope: scopeWithTravelers([NINA]) })
     await expand(wrapper)
 
     expect(wrapper.find('[data-testid="quick-add-for-whom"]').exists()).toBe(false)
@@ -204,28 +241,36 @@ describe('QuickAddItem — FR-25.28 for-whom strip', () => {
 
   /**
    * One door per surface: the sheet's lines answer *for whom* with their own
-   * 👥 and avatars (FR-25.13g/h). A decided add therefore leaves at once — no
-   * deferral, since no editor follows — and carries no travelers even
-   * while the strip under the sheet has some lit.
+   * 👥 and avatars (FR-25.13g/h). A decided action therefore relays straight
+   * out through `browse` — no deferral, since no editor follows — and its
+   * `BrowseAddition` carries no travelers field at all, lit strip or not.
    */
-  it('sends a decided browse add straight out, deaf to the strip, decision intact', async () => {
+  it('relays a decided browse action straight out, deaf to the strip, decision intact', async () => {
     const wrapper = open(ROSTER, { stubs: SHEET_STUB })
     await expand(wrapper)
     await wrapper.find('[data-testid="for-whom-quick-add-Nina"]').trigger('click')
     await wrapper.find('[data-testid="quick-add-browse-open"]').trigger('click')
 
-    await wrapper.findComponent(InventoryBrowseSheet).vm.$emit('add-packed', ITEM)
+    await wrapper
+      .findComponent(InventoryBrowseSheet)
+      .vm.$emit('action', { verb: 'add', item: ITEM, decided: 'packed' })
 
-    const added = wrapper.emitted('add') ?? []
-    expect(added).toHaveLength(1)
-    expect(travelerIdsOf(added[0])).toEqual([])
-    expect(added[0]![1]).toBe('packed')
+    const adds = browseActions(wrapper, 'add')
+    expect(adds).toHaveLength(1)
+    expect(adds[0]).toMatchObject({
+      decided: 'packed',
+      item: { name: ITEM.name, sourceItemId: ITEM.id },
+    })
+    // Deaf to the strip: a `BrowseAddition` has no travelers field to carry
+    // one in, and the plain composer `add` never fires for a sheet action.
+    expect(wrapper.emitted('add')).toBeUndefined()
   })
 
   /**
-   * FR-25.13g: the third verb is its own emit, because the sheet's lines carry
-   * their own undo — and it stays inside the sheet, which is what keeps a run
-   * of „für alle" taps going.
+   * FR-25.13g: the third verb is still inside the one `action` the sheet
+   * emits, and relayed through `browse` like every other verb — what keeps
+   * a run of „für alle" taps going is that the sheet, not the composer,
+   * stays open for them.
    */
   it('passes „für alle" straight out with the item’s fields, sheet still open', async () => {
     const wrapper = open(ROSTER, { stubs: SHEET_STUB })
@@ -234,9 +279,11 @@ describe('QuickAddItem — FR-25.28 for-whom strip', () => {
 
     await wrapper
       .findComponent(InventoryBrowseSheet)
-      .vm.$emit('add-for-all', { ...ITEM, weight_grams: 180 })
+      .vm.$emit('action', { verb: 'addForAll', item: { ...ITEM, weight_grams: 180 } })
 
-    expect(wrapper.emitted('addForAll')?.[0]?.[0]).toMatchObject({
+    const forAlls = browseActions(wrapper, 'addForAll')
+    expect(forAlls).toHaveLength(1)
+    expect(forAlls[0]!.item).toMatchObject({
       name: ITEM.name,
       sourceItemId: ITEM.id,
       weightGrams: 180,
@@ -248,30 +295,33 @@ describe('QuickAddItem — FR-25.28 for-whom strip', () => {
   /**
    * FR-25.13h: the same shape as „für alle" one test up, for the same
    * reason — the sheet's per-traveler pick (avatar buttons or long-press
-   * menu) answers *who* in the line, so it is relayed the way
-   * `onBrowseAddForAll` is. The
-   * sheet always sends the whole set (multi-select), so this relay passes an
-   * array straight through rather than a single id.
+   * menu) answers *who* in the line, so its `assign` verb is relayed through
+   * `browse` exactly like `addForAll` is. The sheet always sends the whole
+   * set (multi-select), so this relay passes an array straight through
+   * rather than a single id.
    */
   it('passes a traveler-set assignment straight out with the item’s fields and the ids', async () => {
     const wrapper = open(ROSTER, { stubs: SHEET_STUB })
     await expand(wrapper)
     await wrapper.find('[data-testid="quick-add-browse-open"]').trigger('click')
 
-    await wrapper
-      .findComponent(InventoryBrowseSheet)
-      .vm.$emit('assign-to-travelers', { ...ITEM, weight_grams: 180 }, ['trav-nina', 'trav-mila'])
+    await wrapper.findComponent(InventoryBrowseSheet).vm.$emit('action', {
+      verb: 'assign',
+      item: { ...ITEM, weight_grams: 180 },
+      travelerIds: ['trav-nina', 'trav-mila'],
+    })
 
-    const emitted = wrapper.emitted('assignForTravelers')?.[0]
-    expect(emitted?.[0]).toMatchObject({
+    const assigns = browseActions(wrapper, 'assign')
+    expect(assigns).toHaveLength(1)
+    expect(assigns[0]!.item).toMatchObject({
       name: ITEM.name,
       sourceItemId: ITEM.id,
       weightGrams: 180,
     })
-    expect(emitted?.[1]).toEqual(['trav-nina', 'trav-mila'])
+    expect(assigns[0]!.travelerIds).toEqual(['trav-nina', 'trav-mila'])
     // Not the plain add and not „für alle".
     expect(wrapper.emitted('add')).toBeUndefined()
-    expect(wrapper.emitted('addForAll')).toBeUndefined()
+    expect(browseActions(wrapper, 'addForAll')).toHaveLength(0)
   })
 })
 
@@ -382,7 +432,7 @@ describe('QuickAddItem — the search creates what it did not find (FR-24.11)', 
   })
 
   it('says a name already in the scope is in, and gives the confirm nothing to do', async () => {
-    const wrapper = open({ excludeItemIds: [ITEM.id] })
+    const wrapper = open({ scope: plainBrowseScope([ITEM.id]) })
     await expand(wrapper)
 
     await type(wrapper, NAME)

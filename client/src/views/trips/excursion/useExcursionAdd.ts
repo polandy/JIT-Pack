@@ -6,9 +6,9 @@
  */
 import type { ComputedRef } from 'vue'
 
-import type { BrowseAddition } from '@/components/global/QuickAddItem.vue'
 import { presentToast } from '@/composables/shared/toast'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
+import type { BrowseAddition } from '@/domain/browseRows'
 import { draftLinesFor, lineForOf, type LineFor } from '@/domain/excursionLines'
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
@@ -16,7 +16,7 @@ import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
 import { useMasterStore } from '@/stores/masterStore'
 import { ITEM_MODE_PACK, type ExcursionItem, type Traveler } from '@/types/domain'
 
-import type { BrowseVerbs } from '../packing/useBrowseVerbs'
+import type { BrowseAdds, BrowseVerbs } from '../packing/useBrowseVerbs'
 
 /** What {@link useExcursionAdd} writes to and remembers in. */
 export interface ExcursionAddTarget {
@@ -131,12 +131,18 @@ export function useExcursionAdd(target: ExcursionAddTarget) {
     })
   }
 
+  /** The browse sheet's adds, for `useBrowseVerbs`' `onBrowse`. */
+  const browseAdds: BrowseAdds = {
+    add: (item) => onQuickAdd({ ...item, travelerIds: [] }),
+    addForAll: onQuickAddForAll,
+    assign: onAssignForTravelers,
+    spread: onSpread,
+  }
+
   return {
     onQuickAdd,
     onQuickAddLocal,
-    onQuickAddForAll,
-    onAssignForTravelers,
-    onSpread,
+    browseAdds,
     onAddGroup,
   }
 }

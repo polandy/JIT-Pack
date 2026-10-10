@@ -168,9 +168,9 @@ needs a trip that follows the group (E2E-M21-03c).
   against it.
 * **E2E-M4-46** `all` (FR-25.13c) — **implemented** (`e2e/packing-list.spec.ts`): what the trip
   already carries is not suggested again. The chip/suggestion rule itself is E2E-M8-21's; this case pins only M4's
-  **wiring** — the trip passing its contents into `excludeItemIds`, which no shared-component test can see dropped. The
-  absent suggestion's positive signal is the free-text hint, rendered exactly when nothing is offered. Mutation-proved —
-  dropping the prop reddens it.
+  **wiring** — the trip passing its contents into its `scope` (`carriedItemIds`), which no shared-component test can
+  see dropped. The absent suggestion's positive signal is the free-text hint, rendered exactly when nothing is offered.
+  Mutation-proved — dropping the prop reddens it.
 * **E2E-M4-47** `all` (FR-25.13d) — **implemented** (`e2e/packing-list.spec.ts`): like E2E-M4-46, a
   wiring case — the trip's contents reach the browse-sheet as the *„schon drin"* state (the carried row is asserted by
   name), and a sheet tap lands as a trip row after the sheet closes. The row is added via the suggestion first, so it

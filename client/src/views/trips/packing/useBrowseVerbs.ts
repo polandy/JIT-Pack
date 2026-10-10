@@ -2,15 +2,34 @@
  * FR-25.13f: what the browse-sheet's verbs do to the rows a master item
  * already has on the list, and the in-row undo the sheet offers for each.
  * Over a {@link RowPort}, so M4's quick-add and an excursion's (FR-31.6) pack,
- * skip and reopen the same way; what an *add* writes is each list's own.
+ * skip and reopen the same way; what an *add* writes is each list's own
+ * ({@link BrowseAdds}), and {@link useBrowseVerbs}'s `onBrowse` routes every
+ * sheet action to one or the other.
  */
 import { computed } from 'vue'
 
-import { browseRowStates } from '@/domain/browseRows'
+import {
+  browseRowStates,
+  type BrowseAction,
+  type BrowseAddition,
+  type BrowseDecision,
+  type BrowseScope,
+} from '@/domain/browseRows'
 import type { PackableRow } from '@/domain/packingView'
 import { STATE_PACKED, STATE_SKIPPED } from '@/types/domain'
 
 import type { RowPort } from './rowPort'
+
+/** What a sheet add writes — each list's own: M4's rows, an excursion's lines. */
+export interface BrowseAdds {
+  add(item: BrowseAddition, decided?: BrowseDecision): void
+  /** FR-25.13g: a free line for every traveler. */
+  addForAll(item: BrowseAddition): void
+  /** FR-25.13h: exactly these travelers, the whole set each time. */
+  assign(item: BrowseAddition, travelerIds: string[]): void
+  /** FR-25.13g: a carried line reaches the travelers it is missing. */
+  spread(itemId: string): void
+}
 
 /** The verbs {@link useBrowseVerbs} returns. */
 export type BrowseVerbs<R extends PackableRow = PackableRow> = ReturnType<typeof useBrowseVerbs<R>>
@@ -43,6 +62,13 @@ export function useBrowseVerbs<R extends PackableRow>(
   const browseStates = computed(() =>
     browseRowStates(port.rows.value, lockNote, port.travelers.value),
   )
+
+  /** The browse-sheet's whole view of the list (FR-25.13f/g/h). */
+  const scope = computed<BrowseScope>(() => ({
+    carriedItemIds: excludeIds.value,
+    rowStates: browseStates.value,
+    travelers: port.travelers.value,
+  }))
 
   /**
    * FR-25.13f: how to take back what the browse-sheet last did, keyed by the
@@ -133,15 +159,38 @@ export function useBrowseVerbs<R extends PackableRow>(
     undo()
   }
 
+  /** Routes a sheet action: what adds to the list's own `adds`, what acts on its rows here. */
+  function onBrowse(adds: BrowseAdds): (action: BrowseAction<BrowseAddition>) => void {
+    return (action) => {
+      switch (action.verb) {
+        case 'add':
+          return adds.add(action.item, action.decided)
+        case 'addForAll':
+          return adds.addForAll(action.item)
+        case 'assign':
+          return adds.assign(action.item, action.travelerIds)
+        case 'spread':
+          return adds.spread(action.itemId)
+        case 'packCarried':
+          return onPack(action.itemId)
+        case 'skipCarried':
+          return onSkip(action.itemId)
+        case 'undo':
+          return onUndo(action.itemId)
+        case 'reopen':
+          return onReopen(action.itemId)
+        default:
+          // A verb added to `BrowseAction` without a route here fails to compile.
+          return action satisfies never
+      }
+    }
+  }
+
   return {
-    excludeIds,
-    browseStates,
+    scope,
     remember,
     remembers,
     rowsOfMasterItem,
-    onPack,
-    onSkip,
-    onReopen,
-    onUndo,
+    onBrowse,
   }
 }

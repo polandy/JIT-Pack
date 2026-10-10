@@ -3,8 +3,8 @@
  * trip. What the sheet's verbs do to the rows a master item already has, and
  * the in-row undo for each, are `useBrowseVerbs`, shared with an excursion.
  */
-import type { BrowseAddition } from '@/components/global/QuickAddItem.vue'
 import { SPREAD } from '@/app/actions/packing'
+import type { BrowseAddition } from '@/domain/browseRows'
 import { rowsCarryingContent } from '@/domain/membership'
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
@@ -192,16 +192,15 @@ export function useBrowseAdd(core: PackingCore, facts: RowFacts) {
   }
 
   return {
-    excludeIds: verbs.excludeIds,
-    browseStates: verbs.browseStates,
+    scope: verbs.scope,
     onQuickAdd,
-    onAddForAll,
-    onAssignForTravelers,
-    onSpread,
-    onPack: verbs.onPack,
-    onSkip: verbs.onSkip,
-    onReopen: verbs.onReopen,
-    onUndo: verbs.onUndo,
+    onBrowse: verbs.onBrowse({
+      // A sheet add answers *for whom* per line (FR-25.13g/h), never through the strip.
+      add: (item, decided) => onQuickAdd({ ...item, travelerIds: [] }, decided),
+      addForAll: onAddForAll,
+      assign: onAssignForTravelers,
+      spread: onSpread,
+    }),
     onAddGroup,
   }
 }

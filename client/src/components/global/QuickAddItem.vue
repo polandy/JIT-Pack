@@ -24,7 +24,7 @@
  *
  * M8 reuses this component verbatim (§3.25 consistency directive):
  * `confirmLabel` names the scope on the commit button
- * ("Zur Gruppe hinzufügen") and `excludeItemIds` keeps positions the
+ * ("Zur Gruppe hinzufügen") and its `scope` keeps positions the
  * template already carries out of the suggestions — a duplicate is
  * reported by the caller, not offered again here.
  *
@@ -34,7 +34,7 @@
  * takes no new control — the composer the user already types into filters
  * groups beside items, under their own heading and visibly not an item.
  *
- * M4 also answers **for whom** here (FR-25.28, `travelerCount`): the
+ * M4 also answers **for whom** here (FR-25.28, `scope.travelers`): the
  * for-whom strip sits over the field, *Gemeinsam* stays the default for the
  * common case and a traveler is one tap away. The composer only carries the
  * chosen set on the `add` event — it knows nothing about rows — and no editor
@@ -92,11 +92,16 @@ import { chipSuggestions } from '@/domain/quickAddChips'
 import { MIN_TRAVELERS_FOR_PER_PERSON } from '@/domain/membership'
 import { PREVIEW_ROW_NAMES, previewLines, resolvedLines } from '@/domain/templates'
 import type { AddedItemDecision } from '@/sync/mutations'
-import type { BrowseRowSummary } from '@/domain/browseRows'
+import {
+  plainBrowseScope,
+  type BrowseAction,
+  type BrowseAddition,
+  type BrowseScope,
+} from '@/domain/browseRows'
 import { recentItemIds, recordRecentItem } from '@/local/quickAddRecents'
 import { previewText } from '@/lib/groupPreview'
 import { formatWeight } from '@/lib/format'
-import type { MasterItem, Traveler } from '@/types/domain'
+import type { MasterItem } from '@/types/domain'
 
 /**
  * How many matches the composer offers per kind. The list sits under a soft
@@ -123,31 +128,18 @@ const props = withDefaults(
     offerForgotten?: boolean
     /** Scope-labelled commit text (FR-25.13 in M8); icon-only when absent. */
     confirmLabel?: string
-    /** Master items to keep out of the suggestions (already present). */
-    excludeItemIds?: string[]
     /** FR-27.10: offer whole groups beside the items (M4 only). */
     offerGroups?: boolean
     /**
-     * How many travelers the scope has. It decides two things at once, which
-     * is why it is one number rather than two booleans: FR-25.8's for-whom
-     * strip and FR-25.13g's „für alle" verb in the browse-sheet. A template has
-     * no travelers (M8) and a trip travelling alone has no membership to
-     * distribute either, so below {@link MIN_TRAVELERS_FOR_PER_PERSON} both are
-     * absent rather than disabled (G-8).
+     * What the list carries, how that stands and who travels (FR-25.13f/g/h).
+     * Its carried items stay out of the suggestions; its roster decides
+     * FR-25.8's for-whom strip here and „für alle" in the browse-sheet, which
+     * takes the whole scope. A template has no travelers (M8) and a trip
+     * travelling alone has no membership to distribute either, so below
+     * {@link MIN_TRAVELERS_FOR_PER_PERSON} both are absent rather than
+     * disabled (G-8).
      */
-    travelerCount?: number
-    /**
-     * FR-25.13h: the roster itself, passed straight through to the
-     * browse-sheet's avatar buttons and long-press menu. Absent wherever
-     * {@link travelerCount} would keep the browse-sheet's 👥 off anyway.
-     */
-    travelers?: Traveler[]
-    /**
-     * FR-25.13f: the packing state of what the scope carries, per master
-     * item. Passed straight through to the browse-sheet, where its presence
-     * is what puts the two one-tap verbs on the rows — M4 only.
-     */
-    browseRowStates?: ReadonlyMap<string, BrowseRowSummary>
+    scope?: BrowseScope
     /**
      * FR-21.24: whether the collapsed form shows its own trigger. M4 and M8
      * turn it off because their FAB is the same door, and the two stood on
@@ -168,62 +160,29 @@ const props = withDefaults(
     addsPacked: false,
     offerForgotten: false,
     confirmLabel: undefined,
-    excludeItemIds: () => [],
     offerGroups: false,
-    travelerCount: 0,
-    travelers: () => [],
-    browseRowStates: undefined,
+    scope: () => plainBrowseScope(),
     showTrigger: true,
     offerLocalOnly: false,
   },
 )
 
-/** The fields an add carries over, whichever verb sent it (FR-25.7 defaults). */
-export interface BrowseAddition {
-  name: string
-  /** Always an inventory item (FR-24.11). */
-  sourceItemId: string
-  weightGrams: number | null
-  valueCents: number | null
-  categoryName: string | null
-}
-
 const emit = defineEmits<{
   /**
-   * FR-25.13f: the second argument is the decision the browse-sheet's verbs
-   * add with — absent on every other path, which is what "add it, open"
-   * has always meant.
+   * A composer add. FR-25.28's chosen travelers ride along — none means
+   * *gemeinsam*; FR-5.11's `forgotten` is the one decision it carries.
    */
-  add: [
-    /** FR-25.28's chosen travelers ride along — none means *gemeinsam*. */
-    item: BrowseAddition & { travelerIds: string[] },
-    decided?: AddedItemDecision,
-  ]
+  add: [item: BrowseAddition & { travelerIds: string[] }, decided?: AddedItemDecision]
   /** FR-31.14: a name added to this list alone, never to the inventory. */
   addLocal: [item: { name: string; travelerIds: string[] }]
   /** FR-27.10: expand this group onto the trip — the caller reports the result. */
   addGroup: [templateId: string]
   /**
-   * FR-25.13g: add this master item with a row for every traveler. Its own
-   * emit rather than the `add` above, because the sheet's lines carry their
-   * own undo and the composer's adds do not.
+   * A verb tapped in the browse-sheet, its item as an add takes it. Its own
+   * emit rather than `add`, because the sheet's lines answer *for whom*
+   * themselves and carry their own undo.
    */
-  addForAll: [item: BrowseAddition]
-  /** FR-25.13g: give every traveler still without a row for it one. */
-  spreadCarried: [itemId: string]
-  /** FR-25.13h: add or update this master item with exactly this set of travelers assigned. */
-  assignForTravelers: [item: BrowseAddition, travelerIds: string[]]
-  /** FR-25.13f: pack every row the scope carries for this master item. */
-  packCarried: [itemId: string]
-  /** FR-25.13f: leave every row the scope carries for this master item home. */
-  skipCarried: [itemId: string]
-  /** FR-25.13f: take back what the sheet last did to this master item. */
-  undoBrowse: [itemId: string]
-  /**
-   * FR-25.13i: put every row this master item has back to *open*, whenever it
-   * was packed or skipped — not this run's undo, which only knows its own taps.
-   */
-  reopenCarried: [itemId: string]
+  browse: [action: BrowseAction<BrowseAddition>]
 }>()
 
 const masterStore = useMasterStore()
@@ -243,7 +202,7 @@ const query = ref('')
 const chosenTravelers = ref<ReadonlySet<string>>(new Set())
 
 /** FR-25.28: the strip is offered only where there is a membership to make (G-8). */
-const offerForWhom = computed(() => props.travelers.length >= MIN_TRAVELERS_FOR_PER_PERSON)
+const offerForWhom = computed(() => props.scope.travelers.length >= MIN_TRAVELERS_FOR_PER_PERSON)
 
 /** Every composer add starts at one each; the amounts are the child rows' to change. */
 const chosenAmounts = computed(() => new Map([...chosenTravelers.value].map((id) => [id, 1])))
@@ -251,7 +210,7 @@ const chosenAmounts = computed(() => new Map([...chosenTravelers.value].map((id)
 /** The set as the `add` event carries it, in roster order. */
 function chosenTravelerIds(): string[] {
   if (!offerForWhom.value) return []
-  return props.travelers.filter((tr) => chosenTravelers.value.has(tr.id)).map((tr) => tr.id)
+  return props.scope.travelers.filter((tr) => chosenTravelers.value.has(tr.id)).map((tr) => tr.id)
 }
 
 function toggleChosen(travelerId: string) {
@@ -262,7 +221,7 @@ function toggleChosen(travelerId: string) {
 
 /** *Alle* only ever enlarges, as it does on a row (FR-25.21c). */
 function chooseEveryone() {
-  chosenTravelers.value = new Set(props.travelers.map((tr) => tr.id))
+  chosenTravelers.value = new Set(props.scope.travelers.map((tr) => tr.id))
 }
 const inputRef = ref<InstanceType<typeof IonInput> | null>(null)
 
@@ -276,7 +235,7 @@ const hits = computed<ItemSearchHit[]>(() =>
 )
 
 const suggestions = computed(() => {
-  const excluded = new Set(props.excludeItemIds)
+  const excluded = new Set(props.scope.carriedItemIds)
   return hits.value
     .filter((hit) => !excluded.has(hit.id))
     .slice(0, MAX_MATCHES)
@@ -295,7 +254,7 @@ const exactItem = computed(() => {
 
 /** The exact match is already in the scope: nothing to add, and ✓ says so by resting. */
 const exactAlreadyIn = computed(
-  () => !!exactItem.value && props.excludeItemIds.includes(exactItem.value.id),
+  () => !!exactItem.value && props.scope.carriedItemIds.includes(exactItem.value.id),
 )
 
 /**
@@ -316,14 +275,14 @@ const canCommit = computed(() => (exactItem.value ? !exactAlreadyIn.value : offe
 const recentsVersion = ref(0)
 
 /**
- * FR-25.13c: the empty composer's recent-items chip row. `excludeItemIds`
+ * FR-25.13c: the empty composer's recent-items chip row. The scope's carried items
  * doubles as the scope's contents, so what is already chosen is hidden.
  */
 const chips = computed(() => {
   void recentsVersion.value
   return chipSuggestions({
     items: masterStore.activeItemList,
-    chosenItemIds: props.excludeItemIds,
+    chosenItemIds: props.scope.carriedItemIds,
     recentItemIds: recentItemIds(),
   })
 })
@@ -401,7 +360,7 @@ defineExpose({ open, expanded })
  * FR-25.13g's „für alle" takes the same fields down a different action and a
  * second copy would be a second set of defaults.
  */
-function additionOf(item: MasterItem) {
+function additionOf(item: MasterItem): BrowseAddition {
   return {
     name: item.name,
     sourceItemId: item.id,
@@ -431,34 +390,19 @@ function emitMasterItem(item: MasterItem) {
 }
 
 /**
- * A browse-sheet add. It never reads the strip: the sheet's lines answer *for
- * whom* themselves (FR-25.13g/h), and a tap there that also obeyed a control
- * the sheet is covering would be a decision nobody can see being made.
+ * A verb from the browse-sheet, relayed with its item as an add takes it. It
+ * never reads the strip: the sheet's lines answer *for whom* themselves
+ * (FR-25.13g/h), and a tap there that also obeyed a control the sheet is
+ * covering would be a decision nobody can see being made. Every verb that
+ * adds counts as a chip add — recents, no refocus, the sheet stays open.
  */
-function emitSheetItem(item: MasterItem, decided?: AddedItemDecision) {
-  emit('add', { ...additionOf(item), travelerIds: [] }, decided)
-  afterAdd(item)
-}
-
-/**
- * FR-25.13g: the sheet's „für alle". It never carries the FR-25.8 mode — the
- * verb *is* the answer to who gets it, and the caller distributes without an
- * editor, which is what keeps the run in the sheet.
- */
-function onBrowseAddForAll(item: MasterItem) {
-  emit('addForAll', additionOf(item))
-  afterAdd(item)
-}
-
-/**
- * FR-25.13h: the sheet's per-traveler avatar buttons / long-press pick. Same
- * shape as {@link onBrowseAddForAll} for the same reason — the verb answers
- * who without an editor, so the run stays in the sheet. Multi-select: the
- * sheet always sends the whole desired set, not one traveler at a time.
- */
-function onBrowseAssignForTravelers(item: MasterItem, travelerIds: string[]) {
-  emit('assignForTravelers', additionOf(item), travelerIds)
-  afterAdd(item)
+function onBrowseAction(action: BrowseAction<MasterItem>) {
+  if (!('item' in action)) {
+    emit('browse', action)
+    return
+  }
+  emit('browse', { ...action, item: additionOf(action.item) })
+  afterAdd(action.item)
 }
 
 function selectSuggestion(item: MasterItem) {
@@ -496,24 +440,6 @@ const browseOpen = ref(false)
 const showBrowseEntry = computed(
   () => query.value.trim().length === 0 && masterStore.activeItemList.length > 0,
 )
-
-/** A sheet add is a chip add: FR-25.7 defaults, no refocus, sheet stays open. */
-function onBrowseAdd(item: MasterItem) {
-  emitSheetItem(item)
-}
-
-/**
- * FR-25.13f: the same add, with the decision already made. It goes down the
- * add path rather than a second one, so a row born packed carries the same
- * defaults, the same recents entry and the same primary tag as any other.
- */
-function onBrowseAddPacked(item: MasterItem) {
-  emitSheetItem(item, 'packed')
-}
-
-function onBrowseAddSkipped(item: MasterItem) {
-  emitSheetItem(item, 'skipped')
-}
 
 /**
  * The footer line hands back to the composer's field — typing's one home.
@@ -656,7 +582,7 @@ function onKeydown(event: KeyboardEvent) {
            holding a choice instead of rewriting rows. -->
       <div v-if="offerForWhom" class="for-whom" data-testid="quick-add-for-whom">
         <ForWhomToggles
-          :travelers="travelers"
+          :travelers="scope.travelers"
           :amounts="chosenAmounts"
           test-key="quick-add"
           @shared="chosenTravelers = new Set()"
@@ -851,20 +777,8 @@ function onKeydown(event: KeyboardEvent) {
 
       <SheetModal :is-open="browseOpen" @dismiss="onBrowseDismiss">
         <InventoryBrowseSheet
-          :carried-item-ids="excludeItemIds"
-          :row-states="browseRowStates"
-          :traveler-count="travelerCount"
-          :travelers="travelers"
-          @add="onBrowseAdd"
-          @add-for-all="onBrowseAddForAll"
-          @assign-to-travelers="onBrowseAssignForTravelers"
-          @spread-to-all="emit('spreadCarried', $event.id)"
-          @add-packed="onBrowseAddPacked"
-          @add-skipped="onBrowseAddSkipped"
-          @pack="emit('packCarried', $event.id)"
-          @skip="emit('skipCarried', $event.id)"
-          @undo="emit('undoBrowse', $event.id)"
-          @reopen="emit('reopenCarried', $event.id)"
+          :scope="scope"
+          @action="onBrowseAction"
           @free-text="onBrowseFreeText"
           @close="browseOpen = false"
         />
