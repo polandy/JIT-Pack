@@ -64,6 +64,7 @@ import type { TaskPhase, TemplateItem, TemplateKind, TemplateTask } from '@/type
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING } from '@/types/domain'
 import { taskPhaseOf } from '@/domain/tripTodos'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
+import { useTemplateQuickAdd } from './useTemplateQuickAdd'
 
 const props = defineProps<{ templateId: string }>()
 
@@ -333,23 +334,7 @@ function openQuickAdd() {
   void quickAdd.value?.open()
 }
 
-/**
- * FR-25.13 in M8: a picked or just-created inventory item lands as a position
- * with the FR-25.7 defaults (qty 1, trip-global, Packen, dedup max). A name the
- * inventory does not know is created by the composer's FR-24.11 sheet before it
- * arrives here; a name the template already carries is reported, never added
- * twice.
- */
-async function onQuickAdd(entry: { name: string; sourceItemId: string }) {
-  if (positions.value.some((pos) => pos.item_id === entry.sourceItemId)) {
-    await toast(t('templates.duplicate', { name: entry.name }))
-    return
-  }
-  orchestrator.masterData.addTemplateItem(props.templateId, entry.sourceItemId, {
-    assignment: 'trip_global',
-  })
-  await toast(t('templates.added', { name: entry.name }))
-}
+const quickAdds = useTemplateQuickAdd(props.templateId, positions, toast)
 
 function removePosition(templateItemId: string) {
   orchestrator.masterData.deleteTemplateItem(templateItemId)
@@ -823,8 +808,9 @@ const mergeLines = computed(() =>
           ref="quickAdd"
           :show-trigger="false"
           :confirm-label="isGroup ? t('templates.addToGroup') : t('templates.addToTemplate')"
-          :exclude-item-ids="positions.map((pos) => pos.item_id)"
-          @add="onQuickAdd"
+          :scope="quickAdds.scope.value"
+          @add="quickAdds.onQuickAdd"
+          @browse="quickAdds.onBrowse"
         />
 
         <!-- FR-7.4: tasks for the trip itself — every generated trip starts

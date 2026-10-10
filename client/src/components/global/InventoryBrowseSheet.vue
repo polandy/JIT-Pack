@@ -31,12 +31,12 @@
  * on a free row (add and decide in one breath) and on a carried one alike.
  * Three rules hold it together:
  *
- * 1. **The sheet decides nothing.** It emits the verb and renders what the
- *    caller reports back through `rowStates`; who may be packed, and what
- *    packing writes, stays M4's.
- * 2. **`rowStates` being absent is what turns the verbs off** — M6 and M8
- *    pass no states and get exactly the sheet they had (G-8: a screen with
- *    no packing states offers no packing verbs rather than dead ones).
+ * 1. **The sheet decides nothing.** It emits the verb as one `action` and
+ *    renders what the caller reports back through its `scope`; who may be
+ *    packed, and what packing writes, stays the list's (M4, M27).
+ * 2. **A scope without `rowStates` is what turns the verbs off** — M8 passes
+ *    none and gets the pure add surface (G-8: a screen with no packing states
+ *    offers no packing verbs rather than dead ones).
  * 3. **This run's own actions outrank the props.** Between the tap and the
  *    caller's write landing, and after it, the row says what *this run* did
  *    to it and offers the way back — which is why the ledger below is local
@@ -71,7 +71,7 @@
  * the control would be unreachable in a long inventory without the filter, and
  * the filter would show a list nothing can be done to without the control:
  *
- * 1. **A settled line carries a reset**, driven by `rowStates` rather than by
+ * 1. **A settled line carries a reset**, driven by the scope's `rowStates` rather than by
  *    the ledger, so whoever settled it and whenever is irrelevant. It *resets*
  *    (back to open) rather than restoring what the row held before — the same
  *    write M4's own *„Doch einpacken"* makes, and the caller's, not this
@@ -110,13 +110,21 @@ import { useItemSearchCandidates } from '@/composables/useItemSearchCandidates'
 import { useLongPress } from '@/composables/shared/useLongPress'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { OFFER_CREATE, isSearchQuery, searchItems, searchOffer } from '@/domain/itemSearch'
-import { MIN_TRAVELERS_FOR_PER_PERSON } from '@/domain/membership'
 import { t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { UNTAGGED_KEY } from '@/domain/tags'
-import type { BrowseRowSummary } from '@/domain/browseRows'
+import {
+  browseOffer,
+  browseRowView,
+  type BrowseAction,
+  type BrowseRowView,
+  type BrowseRunRecord,
+  type BrowseRunState,
+  type BrowseRunVerb,
+  type BrowseScope,
+} from '@/domain/browseRows'
 import { itemPath } from '@/router/paths'
-import type { MasterItem, Traveler } from '@/types/domain'
+import { STATE_PACKED, STATE_SKIPPED, type MasterItem, type Traveler } from '@/types/domain'
 import ListGroup from '@/components/global/ListGroup.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
@@ -126,54 +134,13 @@ import ItemMark from '@/components/items/ItemMark.vue'
 import SearchOfferButton from '@/components/items/SearchOfferButton.vue'
 
 const props = defineProps<{
-  /** Item ids the scope already carries — rendered as "already in". */
-  carriedItemIds: string[]
-  /**
-   * FR-25.13f: what the scope carries, per master item, as M4 sees it. Its
-   * **presence** is what puts the two verbs on the rows; M6 and M8 leave it
-   * out and the sheet stays the pure add surface it was.
-   */
-  rowStates?: ReadonlyMap<string, BrowseRowSummary>
-  /**
-   * FR-25.13g: how many travelers a „für alle" would reach. Below
-   * {@link MIN_TRAVELERS_FOR_PER_PERSON} the verb is **absent** rather than
-   * disabled (G-8) — M6 and M8 pass nothing and never see it, and neither
-   * does a trip travelling alone, where there is no membership to distribute.
-   */
-  travelerCount?: number
-  /**
-   * FR-25.13h: the roster itself, trip order — what the per-traveler avatar
-   * buttons and the long-press menu are built from. M6 and M8 pass nothing,
-   * same as {@link travelerCount}, and see neither.
-   */
-  travelers?: Traveler[]
+  /** What the list carries, how that stands and who travels — the verbs follow from it. */
+  scope: BrowseScope
 }>()
 
 const emit = defineEmits<{
-  /** One tap on a free row; the sheet stays open for the run. */
-  add: [item: MasterItem]
-  /** FR-25.13f: add and pack in one tap — "that is already in the bag". */
-  addPacked: [item: MasterItem]
-  /** FR-25.13f: add as FR-5.5 *skipped* — the decision, recorded. */
-  addSkipped: [item: MasterItem]
-  /** FR-25.13g: add it with a row for every traveler, in this one tap. */
-  addForAll: [item: MasterItem]
-  /** FR-25.13g: give the travelers who have no row for it one (ADR-036). */
-  spreadToAll: [item: MasterItem]
-  /** FR-25.13h: add or update it with exactly this set of travelers assigned. */
-  assignToTravelers: [item: MasterItem, travelerIds: string[]]
-  /** FR-25.13f: pack what the scope already carries, all of its rows. */
-  pack: [item: MasterItem]
-  /** FR-25.13f: skip what the scope already carries, all of its rows. */
-  skip: [item: MasterItem]
-  /** Take back what this run last did to that item. */
-  undo: [item: MasterItem]
-  /**
-   * FR-25.13i: put every row the scope carries for this item back to *open*,
-   * whenever and by whomever it was packed or skipped. Distinct from
-   * {@link undo}, which reverses this run's own last verb and nothing else.
-   */
-  reopen: [item: MasterItem]
+  /** A verb on a line; the sheet stays open for the run. */
+  action: [action: BrowseAction<MasterItem>]
   /** The footer line: back to the composer's field for a new name. */
   freeText: []
   close: []
@@ -193,17 +160,6 @@ const searching = computed(() => isSearchQuery(query.value))
 
 const { hideCarried, toggle: toggleHideCarried } = browseHideCarried()
 
-/** What one tap in this run did to a row — FR-25.13f's local ledger. */
-type RunVerb = 'added' | 'forAll' | 'assigned' | 'packed' | 'skipped'
-
-/** A verb, and how many trip rows it reached (FR-25.21's per-person set). */
-interface RunRecord {
-  verb: RunVerb
-  rows: number
-  /** FR-25.13h: who an `assigned` record went to — the other verbs leave it unset. */
-  travelerName?: string
-}
-
 /**
  * FR-25.13h: which travelers a free line's avatar buttons currently have
  * toggled on, keyed by master item id. Kept beside `actedNow` rather than
@@ -217,7 +173,7 @@ const assignedTravelers = ref<ReadonlyMap<string, ReadonlySet<string>>>(new Map(
  * The testid a run state renders under. Named once rather than built from
  * the verb: a test selector assembled at runtime is one nothing can grep.
  */
-const RUN_STATE_TESTID: Record<RunVerb, string> = {
+const RUN_STATE_TESTID: Record<BrowseRunVerb, string> = {
   added: 'browse-added-now',
   forAll: 'browse-for-all-now',
   assigned: 'browse-assigned-now',
@@ -234,9 +190,9 @@ const RUN_STATE_TEXT = {
   skipped: 'quickAdd.browseSkippedNow',
 } as const
 
-const actedNow = ref<ReadonlyMap<string, RunRecord>>(new Map())
+const actedNow = ref<ReadonlyMap<string, BrowseRunRecord>>(new Map())
 
-function record(itemId: string, verb: RunVerb, rows: number, travelerName?: string): void {
+function record(itemId: string, verb: BrowseRunVerb, rows: number, travelerName?: string): void {
   actedNow.value = new Map(actedNow.value).set(itemId, { verb, rows, travelerName })
 }
 
@@ -255,10 +211,10 @@ function forget(itemId: string): void {
  */
 // Taken during setup rather than on mount: a sheet re-opened with the switch
 // already on must paint filtered, never one frame of "added just now" rows.
-const hidden = ref<ReadonlySet<string>>(new Set(props.carriedItemIds))
+const hidden = ref<ReadonlySet<string>>(new Set(props.scope.carriedItemIds))
 
 function retakeSnapshot(): void {
-  hidden.value = new Set(props.carriedItemIds)
+  hidden.value = new Set(props.scope.carriedItemIds)
 }
 
 watch(hideCarried, (on) => {
@@ -338,7 +294,7 @@ function toggleSettledOnly(): void {
 
 /** Whether the caller reports this item as packed or skipped, all rows alike. */
 function isSettled(item: MasterItem): boolean {
-  const state = props.rowStates?.get(item.id)?.state
+  const state = props.scope.rowStates?.get(item.id)?.state
   return state === 'packed' || state === 'skipped'
 }
 
@@ -353,6 +309,30 @@ const shown = computed<MasterItem[]>(() => {
     : filtered.value
 })
 
+const carried = computed(() => new Set(props.scope.carriedItemIds))
+
+/** Which verbs this scope offers (FR-25.13f/g). */
+const offered = computed(() => browseOffer(props.scope))
+const verbs = computed(() => offered.value.decide)
+const forAll = computed(() => offered.value.forAll)
+
+/** How many people one tap on „für alle" would reach — 0 where nobody travels. */
+const travelerCount = computed(() => props.scope.travelers.length)
+
+/** The scope and this run together — what every line's view is read from. */
+const run = computed<BrowseRunState>(() => ({
+  scope: props.scope,
+  offer: offered.value,
+  carried: carried.value,
+  acted: actedNow.value,
+  assigned: assignedTravelers.value,
+  hiddenAtSwitch: hideCarried.value ? hidden.value : null,
+}))
+
+function rowView(item: MasterItem): BrowseRowView {
+  return browseRowView(item.id, run.value)
+}
+
 /**
  * The rendered list: M9's grouping, each line already paired with the state
  * it renders. Paired here rather than asked per branch in the template — a
@@ -365,17 +345,6 @@ const groups = computed(() =>
   ),
 )
 
-const carried = computed(() => new Set(props.carriedItemIds))
-
-/** FR-25.13f: the verbs exist only where the caller reports packing states. */
-const verbs = computed(() => props.rowStates !== undefined)
-
-/** How many people one tap on „für alle" would reach — 0 where nobody travels. */
-const travelerCount = computed(() => props.travelerCount ?? 0)
-
-/** FR-25.13g: whether „für alle" is on offer at all in this scope. */
-const forAll = computed(() => travelerCount.value >= MIN_TRAVELERS_FOR_PER_PERSON)
-
 /**
  * FR-25.13h: how many travelers may sit as their own button, in trip order,
  * before a row instead offers a long press on 👥. Past this many the buttons
@@ -385,7 +354,7 @@ const forAll = computed(() => travelerCount.value >= MIN_TRAVELERS_FOR_PER_PERSO
  */
 const INLINE_PERSON_BUTTONS_MAX = 3
 
-const travelerList = computed(() => props.travelers ?? [])
+const travelerList = computed(() => props.scope.travelers)
 
 /** FR-25.13h: the buttons a free line renders — empty wherever „für alle" is. */
 const inlineTravelers = computed(() =>
@@ -439,85 +408,10 @@ const noSettled = computed(() => settledOnly.value && !noMatch.value && shown.va
 const allCarried = computed(() => !noMatch.value && !noSettled.value && shown.value.length === 0)
 
 /**
- * What one line renders. The five kinds are exclusive and asked in this
- * order: what this run did wins over everything, then G-3's lock, then a
- * settled state, then the plain carried state, and a free row last.
- */
-type RowView =
-  | { kind: 'acted'; text: string; testid: string; done: boolean; undoable: boolean }
-  | { kind: 'assigning'; text: string; selected: ReadonlySet<string> }
-  | { kind: 'locked'; text: string }
-  | { kind: 'settled'; text: string; reopen: boolean }
-  | { kind: 'carried'; text: string; verbs: boolean; spread: boolean }
-  | { kind: 'free' }
-
-function rowView(item: MasterItem): RowView {
-  // The ledger speaks only where the verbs do. Without them M6 and M8 have
-  // one add and no way back, so their tapped row keeps saying *„schon drin"*
-  // exactly as FR-25.13d wrote it — the e2e case for M8 is what said so.
-  const act = (verbs.value ? actedNow.value.get(item.id) : undefined) ?? derivedAdd(item)
-  if (act) {
-    // FR-25.13h's multi-select: an `assigned` line stays open for more taps
-    // rather than closing the way the other four verbs do, so it renders its
-    // own kind — the avatar buttons beside it need `.acts` to stay visible.
-    if (act.verb === 'assigned') {
-      return {
-        kind: 'assigning',
-        text: actedText(act),
-        selected: assignedTravelers.value.get(item.id) ?? new Set(),
-      }
-    }
-    return {
-      kind: 'acted',
-      text: actedText(act),
-      testid: RUN_STATE_TESTID[act.verb],
-      done: act.verb !== 'skipped',
-      // Only what this sheet did can be taken back by it: a row the caller
-      // reports as newly carried may have been added from anywhere.
-      undoable: actedNow.value.has(item.id),
-    }
-  }
-  const state = props.rowStates?.get(item.id)
-  if (state?.state === 'locked' && state.lockNote !== null) {
-    return { kind: 'locked', text: state.lockNote }
-  }
-  // FR-25.13i: the reset rides on the caller's states, so it is offered
-  // wherever they are reported at all — the same G-8 gate the verbs use.
-  if (state?.state === 'packed') {
-    return { kind: 'settled', text: t('quickAdd.browseIsPacked'), reopen: verbs.value }
-  }
-  if (state?.state === 'skipped') {
-    return { kind: 'settled', text: t('quickAdd.browseIsSkipped'), reopen: verbs.value }
-  }
-  if (carried.value.has(item.id)) {
-    return {
-      kind: 'carried',
-      text: t('quickAdd.browseAlreadyIn'),
-      verbs: verbs.value,
-      // A set that already reaches everybody has no spread left to offer, and
-      // a verb that would do nothing is furniture (FR-25.13g).
-      spread: forAll.value && (state?.travelersReached ?? 0) < travelerCount.value,
-    }
-  }
-  return { kind: 'free' }
-}
-
-/**
- * FR-25.13e's own signal, kept beside the ledger: while the switch is on, a
- * row the caller reports as carried but which the snapshot does not hold was
- * added since the switch was flipped, and says so wherever it came from.
- */
-function derivedAdd(item: MasterItem): RunRecord | undefined {
-  const addedSinceSnapshot =
-    hideCarried.value && carried.value.has(item.id) && !hidden.value.has(item.id)
-  return addedSinceSnapshot ? { verb: 'added', rows: 1 } : undefined
-}
-
-/**
  * A verb that reached a per-person set says how many rows it reached: a
  * single ✓ that quietly packed three people's rows claims less than it did.
  */
-function actedText(act: RunRecord): string {
+function actedText(act: BrowseRunRecord): string {
   // FR-25.13h: this one names who, not how many — the other verbs already
   // count rows, and a count of one traveler would say the same thing twice.
   if (act.verb === 'assigned') return t(RUN_STATE_TEXT.assigned, { name: act.travelerName ?? '' })
@@ -527,16 +421,16 @@ function actedText(act: RunRecord): string {
 
 /** How many trip rows a verb on this line would reach (FR-25.21). */
 function rowsOf(itemId: string): number {
-  return props.rowStates?.get(itemId)?.itemIds.length ?? 1
+  return props.scope.rowStates?.get(itemId)?.itemIds.length ?? 1
 }
 
 function onAdd(item: MasterItem): void {
-  emit('add', item)
+  emit('action', { verb: 'add', item })
   record(item.id, 'added', 1)
 }
 
 function onAddForAll(item: MasterItem): void {
-  emit('addForAll', item)
+  emit('action', { verb: 'addForAll', item })
   record(item.id, 'forAll', travelerCount.value)
 }
 
@@ -546,7 +440,7 @@ function onAddForAll(item: MasterItem): void {
  * the membership editor and this sheet is on its way out with it.
  */
 function onSpreadToAll(item: MasterItem): void {
-  emit('spreadToAll', item)
+  emit('action', { verb: 'spread', itemId: item.id })
   record(item.id, 'forAll', travelerCount.value)
 }
 
@@ -571,7 +465,7 @@ let forAllMenuItemId: string | null = null
  * deselect had nothing to press). Past three, 👥 stays the popover's own
  * bulk verb — that surface has always been accumulate-only by decision.
  */
-function onForAllTap(view: RowView, item: MasterItem): void {
+function onForAllTap(view: BrowseRowView, item: MasterItem): void {
   if (inlineTravelers.value.length > 0 && (view.kind === 'free' || view.kind === 'assigning')) {
     if (forAllMenuItemId === item.id) return
     writeAssignment(item, new Set(inlineTravelers.value.map((traveler) => traveler.id)))
@@ -592,16 +486,16 @@ const personHold = useLongPress<MasterItem>(openTravelerMenu)
  * (>3 travelers, at least one already picked) — only `acted`, `locked`,
  * `settled` and `carried` are past taking any more of this run's taps.
  */
-function offersPersonMenu(view: RowView): boolean {
+function offersPersonMenu(view: BrowseRowView): boolean {
   return (view.kind === 'free' || view.kind === 'assigning') && usePersonMenu.value
 }
 
-function onForAllPointerDown(view: RowView, item: MasterItem, e: PointerEvent): void {
+function onForAllPointerDown(view: BrowseRowView, item: MasterItem, e: PointerEvent): void {
   if (!offersPersonMenu(view)) return
   personHold.down(item, e.clientX, e.clientY)
 }
 
-function onForAllContextMenu(view: RowView, item: MasterItem): void {
+function onForAllContextMenu(view: BrowseRowView, item: MasterItem): void {
   if (!offersPersonMenu(view)) return
   void openTravelerMenu(item)
 }
@@ -662,7 +556,7 @@ function writeAssignment(item: MasterItem, next: ReadonlySet<string>): void {
   else map.set(item.id, next)
   assignedTravelers.value = map
 
-  emit('assignToTravelers', item, [...next])
+  emit('action', { verb: 'assign', item, travelerIds: [...next] })
 
   if (next.size === 0) {
     forget(item.id)
@@ -727,22 +621,22 @@ function onSheetPressStart(): void {
 }
 
 function onAddPacked(item: MasterItem): void {
-  emit('addPacked', item)
+  emit('action', { verb: 'add', item, decided: STATE_PACKED })
   record(item.id, 'packed', 1)
 }
 
 function onAddSkipped(item: MasterItem): void {
-  emit('addSkipped', item)
+  emit('action', { verb: 'add', item, decided: STATE_SKIPPED })
   record(item.id, 'skipped', 1)
 }
 
 function onPack(item: MasterItem): void {
-  emit('pack', item)
+  emit('action', { verb: 'packCarried', itemId: item.id })
   record(item.id, 'packed', rowsOf(item.id))
 }
 
 function onSkip(item: MasterItem): void {
-  emit('skip', item)
+  emit('action', { verb: 'skipCarried', itemId: item.id })
   record(item.id, 'skipped', rowsOf(item.id))
 }
 
@@ -752,11 +646,11 @@ function onSkip(item: MasterItem): void {
  * verbs and therefore its own way back to a decision.
  */
 function onReopen(item: MasterItem): void {
-  emit('reopen', item)
+  emit('action', { verb: 'reopen', itemId: item.id })
 }
 
 function onUndo(item: MasterItem): void {
-  emit('undo', item)
+  emit('action', { verb: 'undo', itemId: item.id })
   forget(item.id)
   // FR-25.13h: „Rückgängig" on an `assigning` line takes back every traveler
   // it holds, not just the last one — the same set a full deselect reaches.
@@ -1049,10 +943,10 @@ function groupLabel(key: string): string {
               <span
                 class="carried-state"
                 :class="{ 'is-added': view.done }"
-                :data-testid="view.testid"
+                :data-testid="RUN_STATE_TESTID[view.act.verb]"
               >
                 <IonIcon v-if="view.done" :icon="checkmarkOutline" aria-hidden="true" />
-                {{ view.text }}
+                {{ actedText(view.act) }}
               </span>
               <button
                 v-if="view.undoable"
@@ -1072,7 +966,7 @@ function groupLabel(key: string): string {
             <template v-else-if="view.kind === 'assigning'">
               <span class="carried-state is-added" data-testid="browse-assigned-now">
                 <IonIcon :icon="checkmarkOutline" aria-hidden="true" />
-                {{ view.text }}
+                {{ actedText(view.act) }}
               </span>
               <button
                 class="undo"
@@ -1092,14 +986,18 @@ function groupLabel(key: string): string {
               data-testid="browse-locked"
             >
               <IonIcon :icon="lockClosedOutline" aria-hidden="true" />
-              {{ view.text }}
+              {{ view.lockNote }}
             </span>
 
             <!-- FR-25.13i: the settled line states its decision and, where the
                  caller reports states at all, carries the way out of it. -->
             <template v-else-if="view.kind === 'settled'">
               <span class="carried-state" data-testid="browse-settled">
-                {{ view.text }}
+                {{
+                  view.state === STATE_PACKED
+                    ? t('quickAdd.browseIsPacked')
+                    : t('quickAdd.browseIsSkipped')
+                }}
               </span>
               <button
                 v-if="view.reopen"
@@ -1118,7 +1016,7 @@ function groupLabel(key: string): string {
               class="carried-state"
               data-testid="browse-carried-state"
             >
-              {{ view.text }}
+              {{ t('quickAdd.browseAlreadyIn') }}
             </span>
 
             <!-- FR-25.13f: the two verbs, one tap each. On a free line they

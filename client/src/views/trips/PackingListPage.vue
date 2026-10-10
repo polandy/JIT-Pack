@@ -640,19 +640,10 @@ setHeaderTitle(
         :offer-forgotten="packingClosed"
         :show-trigger="false"
         :offer-groups="true"
-        :traveler-count="travelers.length"
-        :travelers="travelers"
-        :exclude-item-ids="browse.excludeIds.value"
-        :browse-row-states="browse.browseStates.value"
+        :scope="browse.scope.value"
         @add="browse.onQuickAdd"
-        @add-for-all="browse.onAddForAll"
-        @assign-for-travelers="browse.onAssignForTravelers"
-        @spread-carried="browse.onSpread"
         @add-group="browse.onAddGroup"
-        @pack-carried="browse.onPack"
-        @skip-carried="browse.onSkip"
-        @undo-browse="browse.onUndo"
-        @reopen-carried="browse.onReopen"
+        @browse="browse.onBrowse"
       />
 
       <PackingGroupList

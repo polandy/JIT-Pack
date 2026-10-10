@@ -511,6 +511,7 @@ const adds = useExcursionAdd({
   participants,
   verbs: browse,
 })
+const onBrowse = browse.onBrowse(adds.browseAdds)
 
 // --- the excursion's own acts, in the bar's ⋮ ---
 
@@ -866,21 +867,12 @@ setHeaderTitle(
           ref="quickAdd"
           :show-trigger="false"
           :offer-groups="true"
-          :traveler-count="participants.length"
-          :travelers="participants"
-          :exclude-item-ids="browse.excludeIds.value"
-          :browse-row-states="browse.browseStates.value"
+          :scope="browse.scope.value"
           :offer-local-only="true"
           @add="adds.onQuickAdd"
           @add-local="adds.onQuickAddLocal"
-          @add-for-all="adds.onQuickAddForAll"
-          @assign-for-travelers="adds.onAssignForTravelers"
-          @spread-carried="adds.onSpread"
           @add-group="adds.onAddGroup"
-          @pack-carried="browse.onPack"
-          @skip-carried="browse.onSkip"
-          @undo-browse="browse.onUndo"
-          @reopen-carried="browse.onReopen"
+          @browse="onBrowse"
         />
 
         <ExcursionExtraList :lines="extras" />
