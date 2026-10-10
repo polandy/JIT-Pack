@@ -119,7 +119,7 @@ const {
   trip,
   rowsLoaded,
   myUserId,
-  participants,
+  memberProfiles,
   nameOf,
   closingPass,
   allItems,
@@ -214,7 +214,7 @@ const view = computed(() =>
     items: allItems.value,
     travelers: travelers.value,
     containers: tripStore.getContainers(props.tripId),
-    participants: participants.value,
+    memberProfiles: memberProfiles.value,
     groupBy: groupBy.value,
     showDone: showDone.value || closingPass.value,
     facets: facets.value,
@@ -529,7 +529,7 @@ setHeaderTitle(
         :task-state="tasks.state.value"
         :task-line="tasks.line.value"
         :presence-users="presenceUsers"
-        :participants="participants"
+        :member-profiles="memberProfiles"
         :is-desktop="isDesktop"
         @reveal-tasks="revealTripTasks"
       >
@@ -650,7 +650,7 @@ setHeaderTitle(
         v-if="view.groups.length > 0"
         :trip-id="tripId"
         :groups="view.groups"
-        :participants="participants"
+        :member-profiles="memberProfiles"
         :closing-pass="closingPass"
         :facts="facts"
         :for-whom="forWhom"
@@ -823,7 +823,7 @@ setHeaderTitle(
           v-if="openItemId"
           :trip-id="tripId"
           :item-id="openItemId"
-          :participants="participants"
+          :member-profiles="memberProfiles"
           :current-user-id="myUserId"
           :inventory-rename="openItemRename"
           @close="closeItem"
@@ -841,7 +841,7 @@ setHeaderTitle(
           <ItemDetailSheet
             :trip-id="tripId"
             :item-id="openItemId"
-            :participants="participants"
+            :member-profiles="memberProfiles"
             :current-user-id="myUserId"
             :inventory-rename="openItemRename"
             @close="closeItem"

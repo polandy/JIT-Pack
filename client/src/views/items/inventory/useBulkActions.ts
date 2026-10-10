@@ -98,7 +98,7 @@ export function useBulkActions(core: InventoryCore) {
     )
     bulkSheet.value = null
     if (touched === 0) {
-      await presentToast({ message: t('items.bulkNothingToDo') })
+      await presentToast({ message: t('items.bulkNothingToChange') })
       return
     }
     bulkUndo = () => orchestrator.masterData.undoBulkTag(undo)
@@ -118,7 +118,7 @@ export function useBulkActions(core: InventoryCore) {
     const { touched, undo } = orchestrator.masterData.takeTagFromItems(selectedItems.value, tagId)
     bulkSheet.value = null
     if (touched === 0) {
-      await presentToast({ message: t('items.bulkNothingToDo') })
+      await presentToast({ message: t('items.bulkNothingToChange') })
       return
     }
     bulkUndo = () => orchestrator.masterData.undoBulkTag(undo)
@@ -193,7 +193,7 @@ export function useBulkActions(core: InventoryCore) {
     )
     assigneeSheet.value = false
     if (touched === 0) {
-      await presentToast({ message: t('items.bulkNothingToDo') })
+      await presentToast({ message: t('items.bulkNothingToChange') })
       return
     }
     bulkUndo = () => orchestrator.masterData.undoBulkAssignee(undo)

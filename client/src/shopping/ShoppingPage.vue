@@ -109,7 +109,7 @@ const beforeOpen = computed(
     listInFocus(standingOf(trip.value), orchestrator.today()) === ITEM_MODE_BUY_BEFORE,
 )
 
-// FR-30.4: a purchase is named from the trip's participants, the way every
+// FR-30.4: a purchase is named from the trip's members, the way every
 // other stamp on the trip is — empty in Local Mode, where nobody is named.
 const {
   nameOf,

@@ -102,10 +102,10 @@ test.describe('M28 the bridge to the packing side @local @planner', () => {
     await detail.getByTestId('idea-make-task').click()
     const composer = await openListComposer(page, 'm25')
     const body = `Book ${IDEA}`
-    await expect(composer.getByTestId('trip-todo-input').locator('input')).toHaveValue(body)
-    await composer.getByTestId('trip-todo-add').click()
-    await expect(visiblePage(page).getByTestId(`trip-todo-due-${body}`)).toBeVisible()
-    await expect(visiblePage(page).getByTestId(`trip-todo-idea-${body}`)).toHaveText(IDEA)
+    await expect(composer.getByTestId('trip-task-input').locator('input')).toHaveValue(body)
+    await composer.getByTestId('trip-task-add').click()
+    await expect(visiblePage(page).getByTestId(`trip-task-due-${body}`)).toBeVisible()
+    await expect(visiblePage(page).getByTestId(`trip-task-idea-${body}`)).toHaveText(IDEA)
     await writesLanded(page)
     detail = await backToIdea(page)
     await expect(detail.locator('[data-testid^="idea-result-task:"]')).toHaveText(body)
@@ -192,9 +192,9 @@ test.describe('M28 the bridge to the packing side @local @planner', () => {
     await detail.getByTestId('idea-make-task').click()
     const body = `Book ${IDEA}`
     const composer = await openListComposer(page, 'm25')
-    await expect(composer.getByTestId('trip-todo-input').locator('input')).toHaveValue(body)
-    await composer.getByTestId('trip-todo-add').click()
-    await expect(visiblePage(page).getByTestId(`trip-todo-idea-${body}`)).toBeVisible()
+    await expect(composer.getByTestId('trip-task-input').locator('input')).toHaveValue(body)
+    await composer.getByTestId('trip-task-add').click()
+    await expect(visiblePage(page).getByTestId(`trip-task-idea-${body}`)).toBeVisible()
     await writesLanded(page)
 
     const again = await backToIdea(page)
@@ -211,8 +211,8 @@ test.describe('M28 the bridge to the packing side @local @planner', () => {
 
     await openTripView(page, 'tasks')
     const tasks = visiblePage(page)
-    await expect(tasks.getByTestId(`trip-todo-${body}`)).toBeVisible()
-    await expect(tasks.getByTestId(`trip-todo-idea-${body}`)).toHaveCount(0)
+    await expect(tasks.getByTestId(`trip-task-${body}`)).toBeVisible()
+    await expect(tasks.getByTestId(`trip-task-idea-${body}`)).toHaveCount(0)
   })
 
   /**
@@ -243,7 +243,7 @@ test.describe('M28 the bridge to the packing side @local @planner', () => {
       const tasks = visiblePage(page)
       await openListComposer(page, 'm25')
       await expect(page.getByTestId('m28-idea-modal')).toBeHidden()
-      await expect(tasks.getByTestId('trip-todo-input').locator('input')).toHaveValue(
+      await expect(tasks.getByTestId('trip-task-input').locator('input')).toHaveValue(
         `Book ${IDEA}`,
       )
       await expect(page).toHaveURL(/\/tasks\?/)

@@ -9,11 +9,11 @@ import { computed, ref } from 'vue'
 
 import type { PackAnnouncer } from '@/composables/usePackAnnouncer'
 import { useRowUndo } from '@/composables/useRowUndo'
-import { STATE_SKIPPED, type ExcursionItem } from '@/types/domain'
+import { STATE_SKIPPED, type ExcursionLine } from '@/types/domain'
 
 import { useExcursionRowPort, type ExcursionLineWrites } from '../useExcursionRowPort'
 
-function line(over: Partial<ExcursionItem> = {}): ExcursionItem {
+function line(over: Partial<ExcursionLine> = {}): ExcursionLine {
   return {
     id: 'l1',
     trip_id: 't1',
@@ -34,7 +34,7 @@ function line(over: Partial<ExcursionItem> = {}): ExcursionItem {
   }
 }
 
-function setup(initial: ExcursionItem[]) {
+function setup(initial: ExcursionLine[]) {
   const lines = ref(initial)
   const writes: ExcursionLineWrites = {
     setLineCount: vi.fn(),

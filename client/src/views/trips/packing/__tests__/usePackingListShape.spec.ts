@@ -66,7 +66,7 @@ function setup(reveals: readonly RevealKey[], withoutGrouping?: 'container') {
       items: [item('Zelt', 'Camping'), item('Jacke', 'Kleidung')],
       travelers: [],
       containers: [],
-      participants: [],
+      memberProfiles: [],
       groupBy: shape.groupBy.value,
       showDone: filter.showDone.value,
       facets: filter.facets.value,

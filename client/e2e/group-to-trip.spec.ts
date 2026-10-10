@@ -105,11 +105,11 @@ test.describe('FR-27.10 — adding a whole group to a running trip', () => {
     // FR-7.6 it is a task of the trip like any other: counted in the header
     // figure, listed in the one section, and naming its row on the line
     // through the chip.
-    await expect(visible(page).getByTestId('m4-trip-todos-progress')).toHaveText(
+    await expect(visible(page).getByTestId('m4-trip-tasks-progress')).toHaveText(
       'While packing 0/1',
     )
     const tasks = await openTripTasks(page)
-    await expect(tasks.getByTestId('trip-todo-Akkus laden')).toBeVisible()
+    await expect(tasks.getByTestId('trip-task-Akkus laden')).toBeVisible()
     await expect(tasks.getByTestId('task-item-Kamera')).toBeVisible()
 
     // The FR-9.1 half of the case — the added rows are *not* flagged Missing —

@@ -53,7 +53,7 @@ export const tasksEn = {
     'One task moved to “Before the trip” | {n} tasks moved to “Before the trip”',
   'tasks.bulkMovedToDuring':
     'One task moved to “During the trip” | {n} tasks moved to “During the trip”',
-  'tasks.bulkNothingToDo': 'Nothing to change — the selection is already there.',
+  'tasks.bulkNothingToChange': 'Nothing to change — the selection is already there.',
   'tasks.movedToast': '“{body}” moved',
   'tasks.whilePacking': 'To do while packing',
   'tasks.dueOverdue': 'Overdue',

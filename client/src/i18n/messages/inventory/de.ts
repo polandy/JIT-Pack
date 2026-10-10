@@ -68,7 +68,7 @@ export const inventoryDe: Record<keyof typeof inventoryEn, string> = {
   'items.bulkPrimaryHint': 'Verschiebt die Artikel im Inventar in diese Gruppe.',
   'items.bulkAlreadyOn': 'bei einem schon | bei {n} schon',
   'items.bulkNoSharedTag': 'Die Auswahl trägt keinen gemeinsamen Tag.',
-  'items.bulkNothingToDo': 'Nichts zu ändern — die Auswahl ist schon so.',
+  'items.bulkNothingToChange': 'Nichts zu ändern — die Auswahl ist schon so.',
   'items.bulkGave': '„{tag}" an einen Artikel | „{tag}" an {n} Artikel',
   'items.bulkGaveNew':
     '„{tag}" neu angelegt, an einen Artikel | „{tag}" neu angelegt, an {n} Artikel',

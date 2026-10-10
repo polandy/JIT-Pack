@@ -37,7 +37,7 @@ import type {
   PrepTask,
   NoteAck,
   Excursion,
-  ExcursionItem,
+  ExcursionLine,
   ExcursionTraveler,
   IdeaImage,
   IdeaTrack,
@@ -528,7 +528,7 @@ function rowToExcursionTraveler(id: string, row: Record<string, unknown>): Excur
   }
 }
 
-function rowToExcursionItem(id: string, row: Record<string, unknown>): ExcursionItem {
+function rowToExcursionLine(id: string, row: Record<string, unknown>): ExcursionLine {
   return {
     id,
     trip_id: row['trip_id'] as string,
@@ -540,8 +540,8 @@ function rowToExcursionItem(id: string, row: Record<string, unknown>): Excursion
     assigned_traveler_id: (row['assigned_traveler_id'] as string | null | undefined) ?? null,
     quantity: Number(row['quantity'] ?? 1),
     packed_count: Number(row['packed_count'] ?? 0),
-    state: (row['state'] as ExcursionItem['state'] | undefined) ?? 'open',
-    mode: (row['mode'] as ExcursionItem['mode'] | undefined) ?? ITEM_MODE_PACK,
+    state: (row['state'] as ExcursionLine['state'] | undefined) ?? 'open',
+    mode: (row['mode'] as ExcursionLine['mode'] | undefined) ?? ITEM_MODE_PACK,
     bought_at: (row['bought_at'] as string | null | undefined) ?? null,
     not_in_luggage: Boolean(row['not_in_luggage']),
     for_all_participants: Boolean(row['for_all_participants']),
@@ -690,7 +690,7 @@ export const KERNEL_TABLE_SPECS = {
   },
   [TABLE.excursionItems]: {
     ...TRIP_ROWS,
-    parse: rowToExcursionItem,
+    parse: rowToExcursionLine,
     encode: excursionItemRow,
     // A line goes with its excursion and with the traveller it is for; the
     // packing row it came from is SET NULL, not a parent.

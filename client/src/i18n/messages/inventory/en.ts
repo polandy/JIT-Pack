@@ -64,7 +64,7 @@ export const inventoryEn = {
   'items.bulkPrimaryHint': 'Moves the items into that group in the inventory.',
   'items.bulkAlreadyOn': 'on one already | on {n} already',
   'items.bulkNoSharedTag': 'The selection carries no tag in common.',
-  'items.bulkNothingToDo': 'Nothing to change — the selection is already like that.',
+  'items.bulkNothingToChange': 'Nothing to change — the selection is already like that.',
   'items.bulkGave': '“{tag}” given to one item | “{tag}” given to {n} items',
   'items.bulkGaveNew':
     '“{tag}” created and given to one item | “{tag}” created and given to {n} items',

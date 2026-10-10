@@ -85,7 +85,7 @@ describe('noteThreads — the shape (FR-7.13)', () => {
     )
     expect(thread.root.id).toBe('note-1')
     expect(thread.replies.map((r) => r.id)).toEqual(['r1', 'r2'])
-    expect(thread.participants).toEqual([BEN, CHRIS, ME])
+    expect(thread.authors).toEqual([BEN, CHRIS, ME])
     expect(latestReply(thread)?.id).toBe('r2')
   })
 

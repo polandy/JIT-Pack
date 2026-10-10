@@ -68,7 +68,7 @@ export interface NoteThread {
   /** What a tick given now records: the newest stamp in the thread. */
   seenThrough: string
   /** The first note's author, then each replier once, in the order they joined. */
-  participants: string[]
+  authors: string[]
 }
 
 const newestFirst = (a: ItemComment, b: ItemComment) => entryStamp(b).localeCompare(entryStamp(a))
@@ -109,7 +109,7 @@ function threadOf(
   const entries = [root, ...ordered]
   const stamps = entries.map(entryStamp)
   const lastActivity = stamps.reduce((a, b) => (b > a ? b : a), '')
-  const participants = [...new Set(entries.map((e) => e.author_id))]
+  const authors = [...new Set(entries.map((e) => e.author_id))]
   const othersWrote = myUserId !== null && entries.some((e) => e.author_id !== myUserId)
 
   let unseen: ItemComment[] = []
@@ -128,7 +128,7 @@ function threadOf(
     ticked: othersWrote && mine?.acked === true && unseen.length === 0,
     tickable: othersWrote,
     seenThrough: lastActivity,
-    participants,
+    authors,
   }
 }
 

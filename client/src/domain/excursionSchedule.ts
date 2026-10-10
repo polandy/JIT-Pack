@@ -8,7 +8,7 @@
 import { sumUnits } from './excursionLines'
 import { addDays } from './shared/calendar'
 import { unitsOf, type PackUnits } from './packState'
-import type { Excursion, ExcursionItem } from '@/types/domain'
+import type { Excursion, ExcursionLine } from '@/types/domain'
 
 // --- Time (FR-31.10) ---
 
@@ -69,7 +69,7 @@ export function arrangeExcursions<T extends Pick<Excursion, 'starts_on' | 'ends_
  */
 export function isDueSoon(
   excursion: Pick<Excursion, 'starts_on' | 'ends_on'>,
-  lines: readonly ExcursionItem[],
+  lines: readonly ExcursionLine[],
   today: string,
   tomorrow: string,
 ): boolean {
@@ -85,7 +85,7 @@ export function isDueSoon(
  */
 export function pendingExcursionCount(
   excursions: readonly Excursion[],
-  lines: readonly ExcursionItem[],
+  lines: readonly ExcursionLine[],
   today: string,
 ): number {
   return excursions.filter(
@@ -114,7 +114,7 @@ export function dueExcursions(
     id: string
     name: string
     excursions: readonly Excursion[]
-    lines: readonly ExcursionItem[]
+    lines: readonly ExcursionLine[]
   }>,
   today: string,
 ): DueExcursionRow[] {

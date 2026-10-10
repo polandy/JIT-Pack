@@ -452,7 +452,7 @@ var tableSpecs = map[string]tableSpec{
 			"shopping_position",
 		),
 		// The one cascade of the *trip* partition: a row's comments and
-		// FR-7.3 todos hang off it (comments.trip_item_id ON DELETE
+		// FR-7.3 tasks hang off it (comments.trip_item_id ON DELETE
 		// CASCADE). Trip-level comments have a NULL trip_item_id and are
 		// untouched by the delete, so the query names the row explicitly
 		// rather than matching on the trip. note_acks is reachable a second

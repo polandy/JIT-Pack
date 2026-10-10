@@ -67,7 +67,7 @@ function mountStrip(itemId: string, props: Record<string, unknown> = {}) {
       tripId: TRIP,
       itemId,
       testKey: KEY,
-      participants: [
+      memberProfiles: [
         { user_id: 'u-bob', display_name: 'Bob', avatar_url: null, role: 'editor' as const },
       ],
       ...props,

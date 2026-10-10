@@ -43,11 +43,11 @@ import { modeIcon, modeLabel } from '@/lib/modeLabels'
 import { stateLabel } from '@/lib/stateLabels'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import type { ExcursionItemMode, Traveler } from '@/types/domain'
+import type { ExcursionLineMode, Traveler } from '@/types/domain'
 import { ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK, STATE_SKIPPED } from '@/types/domain'
 
 /** The two ways an excursion line is had (FR-31.8), in M5's order. */
-const LINE_MODES: readonly ExcursionItemMode[] = [ITEM_MODE_PACK, ITEM_MODE_BUY_LOCAL]
+const LINE_MODES: readonly ExcursionLineMode[] = [ITEM_MODE_PACK, ITEM_MODE_BUY_LOCAL]
 
 const props = defineProps<{
   tripId: string
@@ -146,7 +146,7 @@ function onSkipToggle() {
   else orchestrator.excursions.skipLine(line.value)
 }
 
-function onModeChange(mode: ExcursionItemMode) {
+function onModeChange(mode: ExcursionLineMode) {
   if (!line.value || mode === line.value.mode) return
   orchestrator.excursions.setLineMode(line.value, mode)
 }

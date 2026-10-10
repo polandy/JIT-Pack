@@ -24,7 +24,7 @@ import {
   isReshaped,
   type PackableRow,
 } from '../packingView'
-import type { Container, Facets, TripItem, TripParticipant, Traveler } from '@/types/domain'
+import type { Container, Facets, TripItem, TripMemberProfile, Traveler } from '@/types/domain'
 
 let seq = 0
 
@@ -88,13 +88,13 @@ const travelers = [andy, leo, mia]
 const containers: Container[] = []
 
 const ME = 'u-me'
-function participant(user_id: string, display_name: string): TripParticipant {
+function memberProfile(user_id: string, display_name: string): TripMemberProfile {
   return { user_id, display_name, avatar_url: null, role: 'editor' }
 }
-const participants = [
-  participant(ME, 'Me'),
-  participant('u-sia', 'Sia'),
-  participant('u-tom', 'Tom'),
+const memberProfiles = [
+  memberProfile(ME, 'Me'),
+  memberProfile('u-sia', 'Sia'),
+  memberProfile('u-tom', 'Tom'),
 ]
 
 type ViewOptions = Partial<Omit<Parameters<typeof buildPackingView>[0], 'items'>>
@@ -104,7 +104,7 @@ function view<R extends PackableRow>(items: R[], over: ViewOptions = {}) {
     items,
     travelers,
     containers,
-    participants,
+    memberProfiles,
     groupBy: 'category',
     showDone: false,
     facets: noFacets(),

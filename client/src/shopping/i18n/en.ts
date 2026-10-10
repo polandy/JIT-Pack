@@ -77,7 +77,7 @@ export const shoppingEn = {
   'shopping.bulkAssignTitle': 'Who buys one entry? | Who buys {n} entries?',
   'shopping.bulkAssigned': 'One entry → {who} | {n} entries → {who}',
   'shopping.bulkUnassigned': 'One entry: nobody responsible | {n} entries: nobody responsible',
-  'shopping.bulkNothingToDo': 'Nothing to change — the selection already carries that tag.',
+  'shopping.bulkNothingToChange': 'Nothing to change — the selection already carries that tag.',
   'shopping.bulkRemove': 'Delete',
   'shopping.bulkRemoved': 'One entry deleted | {n} entries deleted',
   'shopping.dragToMove': 'Move {name}',

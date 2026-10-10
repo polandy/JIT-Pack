@@ -181,8 +181,8 @@ function hasFacts(task: TripTask): boolean {
 </script>
 
 <template>
-  <div class="trip-task-list" :class="variant ?? 'window'" data-testid="trip-todo-list">
-    <InlineHint v-if="emptyText && tasks.length === 0" data-testid="trip-todo-empty">
+  <div class="trip-task-list" :class="variant ?? 'window'" data-testid="trip-task-list">
+    <InlineHint v-if="emptyText && tasks.length === 0" data-testid="trip-task-empty">
       {{ emptyText }}
     </InlineHint>
 
@@ -199,8 +199,8 @@ function hasFacts(task: TripTask): boolean {
         :checked="selecting ? null : false"
         :tick-disabled="readonly"
         :selected="selecting && !!selection?.selected.value.has(task.id)"
-        :facts-testid="`trip-todo-facts-${task.body}`"
-        :data-testid="`trip-todo-${task.body}`"
+        :facts-testid="`trip-task-facts-${task.body}`"
+        :data-testid="`trip-task-${task.body}`"
         @tick="emit('toggle', task)"
       >
         <!-- M6's leading edge: the selection box while selecting,
@@ -210,13 +210,13 @@ function hasFacts(task: TripTask): boolean {
             v-if="selecting"
             slot="start"
             :on="selection?.selected.value.has(task.id)"
-            :data-testid="`trip-todo-check-${task.body}`"
+            :data-testid="`trip-task-check-${task.body}`"
           />
           <DragGrip
             v-else-if="lift"
             slot="start"
             :label="t('tripTasks.drag', { body: task.body })"
-            :data-testid="`trip-todo-grip-${task.body}`"
+            :data-testid="`trip-task-grip-${task.body}`"
             @pointerdown.stop="onLift($event, task)"
           />
         </template>
@@ -232,7 +232,7 @@ function hasFacts(task: TripTask): boolean {
           <button
             type="button"
             class="body row-name"
-            :data-testid="`trip-todo-open-${task.body}`"
+            :data-testid="`trip-task-open-${task.body}`"
             @click="onOpen(task)"
           >
             {{ task.body }}
@@ -245,20 +245,20 @@ function hasFacts(task: TripTask): boolean {
             v-if="today"
             :day="openDueDay(task)"
             :today="today"
-            :testid="`trip-todo-due-${task.body}`"
+            :testid="`trip-task-due-${task.body}`"
           />
           <TaskItemChip
             v-if="task.item"
             :item="task.item"
             :to="tripItemPath(tripId, task.item.id)"
           />
-          <span v-if="tagOf?.(task)" class="tag" :data-testid="`trip-todo-tag-${task.body}`">{{
+          <span v-if="tagOf?.(task)" class="tag" :data-testid="`trip-task-tag-${task.body}`">{{
             tagOf(task)
           }}</span>
           <IdeaOrigin
             :trip-id="tripId"
             :idea-id="task.idea_id"
-            :testid="`trip-todo-idea-${task.body}`"
+            :testid="`trip-task-idea-${task.body}`"
           />
         </template>
         <!-- FR-7.14: the person at the row's edge, before the tick. Selecting
@@ -271,7 +271,7 @@ function hasFacts(task: TripTask): boolean {
               slot="end"
               class="person"
               :avatar="assigneeOf(task)"
-              :data-testid="`trip-todo-assign-${task.body}`"
+              :data-testid="`trip-task-assign-${task.body}`"
               @assign="emit('assign', task)"
             />
             <UserAvatar
@@ -281,7 +281,7 @@ function hasFacts(task: TripTask): boolean {
               variant="assignee"
               :name="nameOf?.(task.assignee_user_id ?? null)"
               :seed="task.assignee_user_id"
-              :data-testid="`trip-todo-assignee-${task.body}`"
+              :data-testid="`trip-task-assignee-${task.body}`"
             />
           </template>
           <!-- M4's window keeps its one-line cluster at the row's edge. -->
@@ -290,7 +290,7 @@ function hasFacts(task: TripTask): boolean {
               v-if="today"
               :day="openDueDay(task)"
               :today="today"
-              :testid="`trip-todo-due-${task.body}`"
+              :testid="`trip-task-due-${task.body}`"
             />
             <TaskItemChip
               v-if="task.item"
@@ -300,7 +300,7 @@ function hasFacts(task: TripTask): boolean {
             <AssigneeSeat
               v-if="assignable && !readonly"
               :avatar="assigneeOf(task)"
-              :data-testid="`trip-todo-assign-${task.body}`"
+              :data-testid="`trip-task-assign-${task.body}`"
               @assign="emit('assign', task)"
             />
             <UserAvatar
@@ -308,12 +308,12 @@ function hasFacts(task: TripTask): boolean {
               variant="assignee"
               :name="nameOf?.(task.assignee_user_id)"
               :seed="task.assignee_user_id"
-              :data-testid="`trip-todo-assignee-${task.body}`"
+              :data-testid="`trip-task-assignee-${task.body}`"
             />
             <RemoveButton
               v-if="!task.item && !readonly"
               :label="t('tripTasks.remove')"
-              :data-testid="`trip-todo-remove-${task.body}`"
+              :data-testid="`trip-task-remove-${task.body}`"
               @click="emit('remove', task)"
             />
           </span>
@@ -328,7 +328,7 @@ function hasFacts(task: TripTask): boolean {
         v-if="!unfolded"
         :label="t('tripTasks.resolved', { n: resolved.length })"
         :open="showResolved"
-        testid="trip-todos-resolved"
+        testid="trip-tasks-resolved"
         @toggle="showResolved = !showResolved"
       />
       <template v-if="showResolved || unfolded">
@@ -340,15 +340,15 @@ function hasFacts(task: TripTask): boolean {
           done
           :checked="true"
           :tick-disabled="readonly"
-          :facts-testid="`trip-todo-facts-${task.body}`"
-          :data-testid="`trip-todo-${task.body}`"
+          :facts-testid="`trip-task-facts-${task.body}`"
+          :data-testid="`trip-task-${task.body}`"
           @tick="emit('toggle', task)"
         >
           <IonLabel>
             <button
               type="button"
               class="body row-name"
-              :data-testid="`trip-todo-open-${task.body}`"
+              :data-testid="`trip-task-open-${task.body}`"
               @click="emit('open', task)"
             >
               {{ task.body }}
@@ -360,7 +360,7 @@ function hasFacts(task: TripTask): boolean {
               :item="task.item"
               :to="tripItemPath(tripId, task.item.id)"
             />
-            <span v-if="tagOf?.(task)" class="tag" :data-testid="`trip-todo-tag-${task.body}`">{{
+            <span v-if="tagOf?.(task)" class="tag" :data-testid="`trip-task-tag-${task.body}`">{{
               tagOf(task)
             }}</span>
           </template>
@@ -374,7 +374,7 @@ function hasFacts(task: TripTask): boolean {
               variant="assignee"
               :name="nameOf?.(task.assignee_user_id)"
               :seed="task.assignee_user_id"
-              :data-testid="`trip-todo-assignee-${task.body}`"
+              :data-testid="`trip-task-assignee-${task.body}`"
             />
             <span v-else slot="end" class="task-end">
               <TaskItemChip
@@ -387,12 +387,12 @@ function hasFacts(task: TripTask): boolean {
                 variant="assignee"
                 :name="nameOf?.(task.assignee_user_id)"
                 :seed="task.assignee_user_id"
-                :data-testid="`trip-todo-assignee-${task.body}`"
+                :data-testid="`trip-task-assignee-${task.body}`"
               />
               <RemoveButton
                 v-if="!task.item && !readonly"
                 :label="t('tripTasks.remove')"
-                :data-testid="`trip-todo-remove-${task.body}`"
+                :data-testid="`trip-task-remove-${task.body}`"
                 @click="emit('remove', task)"
               />
             </span>

@@ -58,27 +58,27 @@ const openTotal = computed(() => groups.value.reduce((sum, g) => sum + g.progres
     <SectionHead
       :title="t('dashboard.tripTasks')"
       :count="openTotal"
-      data-testid="dashboard-trip-todos-head"
+      data-testid="dashboard-trip-tasks-head"
     />
-    <div class="jp-card tasks-card" data-testid="dashboard-trip-todos">
+    <div class="jp-card tasks-card" data-testid="dashboard-trip-tasks">
       <div
         v-for="group in groups"
         :key="group.trip.id"
         class="task-group"
-        :data-testid="`trip-todos-${group.trip.name}`"
+        :data-testid="`trip-tasks-${group.trip.name}`"
       >
         <!-- The block's head is the way into the trip; a task's chip is the
              way into its row. Two links, never one inside the other. -->
         <RouterLink
           class="group-head"
           :to="tripOpenPath(group.trip.id)"
-          :data-testid="`trip-todos-open-${group.trip.name}`"
+          :data-testid="`trip-tasks-open-${group.trip.name}`"
         >
           <span class="trip-name">{{ group.trip.name }}</span>
           <span
             class="status"
             :class="{ done: group.status === 'allDone' }"
-            :data-testid="`trip-todos-status-${group.trip.name}`"
+            :data-testid="`trip-tasks-status-${group.trip.name}`"
           >
             {{
               group.status === 'allDone'
@@ -94,7 +94,7 @@ const openTotal = computed(() => groups.value.reduce((sum, g) => sum + g.progres
           <li
             v-for="task in group.open"
             :key="task.id"
-            :data-testid="`dashboard-trip-todo-${task.body}`"
+            :data-testid="`dashboard-trip-task-${task.body}`"
           >
             <span class="body">{{ task.body }}</span>
             <TaskItemChip
@@ -105,7 +105,7 @@ const openTotal = computed(() => groups.value.reduce((sum, g) => sum + g.progres
             <span
               v-else-if="nameFrom(identityStore.directory, task.assignee_user_id)"
               class="who"
-              :data-testid="`dashboard-trip-todo-assignee-${task.body}`"
+              :data-testid="`dashboard-trip-task-assignee-${task.body}`"
             >
               · {{ nameFrom(identityStore.directory, task.assignee_user_id) }}
             </span>

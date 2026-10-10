@@ -18,11 +18,11 @@ describe('InlineHint', () => {
 
   it('falls through data-testid and class to its one root element', () => {
     const wrapper = mount(InlineHint, {
-      attrs: { 'data-testid': 'trip-todo-empty', class: 'hint-wide' },
+      attrs: { 'data-testid': 'trip-task-empty', class: 'hint-wide' },
       slots: { default: 'Alles erledigt' },
     })
     const p = wrapper.get('p')
-    expect(p.attributes('data-testid')).toBe('trip-todo-empty')
+    expect(p.attributes('data-testid')).toBe('trip-task-empty')
     expect(p.classes()).toContain('hint-wide')
   })
 })

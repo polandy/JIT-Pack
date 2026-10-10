@@ -32,7 +32,7 @@ const PART_OF_M25 =
 const NOT_TRIP_PARTITION: Record<string, string> = {
   'src/views/dashboard/DashboardTasksBlock.vue':
     'a block of M1’s hero, not a screen: M1 loads and follows every active trip’s partition itself (`ensureTripData`), and the block asks `tripDataLoaded` before it says nothing is left',
-  'src/views/trips/excursion/ExcursionItemSheet.vue':
+  'src/views/trips/excursion/ExcursionLineSheet.vue':
     'a part of M27, rendered only by `TripExcursionPage`, which loads the partition for it',
   'src/views/trips/packing/PackingGroupList.vue':
     'M4’s list body, rendered by `PackingListPage` and `TripExcursionPage`, each of which loads the partition for it',

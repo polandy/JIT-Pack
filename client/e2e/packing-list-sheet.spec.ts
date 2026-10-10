@@ -596,9 +596,9 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
 
     await page.getByTestId('m4-row-Kamera').click()
     await expect(page.getByTestId('m5-sheet')).toBeVisible()
-    await page.getByTestId('m5-todo-input').locator('input').fill(PREP)
-    await page.getByTestId('m5-todo-add').click()
-    await expect(page.getByTestId(`m5-todo-${PREP}`)).toBeVisible()
+    await page.getByTestId('m5-task-input').locator('input').fill(PREP)
+    await page.getByTestId('m5-task-add').click()
+    await expect(page.getByTestId(`m5-task-${PREP}`)).toBeVisible()
     await page.getByTestId('m5-close').click()
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 
@@ -615,7 +615,7 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
 
     await visible(page).getByTestId('m4-row-Kamera').click()
     await expect(page.getByTestId('m5-sheet')).toBeVisible()
-    await page.getByTestId(`m5-todo-${PREP}`).click()
+    await page.getByTestId(`m5-task-${PREP}`).click()
     await page.getByTestId('m5-close').click()
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 
@@ -640,15 +640,15 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
     await createTripViaWizard(page, M4_TRIP)
     await quickAddRows(page, ['Kamera'])
     await page.getByTestId('m4-row-Kamera').click()
-    await page.getByTestId('m5-todo-input').locator('input').fill(PREP)
-    await page.getByTestId('m5-todo-add').click()
-    await expect(page.getByTestId(`m5-todo-${PREP}`)).toBeVisible()
+    await page.getByTestId('m5-task-input').locator('input').fill(PREP)
+    await page.getByTestId('m5-task-add').click()
+    await expect(page.getByTestId(`m5-task-${PREP}`)).toBeVisible()
     await page.getByTestId('m5-close').click()
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 
     // FR-7.6: the row's preparation is ticked in the trip's one task section.
     const tasks = await openTripTasks(page)
-    await tasks.getByTestId(`trip-todo-${PREP}`).locator('ion-checkbox').click()
+    await tasks.getByTestId(`trip-task-${PREP}`).locator('ion-checkbox').click()
     await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toHaveCount(0)
 
     const toast = page.locator('ion-toast.pack-toast')

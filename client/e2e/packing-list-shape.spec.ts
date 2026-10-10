@@ -891,7 +891,7 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
   }) => {
     await createTripViaWizard(page, M4_TRIP)
     const card = visible(page).getByTestId('m4-progress-card')
-    const tasks = visible(page).getByTestId('m4-trip-todos')
+    const tasks = visible(page).getByTestId('m4-trip-tasks')
     await expect(card).toBeVisible()
     await expect(tasks).toBeVisible()
 

@@ -112,7 +112,7 @@
   * ***nicht mehr dabei · Herausnehmen*** on a packed line of somebody who no longer goes (FR-31.5); the action removes
     the line with an undo.
 
-  **A tap on the row opens M5's sheet for the line** (`ExcursionItemSheet`, handle `m27-line-sheet`) — on the route as
+  **A tap on the row opens M5's sheet for the line** (`ExcursionLineSheet`, handle `m27-line-sheet`) — on the route as
   M5's is, `?line=<id>` (`overlayQuery`), so a deep link and a reload open it too; on a desktop width (≥ 900 px) it is
   M5's **side panel** beside the list (`m27-line-panel`, G-9). Unlike M5's `?item=` the query is **pushed**, so the
   browser's back removes it and closes the sheet on the same page; ✕ takes that same step back. Laid out and

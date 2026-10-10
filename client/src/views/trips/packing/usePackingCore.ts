@@ -18,7 +18,7 @@ import { pickAssignee as pickAssigneeFrom } from '@/composables/shared/pickAssig
 import { isPackingClosed } from '@/domain/shared/tripPhase'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import type { TripItem, TripParticipant } from '@/types/domain'
+import type { TripItem, TripMemberProfile } from '@/types/domain'
 
 import { actUndoably as actUndoablyOn, type RowPort } from './rowPort'
 
@@ -41,7 +41,7 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
   // --- Identity, for FR-25.19/25.20 ---------------------------------------
   const {
     myUserId,
-    participants,
+    memberProfiles,
     nameOf,
     load: loadIdentity,
   } = useTripIdentity(tripId, orchestrator.identity)
@@ -100,7 +100,7 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
    */
   const assignableMembers = computed(() => {
     const members = new Set(tripStore.getMembers(tripId).map((m) => m.user_id))
-    return participants.value.filter(
+    return memberProfiles.value.filter(
       (person) => members.has(person.user_id) && person.user_id !== myUserId.value,
     )
   })
@@ -113,7 +113,7 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
    */
   const ownTaskAssignees = computed(() => {
     const members = new Set(tripStore.getMembers(tripId).map((m) => m.user_id))
-    return participants.value.filter((person) => members.has(person.user_id))
+    return memberProfiles.value.filter((person) => members.has(person.user_id))
   })
 
   /**
@@ -125,7 +125,7 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
   async function pickAssignee(
     header: string,
     current: string | null,
-    people: readonly TripParticipant[] = assignableMembers.value,
+    people: readonly TripMemberProfile[] = assignableMembers.value,
   ): Promise<string | null | undefined> {
     return pickAssigneeFrom(header, current, people)
   }
@@ -197,7 +197,7 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
     rowsLoaded,
     ensureTripRows,
     myUserId,
-    participants,
+    memberProfiles,
     nameOf,
     loadIdentity,
     closingPass,

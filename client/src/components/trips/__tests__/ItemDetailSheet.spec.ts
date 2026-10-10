@@ -98,9 +98,9 @@ function seedMembers(tripStore: ReturnType<typeof useTripStore>, userIds: string
   )
 }
 
-function mountSheet(participants: typeof MEMBERS = [], currentUserId: string | null = 'u-alice') {
+function mountSheet(memberProfiles: typeof MEMBERS = [], currentUserId: string | null = 'u-alice') {
   return mount(ItemDetailSheet, {
-    props: { tripId: 't1', itemId: 'ti1', participants, currentUserId },
+    props: { tripId: 't1', itemId: 'ti1', memberProfiles, currentUserId },
     global: { provide: { [ORCHESTRATOR]: orchestratorFake } },
   })
 }
@@ -358,7 +358,7 @@ describe('M5 respects the G-3 lock', () => {
       props: {
         tripId: 't1',
         itemId: 'ti1',
-        participants: [
+        memberProfiles: [
           { user_id: 'user-sarah', display_name: 'Sarah', avatar_url: null, role: 'editor' },
         ],
       },
@@ -382,7 +382,7 @@ describe('M5 respects the G-3 lock', () => {
     const wrapper = mountSheet()
 
     expect(wrapper.find('[data-testid="m5-skip"]').exists()).toBe(false)
-    expect(wrapper.find('[data-testid="m5-todo-add"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="m5-task-add"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="m5-note-add"]').exists()).toBe(false)
   })
 
@@ -508,7 +508,7 @@ describe('M5 FR-25.19 assignment', () => {
   it("offers the trip's members only, never everyone the instance knows", async () => {
     const tripStore = seedTrip('active')
     seedMembers(tripStore, ['u-alice', 'u-bob'])
-    // `participants` carries the whole directory, because it also has to
+    // `memberProfiles` carries the whole directory, because it also has to
     // name whoever packed a row. Cara is on the instance and not on this
     // trip: handing her a row would notify somebody who cannot open it
     // (P-3 scopes the partition to its members).
@@ -879,7 +879,7 @@ describe('M5 preparation — the tick stands at the end of the line', () => {
     const tripStore = seedTrip('active')
     seedOpenTask(tripStore)
 
-    const tick = mountSheet().get('[data-testid="m5-todo-impraegnieren"]')
+    const tick = mountSheet().get('[data-testid="m5-task-impraegnieren"]')
     const line = tick.element.parentElement
 
     expect(line?.lastElementChild).toBe(tick.element)

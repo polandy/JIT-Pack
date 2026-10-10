@@ -56,7 +56,7 @@ export const tasksDe: Record<keyof typeof tasksEn, string> = {
     'Eine Aufgabe auf „Vor der Reise“ geschoben | {n} Aufgaben auf „Vor der Reise“ geschoben',
   'tasks.bulkMovedToDuring':
     'Eine Aufgabe auf „Während der Reise“ geschoben | {n} Aufgaben auf „Während der Reise“ geschoben',
-  'tasks.bulkNothingToDo': 'Nichts zu ändern — die Auswahl ist schon dort.',
+  'tasks.bulkNothingToChange': 'Nichts zu ändern — die Auswahl ist schon dort.',
   'tasks.movedToast': '„{body}" verschoben',
   'tasks.whilePacking': 'Beim Packen zu erledigen',
   // FR-7.11 — das Fälligkeitsdatum einer Aufgabe: nur ein Tag, keine Zeit.

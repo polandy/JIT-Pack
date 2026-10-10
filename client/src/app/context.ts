@@ -18,7 +18,7 @@ import type {
   Container,
   DestinationProfile,
   Excursion,
-  ExcursionItem,
+  ExcursionLine,
   ExcursionTrack,
   ExcursionTraveler,
   GeneratedPosition,
@@ -74,7 +74,7 @@ export interface TripReads {
   /** FR-31: a trip's excursions, their participant rows, their lines and their tracks. */
   getExcursions(tripId: string): Excursion[]
   getExcursionTravelers(tripId: string): ExcursionTraveler[]
-  getExcursionItems(tripId: string, excursionId?: string): ExcursionItem[]
+  getExcursionItems(tripId: string, excursionId?: string): ExcursionLine[]
   getExcursionTracks(tripId: string, excursionId?: string): ExcursionTrack[]
 }
 

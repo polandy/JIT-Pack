@@ -5,7 +5,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { createExcursionShoppingSource } from '../excursionShoppingSource'
-import type { Excursion, ExcursionItem, Traveler } from '@/types/domain'
+import type { Excursion, ExcursionLine, Traveler } from '@/types/domain'
 
 const excursion: Excursion = {
   id: 'ex-1',
@@ -17,7 +17,7 @@ const excursion: Excursion = {
 }
 const sia: Traveler = { id: 'tr-sia', trip_id: 't', name: 'Sia', linked_user_id: null }
 
-function line(id: string, extra: Partial<ExcursionItem> = {}): ExcursionItem {
+function line(id: string, extra: Partial<ExcursionLine> = {}): ExcursionLine {
   return {
     id,
     trip_id: 't',
@@ -38,7 +38,7 @@ function line(id: string, extra: Partial<ExcursionItem> = {}): ExcursionItem {
   }
 }
 
-function source(lines: ExcursionItem[]) {
+function source(lines: ExcursionLine[]) {
   const markBought = vi.fn()
   const placeLineOnShopping = vi.fn()
   const src = createExcursionShoppingSource(

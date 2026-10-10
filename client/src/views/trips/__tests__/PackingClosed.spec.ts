@@ -715,7 +715,7 @@ describe('M4 — the task sheet from the window (FR-7.11, FR-7.12)', () => {
 
     const page = mountPage()
     await flushPromises()
-    await page.get('[data-testid="trip-todo-open-Salbe holen"]').trigger('click')
+    await page.get('[data-testid="trip-task-open-Salbe holen"]').trigger('click')
     await flushPromises()
     const sheet = page.findComponent({ name: 'TripTaskSheet' })
     expect(sheet.props('beforeLocked')).toBe(false)
@@ -735,7 +735,7 @@ describe('M4 — the task sheet from the window (FR-7.11, FR-7.12)', () => {
 
     const page = mountPage()
     await flushPromises()
-    await page.get('[data-testid="trip-todo-open-Salbe holen"]').trigger('click')
+    await page.get('[data-testid="trip-task-open-Salbe holen"]').trigger('click')
     await flushPromises()
     expect(page.findComponent({ name: 'TripTaskSheet' }).props('beforeLocked')).toBe(true)
   })

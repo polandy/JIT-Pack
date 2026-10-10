@@ -14,12 +14,12 @@ import { actionSheetController } from '@ionic/vue'
 import { personOutline, removeCircleOutline } from 'ionicons/icons'
 
 import { t } from '@/i18n'
-import type { TripParticipant } from '@/types/domain'
+import type { TripMemberProfile } from '@/types/domain'
 
 export async function pickAssignee(
   header: string,
   current: string | null,
-  people: readonly TripParticipant[],
+  people: readonly TripMemberProfile[],
 ): Promise<string | null | undefined> {
   let picked: string | null | undefined
   const sheet = await actionSheetController.create({

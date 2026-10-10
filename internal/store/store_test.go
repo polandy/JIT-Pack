@@ -289,9 +289,9 @@ func TestApplyMutation_CommentsTable_InsertAndPull(t *testing.T) {
 		HLC:    sync.HLC("0000000001000-0000-aaaaaaaa"),
 	})
 
-	// Insert a prep todo (task-type comment)
+	// Insert a prep task (task-type comment)
 	m := sync.Mutation{
-		MutationID: "m1", Op: sync.OpInsert, Table: "comments", ID: "todo-1",
+		MutationID: "m1", Op: sync.OpInsert, Table: "comments", ID: "prep-task-1",
 		Fields: map[string]any{
 			"trip_id": testTrip, "trip_item_id": "item-1", "author_id": testUser,
 			"body": "Charge battery", "is_task": 1, "task_state": "open",
@@ -311,28 +311,28 @@ func TestApplyMutation_CommentsTable_InsertAndPull(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Pull: %v", err)
 	}
-	var foundTodo bool
+	var foundTask bool
 	for _, c := range page.Changes {
-		if c.Table == "comments" && c.ID == "todo-1" {
-			foundTodo = true
+		if c.Table == "comments" && c.ID == "prep-task-1" {
+			foundTask = true
 			if c.Row["body"] != "Charge battery" {
-				t.Errorf("todo body = %v, want 'Charge battery'", c.Row["body"])
+				t.Errorf("task body = %v, want 'Charge battery'", c.Row["body"])
 			}
 		}
 	}
-	if !foundTodo {
-		t.Error("todo not found in pull response")
+	if !foundTask {
+		t.Error("task not found in pull response")
 	}
 }
 
-// FR-7.5: a trip todo's assignment is a column the trip partition accepts
+// FR-7.5: an own task's assignment is a column the trip partition accepts
 // from the client and serves back, like trip_items.packer_user_id.
-func TestApplyMutation_TripTodoAssignee_RoundTrips(t *testing.T) {
+func TestApplyMutation_OwnTaskAssignee_RoundTrips(t *testing.T) {
 	s := openTestStore(t)
 	ctx := context.Background()
 	muts := []sync.Mutation{
 		{
-			MutationID: "m1", Op: sync.OpInsert, Table: TableComments, ID: "trip-todo-1",
+			MutationID: "m1", Op: sync.OpInsert, Table: TableComments, ID: "own-task-1",
 			Fields: map[string]any{
 				"trip_id": testTrip, "trip_item_id": nil, "author_id": testUser,
 				"body": "Pflanzen giessen", "is_task": 1, "task_state": "open",
@@ -340,7 +340,7 @@ func TestApplyMutation_TripTodoAssignee_RoundTrips(t *testing.T) {
 			HLC: sync.HLC("0000000001000-0000-aaaaaaaa"),
 		},
 		{
-			MutationID: "m2", Op: sync.OpUpsert, Table: TableComments, ID: "trip-todo-1",
+			MutationID: "m2", Op: sync.OpUpsert, Table: TableComments, ID: "own-task-1",
 			Fields: map[string]any{"assignee_user_id": testUser},
 			HLC:    sync.HLC("0000000002000-0000-aaaaaaaa"),
 		},
@@ -354,7 +354,7 @@ func TestApplyMutation_TripTodoAssignee_RoundTrips(t *testing.T) {
 			t.Fatalf("%s outcome = %q, want applied", m.MutationID, res.Outcome)
 		}
 	}
-	body, err := s.CommentBody(ctx, "trip-todo-1")
+	body, err := s.CommentBody(ctx, "own-task-1")
 	if err != nil || body != "Pflanzen giessen" {
 		t.Fatalf("CommentBody = %q, %v; want the task's words", body, err)
 	}
@@ -365,7 +365,7 @@ func TestApplyMutation_TripTodoAssignee_RoundTrips(t *testing.T) {
 	}
 	var got any
 	for _, c := range page.Changes {
-		if c.Table == TableComments && c.ID == "trip-todo-1" {
+		if c.Table == TableComments && c.ID == "own-task-1" {
 			got = c.Row["assignee_user_id"]
 		}
 	}
@@ -374,14 +374,14 @@ func TestApplyMutation_TripTodoAssignee_RoundTrips(t *testing.T) {
 	}
 }
 
-// FR-7.4: a trip todo is a task comment with no row. The schema always
+// FR-7.4: an own task is a task comment with no row. The schema always
 // allowed it; this pins that the trip partition accepts and serves it with
 // the anchor still null, since a null anchor is what tells it from FR-7.3.
-func TestApplyMutation_TripTodo_WithoutItemRoundTrips(t *testing.T) {
+func TestApplyMutation_OwnTask_WithoutItemRoundTrips(t *testing.T) {
 	s := openTestStore(t)
 	ctx := context.Background()
 	m := sync.Mutation{
-		MutationID: "m1", Op: sync.OpInsert, Table: TableComments, ID: "trip-todo-1",
+		MutationID: "m1", Op: sync.OpInsert, Table: TableComments, ID: "own-task-1",
 		Fields: map[string]any{
 			"trip_id": testTrip, "trip_item_id": nil, "author_id": testUser,
 			"body": "Pflanzen giessen", "is_task": 1, "task_state": "open",
@@ -401,7 +401,7 @@ func TestApplyMutation_TripTodo_WithoutItemRoundTrips(t *testing.T) {
 		t.Fatalf("Pull: %v", err)
 	}
 	for _, c := range page.Changes {
-		if c.Table != TableComments || c.ID != "trip-todo-1" {
+		if c.Table != TableComments || c.ID != "own-task-1" {
 			continue
 		}
 		if c.Row["trip_item_id"] != nil {
@@ -412,7 +412,7 @@ func TestApplyMutation_TripTodo_WithoutItemRoundTrips(t *testing.T) {
 		}
 		return
 	}
-	t.Fatal("trip todo not found in pull response")
+	t.Fatal("own task not found in pull response")
 }
 
 func TestApplyMutation_TravelersTable(t *testing.T) {

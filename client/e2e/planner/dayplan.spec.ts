@@ -419,10 +419,10 @@ test.describe('M29 day plan — the ＋ opens the day’s sheet (FR-21.24) @loca
     })
     await openTasks(page, 'before')
     const composer = await openListComposer(page, 'm25')
-    await fillIonic(composer.getByTestId('trip-todo-input'), 'Briefkasten leeren')
+    await fillIonic(composer.getByTestId('trip-task-input'), 'Briefkasten leeren')
     await composer.getByTestId('due-chip-today').click()
-    await composer.getByTestId('trip-todo-input').locator('input').press('Enter')
-    await expect(visiblePage(page).getByTestId('trip-todo-due-Briefkasten leeren')).toBeVisible()
+    await composer.getByTestId('trip-task-input').locator('input').press('Enter')
+    await expect(visiblePage(page).getByTestId('trip-task-due-Briefkasten leeren')).toBeVisible()
     await openMeals(page)
     await addMeal(page, {
       day: TODAY,

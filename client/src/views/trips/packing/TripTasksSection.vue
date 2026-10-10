@@ -57,11 +57,11 @@ defineExpose({ scrollIntoView })
     ref="root"
     class="tasks-section jp-card"
     :class="{ done: state === 'allDone' }"
-    data-testid="m4-trip-todos"
+    data-testid="m4-trip-tasks"
   >
     <button
       class="tasks-header"
-      data-testid="m4-trip-todos-toggle"
+      data-testid="m4-trip-tasks-toggle"
       :aria-expanded="unfolded ? 'true' : 'false'"
       @click="fold = !unfolded"
     >
@@ -69,7 +69,7 @@ defineExpose({ scrollIntoView })
       <span>
         {{ t('tasks.whilePacking') }}
         <template v-if="line">
-          · <span data-testid="m4-trip-todos-status">{{ line }}</span>
+          · <span data-testid="m4-trip-tasks-status">{{ line }}</span>
         </template>
       </span>
       <IonIcon :icon="chevronDownOutline" class="caret" :class="{ open: unfolded }" />
@@ -99,7 +99,7 @@ defineExpose({ scrollIntoView })
     <RouterLink
       class="tasks-all"
       :to="tripSubPath(tripId, 'tasks')"
-      data-testid="m4-trip-todos-all"
+      data-testid="m4-trip-tasks-all"
     >
       {{ t('tasks.openAll') }}
       <IonIcon :icon="chevronForwardOutline" />

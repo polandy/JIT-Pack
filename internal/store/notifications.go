@@ -261,7 +261,7 @@ func (s *Store) TripItemInfo(ctx context.Context, itemID string) (name, packerUs
 }
 
 // CommentBody returns a comment's text, for the notification an FR-7.5
-// assignment of a trip todo earns.
+// assignment of an own task earns.
 func (s *Store) CommentBody(ctx context.Context, commentID string) (string, error) {
 	var body string
 	if err := s.db.QueryRowContext(ctx,

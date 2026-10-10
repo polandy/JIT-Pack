@@ -14,8 +14,8 @@ import { generateTripItems } from './instantiate'
 import { stateFor, unitsOf, type PackUnits } from './packState'
 import type {
   CategorisedMasterItem,
-  ExcursionItem,
-  ExcursionItemMode,
+  ExcursionLine,
+  ExcursionLineMode,
   ExcursionTraveler,
   MasterItem,
   Template,
@@ -67,7 +67,7 @@ export interface DraftLine {
   category_name: string | null
   assigned_traveler_id: string | null
   quantity: number
-  mode: ExcursionItemMode
+  mode: ExcursionLineMode
   for_all_participants: boolean
   /** The master item's own fields, for a suitcase row the line has to create. */
   weight_grams: number | null
@@ -204,7 +204,7 @@ export interface ParticipantChange {
   /** Lines of every *für alle* set for somebody who joins. */
   add: DraftLine[]
   /** Open lines of somebody who leaves — nothing of theirs is in the rucksack yet. */
-  remove: ExcursionItem[]
+  remove: ExcursionLine[]
 }
 
 /**
@@ -220,7 +220,7 @@ export interface ParticipantChange {
  * they never grow for somebody new.
  */
 export function planParticipantChange(
-  lines: readonly ExcursionItem[],
+  lines: readonly ExcursionLine[],
   before: readonly Traveler[],
   after: readonly Traveler[],
 ): ParticipantChange {
@@ -236,7 +236,7 @@ export function planParticipantChange(
       l.packed_count <= 0,
   )
 
-  const sets = new Map<string, ExcursionItem[]>()
+  const sets = new Map<string, ExcursionLine[]>()
   for (const line of lines) {
     if (!line.for_all_participants) continue
     const key = setKey(line)
@@ -270,14 +270,14 @@ export function planParticipantChange(
 }
 
 /** The key that makes lines one *für alle* set, or one FR-25.1-style cluster. */
-function setKey(line: Pick<ExcursionItem, 'source_item_id' | 'name'>): string {
+function setKey(line: Pick<ExcursionLine, 'source_item_id' | 'name'>): string {
   return line.source_item_id ?? `name:${normalizeName(line.name)}`
 }
 
 // --- Reading the list (FR-31.6) ---
 
 /** The units a set of lines contributes — skipped lines none (FR-25.22). */
-export function sumUnits(lines: readonly ExcursionItem[]): PackUnits {
+export function sumUnits(lines: readonly ExcursionLine[]): PackUnits {
   return lines.reduce(
     (acc, l) => {
       const u = unitsOf(l)
@@ -291,7 +291,7 @@ export function sumUnits(lines: readonly ExcursionItem[]): PackUnits {
  * Whether a line is somebody's who no longer goes (FR-31.5): kept because it
  * is in the rucksack, and marked so it can be taken out again.
  */
-export function isLeftBehind(line: ExcursionItem, participants: readonly Traveler[]): boolean {
+export function isLeftBehind(line: ExcursionLine, participants: readonly Traveler[]): boolean {
   return (
     line.assigned_traveler_id !== null &&
     !participants.some((p) => p.id === line.assigned_traveler_id)
@@ -299,7 +299,7 @@ export function isLeftBehind(line: ExcursionItem, participants: readonly Travele
 }
 
 /** Still to buy on the spot: a vor-Ort line nobody has bought or decided against. */
-export function isOpenPurchase(line: ExcursionItem): boolean {
+export function isOpenPurchase(line: ExcursionLine): boolean {
   return (
     line.mode === ITEM_MODE_BUY_LOCAL && line.bought_at === null && line.state !== STATE_SKIPPED
   )
@@ -319,7 +319,7 @@ export interface GroupPositionDraft {
   itemId: string | null
   quantity: number
   assignment: TemplateAssignment
-  default_mode: ExcursionItemMode
+  default_mode: ExcursionLineMode
 }
 
 /** The whole write of *Als Gruppe speichern*, ordered: master items, then positions. */
@@ -339,7 +339,7 @@ export interface GroupFromExcursion {
  * the same reason it is exact).
  */
 export function planGroupFromExcursion(
-  lines: readonly ExcursionItem[],
+  lines: readonly ExcursionLine[],
   masterItems: readonly MasterItem[],
   /**
    * FR-31.14: whether lines the inventory does not know come along — as new
@@ -387,11 +387,11 @@ export function planGroupFromExcursion(
 /** What changing a thing's *für wen* writes. */
 export interface ForWhomChange {
   /** Open lines of people it is no longer for. */
-  remove: ExcursionItem[]
+  remove: ExcursionLine[]
   /** A line for each person it is newly for, or the one shared line. */
   add: DraftLine[]
   /** Lines that stay, whose *für alle* flag has to follow the new answer. */
-  reflag: Array<{ line: ExcursionItem; forAll: boolean }>
+  reflag: Array<{ line: ExcursionLine; forAll: boolean }>
 }
 
 /**
@@ -402,7 +402,7 @@ export interface ForWhomChange {
  * named people do not.
  */
 export function planForWhom(
-  set: readonly ExcursionItem[],
+  set: readonly ExcursionLine[],
   target: LineFor,
   participants: readonly Traveler[],
 ): ForWhomChange {
@@ -440,6 +440,6 @@ export function planForWhom(
 }
 
 /** Every line of the same thing in one excursion — the set a strip acts on. */
-export function lineSetOf(line: ExcursionItem, lines: readonly ExcursionItem[]): ExcursionItem[] {
+export function lineSetOf(line: ExcursionLine, lines: readonly ExcursionLine[]): ExcursionLine[] {
   return lines.filter((l) => l.excursion_id === line.excursion_id && setKey(l) === setKey(line))
 }

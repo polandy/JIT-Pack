@@ -319,7 +319,7 @@ const bulkPhase = computed(() => {
 /** The batch's acts: written, undone as one, and the mode ends with it (M6's rule). */
 function afterBatch(written: number) {
   selection.end()
-  if (written === 0) void announceAct(t('tasks.bulkNothingToDo'))
+  if (written === 0) void announceAct(t('tasks.bulkNothingToChange'))
 }
 
 function bulkTag(taskTagId: string | null) {

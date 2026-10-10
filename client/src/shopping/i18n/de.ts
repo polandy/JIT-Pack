@@ -73,7 +73,7 @@ export const shoppingDe: Record<keyof typeof shoppingEn, string> = {
   'shopping.bulkAssignTitle': 'Wer kauft einen Eintrag? | Wer kauft {n} Einträge?',
   'shopping.bulkAssigned': 'Ein Eintrag → {who} | {n} Einträge → {who}',
   'shopping.bulkUnassigned': 'Ein Eintrag: niemand zuständig | {n} Einträge: niemand zuständig',
-  'shopping.bulkNothingToDo': 'Nichts zu ändern — die Auswahl trägt diesen Tag schon.',
+  'shopping.bulkNothingToChange': 'Nichts zu ändern — die Auswahl trägt diesen Tag schon.',
   'shopping.bulkRemove': 'Löschen',
   'shopping.bulkRemoved': 'Ein Eintrag entfernt | {n} Einträge entfernt',
   'shopping.dragToMove': '{name} verschieben',

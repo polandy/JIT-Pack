@@ -32,7 +32,7 @@ function mountHeadline(opts: { collapsed?: boolean; loaded?: boolean; search?: s
       taskState: 'open',
       taskLine: null,
       presenceUsers: [],
-      participants: [],
+      memberProfiles: [],
       isDesktop: false,
     },
     slots: opts.search === undefined ? {} : { search: opts.search },
