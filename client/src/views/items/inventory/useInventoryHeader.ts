@@ -7,8 +7,8 @@ import { pricetagsOutline, sparklesOutline, timeOutline } from 'ionicons/icons'
 import { useRouter } from 'vue-router'
 
 import { setHeaderActions, type HeaderAction } from '@/composables/shared/useHeaderActions'
-import { setHeaderSelection } from '@/composables/shared/useHeaderSelection'
 import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
+import { offerSelection } from '@/composables/shared/useRowSelection'
 import { t } from '@/i18n'
 import { readMode } from '@/mode'
 import { PATH } from '@/router/paths'
@@ -20,7 +20,7 @@ import type { InventoryCore } from './useInventoryCore'
 export function useInventoryHeader(core: InventoryCore) {
   const masterStore = useMasterStore()
   const router = useRouter()
-  const { rows, selecting, selected, shownItems, endSelecting } = core
+  const { rows, shownItems } = core
 
   /*
    * Only ⋮ words: a tab root carries nothing before the ⋮ but search, and M9's
@@ -78,27 +78,14 @@ export function useInventoryHeader(core: InventoryCore) {
     return [...manageTags, cleanup, ...activity]
   })
 
-  /**
-   * „Alle N" takes what is *on screen*, filter and search included — which is
-   * what makes the mode worth having: narrow to „Diverses", take all 49, act
-   * once. Pressing it again clears, so the same control undoes itself.
+  /*
+   * G-20: the selection's bar is the app bar's while it lasts. „Alle N" takes
+   * what is *on screen*, filter and search included — which is what makes the
+   * mode worth having: narrow to „Diverses", take all 49, act once. Pressing
+   * it again clears, so the same control undoes itself. No icon: the
+   * selection starts on a row's hold (FR-24.9).
    */
-  function toggleAll() {
-    rows.toggleAll(shownItems.value.map((item) => item.id))
-  }
-
-  // G-20: the selection's bar is the app bar's while it lasts.
-  setHeaderSelection(() =>
-    selecting.value
-      ? {
-          count: selected.value.size,
-          total: shownItems.value.length,
-          testid: 'm9',
-          onExit: endSelecting,
-          onAll: toggleAll,
-        }
-      : null,
-  )
+  offerSelection(rows, { testid: 'm9', keys: () => shownItems.value.map((item) => item.id) })
 
   setHeaderTitle(
     () => t('items.title'),

@@ -59,9 +59,8 @@ import {
   deletionOutlookKey,
 } from '@/lib/deletionLabels'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
-import { setHeaderActions, type HeaderAction } from '@/composables/shared/useHeaderActions'
-import { setHeaderSelection } from '@/composables/shared/useHeaderSelection'
-import { SELECTION_ICON, useRowSelection } from '@/composables/shared/useRowSelection'
+import { setHeaderActions } from '@/composables/shared/useHeaderActions'
+import { offerSelection, useRowSelection } from '@/composables/shared/useRowSelection'
 
 const masterStore = useMasterStore()
 const orchestrator = useOrchestrator()
@@ -275,28 +274,11 @@ const selectedRows = computed(() => rows.value.filter((row) => selected.value.ha
 watch(segment, () => selection.end())
 
 // G-20: the selection's bar is the app bar's while it lasts.
-setHeaderSelection(() =>
-  selecting.value
-    ? {
-        count: selectedRows.value.length,
-        total: rows.value.length,
-        testid: 'm23',
-        onExit: selection.end,
-        onAll: () => selection.toggleAll(rows.value.map((row) => row.id)),
-      }
-    : null,
-)
-
-setHeaderActions(() => {
-  const select: HeaderAction = {
-    id: 'm23-select',
-    icon: SELECTION_ICON,
-    label: t('selection.start'),
-    active: selecting.value,
-    onClick: () => (selecting.value ? selection.end() : selection.start()),
-  }
-  return rows.value.length > 0 || selecting.value ? [select] : []
+const selectIcon = offerSelection(selection, {
+  testid: 'm23',
+  keys: () => rows.value.map((row) => row.id),
 })
+setHeaderActions(() => selectIcon('m23-select', t('selection.start')))
 
 /** A tap on a row does nothing outside the mode; inside it, it picks. */
 function onRowClick(row: RetiredRow) {

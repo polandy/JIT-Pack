@@ -11,8 +11,8 @@
 1102 client/src/components/trips/ItemDetailSheet.vue
 1090 client/src/planner/IdeaDetail.vue
 1081 client/src/planner/DayEntrySheet.vue
-1039 client/src/shopping/ShoppingPage.vue
 1026 client/src/views/trips/PackingListPage.vue
+1017 client/src/shopping/ShoppingPage.vue
 1009 client/src/meals/MealSheetBody.vue
 982 client/src/views/dashboard/DashboardPage.vue
 925 internal/store/tables.go

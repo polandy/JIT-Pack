@@ -12,8 +12,10 @@
  * business; this holds only the keys.
  */
 import { checkmarkDoneOutline } from 'ionicons/icons'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
+import type { HeaderAction } from './useHeaderActions'
+import { setHeaderSelection } from './useHeaderSelection'
 import { useLongPress } from './useLongPress'
 
 /**
@@ -22,7 +24,7 @@ import { useLongPress } from './useLongPress'
  * own, and on M6 and M25 the two would stand one above the other meaning
  * different things (FR-7.14).
  */
-export const SELECTION_ICON = checkmarkDoneOutline
+const SELECTION_ICON = checkmarkDoneOutline
 
 /** `PointerEvent.button` for a mouse's main button, a touch and a pen tip. */
 const PRIMARY_BUTTON = 0
@@ -137,3 +139,52 @@ export function useRowSelection() {
 
 /** The handle a list hands its rows. */
 export type RowSelection = ReturnType<typeof useRowSelection>
+
+/** What a screen tells the app bar about its selection. */
+export interface SelectionOffer {
+  /** The screen's prefix for the bar's test handles, e.g. `m6`. */
+  testid: string
+  /** Every key „Alle" would choose: the rows on screen that may be selected. */
+  keys: () => readonly string[]
+}
+
+/**
+ * offerSelection hands a list's selection to the app bar (G-20): the bar's
+ * count, total, ✕ and „Alle N" while selecting. The count is the chosen keys
+ * among `keys`, so a row taken out from under the selection — bought,
+ * restored, filtered away — stops counting on every screen alike.
+ *
+ * Returns the app bar's icon for entering and leaving the mode, offered
+ * while there is something to select or a selection to end; the screen puts
+ * it into its own `setHeaderActions`, since a page registers its actions once.
+ */
+export function offerSelection(selection: RowSelection, offer: SelectionOffer) {
+  const { selecting, selected } = selection
+  const keys = computed(offer.keys)
+
+  setHeaderSelection(() =>
+    selecting.value
+      ? {
+          count: keys.value.filter((key) => selected.value.has(key)).length,
+          total: keys.value.length,
+          testid: offer.testid,
+          onExit: selection.end,
+          onAll: () => selection.toggleAll(keys.value),
+        }
+      : null,
+  )
+
+  /** `id` is spelled out at the call site, where the testid gate finds it. */
+  return function selectIcon(id: string, label: string): HeaderAction[] {
+    if (keys.value.length === 0 && !selecting.value) return []
+    return [
+      {
+        id,
+        icon: SELECTION_ICON,
+        label,
+        active: selecting.value,
+        onClick: () => (selecting.value ? selection.end() : selection.start()),
+      },
+    ]
+  }
+}

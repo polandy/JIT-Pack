@@ -48,9 +48,8 @@ import ContainerSheet from '@/components/trips/ContainerSheet.vue'
 
 import { useTripScreen } from '@/composables/shared/useTripScreen'
 import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
-import { setHeaderActions, type HeaderAction } from '@/composables/shared/useHeaderActions'
-import { setHeaderSelection } from '@/composables/shared/useHeaderSelection'
-import { SELECTION_ICON, useRowSelection } from '@/composables/shared/useRowSelection'
+import { setHeaderActions } from '@/composables/shared/useHeaderActions'
+import { offerSelection, useRowSelection } from '@/composables/shared/useRowSelection'
 import {
   budgetLevel,
   containerWeight,
@@ -162,28 +161,11 @@ const { selecting, selected } = selection
 const selectedItems = computed(() => unassigned.value.filter((item) => selected.value.has(item.id)))
 
 // G-20: the selection's bar is the app bar's while it lasts.
-setHeaderSelection(() =>
-  selecting.value
-    ? {
-        count: selectedItems.value.length,
-        total: unassigned.value.length,
-        testid: 'm11',
-        onExit: selection.end,
-        onAll: () => selection.toggleAll(unassigned.value.map((item) => item.id)),
-      }
-    : null,
-)
-
-setHeaderActions(() => {
-  const select: HeaderAction = {
-    id: 'm11-select',
-    icon: SELECTION_ICON,
-    label: t('selection.start'),
-    active: selecting.value,
-    onClick: () => (selecting.value ? selection.end() : selection.start()),
-  }
-  return unassigned.value.length > 0 || selecting.value ? [select] : []
+const selectIcon = offerSelection(selection, {
+  testid: 'm11',
+  keys: () => unassigned.value.map((item) => item.id),
 })
+setHeaderActions(() => selectIcon('m11-select', t('selection.start')))
 
 /** A tap: picks while selecting, otherwise opens the picker for that one row. */
 function onRowClick(item: TripItem) {

@@ -55,12 +55,11 @@ import TaskPhaseSection from '@/views/trips/tasks/TaskPhaseSection.vue'
 import TaskTagChooser from '@/views/trips/tasks/TaskTagChooser.vue'
 import TripTaskSheet from '@/views/trips/tasks/TripTaskSheet.vue'
 import TripTodoList from '@/views/trips/tasks/TripTodoList.vue'
-import { setHeaderActions, type HeaderAction } from '@/composables/shared/useHeaderActions'
-import { setHeaderSelection } from '@/composables/shared/useHeaderSelection'
+import { setHeaderActions } from '@/composables/shared/useHeaderActions'
 import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { usePackAnnouncer } from '@/composables/usePackAnnouncer'
-import { SELECTION_ICON, useRowSelection } from '@/composables/shared/useRowSelection'
+import { offerSelection, useRowSelection } from '@/composables/shared/useRowSelection'
 import { useTaskActs } from '@/composables/useTaskActs'
 import { useTripIdentity } from '@/composables/shared/useTripIdentity'
 import { useTripScreen } from '@/composables/shared/useTripScreen'
@@ -284,29 +283,11 @@ const selectedTasks = computed(() =>
   selectable.value.filter((task) => selection.selected.value.has(task.id)),
 )
 
-setHeaderActions(() => {
-  const select: HeaderAction = {
-    id: 'm25-select',
-    icon: SELECTION_ICON,
-    label: t('tasks.select'),
-    active: selection.selecting.value,
-    onClick: () => (selection.selecting.value ? selection.end() : selection.start()),
-  }
-  const offer = selectable.value.length > 0
-  return offer || selection.selecting.value ? [select] : []
+const selectIcon = offerSelection(selection, {
+  testid: 'm25',
+  keys: () => selectable.value.map((task) => task.id),
 })
-
-setHeaderSelection(() =>
-  selection.selecting.value
-    ? {
-        count: selectedTasks.value.length,
-        total: selectable.value.length,
-        testid: 'm25',
-        onExit: () => selection.end(),
-        onAll: () => selection.toggleAll(selectable.value.map((task) => task.id)),
-      }
-    : null,
-)
+setHeaderActions(() => selectIcon('m25-select', t('tasks.select')))
 
 const bulkTagOpen = ref(false)
 const bulkDueOpen = ref(false)
