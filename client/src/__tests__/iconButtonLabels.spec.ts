@@ -57,7 +57,7 @@ function offendersIn(source: string, tag: string, attribute = 'aria-label'): num
  * bar tomorrow is covered without anyone remembering this file.
  */
 function appBarSources(): { path: string; source: string }[] {
-  const header = views.find((v) => v.path.endsWith('components/global/AppHeader.vue'))
+  const header = views.find((v) => v.path.endsWith('components/shell/AppHeader.vue'))
   if (!header) return []
   const start = header.source.indexOf('<IonToolbar')
   const end = header.source.indexOf('</IonToolbar>')
@@ -85,7 +85,7 @@ describe('every icon-only button names itself (UX-13)', () => {
   it('resolves the app bar and what is slotted into it', () => {
     // Without this, an empty bar set makes the tooltip rule vacuous.
     const bar = appBarSources()
-    expect(bar.map(({ path }) => path)).toContain('src/components/global/AppHeader.vue (toolbar)')
+    expect(bar.map(({ path }) => path)).toContain('src/components/shell/AppHeader.vue (toolbar)')
     expect(bar.length).toBeGreaterThan(1)
   })
 

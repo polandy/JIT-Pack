@@ -124,8 +124,8 @@
     Morgen"*), then *Heute*, *Morgen*, *Vor Abreise* (the day before the trip's start, for a task before the trip,
     when that day is later than tomorrow) and *Datum…*, which opens the app's calendar (`DateField`'s bare shape,
     ADR-035). A picked day is written at once, the sheet stays up, and the undo writes the day the task had before.
-  * **Tag** (FR-7.8) — **M6's search-or-create mask** (`TaskTagChooser`, the shape of
-    `ShoppingTagChooser`): a search field *„Tags suchen oder anlegen…"*, the chosen tag as a chip with its ✕ (which
+  * **Tag** (FR-7.8) — **M6's search-or-create mask** (`TaskTagPicker`, the shape of
+    `ShoppingTagPicker`): a search field *„Tags suchen oder anlegen…"*, the chosen tag as a chip with its ✕ (which
     takes it off), the matching tags as chips, a dashed *„… neu anlegen"* chip for a word no tag
     carries, and a summary line — *„Abgelegt unter: X"*, or *„Noch kein Tag — die Aufgabe steht unter „Ohne Tag"."*
     naming the group it stands in (*Aus Packliste* for a preparation). Exactly one: choosing is the act. The batch

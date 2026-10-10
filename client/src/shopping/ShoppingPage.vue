@@ -71,7 +71,7 @@ import { createShoppingActions, ownEntriesSource } from './actions'
 import { canDrop, listInFocus, planDrop, shoppingBoard, type ShoppingSection } from './list'
 import ShoppingListSection, { type AgainState } from './ShoppingListSection.vue'
 import ShoppingRows from './ShoppingRows.vue'
-import ShoppingTagChooser from './ShoppingTagChooser.vue'
+import ShoppingTagPicker from './ShoppingTagPicker.vue'
 import { useShoppingBatch } from './useShoppingBatch'
 import { useShoppingStore } from './store'
 
@@ -830,7 +830,7 @@ setHeaderTitle(
             close-testid="m6-bulk-close"
             @close="bulkSheetOpen = false"
           />
-          <ShoppingTagChooser
+          <ShoppingTagPicker
             :tags="shoppingStore.tagCounts(tripId).map((entry) => entry.tag)"
             :assigned="null"
             :summary="false"
@@ -872,7 +872,7 @@ setHeaderTitle(
           />
         </template>
         <template #tag>
-          <ShoppingTagChooser
+          <ShoppingTagPicker
             v-if="entrySheet"
             :tags="shoppingStore.tagCounts(tripId).map((entry) => entry.tag)"
             :assigned="entrySheet.tag"

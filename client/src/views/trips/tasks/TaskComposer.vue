@@ -35,7 +35,7 @@ import ChoiceChip from '@/components/global/ChoiceChip.vue'
 import DueChips from '@/components/global/DueChips.vue'
 import EntrySheet from '@/components/global/EntrySheet.vue'
 import ListComposer from '@/components/global/ListComposer.vue'
-import TaskTagChooser from '@/views/trips/tasks/TaskTagChooser.vue'
+import TaskTagPicker from '@/views/trips/tasks/TaskTagPicker.vue'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { t } from '@/i18n'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
@@ -255,7 +255,7 @@ defineExpose({ open, expanded, seed })
         />
       </template>
       <template #tag>
-        <TaskTagChooser
+        <TaskTagPicker
           v-if="entry"
           :task-tags="taskTags"
           :chosen="entry.tagId"

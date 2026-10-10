@@ -25,7 +25,7 @@ import {
 
 import { computed } from 'vue'
 
-import TrackLines from '@/components/global/TrackLines.vue'
+import TrackLines from '@/components/global/track/TrackLines.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { trackHueClass } from '@/lib/trackColors'
 import { decodeLine } from '@/domain/shared/track'

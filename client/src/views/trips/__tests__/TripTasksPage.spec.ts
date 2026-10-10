@@ -351,7 +351,7 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
     expect(page.get('[data-testid="m25-group-tag-apo"]').text()).not.toContain('💊')
     await page.get('[data-testid="trip-task-open-Salbe holen"]').trigger('click')
     await flushPromises()
-    expect(page.findComponent({ name: 'TaskTagChooser' }).text()).not.toContain('💊')
+    expect(page.findComponent({ name: 'TaskTagPicker' }).text()).not.toContain('💊')
     expect(page.findComponent({ name: 'ItemMark' }).exists()).toBe(false)
   })
 
@@ -794,7 +794,7 @@ describe('M25 — the tag a task carries (FR-7.8)', () => {
     await page.get('[data-testid="trip-task-open-Salbe holen"]').trigger('click')
     await flushPromises()
     await page
-      .findComponent({ name: 'TaskTagChooser' })
+      .findComponent({ name: 'TaskTagPicker' })
       .findComponent(IonSearchbar)
       .vm.$emit('ionInput', { detail: { value: 'Apotheke' } })
     await flushPromises()

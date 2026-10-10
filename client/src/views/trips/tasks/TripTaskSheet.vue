@@ -29,7 +29,7 @@ import { computed, ref, watch } from 'vue'
 
 import DueChips from '@/components/global/DueChips.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
-import TaskTagChooser from '@/views/trips/tasks/TaskTagChooser.vue'
+import TaskTagPicker from '@/views/trips/tasks/TaskTagPicker.vue'
 import { filedTagOf, type TripTask } from '@/domain/tripTasks'
 import { t } from '@/i18n'
 import type { NameOf } from '@/lib/rowFacts'
@@ -225,7 +225,7 @@ function factLine(key: string, icon: string, text: string | null) {
       />
     </section>
 
-    <TaskTagChooser
+    <TaskTagPicker
       v-if="taskTags"
       :task-tags="taskTags"
       :chosen="chosenTag"

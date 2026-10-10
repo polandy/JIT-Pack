@@ -9,7 +9,7 @@ import { IonIcon, IonModal } from '@ionic/vue'
 import { chevronBack, locateOutline } from 'ionicons/icons'
 import { computed, inject, onBeforeUnmount, ref, watch } from 'vue'
 
-import TrackMap from '@/components/global/TrackMap.vue'
+import TrackMap from '@/components/global/track/TrackMap.vue'
 import { LEG_HUE_CLASS, type MapMark } from '@/lib/trackColors'
 import { LIVE_LOCATION } from '@/composables/shared/useLiveLocation'
 import { defaultSource } from '@/domain/shared/track'

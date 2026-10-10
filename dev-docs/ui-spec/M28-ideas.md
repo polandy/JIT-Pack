@@ -74,7 +74,7 @@
   large (*„Die Datei ist grösser als 5 MB."*) or not sent (*„Der Track ließ sich nicht hochladen. Bist du online?"*)
   toasts and keeps nothing. A new track is chosen. Beside it *Route zeichnen* (`idea-track-draw`) opens the route editor
   empty (below; off without a map). Under the buttons the **track card** (`track-card`, the kernel's
-  `components/global/TrackCard.vue`): a row of chips, one per track with its kind's glyph and colour and its name
+  `components/global/track/TrackCard.vue`): a row of chips, one per track with its kind's glyph and colour and its name
   (`track-tab-<id>`, `aria-pressed` on the chosen one) — a single track's chip is its name; a map 16 : 7 (`track-map`,
   `data-tiles` `on`/`off`/`offline`, `data-source` `swisstopo`/`osm`) carrying every track of the idea, the chosen one
   in full colour with a start and an end dot and arrows along it that show its direction, the others paler, and the

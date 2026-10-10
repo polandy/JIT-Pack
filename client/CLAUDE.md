@@ -78,7 +78,10 @@ pinia and Ionic in `lib/` and `sync/`, Ionic in `app/`). Decide by what the file
   when a module's rules read it (`dayPlanLine.ts` beside `kernel/dayPlanSources.ts`), only the `InjectionKey` here;
 - anything reactive or an Ionic controller → `composables/`, into `composables/shared/` if a module mounts it;
 - a rule handed a collaborator declares the port it consumes (`ImportMutations` in `domain/portableImport.ts`), its
-  option shapes in `types/`, and the caller satisfies it structurally — never `ReturnType<typeof …>` from above.
+  option shapes in `types/`, and the caller satisfies it structurally — never `ReturnType<typeof …>` from above;
+- the frame's own parts (app bar, rail, tab bar, page head, banners, sync indicator) → `components/shell/`, which only
+  `App.vue` and the shell itself import; shared UI a module may mount → `components/global/` (a subsystem in its own
+  subfolder, like `track/`); a component that picks one value is a `…Picker`, one that picks a set a `…Chooser`.
 
 ## The kernel and its feature modules
 

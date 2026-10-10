@@ -54,7 +54,7 @@ import { computed, inject, ref, watch } from 'vue'
 
 import SectionHead from '@/components/global/SectionHead.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
-import TrackCard from '@/components/global/TrackCard.vue'
+import TrackCard from '@/components/global/track/TrackCard.vue'
 import { MAX_TRACKS, orderTracks } from '@/domain/shared/track'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { t } from '@/i18n'

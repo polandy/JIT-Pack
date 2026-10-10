@@ -76,7 +76,7 @@
   visit, and *＋ Tag*. A chip selected files the next entry and stays selected after the add; a second tap on it
   unselects and the chip stays. *＋ Tag* (carrying what was typed in the field), and a tap on an own entry's name, open
   the **entry sheet**, laid out like the packing list's creation sheet (`CreateItemSheet.vue`): head *Neuer Eintrag* /
-  *Eintrag bearbeiten* with the close, a **Name** field, M10's **search-or-create mask** (`ShoppingTagChooser.vue`, the
+  *Eintrag bearbeiten* with the close, a **Name** field, M10's **search-or-create mask** (`ShoppingTagPicker.vue`, the
   shape of `TagChooser.vue`: a search field *„Tags suchen oder anlegen…"*, the chosen tag as a chip with its ✕, the
   matching tags as chips, a dashed *„… neu anlegen"* chip for a name nothing carries — matched case-insensitively, Enter
   chooses or creates — and a summary line) and one button, *Hinzufügen* or *Speichern*, disabled while the name is

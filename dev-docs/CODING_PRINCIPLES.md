@@ -83,7 +83,9 @@ client/src/stores/           pinia stores: the rows a device holds
 client/src/app/              the use cases: action groups the orchestrator and the CLI share — no components, no Ionic
 client/src/composables/      reactive glue: the orchestrator's Vue facade, Ionic controllers, screen-level state;
                              `shared/` holds what a module may mount
-client/src/components/       components; `global/` holds what a module may mount
+client/src/components/       components; `global/` holds what a module may mount (a subsystem in its
+                             own subfolder, e.g. `track/`); `shell/` is the frame's own — only `App.vue`
+                             and the shell import it
 client/src/views/            screens
 ```
 
