@@ -160,13 +160,16 @@ export type BrowseAction<I> =
   | { verb: 'addForAll'; item: I }
   /** FR-25.13h: add or update it with exactly this set of travelers assigned. */
   | { verb: 'assign'; item: I; travelerIds: string[] }
-  /**
-   * `spread` gives the travelers without a row one (FR-25.13g, ADR-036);
-   * `packCarried` and `skipCarried` decide every row (FR-25.13f); `undo` takes back this
-   * run's last verb; `reopen` puts every row back to open, whoever decided it
-   * (FR-25.13i).
-   */
-  | { verb: 'spread' | 'packCarried' | 'skipCarried' | 'undo' | 'reopen'; itemId: string }
+  /** FR-25.13g, ADR-036: give the travelers without a row one. */
+  | { verb: 'spread'; itemId: string }
+  /** FR-25.13f: pack every row. */
+  | { verb: 'packCarried'; itemId: string }
+  /** FR-25.13f: skip every row. */
+  | { verb: 'skipCarried'; itemId: string }
+  /** FR-25.13f: take back this run's last verb on the line. */
+  | { verb: 'undo'; itemId: string }
+  /** FR-25.13i: put every row back to open, whoever decided it. */
+  | { verb: 'reopen'; itemId: string }
 
 /** The fields an add carries over, whichever verb sent it (FR-25.7 defaults). */
 export interface BrowseAddition {
