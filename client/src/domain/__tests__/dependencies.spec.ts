@@ -6,6 +6,8 @@ import {
   skippedVia,
   dependencyCycleError,
   planDependencyBatch,
+  linkEdge,
+  linkedEnd,
   DEPENDENCY_LINK_COMPANION,
   DEPENDENCY_LINK_MAIN,
   DEPENDENCY_SKIP_CYCLE,
@@ -370,6 +372,17 @@ describe('dependencyCycleError', () => {
     expect(
       dependencyCycleError([], { item_id: 'camera', depends_on_item_id: 'camera' }, nameOf),
     ).toEqual({ reason: 'self', names: ['Kamera'] })
+  })
+})
+
+describe('linkEdge / linkedEnd (FR-20.1, read from either end)', () => {
+  it.each([
+    [DEPENDENCY_LINK_MAIN, { item_id: 'battery', depends_on_item_id: 'camera' }],
+    [DEPENDENCY_LINK_COMPANION, { item_id: 'camera', depends_on_item_id: 'battery' }],
+  ] as const)('standing on the battery, picking the camera as %s', (direction, edge) => {
+    expect(linkEdge(direction, 'battery', 'camera')).toEqual(edge)
+    // The far end of what was written is what was picked.
+    expect(linkedEnd(direction, edge)).toBe('camera')
   })
 })
 

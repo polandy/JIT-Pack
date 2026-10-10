@@ -3,7 +3,6 @@
 1493 client/src/components/global/TrackEditor.vue
 1428 client/src/components/global/InventoryBrowseSheet.vue
 1413 client/src/views/templates/TemplateEditorPage.vue
-1301 client/src/views/items/ItemEditorPage.vue
 1200 client/src/views/trips/TripExcursionPage.vue
 1159 client/src/views/trips/TripListPage.vue
 851 client/src/types/domain.ts
@@ -16,6 +15,7 @@
 982 client/src/views/dashboard/DashboardPage.vue
 939 client/src/shopping/ShoppingPage.vue
 925 internal/store/tables.go
+916 client/src/views/items/ItemEditorPage.vue
 908 client/src/domain/portable.ts
 888 internal/store/store.go
 863 client/src/planner/ConnectionSearch.vue
