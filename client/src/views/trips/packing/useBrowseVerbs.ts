@@ -179,6 +179,9 @@ export function useBrowseVerbs<R extends PackableRow>(
           return onUndo(action.itemId)
         case 'reopen':
           return onReopen(action.itemId)
+        default:
+          // A verb added to `BrowseAction` without a route here fails to compile.
+          return action satisfies never
       }
     }
   }
