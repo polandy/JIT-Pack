@@ -2,10 +2,8 @@
  * What M10's two pickers offer, and where each stops offering (UX-14).
  *
  * Both are the same shape — a pool, minus what is already chosen, minus what
- * the query rules out, cut off at a cap — and both lived inline in
- * `ItemEditorPage.vue`, which is one of the three largest views and has no
- * component test. The caps in particular were a bare `8` and a bare `10`
- * decided in different months for the same reason (§4a).
+ * the query rules out, cut off at a cap. Each cap is a named constant for its
+ * own reason (§4a).
  */
 
 /** A row either picker can offer: an id and the name it is matched on. */

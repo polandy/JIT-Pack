@@ -227,6 +227,10 @@ covers the remove branch and says why it stops there).
 * **E2E-M10-31** `local` (FR-20.1) — **implemented** (`item-editor-sections.spec.ts`): a dependency's name is a link.
   From the dependent's *„Depends on"* the main item's M10 renders (its name in the head, the dependent in its
   companions), and from there the companion's name leads back.
+* **E2E-M10-32** `local` (FR-24.1/24.5, G-5) — **implemented** (`item-editor-create.spec.ts`): weight and price typed
+  while creating arrive on the saved item, an edit to each is written when its field is left, and leaving and reopening
+  the item shows the edited values — the reopen is what says the row holds them. Mutation-proved: without the price
+  field's blur write the reopened price is the created one.
 * **E2E-M10-04** `all` (FR-22.1/22.5) — **implemented** (`item-editor-sections.spec.ts`): the reference photo is added,
   replaced and removed, and the one trigger words itself for the state it is in (*Add photo* → *Replace photo*). Two
   things make it more than a screenshot: the two sources differ in **shape**, so the assertion is `naturalWidth` and not
