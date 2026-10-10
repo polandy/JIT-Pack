@@ -85,3 +85,7 @@
   a way there taken from the timetable searches from its own *From*, *To* and departure — not the slot's morning, *To*
   not marked *nearest stop to the start* — and *By hand* holds its stops, times and line; an arrival changed there is
   the slot's. The seed's rule, a walk's start left aside, is `timetable.spec.ts`.
+* **E2E-M27-21** `local` (FR-31.4, FR-31.6, FR-25.13f) — **implemented** (`excursions.spec.ts`): the inventory
+  sheet's *packen* and *nicht einpacken* on two things the excursion does not carry yet say *gepackt* / *nicht
+  einpacken* and add neither line to the open list; once the packed lines are shown, the packed one is there, ticked.
+  That a skip-add creates and raises no suitcase row is `excursions.seam.spec.ts`.

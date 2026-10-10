@@ -24,7 +24,7 @@ import { newId } from '@/lib/ids'
 import type { TrackFiles } from '@/sync/featureModule'
 import { trackSettingsColumns } from '@/sync/rows'
 import type { Excursion, ExcursionItem, ExcursionTrack, TripItem } from '@/types/domain'
-import { ITEM_MODE_BUY_LOCAL } from '@/types/domain'
+import { ITEM_MODE_BUY_LOCAL, STATE_SKIPPED } from '@/types/domain'
 import type { SyncContext } from '../context'
 import {
   isExcursionOnly,
@@ -43,8 +43,10 @@ import {
   type LinkPlan,
   type PlannedLine,
   inventoryItemFor,
+  planBorrowOnly,
   planLinks,
 } from '@/domain/excursionSuitcase'
+import type { BrowseDecision } from '@/domain/browseRows'
 import { beforeIsOver, standingOf } from '@/domain/shared/tripPhase'
 
 /** What creating an excursion did, for the screen's one undo. */
@@ -187,17 +189,31 @@ export function createExcursionActions(
    * writeLines settles where each draft comes from and writes it, with what
    * the suitcase gains for it (FR-31.4). Returns the undo of all of it.
    */
-  function writeLines(tripId: string, excursionId: string, drafts: readonly DraftLine[]) {
-    const plan = planLinks(drafts, tripStore.getItems(tripId), suitcaseOpen(tripId))
+  function writeLines(
+    tripId: string,
+    excursionId: string,
+    drafts: readonly DraftLine[],
+    decided?: BrowseDecision,
+  ) {
+    const tripItems = tripStore.getItems(tripId)
+    const plan =
+      decided === STATE_SKIPPED
+        ? planBorrowOnly(drafts, tripItems)
+        : planLinks(drafts, tripItems, suitcaseOpen(tripId))
     const suitcase = applySuitcase(tripId, plan)
 
     const lineIds: string[] = []
     for (const planned of plan.lines) {
-      const { mutation, id } = mutations.addExcursionItem(tripId, excursionId, {
-        ...planned.draft,
-        trip_item_id: suitcase.tripItemIdOf(planned),
-        not_in_luggage: planned.not_in_luggage,
-      })
+      const { mutation, id } = mutations.addExcursionItem(
+        tripId,
+        excursionId,
+        {
+          ...planned.draft,
+          trip_item_id: suitcase.tripItemIdOf(planned),
+          not_in_luggage: planned.not_in_luggage,
+        },
+        decided,
+      )
       write(mutation)
       lineIds.push(id)
     }
@@ -475,9 +491,18 @@ export function createExcursionActions(
     return writeLines(tripId, excursionId, drafts)
   }
 
-  /** FR-31.4/31.5: lines typed or picked in the composer, linked like a Gruppe's. */
-  function addLines(tripId: string, excursionId: string, drafts: readonly DraftLine[]) {
-    return writeLines(tripId, excursionId, drafts)
+  /**
+   * FR-31.4/31.5: lines typed or picked in the composer, linked like a
+   * Gruppe's. A browse-sheet add with its decision made (FR-25.13f) writes
+   * them packed, or skipped with nothing gained by the suitcase.
+   */
+  function addLines(
+    tripId: string,
+    excursionId: string,
+    drafts: readonly DraftLine[],
+    decided?: BrowseDecision,
+  ) {
+    return writeLines(tripId, excursionId, drafts, decided)
   }
 
   /** FR-31.6: how many of a line are in the rucksack. */

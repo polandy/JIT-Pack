@@ -624,4 +624,37 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
     await row.getByTestId('browse-undo').click()
     await expect(excursionLine(page, 'Stirnlampe')).toBeVisible()
   })
+
+  /**
+   * E2E-M27-21: M4's ✓ and ✕ on a thing the excursion does not carry yet add
+   * its line with the decision made, as M4's sheet adds a row (FR-25.13f) —
+   * neither lands on the open list, and the packed one is there, ticked, once
+   * the packed lines are shown.
+   */
+  test('E2E-M27-21: the inventory sheet adds a free thing packed or skipped, not open', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Stirnlampe', 'Trinkflasche'], 'Sardinien')
+    await openExcursions(page)
+    await createExcursion(page, { name: 'Bootsausflug' })
+
+    await openQuickAdd(page, 'm27-add-fab')
+    await visible(page).getByTestId('quick-add-browse-open').click()
+    const sheet = page.getByTestId('inventory-browse-sheet')
+    const lamp = sheet.locator('[data-testid^="browse-row"]').filter({ hasText: 'Stirnlampe' })
+    await lamp.getByTestId('browse-pack').click()
+    await expect(lamp.getByTestId('browse-packed-now')).toBeVisible()
+    const bottle = sheet.locator('[data-testid^="browse-row"]').filter({ hasText: 'Trinkflasche' })
+    await bottle.getByTestId('browse-skip').click()
+    await expect(bottle.getByTestId('browse-skipped-now')).toBeVisible()
+    await expect(excursionLine(page, 'Stirnlampe')).toHaveCount(0)
+    await expect(excursionLine(page, 'Trinkflasche')).toHaveCount(0)
+
+    await sheet.getByTestId('browse-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    await revealPackedLines(page)
+    await expect(
+      excursionLine(page, 'Stirnlampe').getByTestId('row-check').locator('ion-checkbox'),
+    ).toHaveJSProperty('checked', true)
+  })
 })
