@@ -2,7 +2,6 @@
 export const packingEn = {
   // Packing list (M4).
   'packing.title': 'Packing list',
-  'packing.itemsLeft': '{n} item left | {n} items left',
   // FR-25.2: *done*, not *packed* — a deliberately skipped row is a done one,
   // and since FR-5.10 closes a list by skipping the rest in one act, naming
   // them all “packed” is wrong on the ordinary case rather than the rare one.
@@ -96,7 +95,6 @@ export const packingEn = {
   'row.assignedToNobody': 'nobody',
   'row.luggageOptional': 'Luggage · optional',
   'row.latePackerHint': 'Pack on departure day',
-  'row.flags': 'Flags',
   'row.flagUnusedHint': 'Taken along, never needed',
   'row.flagMissingHint': 'Was needed and was not there',
   'row.saving': 'Saving…',
@@ -116,9 +114,7 @@ export const packingEn = {
   'packing.emptyHint': 'Add the first item with ＋.',
 
   // M4 header line and app-bar cluster (G-12).
-  'packing.progress': '{packed}/{total}',
   'packing.searchPlaceholder': 'Search the packing list…',
-  'packing.closeSearch': 'Close search',
   'packing.foldAll': 'Collapse all groups',
   'packing.unfoldAll': 'Expand all groups',
   'packing.openCount': '{n} open',
@@ -222,7 +218,6 @@ export const packingEn = {
   'container.loadOf': '{weight} of {max}',
   'container.overLimit': 'Over the weight limit',
   'container.imbalance': '{n} % imbalance',
-  'container.carriedBy': 'Carried by {name}',
   'container.new': 'New container',
   'container.namePlaceholder': 'e.g. Left pannier',
   'container.carrier': 'Carried by',

@@ -7,7 +7,9 @@ import { TABLE } from '@/api/tables'
 import { rowFrom } from '@/sync/columns'
 import { newId } from '@/lib/ids'
 import type { Mutation } from '@/api/types'
-import type { ItemDependency, MasterItem, MasterItemOptions } from '@/types/domain'
+import { DEPENDENCY_MODE_REQUIRED } from '@/domain/dependencies'
+import type { MasterItemOptions } from '@/types/creationOptions'
+import type { DependencyMode, ItemDependency, MasterItem } from '@/types/domain'
 import type { MutationContext } from './context'
 
 /** M10's item editor, plus FR-24.3's marker — which `deleteMasterItem` and
@@ -60,13 +62,13 @@ export function createMasterDataMutations({ make }: MutationContext) {
   function addItemDependency(
     itemId: string,
     dependsOnItemId: string,
-    opts: { mode?: 'required' | 'suggested'; quantity?: number | null } = {},
+    opts: { mode?: DependencyMode; quantity?: number | null } = {},
   ): { mutation: Mutation; id: string } {
     const id = newId()
     const mutation = make('insert', TABLE.itemDependencies, id, {
       item_id: itemId,
       depends_on_item_id: dependsOnItemId,
-      mode: opts.mode ?? 'required',
+      mode: opts.mode ?? DEPENDENCY_MODE_REQUIRED,
       quantity: opts.quantity ?? null,
     })
     return { mutation, id }

@@ -62,9 +62,16 @@ import type {
   TripSeries,
   TripTemplateSource,
 } from '@/types/domain'
-import { ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK } from '@/types/domain'
+import {
+  ITEM_MODE_BUY_LOCAL,
+  ITEM_MODE_PACK,
+  STATE_OPEN,
+  TASK_STATE_OPEN,
+  TEMPLATE_KIND_TEMPLATE,
+} from '@/types/domain'
 import { TABLE, type SyncTable } from '@/api/tables'
 import { durationDays } from '@/domain/instantiate'
+import { DEPENDENCY_MODE_REQUIRED } from '@/domain/dependencies'
 import { parseJsonColumn } from './columns'
 import {
   checklistItemRow,
@@ -220,7 +227,7 @@ function rowToTemplate(id: string, row: Record<string, unknown>): Template {
     name: row['name'] as string,
     // Migration 016 defaults pre-scope rows to 'template', which is what they
     // were used as; a row from an older client is read the same way.
-    kind: (row['kind'] as TemplateKind) ?? 'template',
+    kind: (row['kind'] as TemplateKind) ?? TEMPLATE_KIND_TEMPLATE,
     icon: (row['icon'] as string) ?? null,
     retired_at: (row['retired_at'] as string) ?? null,
   }
@@ -285,7 +292,7 @@ function rowToDependency(id: string, row: Record<string, unknown>): ItemDependen
     id,
     item_id: row['item_id'] as string,
     depends_on_item_id: row['depends_on_item_id'] as string,
-    mode: (row['mode'] as ItemDependency['mode']) ?? 'required',
+    mode: (row['mode'] as ItemDependency['mode']) ?? DEPENDENCY_MODE_REQUIRED,
     quantity: (row['quantity'] as number) ?? null,
   }
 }
@@ -381,7 +388,7 @@ function rowToTripItem(id: string, row: Record<string, unknown>): TripItem {
     category_name: (row['category_name'] as string) ?? null,
     quantity: (row['quantity'] as number) ?? 1,
     packed_count: (row['packed_count'] as number) ?? 0,
-    state: (row['state'] as TripItem['state']) ?? 'open',
+    state: (row['state'] as TripItem['state']) ?? STATE_OPEN,
     mode: (row['mode'] as TripItem['mode']) ?? ITEM_MODE_PACK,
     late_packer: Boolean(row['late_packer']),
     assigned_traveler_id: (row['assigned_traveler_id'] as string) ?? null,
@@ -540,7 +547,7 @@ function rowToExcursionLine(id: string, row: Record<string, unknown>): Excursion
     assigned_traveler_id: (row['assigned_traveler_id'] as string | null | undefined) ?? null,
     quantity: Number(row['quantity'] ?? 1),
     packed_count: Number(row['packed_count'] ?? 0),
-    state: (row['state'] as ExcursionLine['state'] | undefined) ?? 'open',
+    state: (row['state'] as ExcursionLine['state'] | undefined) ?? STATE_OPEN,
     mode: (row['mode'] as ExcursionLine['mode'] | undefined) ?? ITEM_MODE_PACK,
     bought_at: (row['bought_at'] as string | null | undefined) ?? null,
     not_in_luggage: Boolean(row['not_in_luggage']),
@@ -556,7 +563,7 @@ function rowToPrepTask(id: string, row: Record<string, unknown>): PrepTask {
     trip_item_id: row['trip_item_id'] as string,
     author_id: row['author_id'] as string,
     body: row['body'] as string,
-    task_state: (row['task_state'] as PrepTask['task_state']) ?? 'open',
+    task_state: (row['task_state'] as PrepTask['task_state']) ?? TASK_STATE_OPEN,
     ...taskFacts(row),
   }
 }
@@ -716,7 +723,7 @@ function rowToOwnTask(id: string, row: Record<string, unknown>): OwnTask {
     trip_id: row['trip_id'] as string,
     author_id: row['author_id'] as string,
     body: row['body'] as string,
-    task_state: (row['task_state'] as OwnTask['task_state']) ?? 'open',
+    task_state: (row['task_state'] as OwnTask['task_state']) ?? TASK_STATE_OPEN,
     ...taskFacts(row),
     idea_id: (row['idea_id'] as string | null | undefined) ?? null,
   }

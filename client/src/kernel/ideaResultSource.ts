@@ -12,6 +12,7 @@ import {
 } from '@/domain/shared/ideaBridge'
 import { tripExcursionsPath, tripSubPath } from '@/router/paths'
 import type { Excursion, OwnTask } from '@/types/domain'
+import { TASK_STATE_RESOLVED } from '@/types/domain'
 
 /** What the source reads — the trip store's excursions and trip tasks. */
 export interface IdeaResultReads {
@@ -39,7 +40,7 @@ export function createIdeaResultSource(reads: IdeaResultReads): IdeaResultSource
           key: `task:${task.id}`,
           kind: IDEA_RESULT_TASK,
           title: task.body,
-          done: task.task_state === 'resolved',
+          done: task.task_state === TASK_STATE_RESOLVED,
           path: tripSubPath(tripId, 'tasks'),
         }))
       return [...excursions, ...tasks]

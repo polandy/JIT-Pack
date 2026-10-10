@@ -11,6 +11,7 @@ import { rowEdgeAvatar, type PackableRow, type PackingCluster } from '@/domain/p
 import { avatarAssignable } from '@/domain/rowMenu'
 import { lockNoteText, packedStampText, responsibleNote, skippedNote } from '@/lib/rowFacts'
 import { t } from '@/i18n'
+import { TASK_STATE_OPEN } from '@/types/domain'
 import type { MasterItem, TripItem } from '@/types/domain'
 
 import type { PackingCore } from './usePackingCore'
@@ -40,8 +41,9 @@ export function useRowFacts(core: PackingCore): RowFacts {
   const { tripId, tripStore, masterStore, orchestrator, nameOf, locked } = core
 
   function openPrepTaskCount(itemId: string): number {
-    return tripStore.getRowPrepTasks(tripId, itemId).filter((task) => task.task_state === 'open')
-      .length
+    return tripStore
+      .getRowPrepTasks(tripId, itemId)
+      .filter((task) => task.task_state === TASK_STATE_OPEN).length
   }
 
   /** G-3's "in progress by Andy", worded in `lib/rowFacts.ts` (U-2). */

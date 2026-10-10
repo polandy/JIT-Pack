@@ -51,6 +51,7 @@ import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { canShareFile, shareFile, shareableFile } from '@/lib/share'
 import { useMasterStore } from '@/stores/masterStore'
 import { scopeForNewTemplate } from '@/domain/templates'
+import { TEMPLATE_KIND_GROUP, TEMPLATE_KIND_TEMPLATE } from '@/types/domain'
 import type { Template, TemplateKind } from '@/types/domain'
 import SheetModal from '@/components/global/SheetModal.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
@@ -121,8 +122,12 @@ const visibleRows = computed(() =>
     .map(toRow),
 )
 
-const vacationRows = computed(() => visibleRows.value.filter((r) => r.template.kind === 'template'))
-const groupRows = computed(() => visibleRows.value.filter((r) => r.template.kind === 'group'))
+const vacationRows = computed(() =>
+  visibleRows.value.filter((r) => r.template.kind === TEMPLATE_KIND_TEMPLATE),
+)
+const groupRows = computed(() =>
+  visibleRows.value.filter((r) => r.template.kind === TEMPLATE_KIND_GROUP),
+)
 
 const isEmpty = computed(() => visibleRows.value.length === 0)
 /** Nothing at all versus nothing *matching* — different sentences (G-7). */
@@ -475,7 +480,7 @@ async function shareTemplate(tpl: Template) {
                 </p>
               </IonLabel>
 
-              <span v-if="row.template.kind === 'group'" slot="end" class="scope-chip">
+              <span v-if="row.template.kind === TEMPLATE_KIND_GROUP" slot="end" class="scope-chip">
                 {{ t('templates.groupChip') }}
               </span>
               <IonIcon slot="end" :icon="chevronForwardOutline" class="row-chevron" />
@@ -509,9 +514,9 @@ async function shareTemplate(tpl: Template) {
           <button
             v-if="!scopeImplied"
             class="kind-card jp-card"
-            :class="{ picked: pendingKind === 'template' }"
+            :class="{ picked: pendingKind === TEMPLATE_KIND_TEMPLATE }"
             data-testid="m7-kind-template"
-            @click="chooseKind('template')"
+            @click="chooseKind(TEMPLATE_KIND_TEMPLATE)"
           >
             <IonIcon :icon="briefcaseOutline" class="kind-icon" />
             <span class="kind-name">{{ t('templates.sectionTemplate') }}</span>
@@ -521,9 +526,9 @@ async function shareTemplate(tpl: Template) {
           <button
             v-if="!scopeImplied"
             class="kind-card jp-card"
-            :class="{ picked: pendingKind === 'group' }"
+            :class="{ picked: pendingKind === TEMPLATE_KIND_GROUP }"
             data-testid="m7-kind-group"
-            @click="chooseKind('group')"
+            @click="chooseKind(TEMPLATE_KIND_GROUP)"
           >
             <IonIcon :icon="cubeOutline" class="kind-icon" />
             <span class="kind-name">{{ t('templates.sectionGroup') }}</span>
@@ -554,7 +559,7 @@ async function shareTemplate(tpl: Template) {
           <div v-if="createCollision" class="name-taken" data-testid="m7-name-taken">
             <span class="name-taken-text">
               {{
-                createCollision.kind === 'group'
+                createCollision.kind === TEMPLATE_KIND_GROUP
                   ? t('templates.nameTakenGroup', { name: createCollision.name })
                   : t('templates.nameTakenTemplate', { name: createCollision.name })
               }}

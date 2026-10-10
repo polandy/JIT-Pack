@@ -41,6 +41,7 @@ import { cascadeChanges } from '@/sync/cascade'
 import { TABLE } from '@/api/tables'
 import { isTakenRename } from '../names'
 import type { MasterItemEdit, TemplateEdit, TemplateItemEdit } from '@/sync/mutations'
+import { TEMPLATE_KIND_TEMPLATE } from '@/types/domain'
 import type {
   ItemTag,
   MasterItem,
@@ -613,7 +614,7 @@ export function createMasterDataActions(ctx: SyncContext) {
    * a group nothing includes yet would otherwise be unclassifiable. */
   function createTemplate(
     name: string,
-    kind: TemplateKind = 'template',
+    kind: TemplateKind = TEMPLATE_KIND_TEMPLATE,
     /** FR-28.8: the optional mark, set at creation by the seed and the import. */
     icon: string | null = null,
   ): string | null {

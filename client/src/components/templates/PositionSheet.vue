@@ -25,7 +25,7 @@ import type { TemplateItemEdit } from '@/sync/mutations'
 import { ACCOMMODATIONS, SEASONS, TRANSPORT_MODES, attributeLabel } from '@/lib/attributeLabels'
 import { modeIcon, modeLabel } from '@/lib/modeLabels'
 import { useMasterStore } from '@/stores/masterStore'
-import { ITEM_MODES, isShoppingMode } from '@/types/domain'
+import { ITEM_MODES, isShoppingMode, TEMPLATE_KIND_GROUP } from '@/types/domain'
 import type { ItemMode, TemplateAssignment, TemplateDedup } from '@/types/domain'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import SheetHead from '@/components/global/SheetHead.vue'
@@ -53,7 +53,9 @@ const tasks = computed(() => masterStore.getTemplateItemTasks(props.positionId))
 const detailsOpen = ref(false)
 
 const scopeName = computed(() =>
-  template.value?.kind === 'group' ? t('templates.sectionGroup') : t('templates.sectionTemplate'),
+  template.value?.kind === TEMPLATE_KIND_GROUP
+    ? t('templates.sectionGroup')
+    : t('templates.sectionTemplate'),
 )
 
 // --- Condition chips (FR-15.2): one value per attribute axis, tap toggles ---

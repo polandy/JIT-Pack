@@ -9,11 +9,13 @@
  *
  * 1. **A module reaches only the shared kernel** — `api/`, `sync/`, `types/`,
  *    `lib/`, `kernel/`, `theme/`, `i18n/`, the shared components in
- *    `components/global/`, and the composables in `composables/shared/` every
- *    screen is built on (the page head, the header's action cluster, the
- *    press-and-hold primitive, the orchestrator's injection key, the
- *    trip-screen load, the trip's identity). Never packing's
- *    views, stores, domain rules or composables, and never another module.
+ *    `components/global/` (its `track/` subsystem included), and the
+ *    composables in `composables/shared/` every screen is built on (the page
+ *    head, the header's action cluster, the press-and-hold primitive, the
+ *    orchestrator's injection key, the trip-screen load, the trip's
+ *    identity). Never packing's views, stores, domain rules or composables,
+ *    and never another module. `components/shell/` is the frame's own —
+ *    `App.vue` and the shell itself, not a module — and is not kernel.
  * 2. **Nothing reaches into a module** except the composition root:
  *    `featureModules.ts` through the module's public face (its `index.ts`), the router through a
  *    lazily imported page, the dev seed through the public face, and the

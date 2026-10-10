@@ -1,13 +1,11 @@
 /** English messages for a trip's tasks — preparation and own tasks, and M25's own screen for them (FR-7.x, NFR-4.12). Assembled in ../en.ts. */
 export const tasksEn = {
-  'tripTasks.section': 'Tasks for the trip',
   'tripTasks.progress': '{done} of {total} done',
   'tripTasks.allDone': '✓ All tasks done',
   'tripTasks.figure': '{done}/{total} tasks',
   'tripTasks.figurePacking': 'While packing {done}/{total}',
   'tripTasks.open': '{n} open',
   'tripTasks.resolved': '{n} done',
-  'tripTasks.add': 'Add a task…',
   'tripTasks.remove': 'Remove task',
   'tripTasks.drag': 'Move {body}',
   'tripTasks.forItem': 'Belongs to {name}',
@@ -24,8 +22,6 @@ export const tasksEn = {
   'tasks.addDuring': 'A task for the trip itself…',
   'tasks.emptyBefore': 'Nothing left to do before the trip.',
   'tasks.emptyDuring': 'Nothing noted for the trip itself.',
-  'tasks.emptyMine': 'Nothing is assigned to you right now.',
-  'tasks.emptyAll': 'This trip has no tasks yet.',
   'tasks.moveToDuring': 'Move to “During the trip”',
   'tasks.moveToBefore': 'Move back to “Before the trip”',
   'tasks.movedToDuring': '“{body}” is now for the trip itself',

@@ -1,6 +1,7 @@
 import { ref, type Ref } from 'vue'
 
 import type { PackableRow } from '@/domain/packingView'
+import { STATE_OPEN, type ItemState } from '@/types/domain'
 
 /** The pre-action state of one row, and what it takes to put it back. */
 export interface RowUndoRecord {
@@ -9,7 +10,7 @@ export interface RowUndoRecord {
   name: string
   quantity: number
   packedCount: number
-  state: string
+  state: ItemState
 }
 
 export interface RowUndo {
@@ -117,7 +118,7 @@ export function useRowUndo(): RowUndo {
 
   function armAction(label: string, restore: () => void, onLapse?: () => void): void {
     clear()
-    pending.value = [{ itemId: '', name: label, quantity: 0, packedCount: 0, state: '' }]
+    pending.value = [{ itemId: '', name: label, quantity: 0, packedCount: 0, state: STATE_OPEN }]
     restoreFn = restore
     lapseFn = onLapse ?? null
   }

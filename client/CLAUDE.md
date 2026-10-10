@@ -43,6 +43,8 @@ against its `en.ts`, so a key missing in German fails the type check in the file
 - **The globals come from one harness**, `client/src/__tests__/harness.ts` (`installHarness()` in `beforeEach`):
   pinia, `fetch`, `WebSocket`, response builders. It stubs `localStorage` only under `node`. A spec owns anything
   bespoke and stubs after the call.
+- **Every export and every i18n key has a reader outside specs and e2e**, or is named with a reason —
+  `client/src/__tests__/surface.spec.ts` (ARCH-31), the client's equivalent of `internal/store/surface_test.go`.
 
 ## Playwright — a UI change ships a *running* case (owner's rule)
 
@@ -78,7 +80,10 @@ pinia and Ionic in `lib/` and `sync/`, Ionic in `app/`). Decide by what the file
   when a module's rules read it (`dayPlanLine.ts` beside `kernel/dayPlanSources.ts`), only the `InjectionKey` here;
 - anything reactive or an Ionic controller → `composables/`, into `composables/shared/` if a module mounts it;
 - a rule handed a collaborator declares the port it consumes (`ImportMutations` in `domain/portableImport.ts`), its
-  option shapes in `types/`, and the caller satisfies it structurally — never `ReturnType<typeof …>` from above.
+  option shapes in `types/`, and the caller satisfies it structurally — never `ReturnType<typeof …>` from above;
+- the frame's own parts (app bar, rail, tab bar, page head, banners, sync indicator) → `components/shell/`, which only
+  `App.vue` and the shell itself import; shared UI a module may mount → `components/global/` (a subsystem in its own
+  subfolder, like `track/`); a component that picks one value is a `…Picker`, one that picks a set a `…Chooser`.
 
 ## The kernel and its feature modules
 

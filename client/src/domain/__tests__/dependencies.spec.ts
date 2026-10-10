@@ -15,7 +15,8 @@ import {
   DEPENDENCY_SKIP_SELF,
   type DependencyResolutionInput,
 } from '../dependencies'
-import type { CategorisedMasterItem, ItemDependency } from '@/types/domain'
+import { STATE_OPEN, STATE_SKIPPED } from '@/types/domain'
+import type { CategorisedMasterItem, ItemDependency, ItemState } from '@/types/domain'
 
 function master(
   id: string,
@@ -223,8 +224,8 @@ describe('dependentsOf', () => {
 
   it('leaves a second row of the skipped item alone on cyclic data (FR-20.2)', () => {
     const deps = [dep('d1', 'battery', 'camera'), dep('d2', 'camera', 'battery')]
-    const main = { id: 'r1', source_item_id: 'camera', state: 'open' }
-    const twin = { id: 'r2', source_item_id: 'camera', state: 'open' }
+    const main = { id: 'r1', source_item_id: 'camera', state: STATE_OPEN }
+    const twin = { id: 'r2', source_item_id: 'camera', state: STATE_OPEN }
 
     expect(coSkipTargets(main, [main, twin], deps).map((r) => r.id)).toEqual([])
   })
@@ -232,7 +233,7 @@ describe('dependentsOf', () => {
 
 describe('coSkipTargets (FR-20.2)', () => {
   const deps = [dep('d1', 'battery', 'camera'), dep('d2', 'charger', 'battery')]
-  const row = (id: string, sourceItemId: string | null, state = 'open') => ({
+  const row = (id: string, sourceItemId: string | null, state: ItemState = STATE_OPEN) => ({
     id,
     source_item_id: sourceItemId,
     state,
@@ -299,14 +300,14 @@ describe('coSkipTargets (FR-20.2)', () => {
     expect(coSkipTargets(camera, rows, shared).map((r) => r.id)).toEqual(['r5'])
     // The positive control: with the drone skipped, the battery and the
     // charger do follow the camera out.
-    const droneSkipped = rows.map((r) => (r.id === 'r4' ? { ...r, state: 'skipped' } : r))
+    const droneSkipped = rows.map((r) => (r.id === 'r4' ? { ...r, state: STATE_SKIPPED } : r))
     expect(coSkipTargets(camera, droneSkipped, shared).map((r) => r.id)).toEqual(['r2', 'r3', 'r5'])
   })
 })
 
 describe('skippedVia (FR-20.2)', () => {
   const deps = [dep('d1', 'battery', 'camera'), dep('d2', 'charger', 'battery')]
-  const row = (id: string, sourceItemId: string | null, state = 'skipped') => ({
+  const row = (id: string, sourceItemId: string | null, state: ItemState = STATE_SKIPPED) => ({
     id,
     source_item_id: sourceItemId,
     state,

@@ -14,6 +14,7 @@ import type { TripTask } from '@/domain/tripTasks'
 import { t } from '@/i18n'
 import { tripExcursionsPath, tripSubPath } from '@/router/paths'
 import type { Excursion, ExcursionLine, ExcursionTraveler, PrepTask, OwnTask } from '@/types/domain'
+import { TASK_STATE_OPEN, TASK_STATE_RESOLVED } from '@/types/domain'
 
 /** What the source reads — the trip store's excursions and the trip's tasks. */
 export interface DayPlanReads {
@@ -87,7 +88,7 @@ export function createDayPlanSource(reads: DayPlanReads, writes: DayPlanWrites):
         detail: null,
         assignee: task.assignee_user_id,
         progress: null,
-        done: task.task_state === 'resolved',
+        done: task.task_state === TASK_STATE_RESOLVED,
         toggle: () => writes.toggleTask(tripId, task),
         path: tripSubPath(tripId, 'tasks'),
       }))
@@ -126,12 +127,12 @@ export function toggleTask(
   if (task.item) {
     const prep = reads.getRowPrepTasks(tripId, task.item.id).find((row) => row.id === task.id)
     if (!prep) return
-    if (prep.task_state === 'open') writes.resolvePrepTask(prep)
+    if (prep.task_state === TASK_STATE_OPEN) writes.resolvePrepTask(prep)
     else writes.reopenPrepTask(prep)
     return
   }
   const own = reads.getOwnTasks(tripId).find((row) => row.id === task.id)
   if (!own) return
-  if (own.task_state === 'open') writes.resolveOwnTask(own)
+  if (own.task_state === TASK_STATE_OPEN) writes.resolveOwnTask(own)
   else writes.reopenOwnTask(own)
 }

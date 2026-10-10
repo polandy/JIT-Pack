@@ -10,12 +10,15 @@ import type { GeneratedTripItemFields } from '@/domain/instantiate'
 import { dbBool } from '@/sync/columns'
 import { newId } from '@/lib/ids'
 import type { Mutation } from '@/api/types'
+import type { PortableTripItemFields } from '@/types/creationOptions'
 import {
   ITEM_MODE_PACK,
   type ItemMode,
-  type PortableTripItemFields,
+  type ItemState,
   REVIEW_FLAG_FIELD,
   type ReviewFlag,
+  STATE_OPEN,
+  STATE_PACKED,
   STATE_SKIPPED,
   type TripItem,
 } from '@/types/domain'
@@ -114,7 +117,7 @@ export function createTripItemsMutations({ make, nowIso }: MutationContext) {
       // A skip is a quantity of zero whatever was asked for (FR-5.5).
       quantity: skipped ? 0 : (opts.quantity ?? 1),
       packed_count: packed ? 1 : 0,
-      state: skipped ? STATE_SKIPPED : (opts.decided ?? 'open'),
+      state: skipped ? STATE_SKIPPED : opts.decided === 'packed' ? STATE_PACKED : STATE_OPEN,
       packed_at: packed ? nowIso() : null,
       mode: opts.mode ?? ITEM_MODE_PACK,
       flag_missing: dbBool(opts.flagMissing),
@@ -187,7 +190,7 @@ export function createTripItemsMutations({ make, nowIso }: MutationContext) {
       value_cents: item.value_cents,
       quantity: item.quantity,
       packed_count: 0,
-      state: item.quantity === 0 ? 'skipped' : 'open',
+      state: item.quantity === 0 ? STATE_SKIPPED : STATE_OPEN,
       mode: item.mode,
       late_packer: dbBool(item.late_packer),
       assigned_traveler_id: assignedTravelerId,
@@ -206,7 +209,7 @@ export function createTripItemsMutations({ make, nowIso }: MutationContext) {
       weight_grams: number | null
       value_cents: number | null
       quantity: number
-      state: 'open' | 'skipped'
+      state: Extract<ItemState, 'open' | 'skipped'>
       mode: ItemMode
       late_packer: boolean
       packer_user_id: string | null
@@ -282,7 +285,7 @@ export function createTripItemsMutations({ make, nowIso }: MutationContext) {
       category_name: item.categoryName,
       quantity: item.quantity,
       packed_count: item.quantity,
-      state: 'packed',
+      state: STATE_PACKED,
       mode: ITEM_MODE_PACK,
     })
     return { mutation, id }

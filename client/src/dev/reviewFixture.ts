@@ -14,7 +14,7 @@ import { TRIP_STATUS_ARCHIVED, TRIP_STATUS_PLANNING } from '@/types/domain'
 import { TABLE } from '@/api/tables'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import { ITEM_MODE_PACK } from '@/types/domain'
+import { ITEM_MODE_PACK, TEMPLATE_KIND_GROUP, TEMPLATE_KIND_TEMPLATE } from '@/types/domain'
 
 export const REVIEW_FIXTURE_TRIP_ID = 'dev-review-fixture'
 
@@ -29,12 +29,20 @@ export function seedReviewFixture(): string {
     row: Record<string, unknown>,
   ) => store.applyChange({ seq: 0, table, id, deleted: false, row } as never)
 
-  seed(master, TABLE.templates, 'dev-g1', { owner_id: 'dev', name: 'Fotografie', kind: 'group' })
-  seed(master, TABLE.templates, 'dev-g2', { owner_id: 'dev', name: 'Wandern', kind: 'group' })
+  seed(master, TABLE.templates, 'dev-g1', {
+    owner_id: 'dev',
+    name: 'Fotografie',
+    kind: TEMPLATE_KIND_GROUP,
+  })
+  seed(master, TABLE.templates, 'dev-g2', {
+    owner_id: 'dev',
+    name: 'Wandern',
+    kind: TEMPLATE_KIND_GROUP,
+  })
   seed(master, TABLE.templates, 'dev-v1', {
     owner_id: 'dev',
     name: 'Sommerferien',
-    kind: 'template',
+    kind: TEMPLATE_KIND_TEMPLATE,
   })
   seed(master, TABLE.items, 'dev-item-stativ', { name: 'Stativ' })
   seed(master, TABLE.items, 'dev-item-filter', { name: 'ND-Filter' })

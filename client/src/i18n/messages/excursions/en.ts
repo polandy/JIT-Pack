@@ -28,7 +28,6 @@ export const excursionsEn = {
   'excursions.created': '“{name}” created',
   'excursions.createdAdded':
     '“{name}” created · {n} thing onto the packing list | “{name}” created · {n} things onto the packing list',
-  'excursions.fromGroup': 'from group {name}',
   'excursions.participantsAll': 'Everybody',
   'excursions.packed': '{done}/{total} packed',
   'excursions.packedOf': '{done} of {total} packed',

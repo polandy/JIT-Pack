@@ -7,16 +7,18 @@ import {
   delegatedToMe,
   latePackersDepartingToday,
   plannedTripsByDeparture,
+  type DashboardRow,
   type DashboardTrip,
 } from '../dashboardSections'
+import { STATE_OPEN } from '@/types/domain'
 
 const ME = 'u-andy'
 
-function row(over: Partial<DashboardTrip['rows'][number]> = {}) {
+function row(over: Partial<DashboardRow> = {}): DashboardRow {
   return {
     id: 'ti-1',
     name: 'Zelt',
-    state: 'open',
+    state: STATE_OPEN,
     packer_user_id: null,
     late_packer: false,
     ...over,

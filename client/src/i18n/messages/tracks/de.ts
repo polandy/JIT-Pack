@@ -42,7 +42,6 @@ export const tracksDe: Record<keyof typeof tracksEn, string> = {
   'track.full': 'Es sind schon {max} Tracks – mehr gehen nicht.',
   'track.route': 'Route',
   'track.reading': 'Track wird gelesen …',
-  'track.open': 'Karte öffnen',
   'track.me': 'Du bist hier',
   'track.someone': 'Jemand',
   'track.personNow': '{name} · gerade eben',

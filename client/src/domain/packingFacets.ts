@@ -5,7 +5,7 @@
  * (`lib/packingFilterPanel.ts`) word what it answers.
  */
 import type { FacetKey, Facets, ItemMode, TripItem, Traveler, Container } from '@/types/domain'
-import { ITEM_MODES } from '@/types/domain'
+import { ITEM_MODES, STATE_PACKED, STATE_SKIPPED } from '@/types/domain'
 
 /**
  * What a facet reads off a row. A packing view's `PackableRow` carries it;
@@ -53,8 +53,8 @@ export const PACK_STATUS_VALUES = ['packed', 'skipped', 'not_packed'] as const
 export type PackStatusFacetValue = (typeof PACK_STATUS_VALUES)[number]
 
 export function packStatusOf(item: FacetRow): PackStatusFacetValue {
-  if (item.state === 'packed') return 'packed'
-  if (item.state === 'skipped') return 'skipped'
+  if (item.state === STATE_PACKED) return 'packed'
+  if (item.state === STATE_SKIPPED) return 'skipped'
   return 'not_packed'
 }
 

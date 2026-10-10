@@ -8,16 +8,15 @@ import { TABLE } from '@/api/tables'
 import { jsonColumn, rowFrom } from '@/sync/columns'
 import { newId } from '@/lib/ids'
 import type { Mutation } from '@/api/types'
+import type { ContainerOptions, TripOptions } from '@/types/creationOptions'
 import {
   type Container,
-  type ContainerOptions,
   type DestinationChecklistItem,
   type DestinationProfile,
   type ItemMode,
   type Trip,
   TRIP_STATUS_ARCHIVED,
   TRIP_STATUS_PLANNING,
-  type TripOptions,
   type TripSeries,
 } from '@/types/domain'
 import type { MutationContext } from './context'

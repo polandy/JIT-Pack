@@ -19,7 +19,7 @@ import {
   type DueState,
   type DueTally,
 } from '@/domain/shared/dueDay'
-import type { TaskState } from '@/types/domain'
+import { TASK_STATE_OPEN, type TaskState } from '@/types/domain'
 
 export { DUE_LATER, DUE_OVERDUE, DUE_SOON, DUE_SOON_DAYS, DUE_TODAY }
 export type { DueState }
@@ -32,7 +32,7 @@ export interface DueFacts {
 
 /** The day that counts: an open task's date, and none for a finished one. */
 export function openDueDay(task: DueFacts): string | null {
-  return task.task_state === 'open' ? task.due_date : null
+  return task.task_state === TASK_STATE_OPEN ? task.due_date : null
 }
 
 /**

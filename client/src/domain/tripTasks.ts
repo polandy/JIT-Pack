@@ -12,7 +12,7 @@
  * nor an uncharged battery can hold a finished rucksack below 100 %.
  */
 import type { PrepTask, TaskPhase, TaskTag, TaskState, OwnTask } from '@/types/domain'
-import { TASK_PHASE_BEFORE } from '@/types/domain'
+import { TASK_PHASE_BEFORE, TASK_STATE_OPEN, TASK_STATE_RESOLVED } from '@/types/domain'
 import { byDue, isDuePressing, pressingFirst } from './taskDue'
 import { daysBetween } from '@/domain/shared/calendar'
 import { byHand, dropInto, renumber, type Placement } from '@/domain/shared/handOrder'
@@ -29,7 +29,7 @@ export interface TripTaskProgress {
 
 /** tripTaskProgress counts a trip's tasks by state. */
 export function tripTaskProgress(tasks: readonly Pick<TripTask, 'task_state'>[]): TripTaskProgress {
-  const done = tasks.filter((task) => task.task_state === 'resolved').length
+  const done = tasks.filter((task) => task.task_state === TASK_STATE_RESOLVED).length
   return { open: tasks.length - done, done, total: tasks.length }
 }
 
@@ -211,11 +211,6 @@ export function packingWindowTasks(tasks: readonly TripTask[], today: string): T
   )
 }
 
-/** FR-7.7: the tasks of one phase, for M25's two sections. */
-export function tasksInPhase(tasks: readonly TripTask[], phase: TaskPhase): TripTask[] {
-  return tasks.filter((task) => task.phase === phase)
-}
-
 /**
  * FR-7.7: the *Meine* chip — the tasks handed to this person.
  *
@@ -253,7 +248,7 @@ export function dashboardTasks(
   tasks: readonly TripTask[],
   opts: { phaseInFront: TaskPhase; myUserId: string | null; limit: number; today: string },
 ): DashboardTasks {
-  const open = tasks.filter((task) => task.task_state === 'open')
+  const open = tasks.filter((task) => task.task_state === TASK_STATE_OPEN)
   // A pressing task ranks by its date alone, below zero so it leads; the
   // rest keep FR-7.10's phase-then-mine rank.
   const rank = (task: TripTask) =>
@@ -278,7 +273,8 @@ const DUE_RANK_LEAD = 100_000
 
 /** The order FR-7.6 states, written once because only `tripTasks` may decide it. */
 function compareTasks(a: TripTask, b: TripTask): number {
-  const byState = Number(a.task_state === 'resolved') - Number(b.task_state === 'resolved')
+  const byState =
+    Number(a.task_state === TASK_STATE_RESOLVED) - Number(b.task_state === TASK_STATE_RESOLVED)
   if (byState !== 0) return byState
   const byKind = Number(a.item !== null) - Number(b.item !== null)
   if (byKind !== 0) return byKind

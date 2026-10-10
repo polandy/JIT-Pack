@@ -15,6 +15,7 @@
 import { relativeStamp, type RelativeStamp } from '@/domain/stamp'
 import { skippedVia } from '@/domain/dependencies'
 import { intlLocale, t } from '@/i18n'
+import { STATE_SKIPPED } from '@/types/domain'
 import type { ItemDependency, TripItem } from '@/types/domain'
 
 /** Anything that can name a user — the directory, the roster, or both. */
@@ -119,7 +120,7 @@ export function skippedNote(
   rows: readonly TripItem[],
   dependencies: ItemDependency[],
 ): string | null {
-  if (item.state !== 'skipped') return null
+  if (item.state !== STATE_SKIPPED) return null
   const via = skippedVia(item, rows, dependencies)
   if (via) return t('packing.skippedVia', { name: via.name })
   // FR-5.11: a skipped row the plan forgot (Missing) stayed home by accident,

@@ -33,7 +33,7 @@ import {
 } from '@/domain/membership'
 import { companionAsGenerated, generatedFrom } from '@/domain/instantiate'
 import type { AddedItemDecision } from '@/sync/mutations'
-import type { ItemMode, ReviewFlag, ShoppingMode, TripItem } from '@/types/domain'
+import type { ItemMode, ItemState, ReviewFlag, ShoppingMode, TripItem } from '@/types/domain'
 import type { SyncContext } from '../context'
 
 /**
@@ -107,7 +107,7 @@ export function createPackingActions(ctx: SyncContext) {
    * write whole where the row is gone — deleted here or on another device,
    * never to be resurrected by an undo.
    */
-  function restorePack(itemId: string, packedCount: number, state: string) {
+  function restorePack(itemId: string, packedCount: number, state: ItemState) {
     write(mutations.packItem(itemId, packedCount, state))
   }
 
@@ -154,7 +154,7 @@ export function createPackingActions(ctx: SyncContext) {
    * has since been deleted rather than reviving it.
    */
   function restoreSkip(
-    records: { itemId: string; quantity: number; packedCount: number; state: string }[],
+    records: { itemId: string; quantity: number; packedCount: number; state: ItemState }[],
   ) {
     const muts = records.map((record) =>
       mutations.restoreSkipped(record.itemId, record.quantity, record.packedCount, record.state),

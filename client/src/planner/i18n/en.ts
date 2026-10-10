@@ -68,7 +68,6 @@ export const plannerEn = {
   'timetable.slack': '{slack} to spare',
   'timetable.tooEarly': '{late} too early',
   'timetable.pick': 'Take {time} {from} → {to}',
-  'excursionConnections.title': 'There and back',
   'journey.title': 'The day',
   'journey.slackAlone': '{slack} to spare',
   'journey.shortAlone': '{missing} short',

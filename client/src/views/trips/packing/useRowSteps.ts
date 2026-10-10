@@ -7,6 +7,7 @@
 import { stateFor } from '@/domain/packState'
 import { t } from '@/i18n'
 import type { PackableRow } from '@/domain/packingView'
+import { STATE_PACKED, STATE_SKIPPED } from '@/types/domain'
 
 import type { RowPort } from './rowPort'
 
@@ -54,7 +55,7 @@ export function useRowSteps<R extends PackableRow>(port: RowPort<R>) {
     // is on screen, but a mistap on a list of done rows
     // is as expensive to find again as one on the open list.
     const reads = stateFor(item.packed_count, item.quantity)
-    const unpacks = reads === 'packed' || reads === 'skipped'
+    const unpacks = reads === STATE_PACKED || reads === STATE_SKIPPED
     const name = item.name
     rowUndo.actWithUndo([item], () => port.packToggle(item), port.restorePacked)
     void (unpacks ? announceAct(t('packing.unpackedToast', { name })) : announcePacked(name))

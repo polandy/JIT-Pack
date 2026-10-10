@@ -11,7 +11,13 @@
 
 import { computeQuantity } from './instantiate'
 import { COLUMN_ENUMS } from '@/api/tables'
-import type { CategorisedMasterItem, DependencyMode, ItemDependency } from '@/types/domain'
+import {
+  type CategorisedMasterItem,
+  type DependencyMode,
+  type ItemDependency,
+  type ItemState,
+  STATE_SKIPPED,
+} from '@/types/domain'
 
 export interface DependencyResolutionInput {
   /** Items already on the list (generated or explicit). */
@@ -99,7 +105,7 @@ export function resolveDependencies(input: DependencyResolutionInput): Dependenc
       if (!companion || !main) continue
       const quantity = computeQuantity({ quantity: d.quantity ?? 1 })
 
-      if (d.mode === 'suggested') {
+      if (d.mode === DEPENDENCY_MODE_SUGGESTED) {
         if (!explicit.has(d.item_id) && !added.has(d.item_id) && !suggestedIDs.has(d.item_id)) {
           suggestedIDs.add(d.item_id)
           suggested.push({
@@ -181,7 +187,7 @@ export function dependentsOf(itemID: string, dependencies: ItemDependency[]): Se
 export interface CoSkippable {
   id: string
   source_item_id: string | null
-  state: string
+  state: ItemState
 }
 
 /**
@@ -215,7 +221,7 @@ export function coSkipTargets<T extends CoSkippable>(
     if (
       anchor.id === main.id ||
       anchor.source_item_id === null ||
-      anchor.state === 'skipped' ||
+      anchor.state === STATE_SKIPPED ||
       dependents.has(anchor.source_item_id)
     ) {
       continue
@@ -228,7 +234,7 @@ export function coSkipTargets<T extends CoSkippable>(
       row.source_item_id !== null &&
       dependents.has(row.source_item_id) &&
       !stillNeeded.has(row.source_item_id) &&
-      row.state !== 'skipped',
+      row.state !== STATE_SKIPPED,
   )
 }
 
@@ -247,13 +253,13 @@ export function skippedVia<T extends CoSkippable>(
   rows: readonly T[],
   dependencies: ItemDependency[],
 ): T | null {
-  if (row.state !== 'skipped' || !row.source_item_id) return null
+  if (row.state !== STATE_SKIPPED || !row.source_item_id) return null
   const source = row.source_item_id
   return (
     rows.find(
       (candidate) =>
         candidate.id !== row.id &&
-        candidate.state === 'skipped' &&
+        candidate.state === STATE_SKIPPED &&
         candidate.source_item_id !== null &&
         dependentsOf(candidate.source_item_id, dependencies).has(source),
     ) ?? null

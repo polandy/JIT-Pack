@@ -252,7 +252,7 @@ progress, which is exactly why this is a gap and not a preference.
 
 ### Track I — the back button's missing route class *(effort S–M · **built**, variant A)*
 
-Files: `client/src/router/backTarget.ts`, `router/index.ts`, `components/global/AppHeader.vue`,
+Files: `client/src/router/backTarget.ts`, `router/index.ts`, `components/shell/AppHeader.vue`,
 `router/__tests__/backTarget.spec.ts`, `client/e2e/global-nav.spec.ts`,
 `dev-docs/Navigation_Concept_v1.0.md` §7, `dev-docs/adr/ADR-011_*.md`.
 

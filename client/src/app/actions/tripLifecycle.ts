@@ -55,6 +55,7 @@ import {
   TRIP_STATUS_ACTIVE,
   TRIP_STATUS_ARCHIVED,
   TRIP_STATUS_PLANNING,
+  type ItemState,
   type Trip,
   type TripItem,
   type TripStatus,
@@ -508,7 +509,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
    */
   function restorePackingClose(
     tripId: string,
-    records: { itemId: string; quantity: number; packedCount: number; state: string }[],
+    records: { itemId: string; quantity: number; packedCount: number; state: ItemState }[],
     tasks: readonly TaskPhaseRecord[] = [],
     buyRows: readonly TripItem[] = [],
   ) {

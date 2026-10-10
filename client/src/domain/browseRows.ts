@@ -18,7 +18,7 @@
  * them by name is FR-27.10's rule for whole groups, and a second, quieter
  * copy of it here is exactly the drift FR-25.11g warns about.
  */
-import { STATE_PACKED, STATE_SKIPPED, type Traveler } from '@/types/domain'
+import { STATE_OPEN, STATE_PACKED, STATE_SKIPPED, type Traveler } from '@/types/domain'
 
 import { MIN_TRAVELERS_FOR_PER_PERSON } from './membership'
 import type { PackableRow } from './packingView'
@@ -98,9 +98,9 @@ function travelersReached(group: readonly PackableRow[], roster: ReadonlySet<str
 }
 
 function settledState(group: readonly PackableRow[]): BrowseRowState {
-  if (group.every((item) => item.state === 'packed')) return 'packed'
-  if (group.every((item) => item.state === 'skipped')) return 'skipped'
-  return 'open'
+  if (group.every((item) => item.state === STATE_PACKED)) return STATE_PACKED
+  if (group.every((item) => item.state === STATE_SKIPPED)) return STATE_SKIPPED
+  return STATE_OPEN
 }
 
 /**

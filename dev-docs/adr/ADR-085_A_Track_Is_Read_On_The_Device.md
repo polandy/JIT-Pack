@@ -4,7 +4,7 @@
 **Related:** ADR-002 (bytes outside the envelope), ADR-081 (idea pictures, whose upload path this follows), ADR-082
 (the other request on by default), ADR-078 (the planner), FR-29.17, NFR-4.3, invariants 4 and 6,
 `internal/store/track.go`, `internal/api/track.go`, `client/src/domain/track.ts`,
-`client/src/components/global/TrackMap.vue`
+`client/src/components/global/track/TrackMap.vue`
 
 **Decision Drivers (in priority order):**
 1. **The board and the open idea draw a track without fetching a file.** A family scrolls M28 on a phone, often on

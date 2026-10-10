@@ -295,7 +295,7 @@ function toggleSettledOnly(): void {
 /** Whether the caller reports this item as packed or skipped, all rows alike. */
 function isSettled(item: MasterItem): boolean {
   const state = props.scope.rowStates?.get(item.id)?.state
-  return state === 'packed' || state === 'skipped'
+  return state === STATE_PACKED || state === STATE_SKIPPED
 }
 
 /** What the list actually renders once both filters have had their say. */

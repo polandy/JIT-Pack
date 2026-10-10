@@ -2,13 +2,8 @@
 import type { tripsEn } from './en'
 
 export const tripsDe: Record<keyof typeof tripsEn, string> = {
-  'trip.daysUntil': 'noch {n} Tage',
-  'trip.departsToday': 'Heute geht es los',
   'trip.until': 'bis {date}',
   'trip.from': 'ab {date}',
-  'trip.status.planning': 'In Planung',
-  'trip.status.active': 'Aktiv',
-  'trip.status.archived': 'Archiviert',
 
   // Die Lupe in der App-Bar, pro Screen (G-12, FR-25.11k).
   'trips.searchPlaceholder': 'Reisen durchsuchen…',

@@ -12,6 +12,7 @@
  * that distinction is the easiest way to make the screen lie. What the
  * fractions count is units, never rows (FR-25.22).
  */
+import { STATE_SKIPPED } from '@/types/domain'
 import type {
   Container,
   FacetKey,
@@ -244,7 +245,7 @@ export interface PackingViewInput<R extends PackableRow = PackableRow> {
  * hiding it is exactly the false "all done" the state exists to prevent.
  */
 export function isDone(item: PackableRow, hasOpenPrep: boolean): boolean {
-  if (item.state === 'skipped') return true
+  if (item.state === STATE_SKIPPED) return true
   return isFullyPacked(item) && !hasOpenPrep
 }
 
@@ -546,7 +547,7 @@ function narrow<R extends PackableRow>(input: PackingViewInput<R>, rules: ViewRu
   const nameByUserId = new Map(memberProfiles.map((p) => [p.user_id, p.display_name]))
 
   /** FR-9.3: taken along, in whole or in part — and not consciously left behind. */
-  const wasPacked = (row: PackableRow) => row.packed_count > 0 && row.state !== 'skipped'
+  const wasPacked = (row: PackableRow) => row.packed_count > 0 && row.state !== STATE_SKIPPED
 
   const matching = items.filter(
     (row) => (!packedOnly || wasPacked(row)) && rules.passesFacets(row) && rules.matchesSearch(row),

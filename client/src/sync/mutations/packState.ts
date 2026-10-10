@@ -12,16 +12,19 @@ import {
   ITEM_MODE_BUY_LOCAL,
   ITEM_MODE_PACK,
   type ItemMode,
+  type ItemState,
   type ShoppingMode,
+  STATE_OPEN,
   STATE_PACKED,
   STATE_PACKING_NOW,
+  STATE_SKIPPED,
 } from '@/types/domain'
 import { CLIENT_ACTOR_PLACEHOLDER, type MutationContext } from './context'
 
 export function createPackStateMutations({ make, nowIso }: MutationContext) {
   // --- Trip item mutations ---
 
-  function packItem(itemId: string, packedCount: number, state: string): Mutation {
+  function packItem(itemId: string, packedCount: number, state: ItemState): Mutation {
     // Any pack-state transition releases a packing-now claim (FR-5.3).
     return make('upsert', TABLE.tripItems, itemId, {
       packed_count: packedCount,
@@ -31,7 +34,7 @@ export function createPackStateMutations({ make, nowIso }: MutationContext) {
       // FR-25.17: the moment of the tap, not of the push. Packing happens
       // offline and the envelope can land days later; the server keeps
       // this value when it parses and stamps its own clock otherwise.
-      packed_at: state === 'packed' ? nowIso() : null,
+      packed_at: state === STATE_PACKED ? nowIso() : null,
     })
   }
 
@@ -72,15 +75,15 @@ export function createPackStateMutations({ make, nowIso }: MutationContext) {
   }
 
   function completePacked(itemId: string, quantity: number): Mutation {
-    return packItem(itemId, quantity, 'packed')
+    return packItem(itemId, quantity, STATE_PACKED)
   }
 
   function zeroPacked(itemId: string): Mutation {
-    return packItem(itemId, 0, 'open')
+    return packItem(itemId, 0, STATE_OPEN)
   }
 
   function togglePacked(itemId: string, currentPacked: number): Mutation {
-    return currentPacked > 0 ? packItem(itemId, 0, 'open') : packItem(itemId, 1, 'packed')
+    return currentPacked > 0 ? packItem(itemId, 0, STATE_OPEN) : packItem(itemId, 1, STATE_PACKED)
   }
 
   /**
@@ -100,7 +103,7 @@ export function createPackStateMutations({ make, nowIso }: MutationContext) {
     itemId: string,
     quantity: number,
     currentPacked: number,
-    currentState: string,
+    currentState: ItemState,
   ): Mutation {
     const wanted = clampQuantity(quantity)
     const packed = Math.min(Math.max(currentPacked, 0), wanted)
@@ -115,7 +118,7 @@ export function createPackStateMutations({ make, nowIso }: MutationContext) {
     return make('upsert', TABLE.tripItems, itemId, {
       quantity: 0,
       packed_count: 0,
-      state: 'skipped',
+      state: STATE_SKIPPED,
     })
   }
 
@@ -166,7 +169,7 @@ export function createPackStateMutations({ make, nowIso }: MutationContext) {
     itemId: string,
     quantity: number,
     packedCount: number,
-    state: string,
+    state: ItemState,
   ): Mutation {
     return make('upsert', TABLE.tripItems, itemId, {
       quantity,
@@ -179,7 +182,7 @@ export function createPackStateMutations({ make, nowIso }: MutationContext) {
     return make('upsert', TABLE.tripItems, itemId, {
       quantity: 1,
       packed_count: 0,
-      state: 'open',
+      state: STATE_OPEN,
     })
   }
 
@@ -199,7 +202,7 @@ export function createPackStateMutations({ make, nowIso }: MutationContext) {
     if (from === ITEM_MODE_BUY_LOCAL) {
       // Bought at the destination: that is its packed state, and the mode
       // stays what it was — the row never leaves its own list.
-      const packed = packItem(itemId, quantity, 'packed')
+      const packed = packItem(itemId, quantity, STATE_PACKED)
       return { ...packed, fields: { ...purchase, ...packed.fields } }
     }
     return make('upsert', TABLE.tripItems, itemId, { ...purchase, mode: ITEM_MODE_PACK })
@@ -221,7 +224,7 @@ export function createPackStateMutations({ make, nowIso }: MutationContext) {
     // FR-30.4: the record goes with the purchase it described.
     const cleared = { bought_from: null, bought_at: null, bought_by_user_id: null }
     if (from === ITEM_MODE_BUY_LOCAL) {
-      const unpacked = packItem(itemId, 0, 'open')
+      const unpacked = packItem(itemId, 0, STATE_OPEN)
       return { ...unpacked, fields: { ...cleared, ...unpacked.fields } }
     }
     return make('upsert', TABLE.tripItems, itemId, { ...cleared, mode: from })

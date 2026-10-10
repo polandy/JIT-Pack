@@ -7,6 +7,7 @@ import { TABLE } from '@/api/tables'
 import { dbBool, jsonColumn, rowFrom } from '@/sync/columns'
 import { newId } from '@/lib/ids'
 import type { Mutation } from '@/api/types'
+import type { TemplateItemOptions } from '@/types/creationOptions'
 import {
   type AppliedChange,
   type GeneratedPosition,
@@ -14,8 +15,8 @@ import {
   type TaskPhase,
   type Template,
   type TemplateItem,
-  type TemplateItemOptions,
   type TemplateKind,
+  TEMPLATE_KIND_TEMPLATE,
 } from '@/types/domain'
 import type { GeneratedTripItemEdit } from '@/domain/refresh'
 import type { MutationContext } from './context'
@@ -38,7 +39,7 @@ export function createTemplatesMutations({ make, nowIso }: MutationContext) {
   function createTemplate(
     name: string,
     ownerId: string,
-    kind: TemplateKind = 'template',
+    kind: TemplateKind = TEMPLATE_KIND_TEMPLATE,
     /** FR-28.8: the optional mark, carried in by a portable import. */
     icon: string | null = null,
   ): { mutation: Mutation; id: string } {

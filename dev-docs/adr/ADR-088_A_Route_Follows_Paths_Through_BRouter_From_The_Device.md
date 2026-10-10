@@ -3,7 +3,7 @@
 **Status:** Accepted
 **Related:** ADR-085 (tracks read on the device, tiles on by default), ADR-082 (the server's one outbound request),
 FR-29.20, FR-29.17, NFR-4.3, invariants 4 and 5, `client/src/domain/route.ts`, `client/src/composables/routing.ts`,
-`client/src/components/global/TrackEditor.vue`
+`client/src/components/global/track/TrackEditor.vue`
 
 **Decision Drivers (in priority order):**
 1. **It feels like the swisstopo app.** A point set on the map is joined to the last one *along the paths*, and a

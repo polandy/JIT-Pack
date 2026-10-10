@@ -6,7 +6,7 @@
 import { TABLE } from '@/api/tables'
 import { newId } from '@/lib/ids'
 import type { Mutation } from '@/api/types'
-import type { TaskPhase } from '@/types/domain'
+import { TASK_STATE_OPEN, TASK_STATE_RESOLVED, type TaskPhase } from '@/types/domain'
 import type { MutationContext } from './context'
 
 /**
@@ -46,7 +46,7 @@ export function createTasksMutations({ make, nowIso }: MutationContext) {
       author_id: authorId,
       body,
       is_task: 1,
-      task_state: 'open',
+      task_state: TASK_STATE_OPEN,
       // FR-7.7: every task is written with a phase — the composer it was
       // typed into knows which, and a task that arrived without one would
       // have to be guessed at by every reader instead of once, here.
@@ -81,7 +81,7 @@ export function createTasksMutations({ make, nowIso }: MutationContext) {
    */
   function resolveTask(taskId: string): Mutation {
     return make('upsert', TABLE.comments, taskId, {
-      task_state: 'resolved',
+      task_state: TASK_STATE_RESOLVED,
       resolved_at: nowIso(),
     })
   }
@@ -89,7 +89,7 @@ export function createTasksMutations({ make, nowIso }: MutationContext) {
   /** Unticking clears the record with the state it described. */
   function reopenTask(taskId: string): Mutation {
     return make('upsert', TABLE.comments, taskId, {
-      task_state: 'open',
+      task_state: TASK_STATE_OPEN,
       resolved_at: null,
     })
   }

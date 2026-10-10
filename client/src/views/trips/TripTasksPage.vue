@@ -52,7 +52,7 @@ import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import TaskComposer from '@/views/trips/tasks/TaskComposer.vue'
 import TaskPhaseSection from '@/views/trips/tasks/TaskPhaseSection.vue'
-import TaskTagChooser from '@/views/trips/tasks/TaskTagChooser.vue'
+import TaskTagPicker from '@/views/trips/tasks/TaskTagPicker.vue'
 import TripTaskSheet from '@/views/trips/tasks/TripTaskSheet.vue'
 import TripTaskList from '@/views/trips/tasks/TripTaskList.vue'
 import { setHeaderActions } from '@/composables/shared/useHeaderActions'
@@ -86,7 +86,12 @@ import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { pickAssignee as pickAssigneeFrom } from '@/composables/shared/pickAssignee'
 import { beforeIsOver, isPackingClosed, standingOf } from '@/domain/shared/tripPhase'
-import { TASK_PHASE_BEFORE, TASK_PHASE_DURING, type TaskPhase } from '@/types/domain'
+import {
+  TASK_PHASE_BEFORE,
+  TASK_PHASE_DURING,
+  TASK_STATE_OPEN,
+  type TaskPhase,
+} from '@/types/domain'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -251,7 +256,7 @@ watch(dragHost, (el) => drag.bindHost(el), { immediate: true })
 
 /** FR-7.17: a group with every open task of its phase in it, unfiltered. */
 function wholeGroup(phase: TaskPhase, key: string): TripTask[] {
-  const open = tasks.value.filter((t) => t.phase === phase && t.task_state === 'open')
+  const open = tasks.value.filter((t) => t.phase === phase && t.task_state === TASK_STATE_OPEN)
   return taskGroups(open, taskTags.value, today.value).find((g) => g.key === key)?.tasks ?? []
 }
 
@@ -276,7 +281,8 @@ const selection = useRowSelection()
 const selectable = computed(() =>
   shown.value.filter(
     (task) =>
-      task.task_state === 'open' && !(beforeLocked.value && task.phase === TASK_PHASE_BEFORE),
+      task.task_state === TASK_STATE_OPEN &&
+      !(beforeLocked.value && task.phase === TASK_PHASE_BEFORE),
   ),
 )
 const selectedTasks = computed(() =>
@@ -651,7 +657,7 @@ function onSheetRemove() {
             close-testid="m25-bulk-close"
             @close="bulkTagOpen = false"
           />
-          <TaskTagChooser
+          <TaskTagPicker
             :task-tags="taskTags"
             :no-tag-label="t('tasks.noTag')"
             @tag="bulkTag"

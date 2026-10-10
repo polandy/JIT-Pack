@@ -7,13 +7,13 @@
  */
 
 import { byDeparture, type PlannableTrip } from './trips'
-import { TRIP_STATUS_PLANNING } from '@/types/domain'
+import { STATE_PACKED, STATE_SKIPPED, TRIP_STATUS_PLANNING, type ItemState } from '@/types/domain'
 
 /** A trip row, reduced to what the two sections need. */
 export interface DashboardRow {
   id: string
   name: string
-  state: string
+  state: ItemState
   packer_user_id: string | null
   late_packer: boolean
 }
@@ -42,9 +42,9 @@ export interface SectionRow {
  * same reading M1's counts and previews use, named once because three places
  * ask it.
  */
-const OPEN_STATES_EXCLUDED = ['packed', 'skipped']
+const OPEN_STATES_EXCLUDED: readonly ItemState[] = [STATE_PACKED, STATE_SKIPPED]
 
-export function isOpenRow(row: { state: string }): boolean {
+export function isOpenRow(row: { state: ItemState }): boolean {
   return !OPEN_STATES_EXCLUDED.includes(row.state)
 }
 

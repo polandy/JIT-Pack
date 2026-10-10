@@ -20,6 +20,7 @@
  */
 
 import { generateTripItems, type GeneratedItem, type GenerationInput } from './instantiate'
+import { STATE_SKIPPED, TASK_STATE_OPEN } from '@/types/domain'
 import type {
   AppliedChange,
   ChangeDetail,
@@ -351,7 +352,9 @@ export function planRefresh(input: RefreshInput): RefreshPlan {
     const lostTasks = entry.tasks.filter((t) => !next.tasks.includes(t))
     const removePrepTasks = input.prepTasks.filter(
       (task) =>
-        task.trip_item_id === row.id && task.task_state === 'open' && lostTasks.includes(task.body),
+        task.trip_item_id === row.id &&
+        task.task_state === TASK_STATE_OPEN &&
+        lostTasks.includes(task.body),
     )
 
     if (Object.keys(fields).length === 0 && addTasks.length === 0 && removePrepTasks.length === 0) {
@@ -424,7 +427,7 @@ export function planRefresh(input: RefreshInput): RefreshPlan {
  * the row stays protected instead of drifting back under template control.
  */
 function isProtected(row: TripItem, entry: GeneratedPosition): boolean {
-  if (row.state === 'skipped') return true
+  if (row.state === STATE_SKIPPED) return true
   if (row.packed_count > 0) return true
   return (
     row.name !== entry.name ||

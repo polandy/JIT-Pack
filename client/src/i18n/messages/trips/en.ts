@@ -1,13 +1,8 @@
 /** English messages for the trips, their wizard, clone and series, analytics and notes (NFR-4.12). Assembled in ../en.ts. */
 export const tripsEn = {
   // Trips.
-  'trip.daysUntil': '{n} days to go',
-  'trip.departsToday': 'Departs today',
   'trip.until': 'until {date}',
   'trip.from': 'from {date}',
-  'trip.status.planning': 'Planning',
-  'trip.status.active': 'Active',
-  'trip.status.archived': 'Archived',
 
   // The app bar's magnifier, per screen (G-12, FR-25.11k).
   'trips.searchPlaceholder': 'Search trips…',

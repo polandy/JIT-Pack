@@ -1,7 +1,7 @@
 /**
  * The startup greeting (FR-21.29, G-22): its device-local on/off choice and
  * the timeline the splash plays to. The splash itself is
- * `components/global/SplashScreen.vue`; this module holds what a test can
+ * `components/shell/SplashScreen.vue`; this module holds what a test can
  * check without a DOM — when each phase starts and where the mark flies.
  */
 

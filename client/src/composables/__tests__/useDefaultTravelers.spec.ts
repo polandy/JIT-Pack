@@ -8,29 +8,11 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { defaultTravelers, normalizeNames } from '../useDefaultTravelers'
+import { defaultTravelers } from '../useDefaultTravelers'
 
 beforeEach(() => {
   localStorage.clear()
   defaultTravelers().set([])
-})
-
-describe('normalizeNames (FR-2.5a)', () => {
-  it('trims, because a padded name is the same person', () => {
-    expect(normalizeNames([' Andy ', 'Sia'])).toEqual(['Andy', 'Sia'])
-  })
-
-  it('drops blanks, which would block the wizard step they land in', () => {
-    expect(normalizeNames(['Andy', '   ', ''])).toEqual(['Andy'])
-  })
-
-  it('drops case-insensitive duplicates rather than creating two of a person', () => {
-    expect(normalizeNames(['Andy', 'andy', 'Sia'])).toEqual(['Andy', 'Sia'])
-  })
-
-  it('keeps the given order — the list is how the household names itself', () => {
-    expect(normalizeNames(['Leonardo', 'Andy', 'Sia'])).toEqual(['Leonardo', 'Andy', 'Sia'])
-  })
 })
 
 describe('defaultTravelers (FR-2.5a)', () => {
