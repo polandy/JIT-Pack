@@ -1,6 +1,7 @@
-// Package store — travelers.go holds the one rule the trip partition's
+// travelers.go holds the one rule the trip partition's
 // push path enforces about travelers.linked_user_id (FR-2.5, ADR-058):
 // a link may only ever name a current trip_members row of the same trip.
+
 package store
 
 import (

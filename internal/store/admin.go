@@ -1,8 +1,9 @@
-// Package store — admin.go implements instance user management
+// admin.go implements instance user management
 // (Addendum 3.23): the FR-23.2 overview, deactivate/reactivate
 // (FR-23.3), and profile intervention (FR-23.4). Who *holds* the
 // instance-admin role is declarative (JITPACK_ADMIN_EMAILS, stamped
 // in EnsureOIDCUser) — nothing here grants or revokes it.
+
 package store
 
 import (

@@ -1,4 +1,4 @@
-// Package store — tables.go is the one place a syncable table is declared.
+// tables.go is the one place a syncable table is declared.
 //
 // Per-table knowledge — the push whitelist, the write guards, the two
 // partition sets, the FR-24.3 lifecycle set, the blocking references, the
@@ -9,6 +9,7 @@
 // failure CODING_PRINCIPLES §4a was written after. They are all views derived
 // from one `tableSpecs` map, and `tables_test.go` refuses a `Table*` constant
 // without an entry.
+
 package store
 
 import "sort"
@@ -120,8 +121,7 @@ type tableSpec struct {
 var tableSpecs = map[string]tableSpec{
 	// --- master partition ---------------------------------------------
 
-	// Renamed from `categories` by migration 022 (ADR-014): an item carries
-	// a set of these, not one of them.
+	// An item carries a set of these, not one of them (ADR-014).
 	// FR-7.8: the tags a task can carry — their own list, so that „what an
 	// item is" and „what a task is about" never have to be the same word.
 	// Master data like `tags`: instance-wide, every account may add one, and
@@ -172,8 +172,8 @@ var tableSpecs = map[string]tableSpec{
 		export: exportQuery{query: `SELECT * FROM item_tags`},
 	},
 
-	// category_id is gone with FR-24.1 (migration 022) — a client still
-	// sending it is rejected rather than silently ignored.
+	// There is no category_id column (FR-24.1): a client still sending one
+	// is rejected rather than silently ignored.
 	TableItems: {
 		serverOwned: stampedOnCreate(columnCreatedBy),
 		partition:   partitionMaster,
@@ -468,8 +468,8 @@ var tableSpecs = map[string]tableSpec{
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},
 
-	// profile is gone with FR-25.9 (migration 018) — a client still
-	// sending it is rejected rather than silently ignored.
+	// There is no profile column (FR-25.9): a client still sending one is
+	// rejected rather than silently ignored.
 	TableTravelers: {
 		partition: partitionTrip,
 		guard:     validTravelerLink,

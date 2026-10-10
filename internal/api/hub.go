@@ -1,6 +1,7 @@
-// Package api — hub.go implements the in-memory WebSocket hub that tracks
+// hub.go implements the in-memory WebSocket hub that tracks
 // per-trip subscriptions, broadcasts events, and computes presence/in_sync
 // state (Sync-API Spec §7).
+
 package api
 
 import (

@@ -1,10 +1,13 @@
 package main
 
 import (
+	"errors"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
+
+	"jitpack/internal/api"
 )
 
 // The configuration surface follows the session-brokering model (ADR-007):
@@ -504,5 +507,142 @@ func TestLoadConfig_Routing_FR29_20(t *testing.T) {
 				t.Errorf("RoutingURL = %q, want %q", cfg.RoutingURL, tc.want)
 			}
 		})
+	}
+}
+
+// apiOptions is the pure half of what main does with a Config: every
+// api.Options field but OIDC, which main sets only once discovery against
+// OIDCIssuer has succeeded.
+func TestConfig_APIOptions(t *testing.T) {
+	cases := []struct {
+		name string
+		cfg  Config
+		want api.Options
+	}{
+		{
+			name: "every feature on",
+			cfg: Config{
+				Currency: "CHF", PushContact: "mailto:ops@example.com", AdminEmails: []string{"a@example.com"},
+				UpdateCheck: true, LinkPreviews: true, MapTiles: true, Timetable: true,
+				RoutingURL: "https://brouter.de/brouter",
+			},
+			want: api.Options{
+				Currency: "CHF", PushContact: "mailto:ops@example.com", AdminEmails: []string{"a@example.com"},
+				Version: "v1.2.3", UpdateCheck: true, RoutingURL: "https://brouter.de/brouter",
+			},
+		},
+		{
+			// NoMapTiles/NoTimetable are api.Options' half of the switch —
+			// Config spells the feature on, api spells the exception off.
+			name: "every feature off",
+			cfg:  Config{},
+			want: api.Options{Version: "v1.2.3", NoMapTiles: true, NoTimetable: true},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.cfg.apiOptions("v1.2.3")
+			gotPreview, wantPreview := got.LinkPreviews != nil, tc.cfg.LinkPreviews
+			if gotPreview != wantPreview {
+				t.Errorf("LinkPreviews set = %v, want %v", gotPreview, wantPreview)
+			}
+			got.LinkPreviews = nil
+			if got.OIDC != nil {
+				t.Errorf("OIDC = %v, apiOptions must leave it for main to set", got.OIDC)
+			}
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Errorf("apiOptions() = %+v, want %+v", got, tc.want)
+			}
+		})
+	}
+}
+
+// banners is main's feature-flag startup lines, each naming the variable
+// that turns the feature off and the FR it serves.
+func TestConfig_Banners(t *testing.T) {
+	cases := []struct {
+		name string
+		cfg  Config
+		want []string
+	}{
+		{name: "nothing configured", cfg: Config{}, want: nil},
+		{
+			name: "link previews",
+			cfg:  Config{LinkPreviews: true},
+			want: []string{"link previews on: pasted links' pages are read from the internet " +
+				"(FR-29.16, JITPACK_LINK_PREVIEWS=false turns this off)"},
+		},
+		{
+			name: "map tiles",
+			cfg:  Config{MapTiles: true},
+			want: []string{"map tiles on: devices fetch them from swisstopo and OpenStreetMap " +
+				"(FR-29.17, JITPACK_MAP_TILES=false turns this off)"},
+		},
+		{
+			name: "timetable",
+			cfg:  Config{Timetable: true},
+			want: []string{"timetable on: devices search transport.opendata.ch for connections " +
+				"(FR-29.18, JITPACK_TIMETABLE=false turns this off)"},
+		},
+		{
+			name: "routing",
+			cfg:  Config{RoutingURL: "https://brouter.de/brouter"},
+			want: []string{"routing on: devices ask https://brouter.de/brouter for paths when a route is edited " +
+				"(FR-29.20, JITPACK_ROUTING=false turns this off)"},
+		},
+		{
+			name: "update check names the build",
+			cfg:  Config{UpdateCheck: true},
+			want: []string{`release check on, this build is "v1.2.3" (an untagged build makes no check)`},
+		},
+		{
+			name: "admin emails count",
+			cfg:  Config{AdminEmails: []string{"a@example.com", "b@example.com"}},
+			want: []string{"instance admins: 2 address(es) (FR-23.1)"},
+		},
+		{
+			name: "currency",
+			cfg:  Config{Currency: "CHF"},
+			want: []string{"amounts are labelled CHF (FR-21.9)"},
+		},
+		{
+			name: "every feature, in the order main prints them",
+			cfg: Config{
+				LinkPreviews: true, MapTiles: true, Timetable: true, RoutingURL: "https://r.example",
+				UpdateCheck: true, AdminEmails: []string{"a@example.com"}, Currency: "CHF",
+			},
+			want: []string{
+				"link previews on: pasted links' pages are read from the internet " +
+					"(FR-29.16, JITPACK_LINK_PREVIEWS=false turns this off)",
+				"map tiles on: devices fetch them from swisstopo and OpenStreetMap " +
+					"(FR-29.17, JITPACK_MAP_TILES=false turns this off)",
+				"timetable on: devices search transport.opendata.ch for connections " +
+					"(FR-29.18, JITPACK_TIMETABLE=false turns this off)",
+				"routing on: devices ask https://r.example for paths when a route is edited " +
+					"(FR-29.20, JITPACK_ROUTING=false turns this off)",
+				`release check on, this build is "v1.2.3" (an untagged build makes no check)`,
+				"instance admins: 1 address(es) (FR-23.1)",
+				"amounts are labelled CHF (FR-21.9)",
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.cfg.banners("v1.2.3")
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Errorf("banners() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+// A startup failure reads as the docs quote it, "step: error", with a
+// multi-line error's line breaks and indentation intact — the stale-schema
+// refusal is instructions an operator reads straight off the log.
+func TestFatalMessage_KeepsTheErrorReadable(t *testing.T) {
+	err := errors.New("database schema is stale: /data/jitpack.db\n\tto discard it:   rm /data/jitpack.db")
+	want := "store: database schema is stale: /data/jitpack.db\n\tto discard it:   rm /data/jitpack.db"
+	if got := fatalMessage("store", err); got != want {
+		t.Errorf("fatalMessage() = %q, want %q", got, want)
 	}
 }

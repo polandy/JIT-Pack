@@ -1,8 +1,9 @@
-// Package api — conflicts.go exposes the conflict log for the G-2
+// conflicts.go exposes the conflict log for the G-2
 // conflict view (NFR-4.2a: every LWW loser is auditable *and manually
 // revertable*). There are two, one per sync partition: a trip's, read by
 // its members, and the master partition's, read per user and filtered to
 // what that user may see. Each has a revert endpoint beside its list.
+
 package api
 
 import (
@@ -21,7 +22,7 @@ func (s *Server) handleListConflicts(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListMasterConflicts(w http.ResponseWriter, r *http.Request) {
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 
 	entries, err := s.store.ListMasterConflicts(r.Context(), userID)
 	if err != nil {
@@ -46,7 +47,7 @@ func writeConflicts(w http.ResponseWriter, entries []store.ConflictEntry) {
 
 func (s *Server) handleRevertConflict(w http.ResponseWriter, r *http.Request) {
 	tripID := r.PathValue(PathTripID)
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 
 	seq, err := s.store.RevertTripConflict(r.Context(), tripID, userID, r.PathValue(PathConflictID))
 	if err != nil {
@@ -58,7 +59,7 @@ func (s *Server) handleRevertConflict(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleRevertMasterConflict(w http.ResponseWriter, r *http.Request) {
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 
 	seq, err := s.store.RevertMasterConflict(r.Context(), userID, r.PathValue(PathConflictID))
 	if err != nil {

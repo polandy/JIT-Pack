@@ -1,4 +1,4 @@
-// Package store — activity.go records who changed what (FR-32.1, ADR-084)
+// activity.go records who changed what (FR-32.1, ADR-084)
 // and reads it back, per trip and for the inventory.
 //
 // The record is written inside the transaction of the write it describes,
@@ -8,6 +8,7 @@
 // before and after. What the change *means* — packed, bought, renamed — is
 // decided by the client (invariant 4), which is also where Local Mode
 // would need it.
+
 package store
 
 import (

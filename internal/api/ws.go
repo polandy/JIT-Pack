@@ -77,7 +77,7 @@ func (s *Server) wsAuth(next http.HandlerFunc) http.HandlerFunc {
 // handleWS upgrades the HTTP connection to WebSocket. The user ID is
 // already in the context by the time this handler runs.
 func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 
 	ws, err := websocket.Accept(w, r, nil)
 	if err != nil {

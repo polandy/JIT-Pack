@@ -1,5 +1,6 @@
-// Package api — activity.go serves the activity log (FR-32.1, ADR-084):
+// activity.go serves the activity log (FR-32.1, ADR-084):
 // a trip's, read by its members, and the inventory's, read per user.
+
 package api
 
 import (
@@ -29,7 +30,7 @@ func (s *Server) handleTripActivity(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleMasterActivity(w http.ResponseWriter, r *http.Request) {
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 	before, limit, ok := activityPage(w, r)
 	if !ok {
 		return

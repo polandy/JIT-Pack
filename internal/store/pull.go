@@ -1,4 +1,4 @@
-// Package store — pull.go holds the one pagination both sync partitions
+// pull.go holds the one pagination both sync partitions
 // serve their pull from, and the two public entry points that parametrise
 // it (Sync-API §4).
 //
@@ -6,6 +6,7 @@
 // are written once for both partitions. Their only real differences are
 // which feed the page reads and what the puller may see of it — and both of
 // those are arguments rather than a second copy.
+
 package store
 
 import (

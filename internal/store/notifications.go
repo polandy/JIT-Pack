@@ -1,8 +1,9 @@
-// Package store — notifications.go persists FR-6.2 notifications and the
+// notifications.go persists FR-6.2 notifications and the
 // per-user event-type preferences behind them (UI-Spec M17). Notifications
 // are per-user rows outside both sync partitions: clients fetch them via
 // REST after a notification.created ping (Sync-API §7), they never flow
 // through pull.
+
 package store
 
 import (

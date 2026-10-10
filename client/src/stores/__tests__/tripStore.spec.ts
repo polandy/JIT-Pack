@@ -699,7 +699,7 @@ describe('a trip pulled from the wire', () => {
     const tripStore = useTripStore()
 
     // `duration_days` is a generated column and deliberately not syncable
-    // (`syncableColumns` in internal/store/store.go), so every pull carries
+    // (`syncableColumns` in internal/store/tables.go), so every pull carries
     // the dates and no duration. Reading it off the row leaves M4 and the
     // analytics without one for every trip that arrived over the wire.
     tripStore.applyChange({

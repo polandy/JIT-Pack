@@ -1,7 +1,8 @@
-// Package store — master.go implements the master-partition side of the
-// sync protocol (Sync-API Spec §4/§5, P-3): per-user pull visibility and
-// ownership-enforcing push for tags, items, templates,
-// template_items, and trips metadata.
+// master.go implements the master-partition side of the sync protocol
+// (Sync-API Spec §4/§5, P-3): per-user pull visibility and
+// ownership-enforcing push for every table tables.go registers under
+// partitionMaster.
+
 package store
 
 import (
@@ -82,13 +83,14 @@ func finalize(ctx context.Context, tx *sql.Tx, res MutationResult) error {
 	return nil
 }
 
-// The master partition's guards. Each answers ReasonNone when the mutation
-// may proceed and otherwise the reason it may not — the two structural rules
-// (FR-27.1/27.6) refuse for a different reason than the permission rules,
-// and the user is owed the difference. The shared master data FR-1.6/FR-24.1
-// leaves open to everyone is `unguarded` in tableSpecs, with the reason.
-
-// seriesOwner lets only a series' owner change it; anyone may create one.
+// seriesOwner is the first of the master partition's guards. Each answers
+// ReasonNone when the mutation may proceed and otherwise the reason it may
+// not — the two structural rules (FR-27.1/27.6) refuse for a different
+// reason than the permission rules, and the user is owed the difference.
+// The shared master data FR-1.6/FR-24.1 leaves open to everyone is
+// `unguarded` in tableSpecs, with the reason.
+//
+// seriesOwner itself lets only a series' owner change it; anyone may create one.
 func seriesOwner(_ context.Context, _ *sql.Tx, in guardInput) (RejectReason, error) {
 	if !in.row.Exists {
 		return ReasonNone, nil

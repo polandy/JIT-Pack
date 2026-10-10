@@ -102,12 +102,12 @@ func planNotifications(
 			plan = append(plan, assigned...)
 			if m.Op == syncpkg.OpInsert {
 				switch {
-				case isTripNote(m) && isNoteReply(m):
+				case store.IsNote(m.Fields) && isNoteReply(m):
 					// FR-7.13: a reply is for the thread's participants,
 					// not the whole trip — the first note already reached
 					// everyone.
 					plan = append(plan, planNoteReply(tripID, actor, actorName, m, members, facts)...)
-				case isTripNote(m):
+				case store.IsNote(m.Fields):
 					// FR-7.9 decision 5: a note is written *for* every
 					// co-traveller, not addressed to whoever it names, so it
 					// takes the broadcast rather than planComment's mention scan.
@@ -137,10 +137,10 @@ const columnAssignee = "assignee_user_id"
 // note — the field the reply rule reads off a mutation.
 const columnParentID = "parent_id"
 
-// The idea columns FR-29.8's rules read off a mutation: an insert's title, a
-// state move, and which idea a comment is about.
+// The idea columns FR-29.8's rules read off a mutation: a state move and
+// which idea a comment is about. An insert's title is store.ColumnTitle —
+// the same column name as a comment's.
 const (
-	columnIdeaTitle = "title"
 	columnIdeaState = "state"
 	columnIdeaID    = "idea_id"
 )
@@ -229,7 +229,7 @@ func planAssignment(
 	if target == "" || target == actor || displayNameOf(members, target) == "" {
 		return nil
 	}
-	idKey, wordsColumn := payloadCommentID, "body"
+	idKey, wordsColumn := payloadCommentID, store.ColumnBody
 	if m.Table == store.TableShoppingEntries {
 		idKey, wordsColumn = payloadEntryID, "name"
 	}
@@ -283,7 +283,7 @@ func planComment(
 	members []store.MemberName,
 	facts notificationFacts,
 ) []plannedNotification {
-	body, _ := m.Fields["body"].(string)
+	body, _ := m.Fields[store.ColumnBody].(string)
 	payload := map[string]any{
 		payloadTripID: tripID, payloadCommentID: m.ID,
 		payloadActorID: actor, payloadActorName: actorName, payloadPreview: truncate(body, previewLen),
@@ -292,7 +292,7 @@ func planComment(
 	var plan []plannedNotification
 	notified := map[string]bool{}
 
-	if itemID, _ := m.Fields["trip_item_id"].(string); itemID != "" {
+	if itemID, _ := m.Fields[store.ColumnItemID].(string); itemID != "" {
 		item, ok := facts.item(itemID)
 		if !ok {
 			// An unreadable item costs the comment its mentions too: the
@@ -302,7 +302,7 @@ func planComment(
 		}
 		payload[payloadItemID] = itemID
 		payload[payloadItemName] = item.Name
-		if syncpkg.IsTruthy(m.Fields["is_task"]) && item.PackerUserID != "" && item.PackerUserID != actor {
+		if syncpkg.IsTruthy(m.Fields[store.ColumnIsTask]) && item.PackerUserID != "" && item.PackerUserID != actor {
 			plan = append(plan, plannedNotification{UserID: item.PackerUserID, Kind: store.NotifyTask, Payload: payload})
 			notified[item.PackerUserID] = true
 		}
@@ -318,15 +318,6 @@ func planComment(
 	return plan
 }
 
-// isTripNote reports whether a comment insert is FR-7.9's shape: trip-level
-// (no `trip_item_id`) and not a task. It is checked on the mutation's own
-// fields, before any row is loaded — the same fields the store's stamp step and the
-// client's `is_task` routing already read.
-func isTripNote(m syncpkg.Mutation) bool {
-	itemID, _ := m.Fields["trip_item_id"].(string)
-	return itemID == "" && !syncpkg.IsTruthy(m.Fields["is_task"])
-}
-
 // planNote fires FR-7.9's "to all members" push for a new trip note: every
 // member but its author, because a note is written for everyone else by
 // default — unlike planComment's mentions, which a body has to ask for by
@@ -334,7 +325,7 @@ func isTripNote(m syncpkg.Mutation) bool {
 func planNote(
 	tripID, actor, actorName string, m syncpkg.Mutation, members []store.MemberName,
 ) []plannedNotification {
-	body, _ := m.Fields["body"].(string)
+	body, _ := m.Fields[store.ColumnBody].(string)
 	payload := map[string]any{
 		payloadTripID: tripID, payloadCommentID: m.ID,
 		payloadActorID: actor, payloadActorName: actorName, payloadPreview: truncate(body, previewLen),
@@ -369,7 +360,7 @@ func planNoteReply(
 	if !ok {
 		return nil
 	}
-	body, _ := m.Fields["body"].(string)
+	body, _ := m.Fields[store.ColumnBody].(string)
 	payload := map[string]any{
 		payloadTripID: tripID, payloadCommentID: m.ID, payloadThreadID: root,
 		payloadActorID: actor, payloadActorName: actorName,
@@ -414,7 +405,7 @@ func planIdea(
 	case m.Op == syncpkg.OpInsert:
 		// The title travels with the insert: nothing needs reading.
 		kind = store.NotifyIdea
-		title, _ = m.Fields[columnIdeaTitle].(string)
+		title, _ = m.Fields[store.ColumnTitle].(string)
 	case m.Op != syncpkg.OpDelete && m.Fields[columnIdeaState] == store.IdeaStateShortlisted:
 		kind = store.NotifyIdeaShortlisted
 		idea, ok := facts.idea(m.ID)
@@ -451,7 +442,7 @@ func planIdeaComment(
 	if !ok {
 		return nil
 	}
-	body, _ := m.Fields["body"].(string)
+	body, _ := m.Fields[store.ColumnBody].(string)
 	payload := map[string]any{
 		payloadTripID: tripID, payloadIdeaID: ideaID, payloadCommentID: m.ID,
 		payloadActorID: actor, payloadActorName: actorName,

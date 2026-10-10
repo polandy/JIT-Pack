@@ -1,7 +1,8 @@
-// Package api — master.go exposes the master-partition sync endpoints
+// master.go exposes the master-partition sync endpoints
 // (Sync-API Spec §4/§5): GET/POST /api/v1/master/sync. There is no
 // membership middleware here — visibility and ownership are enforced
 // per row by the store (own + published templates, member trips).
+
 package api
 
 import (
@@ -16,7 +17,7 @@ func (s *Server) handlePullMaster(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 
 	page, err := s.store.PullMaster(r.Context(), userID, cursor, int(limit))
 	if err != nil {
@@ -27,7 +28,7 @@ func (s *Server) handlePullMaster(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlePushMaster(w http.ResponseWriter, r *http.Request) {
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 	out, _, ok := applyPushBatch(w, r, func(m syncpkg.Mutation) (store.MutationResult, error) {
 		return s.store.ApplyMasterMutation(r.Context(), userID, m)
 	})

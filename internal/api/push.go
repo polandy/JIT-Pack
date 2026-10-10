@@ -1,5 +1,6 @@
-// Package api — push.go serves Web Push's endpoints (NFR-4.6): the VAPID
+// push.go serves Web Push's endpoints (NFR-4.6): the VAPID
 // public key and the subscription registration. Delivery is internal/notify's.
+
 package api
 
 import (
@@ -37,7 +38,7 @@ const (
 
 // handleRegisterPushSubscription serves POST /api/v1/push/subscriptions.
 func (s *Server) handleRegisterPushSubscription(w http.ResponseWriter, r *http.Request) {
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 	var body pushSubscriptionBody
 	if err := decodeJSON(w, r, maxJSONBodyBytes, &body); err != nil {
 		writeDecodeError(w, err, msgSubscriptionFieldsRequired)
@@ -60,7 +61,7 @@ func (s *Server) handleRegisterPushSubscription(w http.ResponseWriter, r *http.R
 // handleDeletePushSubscription serves DELETE /api/v1/push/subscriptions
 // with {"endpoint": "..."} — the M17 opt-out. Owner-scoped.
 func (s *Server) handleDeletePushSubscription(w http.ResponseWriter, r *http.Request) {
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 	var body struct {
 		Endpoint string `json:"endpoint"`
 	}

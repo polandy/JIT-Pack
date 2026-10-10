@@ -1,8 +1,9 @@
-// Package api — takeover.go is the one server-side part of G-3's lock
+// takeover.go is the one server-side part of G-3's lock
 // (FR-5.7, ADR-028). A claim is otherwise a client rendering rule over
 // synced fields; taking one over is not, because the taker has to be
 // stamped by the server (invariant 3) and the holder has to be notified,
 // and a client can do neither for itself.
+
 package api
 
 import (
@@ -12,7 +13,7 @@ import (
 // handleTakeover serves POST /trips/{tripID}/items/{itemID}/takeover.
 func (s *Server) handleTakeover(w http.ResponseWriter, r *http.Request) {
 	tripID, itemID := r.PathValue(PathTripID), r.PathValue(PathItemID)
-	takerID, _ := r.Context().Value(userIDKey).(string)
+	takerID := callerID(r.Context())
 
 	ev, err := s.store.TakeOverClaim(r.Context(), tripID, itemID, takerID)
 	if err != nil {

@@ -1,6 +1,7 @@
-// Package api — notifications.go serves FR-6.2's REST endpoints: fetching
+// notifications.go serves FR-6.2's REST endpoints: fetching
 // and acknowledging notifications, and the M17 per-kind preferences. Who is
 // notified of what, and the delivery, are internal/notify's.
+
 package api
 
 import (
@@ -17,7 +18,7 @@ const (
 // handleListNotifications serves GET /api/v1/notifications
 // (?unread=1 filters, ?limit= caps; own notifications only).
 func (s *Server) handleListNotifications(w http.ResponseWriter, r *http.Request) {
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 	limit, err := queryInt(r, "limit", defaultNotificationLimit)
 	if err != nil || limit < 1 || limit > maxNotificationLimit {
 		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "limit must be 1..200")
@@ -41,7 +42,7 @@ func (s *Server) handleListNotifications(w http.ResponseWriter, r *http.Request)
 
 // handleMarkNotificationRead serves POST /api/v1/notifications/{notificationID}/read.
 func (s *Server) handleMarkNotificationRead(w http.ResponseWriter, r *http.Request) {
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 	err := s.store.MarkNotificationRead(r.Context(), userID, r.PathValue(PathNotificationID))
 	if err != nil {
 		writeStoreError(w, err, "mark read failed")
@@ -52,7 +53,7 @@ func (s *Server) handleMarkNotificationRead(w http.ResponseWriter, r *http.Reque
 
 // handleGetNotificationPrefs serves GET /api/v1/me/notification-prefs.
 func (s *Server) handleGetNotificationPrefs(w http.ResponseWriter, r *http.Request) {
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 	prefs, err := s.store.NotificationPrefs(r.Context(), userID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, ErrInternal, "prefs failed")
@@ -78,7 +79,7 @@ func (s *Server) handleGetNotificationPrefs(w http.ResponseWriter, r *http.Reque
 // handlePutNotificationPrefs serves PUT /api/v1/me/notification-prefs
 // with a {"delegation":bool,"mention":bool,"task":bool} body.
 func (s *Server) handlePutNotificationPrefs(w http.ResponseWriter, r *http.Request) {
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 	// The *request* is deliberately a map rather than the wire struct: a
 	// missing key means "leave it enabled" (UI-Spec M17), and a struct would
 	// decode it as false and silently switch the kind off.
