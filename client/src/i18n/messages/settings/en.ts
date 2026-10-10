@@ -237,7 +237,7 @@ export const settingsEn = {
   'import.wizard.noiseNote':
     '{n} entry is marked uncertain in the sheet ({names}) and becomes an open task on its row. | {n} entries are marked uncertain in the sheet ({names}) and become open tasks on their rows.',
   'import.wizard.summaryTasks': '{n} open task | {n} open tasks',
-  'import.wizard.noiseTodo': "Imported with '?' — clarify: {name}",
+  'import.wizard.noiseTask': "Imported with '?' — clarify: {name}",
   'import.wizard.commit': 'Import',
 
   // M19 first-launch mode selection (FR-19.1).

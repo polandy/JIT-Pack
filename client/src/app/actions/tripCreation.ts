@@ -338,7 +338,7 @@ export function createTripCreationActions(ctx: SyncContext) {
             tripId,
             id,
             'import',
-            t('import.wizard.noiseTodo', { name: item.name }),
+            t('import.wizard.noiseTask', { name: item.name }),
             TASK_PHASE_BEFORE,
           )
           queue(prepTask.mutation)

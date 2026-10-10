@@ -123,7 +123,7 @@ figure changed, and nothing was stored, migrated or synced differently.
 - M4 has to hide the tasks of a row whose removal is still inside the undo window — the row leaves the screen before
   its delete is written, and a chip into an invisible row is worse than no chip. That is a rule the screen carries,
   not the domain.
-- Two e2e cases now promise something different under the same id, and one helper (`openTripTodos`) is now on the
+- Two e2e cases now promise something different under the same id, and one helper (`openTripTasks`) is now on the
   path of four specs that used to open a section of their own.
 
 **Neutral**

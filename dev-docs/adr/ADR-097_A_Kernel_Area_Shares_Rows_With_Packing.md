@@ -145,8 +145,8 @@ sheet, the tag chooser, the item chip, M1's figure and overview — move from `c
 `views/trips/tasks/` beside `TripTasksPage.vue`. M4 and M1 import them from there, as they import an excursion's sheet.
 What stays put stays by the same rule: M4's own slices of the list (`packing/TripTasksSection.vue`,
 `usePackingTasks.ts`) are packing's, `useTripTasks`/`useTaskActs` serve three screens from `composables/`,
-`lib/taskDueText.ts` is read by every module, and the rules keep their `domain/task*.ts` names — `tripTodos.ts` is
-renamed with ARCH-27's glossary, not before it.
+`lib/taskDueText.ts` is read by every module, and the rules keep their `domain/task*.ts` names — `tripTasks.ts`
+among them, which took its name from ARCH-27's glossary (`dev-docs/glossary.md`).
 
 ## Amendment, 2026-10-09: a line is M4's row by port, not by disguise (ARCH-22)
 

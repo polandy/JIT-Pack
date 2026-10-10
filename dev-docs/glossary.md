@@ -50,4 +50,9 @@ passing:
 
 - `TripParticipant` → a member's profile type (the „participant" word).
 - `ExcursionItem` → an excursion line type (the „item" word on a trip).
-- Go test names that still say `Todo` (`internal/notify/rules_test.go`, `internal/store/store_test.go`).
+- Go test names that still say `Todo` (`internal/notify/rules_test.go`, `internal/store/store_test.go`,
+  `internal/api/notifications_test.go`).
+- Test ids that still say `todo` (`trip-todo-*`, `m4-trip-todos*`, `m5-todo-*`, `dashboard-trip-todo*`): renaming them
+  touches every e2e spec that reads them, so they go in one sweep of their own.
+- The copy of `membership.confirmCollapse` still says „preparation todos" / „Vorbereitungs-Todos" where the screens say
+  *tasks* / *Aufgaben* — a copy change, so the owner's.

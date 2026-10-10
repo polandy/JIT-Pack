@@ -245,7 +245,7 @@ export const settingsDe: Record<keyof typeof settingsEn, string> = {
   'import.wizard.noiseNote':
     '{n} Eintrag ist im Blatt als unsicher markiert ({names}) und wird zu einer offenen Aufgabe auf seiner Zeile. | {n} Einträge sind im Blatt als unsicher markiert ({names}) und werden zu offenen Aufgaben auf ihren Zeilen.',
   'import.wizard.summaryTasks': '{n} offene Aufgabe | {n} offene Aufgaben',
-  'import.wizard.noiseTodo': "Mit '?' importiert — klären: {name}",
+  'import.wizard.noiseTask': "Mit '?' importiert — klären: {name}",
   'import.wizard.commit': 'Importieren',
 
   // M19 Moduswahl beim ersten Start (FR-19.1).

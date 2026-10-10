@@ -116,7 +116,7 @@ describe('commitImport (FR-16.2)', () => {
     expect(prepTasks).toHaveLength(1)
     expect(prepTasks[0]!.task_state).toBe('open')
     // NFR-4.12: the body is the catalogue's, in the language that is active.
-    expect(prepTasks[0]!.body).toBe(t('import.wizard.noiseTodo', { name: regen.name }))
+    expect(prepTasks[0]!.body).toBe(t('import.wizard.noiseTask', { name: regen.name }))
   })
 
   /**
