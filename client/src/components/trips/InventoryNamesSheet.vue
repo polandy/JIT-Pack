@@ -15,6 +15,7 @@ import { computed, ref, watch } from 'vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import type { InventoryRename } from '@/domain/inventoryNames'
 import { t } from '@/i18n'
+import { STATE_SKIPPED } from '@/types/domain'
 import type { Traveler } from '@/types/domain'
 
 const props = defineProps<{
@@ -89,7 +90,7 @@ function facts(rename: InventoryRename): string[] {
   if (people.length > 0) out.push(t('inventoryNames.for', { names: people.join(', ') }))
   const packed = rename.rows.reduce((sum, row) => sum + row.packed_count, 0)
   const quantity = rename.rows.reduce((sum, row) => sum + row.quantity, 0)
-  if (rename.rows.every((row) => row.state === 'skipped')) {
+  if (rename.rows.every((row) => row.state === STATE_SKIPPED)) {
     out.push(t('inventoryNames.skipped'))
   } else if (packed > 0) {
     out.push(t('inventoryNames.packed', { packed, quantity }))

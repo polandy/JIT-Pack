@@ -12,7 +12,6 @@ import { ref, computed } from 'vue'
 import type {
   AppliedChange,
   GeneratedPosition,
-  ShoppingMode,
   Trip,
   TripItem,
   TripKPIs,
@@ -29,9 +28,13 @@ import type {
   TripMember,
   TripTemplateSource,
 } from '@/types/domain'
-import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, STATE_PACKED } from '@/types/domain'
+import { TASK_STATE_RESOLVED } from '@/types/domain'
 import type { PullChange } from '@/api/types'
-import { unitsOf } from '@/domain/packState'
+import { shoppingLists, type ShoppingLists } from '@/domain/shoppingLists'
+import {
+  itemsWithOpenPrep as pureItemsWithOpenPrep,
+  tripKpis as pureTripKpis,
+} from '@/domain/tripKpis'
 import {
   encodedRow,
   KERNEL_TABLE_SPECS,
@@ -102,52 +105,9 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     return tripItems.value.get(tripId) ?? []
   }
 
-  /**
-   * getShoppingItems derives the M6 procurement lists (FR-3.2): open
-   * BUY_BEFORE and BUY_LOCAL items. Purchased BUY_BEFORE items flip to
-   * PACK (FR-3.3) and thereby leave the list.
-   *
-   * Beside each open list is what was bought from it (FR-25.11j), found two
-   * ways. `bought_from` is the record M6's own check-off writes, and for a
-   * BUY_BEFORE row it is the only way back, because the purchase changed the
-   * mode. A BUY_LOCAL purchase is different: it *is* a packing act, so the
-   * ordinary FR-25.17 path records it in `state` and `packed_at` and writes
-   * no `bought_from` at all — which is what a row checked off on M4 rather
-   * than in the shop looks like. Reading only the column drops such a row off
-   * both tabs, present in the data and on no screen.
-   *
-   * The two are disjoint by construction rather than by a second condition: a
-   * row still on the open list is never also reported as bought, so an
-   * actionable row can never hide under the reveal — the failure FR-25.11a
-   * names.
-   */
-  function getShoppingItems(tripId: string): {
-    buyBefore: TripItem[]
-    buyLocal: TripItem[]
-    boughtBefore: TripItem[]
-    boughtLocal: TripItem[]
-  } {
-    const items = getItems(tripId)
-    const open = items.filter((i) => i.state !== STATE_PACKED && i.state !== 'skipped')
-    const buyBefore = open.filter((i) => i.mode === ITEM_MODE_BUY_BEFORE)
-    const buyLocal = open.filter((i) => i.mode === ITEM_MODE_BUY_LOCAL)
-    const stillOpen = new Set([...buyBefore, ...buyLocal].map((i) => i.id))
-    // A BUY_LOCAL row that is packed and still in its own mode was bought,
-    // whether or not the act that packed it went through M6.
-    const packedLocally = (i: TripItem) =>
-      i.mode === ITEM_MODE_BUY_LOCAL && i.state === STATE_PACKED
-    const bought = (from: ShoppingMode) =>
-      items.filter(
-        (i) =>
-          !stillOpen.has(i.id) &&
-          (i.bought_from === from || (from === ITEM_MODE_BUY_LOCAL && packedLocally(i))),
-      )
-    return {
-      buyBefore,
-      buyLocal,
-      boughtBefore: bought(ITEM_MODE_BUY_BEFORE),
-      boughtLocal: bought(ITEM_MODE_BUY_LOCAL),
-    }
+  /** M6's procurement lists (FR-3.2/25.11j) — the rule is `domain/shoppingLists`. */
+  function getShoppingItems(tripId: string): ShoppingLists {
+    return shoppingLists(getItems(tripId))
   }
 
   function getTravelers(tripId: string): Traveler[] {
@@ -205,7 +165,8 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   function getOwnTasks(tripId: string): OwnTask[] {
     return [...(ownTasks.value.get(tripId) ?? [])].sort(
       (a, b) =>
-        Number(a.task_state === 'resolved') - Number(b.task_state === 'resolved') ||
+        Number(a.task_state === TASK_STATE_RESOLVED) -
+          Number(b.task_state === TASK_STATE_RESOLVED) ||
         a.body.localeCompare(b.body) ||
         a.id.localeCompare(b.id),
     )
@@ -253,69 +214,19 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     return noteAcks.value.get(tripId) ?? []
   }
 
-  /** Items that are packed but still have an open preparation. */
+  /** Items that are packed but still have an open preparation — the rule is `domain/tripKpis`. */
   function itemsWithOpenPrep(tripId: string): Array<{ item: TripItem; openPrepTasks: PrepTask[] }> {
-    const items = getItems(tripId)
-    const prepared = getPrepTasks(tripId)
-    const result: Array<{ item: TripItem; openPrepTasks: PrepTask[] }> = []
-
-    for (const item of items) {
-      const openPrepTasks = prepared.filter(
-        (t) => t.trip_item_id === item.id && t.task_state === 'open',
-      )
-      if (openPrepTasks.length > 0) {
-        result.push({ item, openPrepTasks })
-      }
-    }
-    return result
+    return pureItemsWithOpenPrep(getItems(tripId), getPrepTasks(tripId))
   }
 
   /**
    * `hidden` names rows the caller no longer shows although they are still
-   * stored — FR-25.31's removals waiting for their undo to lapse. A hidden
-   * trip item takes its own preparations out of the count with it.
+   * stored — FR-25.31's removals waiting for their undo to lapse. The rule,
+   * including how a hidden row takes its own preparations out of the count
+   * with it, is `domain/tripKpis`.
    */
   function kpis(tripId: string, hidden: ReadonlySet<string> = new Set()): TripKPIs {
-    const items = getItems(tripId).filter((item) => !hidden.has(item.id))
-    const prepared = getPrepTasks(tripId).filter(
-      (task) => !hidden.has(task.id) && !(task.trip_item_id && hidden.has(task.trip_item_id)),
-    )
-    let totalItems = 0
-    let packedItems = 0
-    let totalWeight = 0
-    let packedWeight = 0
-    let totalValue = 0
-    let packedValue = 0
-
-    for (const item of items) {
-      // FR-25.22: the same units M4's group and cluster heads count, so the
-      // trip line is the sum of the fractions drawn under it.
-      const units = unitsOf(item)
-      totalItems += units.total
-      packedItems += units.done
-      if (item.weight_grams) {
-        totalWeight += item.weight_grams * item.quantity
-        packedWeight += item.weight_grams * item.packed_count
-      }
-      if (item.value_cents) {
-        totalValue += item.value_cents * item.quantity
-        packedValue += item.value_cents * item.packed_count
-      }
-    }
-
-    const totalPrepTasks = prepared.length
-    const resolvedPrepTasks = prepared.filter((t) => t.task_state === 'resolved').length
-
-    return {
-      totalItems,
-      packedItems,
-      totalWeight,
-      packedWeight,
-      totalValue,
-      packedValue,
-      totalPrepTasks,
-      resolvedPrepTasks,
-    }
+    return pureTripKpis(getItems(tripId), getPrepTasks(tripId), hidden)
   }
 
   // --- Mutations ---

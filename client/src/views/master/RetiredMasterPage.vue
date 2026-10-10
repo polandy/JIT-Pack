@@ -51,6 +51,7 @@ import { presentToast } from '@/composables/shared/toast'
 import { useMasterStore } from '@/stores/masterStore'
 import { DELETION_REMOVE } from '@/domain/masterDeletion'
 import { RESTORE_NAME_TAKEN, type RestoreVerdict } from '@/domain/masterRestore'
+import { TEMPLATE_KIND_GROUP } from '@/types/domain'
 import type { MasterItem, Template } from '@/types/domain'
 import { confirmDestructive, promptText } from '@/composables/shared/confirm'
 import {
@@ -198,9 +199,12 @@ function takenMessage(row: RetiredRow, name: string): string {
   const holder = verdict.holder
   if (segment.value === SEGMENT_TEMPLATES) {
     const scope = (holder as Template).kind
-    return t(scope === 'group' ? 'retired.nameTakenGroup' : 'retired.nameTakenTemplate', {
-      name: holder.name,
-    })
+    return t(
+      scope === TEMPLATE_KIND_GROUP ? 'retired.nameTakenGroup' : 'retired.nameTakenTemplate',
+      {
+        name: holder.name,
+      },
+    )
   }
   return t('retired.nameTakenItem', { name: holder.name })
 }

@@ -26,6 +26,7 @@
 
 import { foldName } from './nameCollision'
 import { propagatedItemId } from './refresh'
+import { STATE_OPEN, STATE_PACKED, STATE_SKIPPED } from '@/types/domain'
 import type { Traveler, TripItem } from '@/types/domain'
 
 /**
@@ -184,8 +185,8 @@ function stateAfter(
   quantity: number,
   packedCount: number,
 ): TripItem['state'] | undefined {
-  if (row.state === 'skipped' && quantity > 0) return 'open'
-  if (row.state === 'packed' && packedCount < quantity) return 'open'
+  if (row.state === STATE_SKIPPED && quantity > 0) return STATE_OPEN
+  if (row.state === STATE_PACKED && packedCount < quantity) return STATE_OPEN
   return undefined
 }
 
@@ -292,7 +293,7 @@ function planCollapse(
     survivor: { rowId: keep.id, travelerName: nameOf(keep.assigned_traveler_id) },
     totals: { quantity, packed },
     unskipped:
-      fields.state === 'open' && keep.state === 'skipped'
+      fields.state === STATE_OPEN && keep.state === STATE_SKIPPED
         ? { rowId: keep.id, travelerName: nameOf(keep.assigned_traveler_id) }
         : null,
     empty: removed.length === 0 && Object.keys(fields).length === 0,
@@ -338,7 +339,7 @@ function planPerPerson(
         state: stateAfter(repointable, m.quantity, packedCount),
       })
       if (Object.keys(fields).length > 0) update.push({ id: repointable.id, fields })
-      if (fields.state === 'open' && repointable.state === 'skipped') {
+      if (fields.state === STATE_OPEN && repointable.state === STATE_SKIPPED) {
         unskipped = { rowId: repointable.id, travelerName: nameOf(m.traveler_id) }
       }
       repointable = null

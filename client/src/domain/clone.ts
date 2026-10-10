@@ -11,6 +11,7 @@
  * Local Mode clones without a server.
  */
 
+import { STATE_OPEN, STATE_SKIPPED } from '@/types/domain'
 import type {
   Container,
   ItemMode,
@@ -119,7 +120,7 @@ export function planClone(
       quantity,
       // A skip is list curation and travels with the clone (FR-5.5);
       // pack progress and flags belong to the old trip.
-      state: item.state === 'skipped' ? 'skipped' : 'open',
+      state: item.state === STATE_SKIPPED ? STATE_SKIPPED : STATE_OPEN,
       mode: item.mode,
       late_packer: item.late_packer,
       traveler_index:

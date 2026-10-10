@@ -34,7 +34,13 @@ import { filedTagOf, type TripTask } from '@/domain/tripTasks'
 import { t } from '@/i18n'
 import type { NameOf } from '@/lib/rowFacts'
 import { createdStampText, resolvedStampText } from '@/lib/taskFacts'
-import { TASK_PHASE_BEFORE, TASK_PHASE_DURING, type TaskPhase, type TaskTag } from '@/types/domain'
+import {
+  TASK_PHASE_BEFORE,
+  TASK_PHASE_DURING,
+  TASK_STATE_OPEN,
+  type TaskPhase,
+  type TaskTag,
+} from '@/types/domain'
 
 const props = withDefaults(
   defineProps<{
@@ -81,7 +87,7 @@ const emit = defineEmits<{
 
 /** FR-7.12: a task left in a closed *before* is read, not worked. */
 const history = computed(() => props.beforeLocked && props.task.phase === TASK_PHASE_BEFORE)
-const isOpen = computed(() => props.task.task_state === 'open')
+const isOpen = computed(() => props.task.task_state === TASK_STATE_OPEN)
 
 /**
  * The words being edited. Re-read from the task whenever it changes under

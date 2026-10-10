@@ -26,9 +26,12 @@ import { taskPhaseOf } from './tripTasks'
 import {
   ITEM_MODE_BUY_BEFORE,
   ITEM_MODE_PACK,
+  STATE_OPEN,
+  STATE_PACKED,
   STATE_SKIPPED,
   TASK_PHASE_BEFORE,
   TASK_PHASE_DURING,
+  TASK_STATE_OPEN,
   type TaskPhase,
   type TaskTag,
   type PrepTask,
@@ -101,7 +104,7 @@ export function planPackingClose(
     // change nobody made.
     if (item.state === STATE_SKIPPED) continue
     const reads = stateFor(item.packed_count, item.quantity)
-    if (reads === 'open') skip.push(item)
+    if (reads === STATE_OPEN) skip.push(item)
     else if (reads === 'partial') trim.push(item)
     else continue
 
@@ -143,7 +146,7 @@ export function planPackingClose(
  */
 export function tasksCrossing(tasks: readonly ClosingTask[]): ClosingTask[] {
   return tasks.filter(
-    (task) => task.task_state === 'open' && taskPhaseOf(task) === TASK_PHASE_BEFORE,
+    (task) => task.task_state === TASK_STATE_OPEN && taskPhaseOf(task) === TASK_PHASE_BEFORE,
   )
 }
 
@@ -171,8 +174,8 @@ export function packingIsFinished(items: readonly TripItem[]): boolean {
     packable += 1
     if (item.state === STATE_SKIPPED) continue
     const reads = stateFor(item.packed_count, item.quantity)
-    if (reads === 'packed') packed += 1
-    else if (reads !== 'skipped') open += 1
+    if (reads === STATE_PACKED) packed += 1
+    else if (reads !== STATE_SKIPPED) open += 1
   }
   return packable > 0 && open === 0 && packed > 0
 }

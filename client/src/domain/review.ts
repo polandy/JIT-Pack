@@ -20,6 +20,7 @@
  * for free.
  */
 
+import { TEMPLATE_KIND_GROUP } from '@/types/domain'
 import type { MasterItem, Template, TemplateItem, TripItem } from '@/types/domain'
 
 export type ReviewProposalKind = 'unused' | 'missing'
@@ -68,7 +69,9 @@ export interface ReviewArgs {
 
 export function buildReviewProposals(args: ReviewArgs): ReviewProposal[] {
   const dismissed = args.isDismissed ?? (() => false)
-  const groupsByID = new Map(args.templates.filter((t) => t.kind === 'group').map((t) => [t.id, t]))
+  const groupsByID = new Map(
+    args.templates.filter((t) => t.kind === TEMPLATE_KIND_GROUP).map((t) => [t.id, t]),
+  )
   const proposals: ReviewProposal[] = []
 
   const push = (p: Omit<ReviewProposal, 'itemRef' | 'flagCount'>) => {
@@ -141,7 +144,7 @@ export function retargetGroups(
   templateItems: (templateId: string) => TemplateItem[],
 ): Template[] {
   const groups = templates
-    .filter((t) => t.kind === 'group')
+    .filter((t) => t.kind === TEMPLATE_KIND_GROUP)
     .sort((a, b) => a.name.localeCompare(b.name))
   if (proposal.kind === 'missing') return groups
   return groups.filter((g) => templateItems(g.id).some((ti) => ti.item_id === proposal.itemId))

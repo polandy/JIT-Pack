@@ -22,7 +22,7 @@ import { shortDueDay } from '@/lib/taskDueText'
 import type { Placement } from '@/domain/shared/handOrder'
 import { useTripStore } from '@/stores/tripStore'
 import type { PrepTask, TaskPhase, TaskState, OwnTask } from '@/types/domain'
-import { TASK_PHASE_DURING } from '@/types/domain'
+import { TASK_PHASE_DURING, TASK_STATE_OPEN, TASK_STATE_RESOLVED } from '@/types/domain'
 
 /** What a screen lends the acts: its undo, its voice, its pickers. */
 export interface TaskActDeps {
@@ -80,18 +80,18 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
 
   function toggleOwn(task: OwnTask) {
     const live = () => liveOwnTask(task.id)
-    if (task.task_state === 'open') {
+    if (task.task_state === TASK_STATE_OPEN) {
       orchestrator.comments.resolveOwnTask(task)
       rowUndo.armAction(task.body, () => {
         const row = live()
-        if (row?.task_state === 'resolved') orchestrator.comments.reopenOwnTask(row)
+        if (row?.task_state === TASK_STATE_RESOLVED) orchestrator.comments.reopenOwnTask(row)
       })
       void announceTaskDone(task.body)
     } else {
       orchestrator.comments.reopenOwnTask(task)
       rowUndo.armAction(task.body, () => {
         const row = live()
-        if (row?.task_state === 'open') orchestrator.comments.resolveOwnTask(row)
+        if (row?.task_state === TASK_STATE_OPEN) orchestrator.comments.resolveOwnTask(row)
       })
       void announceAct(t('packing.taskReopenedToast', { body: task.body }))
     }
@@ -99,18 +99,18 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
 
   function togglePrep(task: PrepTask) {
     const live = () => livePrepTask(task.trip_item_id, task.id)
-    if (task.task_state === 'open') {
+    if (task.task_state === TASK_STATE_OPEN) {
       orchestrator.comments.resolvePrepTask(task)
       rowUndo.armAction(task.body, () => {
         const row = live()
-        if (row?.task_state === 'resolved') orchestrator.comments.reopenPrepTask(row)
+        if (row?.task_state === TASK_STATE_RESOLVED) orchestrator.comments.reopenPrepTask(row)
       })
       void announceTaskDone(task.body)
     } else {
       orchestrator.comments.reopenPrepTask(task)
       rowUndo.armAction(task.body, () => {
         const row = live()
-        if (row?.task_state === 'open') orchestrator.comments.resolvePrepTask(row)
+        if (row?.task_state === TASK_STATE_OPEN) orchestrator.comments.resolvePrepTask(row)
       })
       void announceAct(t('packing.taskReopenedToast', { body: task.body }))
     }
@@ -298,10 +298,10 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
    */
   function resolveMany(tasks: readonly TripTask[]): number {
     return writeBatch(
-      tasks.filter((task) => task.task_state === 'open'),
+      tasks.filter((task) => task.task_state === TASK_STATE_OPEN),
       (task) => task.task_state,
       (task, state) => writeState(task, state),
-      'resolved' as TaskState,
+      TASK_STATE_RESOLVED,
       (n) => t('tasks.bulkResolved', { n }),
     )
   }
@@ -382,9 +382,9 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
   function writeState(task: PrepTask | OwnTask, state: TaskState) {
     if (task.task_state === state) return
     if ('trip_item_id' in task) {
-      if (state === 'resolved') orchestrator.comments.resolvePrepTask(task)
+      if (state === TASK_STATE_RESOLVED) orchestrator.comments.resolvePrepTask(task)
       else orchestrator.comments.reopenPrepTask(task)
-    } else if (state === 'resolved') orchestrator.comments.resolveOwnTask(task)
+    } else if (state === TASK_STATE_RESOLVED) orchestrator.comments.resolveOwnTask(task)
     else orchestrator.comments.reopenOwnTask(task)
   }
 

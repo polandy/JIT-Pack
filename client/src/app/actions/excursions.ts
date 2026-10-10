@@ -24,7 +24,12 @@ import { newId } from '@/lib/ids'
 import type { TrackFiles } from '@/sync/featureModule'
 import { trackSettingsColumns } from '@/sync/rows'
 import type { Excursion, ExcursionLine, ExcursionTrack, TripItem } from '@/types/domain'
-import { ITEM_MODE_BUY_LOCAL, STATE_SKIPPED } from '@/types/domain'
+import {
+  ITEM_MODE_BUY_LOCAL,
+  STATE_PACKED,
+  STATE_SKIPPED,
+  TEMPLATE_KIND_GROUP,
+} from '@/types/domain'
 import type { SyncContext } from '../context'
 import {
   isExcursionOnly,
@@ -79,7 +84,7 @@ export interface GroupWrites {
   createMasterItem(name: string): string
   /** FR-31.13's undo: the item it created goes again (or retires, if something names it). */
   deleteMasterItem(itemId: string): void
-  createTemplate(name: string, kind: 'group'): string | null
+  createTemplate(name: string, kind: typeof TEMPLATE_KIND_GROUP): string | null
   addTemplateItem(
     templateId: string,
     itemId: string,
@@ -610,7 +615,7 @@ export function createExcursionActions(
       quantity: line.quantity,
     })
     write(mutation)
-    write(mutations.packItem(id, line.quantity, 'packed'))
+    write(mutations.packItem(id, line.quantity, STATE_PACKED))
     if (line.assigned_traveler_id !== null) {
       write(mutations.assignTraveler(id, line.assigned_traveler_id))
     }
@@ -657,7 +662,7 @@ export function createExcursionActions(
       masterStore.activeItemList,
       includeUnlisted,
     )
-    const groupId = deps.groups.createTemplate(name.trim(), 'group')
+    const groupId = deps.groups.createTemplate(name.trim(), TEMPLATE_KIND_GROUP)
     if (groupId === null) return null
     const invented = new Map<string, string>()
     for (const itemName of plan.newMasterItems)

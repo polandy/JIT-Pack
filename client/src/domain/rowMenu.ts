@@ -8,7 +8,7 @@
  * are offered; the view keeps the wording, the glyphs and the handlers,
  * which are its own.
  */
-import { ITEM_MODE_BUY_LOCAL } from '@/types/domain'
+import { ITEM_MODE_BUY_LOCAL, STATE_OPEN, STATE_SKIPPED } from '@/types/domain'
 
 import type { PackableRow } from './packingView'
 
@@ -102,7 +102,7 @@ export function avatarAssignable(item: AssignableRowItem, ctx: AssignContext): b
  * is the one of its three a reader decides while reading the list.
  */
 function modeEntries(item: RowMenuItem): RowMenuAction[] {
-  if (item.state !== 'open') return []
+  if (item.state !== STATE_OPEN) return []
   return [item.mode === ITEM_MODE_BUY_LOCAL ? 'packInstead' : 'buyLocal']
 }
 
@@ -131,7 +131,7 @@ export function rowMenuEntries(item: RowMenuItem, ctx: RowMenuContext): RowMenuA
       // packing it is already the checkbox's job, and skipping something
       // you are in the middle of packing is not a thing anyone means.
       ['release']
-    : item.state === 'skipped'
+    : item.state === STATE_SKIPPED
       ? // FR-25.24 is absent here on purpose: the editor's smallest amount
         // is 1, so setting one on a skipped row would be an *unskip* that
         // leaves the row's FR-20.2 companions behind — the one thing the

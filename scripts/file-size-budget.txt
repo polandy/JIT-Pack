@@ -2,11 +2,11 @@
 # A ratchet: an entry is only ever lowered or deleted — the gate's header says why.
 1493 client/src/components/global/track/TrackEditor.vue
 1428 client/src/components/global/InventoryBrowseSheet.vue
-1413 client/src/views/templates/TemplateEditorPage.vue
+1294 client/src/views/templates/TemplateEditorPage.vue
 1200 client/src/views/trips/TripExcursionPage.vue
 1159 client/src/views/trips/TripListPage.vue
-851 client/src/types/domain.ts
-1102 client/src/components/trips/ItemDetailSheet.vue
+816 client/src/types/domain.ts
+1057 client/src/components/trips/ItemDetailSheet.vue
 1090 client/src/planner/IdeaDetail.vue
 1081 client/src/planner/DayEntrySheet.vue
 1068 client/src/components/global/QuickAddItem.vue
@@ -16,7 +16,6 @@
 939 client/src/shopping/ShoppingPage.vue
 925 internal/store/tables.go
 814 client/src/views/items/ItemEditorPage.vue
-908 client/src/domain/portable.ts
 863 client/src/planner/ConnectionSearch.vue
 862 client/src/composables/useSyncOrchestrator.ts
 844 client/src/meals/MealPlanPage.vue

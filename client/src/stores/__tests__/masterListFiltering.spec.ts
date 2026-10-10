@@ -53,8 +53,8 @@ const COMPLETE_LIST_READERS: Record<string, string> = {
   'src/views/trips/PackingListPage.vue':
     "FR-9.4's closing-card teaser calls the same buildReviewProposals ReviewPage does, for the same reason: a trip's rows came from positions a retired Vorlage may still hold, and matching them against the active list alone would propose nothing for exactly the history the review is about. M4 offers no master rows of its own — the quick-add is QuickAddItem.vue's, and it is listed above.",
   'src/views/trips/TemplateFromTripPage.vue': 'planTemplateFromTrip writes against every item',
-  'src/views/templates/TemplateEditorPage.vue':
-    'resolved preview lines and the quick-add name lookup (its pickers use the active list)',
+  'src/views/templates/useTemplateGroups.ts':
+    "M8's Gruppen picker — resolved preview lines of a group, retired or not (the picker's own group set is the active list)",
   'src/components/global/QuickAddItem.vue':
     'the resolved lines of a group preview (its offers use the active list)',
   'src/components/templates/GroupPeekSheet.vue': 'FR-27.12 renders what a group resolves to',
@@ -108,7 +108,7 @@ describe('FR-24.3 — the complete master lists are read on purpose (ADR-032)', 
     // be pinned is that their offer reads exist at all — a wholesale revert
     // to the complete lists fails here, which is otherwise asserted nowhere.
     const mixed = [
-      'src/views/templates/TemplateEditorPage.vue', // pickers + FR-27.15 folds
+      'src/views/templates/useTemplateGroups.ts', // the picker (FR-27.15's own fold reads only the two sets it returns)
       'src/views/trips/wizard/useWizardComposition.ts', // M3's scope rows
       'src/views/trips/ReviewPage.vue', // the FR-27.11 retarget offer
       'src/views/trips/TemplateFromTripPage.vue', // the groups M21 offers

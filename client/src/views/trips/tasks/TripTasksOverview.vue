@@ -25,6 +25,7 @@ import { t } from '@/i18n'
 import { nameFrom } from '@/lib/rowFacts'
 import { tripItemPath, tripOpenPath } from '@/router/paths'
 import { useIdentityStore } from '@/stores/identityStore'
+import { TASK_STATE_OPEN } from '@/types/domain'
 import type { Trip } from '@/types/domain'
 
 const props = defineProps<{
@@ -42,7 +43,7 @@ const groups = computed(() =>
       const progress = tripTaskProgress(tasks)
       return {
         trip,
-        open: tasks.filter((task) => task.task_state === 'open'),
+        open: tasks.filter((task) => task.task_state === TASK_STATE_OPEN),
         progress,
         status: tripTaskStatus(progress),
       }

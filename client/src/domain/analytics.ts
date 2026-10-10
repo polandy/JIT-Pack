@@ -16,7 +16,7 @@
  */
 
 import type { Container, Traveler, Trip, TripItem } from '@/types/domain'
-import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
+import { STATE_SKIPPED, TRIP_STATUS_ARCHIVED } from '@/types/domain'
 import { tripOrderKey } from './trips'
 
 export type AnalyticsDimension = 'person' | 'category' | 'container'
@@ -53,7 +53,7 @@ export function analyzeTrip(
   let unweightedCount = 0
 
   for (const item of items) {
-    if (item.state === 'skipped') continue
+    if (item.state === STATE_SKIPPED) continue
     totalValue += (item.value_cents ?? 0) * item.quantity
     if (item.weight_grams === null) {
       unweightedCount++
@@ -141,7 +141,7 @@ export function seriesWeightTrend(
       tripName: t.name,
       startDate: t.start_date,
       packedWeight: itemsByTrip(t.id)
-        .filter((i) => i.state !== 'skipped')
+        .filter((i) => i.state !== STATE_SKIPPED)
         .reduce((sum, i) => sum + (i.weight_grams ?? 0) * i.packed_count, 0),
     }))
 }

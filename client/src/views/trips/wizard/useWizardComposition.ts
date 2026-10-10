@@ -15,6 +15,7 @@ import {
 import { resolveDependencies } from '@/domain/dependencies'
 import { generateTripItems } from '@/domain/instantiate'
 import { MIN_SEARCH_LENGTH, useMasterStore } from '@/stores/masterStore'
+import { TEMPLATE_KIND_GROUP, TEMPLATE_KIND_TEMPLATE } from '@/types/domain'
 import type { Template, TemplateKind } from '@/types/domain'
 import type { WizardMetadata } from './useWizardMetadata'
 import type { WizardTravelers } from './useWizardTravelers'
@@ -119,8 +120,8 @@ export function useWizardComposition(metadata: WizardMetadata, roster: WizardTra
   /** FR-27.12: which group the peek sheet is showing, if any. */
   const peekTemplateId = ref<string | null>(null)
 
-  const vacationTemplates = computed(() => scopeRows('template'))
-  const groupTemplates = computed(() => scopeRows('group'))
+  const vacationTemplates = computed(() => scopeRows(TEMPLATE_KIND_TEMPLATE))
+  const groupTemplates = computed(() => scopeRows(TEMPLATE_KIND_GROUP))
 
   /**
    * The Vorlagen that already bring a group along. Picking it again changes
@@ -131,7 +132,7 @@ export function useWizardComposition(metadata: WizardMetadata, roster: WizardTra
     const byGroup = new Map<string, string[]>()
     for (const id of selectedTemplateIds.value) {
       const picked = masterStore.getTemplate(id)
-      if (!picked || picked.kind !== 'template') continue
+      if (!picked || picked.kind !== TEMPLATE_KIND_TEMPLATE) continue
       for (const inc of masterStore.getIncludes(id)) {
         const names = byGroup.get(inc.included_template_id) ?? []
         names.push(picked.name)

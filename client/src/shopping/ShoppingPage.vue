@@ -54,6 +54,7 @@ import { useIdeaSeed } from '@/composables/shared/useIdeaSeed'
 import { useTripIdentity } from '@/composables/shared/useTripIdentity'
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
+import { prefersReducedMotion } from '@/lib/motion'
 import { collapseRow } from '@/lib/rowCollapse'
 import { pickAssignee as pickAssigneeFrom } from '@/composables/shared/pickAssignee'
 import { presentToast } from '@/composables/shared/toast'
@@ -223,7 +224,6 @@ const { isClosed, inOrder, restShelves, restOpen, toggleRest, restLabel, restExp
  * `collapseRow` (kernel `lib/`): height to zero, then gone. Checked live,
  * since the setting can change while the screen is open.
  */
-const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 
 /**
  * The rows mid-purchase, by key — the animated case. Every group is its own
@@ -242,7 +242,7 @@ function onRowLeave(el: Element, done: () => void) {
     return
   }
   buying.delete(key)
-  collapseRow(el as HTMLElement, done, reducedMotion.matches)
+  collapseRow(el as HTMLElement, done, prefersReducedMotion())
 }
 
 /**

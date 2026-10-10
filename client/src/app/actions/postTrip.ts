@@ -12,6 +12,7 @@ import { foldName } from '@/domain/nameCollision'
 import { planTemplateFromTrip, recogniseTripComposition } from '@/domain/templateFromTrip'
 import type { DeviationChoice, PositionDraft } from '@/domain/templateFromTrip'
 import type { ReviewProposal } from '@/domain/review'
+import { TEMPLATE_KIND_GROUP, TEMPLATE_KIND_TEMPLATE } from '@/types/domain'
 import type { SyncContext } from '../context'
 import type { createMasterDataActions } from './masterData'
 
@@ -128,14 +129,17 @@ export function createPostTripActions(
     // 3. The optional bundle group, included like any other.
     const includeIds = [...writes.template.includeGroupIds]
     if (writes.newGroup) {
-      const groupId = masterDataActions.createTemplate(writes.newGroup.name, 'group')
+      const groupId = masterDataActions.createTemplate(writes.newGroup.name, TEMPLATE_KIND_GROUP)
       if (groupId === null) return null
       write(groupId, writes.newGroup.positions)
       includeIds.push(groupId)
     }
 
     // 4. The composed Ferien-Vorlage itself.
-    const templateId = masterDataActions.createTemplate(writes.template.name, 'template')
+    const templateId = masterDataActions.createTemplate(
+      writes.template.name,
+      TEMPLATE_KIND_TEMPLATE,
+    )
     if (templateId === null) return null
     write(templateId, writes.template.positions)
     for (const groupId of includeIds) masterDataActions.addTemplateInclude(templateId, groupId)

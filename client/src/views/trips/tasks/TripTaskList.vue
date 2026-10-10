@@ -47,6 +47,7 @@ import type { TripTask } from '@/domain/tripTasks'
 import { t } from '@/i18n'
 import { IDEA_LOOKUP } from '@/kernel/ideaBridge'
 import { tripItemPath } from '@/router/paths'
+import { TASK_STATE_OPEN, TASK_STATE_RESOLVED } from '@/types/domain'
 
 const props = defineProps<{
   /** The trip whose tasks these are. */
@@ -120,8 +121,10 @@ const emit = defineEmits<{
   open: [task: TripTask]
 }>()
 
-const open = computed(() => props.tasks.filter((task) => task.task_state === 'open'))
-const resolved = computed(() => props.tasks.filter((task) => task.task_state === 'resolved'))
+const open = computed(() => props.tasks.filter((task) => task.task_state === TASK_STATE_OPEN))
+const resolved = computed(() =>
+  props.tasks.filter((task) => task.task_state === TASK_STATE_RESOLVED),
+)
 
 const showResolved = ref(false)
 const isList = computed(() => props.variant === 'list')

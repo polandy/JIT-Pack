@@ -27,7 +27,12 @@ import { computed, ref, watch } from 'vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
-import { DEPENDENCY_LINK_MAIN, type DependencyLinkDirection } from '@/domain/dependencies'
+import {
+  DEPENDENCY_LINK_MAIN,
+  DEPENDENCY_MODE_REQUIRED,
+  DEPENDENCY_MODE_SUGGESTED,
+  type DependencyLinkDirection,
+} from '@/domain/dependencies'
 import { DEPENDENCY_OFFER_CAP } from '@/lib/itemEditorOffers'
 import { searchMatches } from '@/domain/shared/search'
 import { t } from '@/i18n'
@@ -121,7 +126,12 @@ const hint = computed(() => t(isMain.value ? 'items.bulkDependsOnHint' : 'items.
           <button
             type="button"
             :data-testid="`m9-bulk-dep-pick-${item.name}`"
-            @click="emit('pick', { itemId: item.id, mode: suggested ? 'suggested' : 'required' })"
+            @click="
+              emit('pick', {
+                itemId: item.id,
+                mode: suggested ? DEPENDENCY_MODE_SUGGESTED : DEPENDENCY_MODE_REQUIRED,
+              })
+            "
           >
             <ItemMark :mark="item.icon ?? null" surface="plain" :size="20" />
             <span class="name">{{ item.name }}</span>

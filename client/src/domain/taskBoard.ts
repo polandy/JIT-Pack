@@ -11,7 +11,12 @@
  * Pure, like the rest of `domain/`: `today` comes from the caller.
  */
 import type { TaskPhase } from '@/types/domain'
-import { TASK_PHASE_BEFORE, TASK_PHASE_DURING } from '@/types/domain'
+import {
+  TASK_PHASE_BEFORE,
+  TASK_PHASE_DURING,
+  TASK_STATE_OPEN,
+  TASK_STATE_RESOLVED,
+} from '@/types/domain'
 import { byDue, isDuePressing } from './taskDue'
 import type { TripTask } from './tripTasks'
 
@@ -44,15 +49,15 @@ export function taskBoard(
   opts: { beforeLocked: boolean },
 ): TaskBoard {
   const pressing = (task: TripTask) =>
-    task.task_state === 'open' &&
+    task.task_state === TASK_STATE_OPEN &&
     !(opts.beforeLocked && task.phase === TASK_PHASE_BEFORE) &&
     isDuePressing(task, today)
   const due = byDue(tasks.filter(pressing), today)
   const shelf = (phase: TaskPhase): PhaseShelf => {
     const inPhase = tasks.filter((task) => task.phase === phase && !pressing(task))
     return {
-      open: inPhase.filter((task) => task.task_state === 'open'),
-      resolved: inPhase.filter((task) => task.task_state === 'resolved'),
+      open: inPhase.filter((task) => task.task_state === TASK_STATE_OPEN),
+      resolved: inPhase.filter((task) => task.task_state === TASK_STATE_RESOLVED),
     }
   }
   return { due, before: shelf(TASK_PHASE_BEFORE), during: shelf(TASK_PHASE_DURING) }

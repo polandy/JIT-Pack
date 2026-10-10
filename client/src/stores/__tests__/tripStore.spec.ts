@@ -319,60 +319,10 @@ describe('tripStore', () => {
     expect(tripStore.getItems('t1')).toHaveLength(0)
   })
 
-  it('computes KPIs', () => {
-    const tripStore = useTripStore()
-    tripStore.applyChanges([
-      {
-        seq: 1,
-        table: 'trip_items',
-        id: 'i1',
-        deleted: false,
-        row: {
-          trip_id: 't1',
-          name: 'A',
-          quantity: 2,
-          packed_count: 1,
-          weight_grams: 100,
-          value_cents: 500,
-          state: 'partial',
-          mode: 'pack',
-          updated_hlc: 'h1',
-        },
-      },
-      {
-        seq: 2,
-        table: 'trip_items',
-        id: 'i2',
-        deleted: false,
-        row: {
-          trip_id: 't1',
-          name: 'B',
-          quantity: 3,
-          packed_count: 3,
-          weight_grams: 200,
-          value_cents: 1000,
-          state: 'packed',
-          mode: 'pack',
-          updated_hlc: 'h2',
-        },
-      },
-    ])
-
-    const k = tripStore.kpis('t1')
-    expect(k.totalItems).toBe(5) // 2 + 3
-    expect(k.packedItems).toBe(4) // 1 + 3
-    expect(k.totalWeight).toBe(800) // 100*2 + 200*3
-    expect(k.packedWeight).toBe(700) // 100*1 + 200*3
-    expect(k.totalValue).toBe(4000) // 500*2 + 1000*3
-    expect(k.packedValue).toBe(3500) // 500*1 + 1000*3
-
-    // FR-25.31: a row whose removal is still inside its undo is off the line.
-    const hidden = tripStore.kpis('t1', new Set(['i2']))
-    expect(hidden.totalItems).toBe(2)
-    expect(hidden.packedItems).toBe(1)
-  })
-
-  it('counts a skipped row as no units — not packed, not owed (amends FR-25.22)', () => {
+  // The KPI arithmetic itself — units, weight, value, the skipped-row
+  // exception and FR-25.31's hidden rows — is `domain/tripKpis`'s own spec;
+  // what belongs here is that the store hands the rule its own rows.
+  it('computes KPIs over its own rows', () => {
     const tripStore = useTripStore()
     tripStore.applyChange({
       seq: 1,
@@ -381,21 +331,18 @@ describe('tripStore', () => {
       deleted: false,
       row: {
         trip_id: 't1',
-        name: 'Left behind on purpose',
-        quantity: 0,
-        packed_count: 0,
-        state: 'skipped',
+        name: 'A',
+        quantity: 2,
+        packed_count: 1,
+        weight_grams: 100,
+        value_cents: 500,
+        state: 'partial',
         mode: 'pack',
         updated_hlc: 'h1',
       },
     })
 
-    const k = tripStore.kpis('t1')
-    // A consciously-skipped row is neither packed nor part of what is left
-    // to pack — it must not inflate the trip line the way a real packed row
-    // does, or a trip with many skipped rows reads as further along than it is.
-    expect(k.totalItems).toBe(0)
-    expect(k.packedItems).toBe(0)
+    expect(tripStore.kpis('t1')).toMatchObject({ totalItems: 2, packedItems: 1 })
   })
 
   it('handles travelers', () => {
@@ -575,6 +522,8 @@ describe('tripStore', () => {
     expect(tripStore.getRowPrepTasks('t1', 'i2')).toHaveLength(1)
   })
 
+  // The grouping rule itself is `domain/tripKpis`'s own spec; this checks
+  // only that the store passes its own rows to it.
   it('itemsWithOpenPrep returns items with an open preparation', () => {
     const tripStore = useTripStore()
     tripStore.applyChanges([
@@ -595,21 +544,6 @@ describe('tripStore', () => {
       },
       {
         seq: 2,
-        table: 'trip_items',
-        id: 'i2',
-        deleted: false,
-        row: {
-          trip_id: 't1',
-          name: 'Clothes',
-          quantity: 1,
-          packed_count: 0,
-          state: 'open',
-          mode: 'pack',
-          updated_hlc: 'h2',
-        },
-      },
-      {
-        seq: 3,
         table: 'comments',
         id: 'prep1',
         deleted: false,
@@ -661,32 +595,8 @@ describe('tripStore', () => {
           task_state: 'open',
         },
       },
-      {
-        seq: 3,
-        table: 'comments',
-        id: 'prep2',
-        deleted: false,
-        row: {
-          trip_id: 't1',
-          trip_item_id: 'i1',
-          author_id: 'u1',
-          body: 'Task B',
-          is_task: 1,
-          task_state: 'resolved',
-        },
-      },
     ])
-    const k = tripStore.kpis('t1')
-    expect(k.totalPrepTasks).toBe(2)
-    expect(k.resolvedPrepTasks).toBe(1)
-
-    // FR-25.31: a row hidden while its removal's undo is live takes its preparations
-    // out of the count with it; a hidden preparation leaves on its own.
-    expect(tripStore.kpis('t1', new Set(['i1'])).totalPrepTasks).toBe(0)
-    expect(tripStore.kpis('t1', new Set(['prep2']))).toMatchObject({
-      totalPrepTasks: 1,
-      resolvedPrepTasks: 0,
-    })
+    expect(tripStore.kpis('t1')).toMatchObject({ totalPrepTasks: 1, resolvedPrepTasks: 0 })
   })
 })
 

@@ -94,7 +94,13 @@ describe('useExcursionRowPort (FR-31.6)', () => {
 
   it('puts a skipped record back as a skip, and writes nothing where the line is still skipped', () => {
     const { port, writes, lines } = setup([line({ state: 'open' })])
-    const skippedRecord = { itemId: 'l1', name: 'x', quantity: 0, packedCount: 0, state: 'skipped' }
+    const skippedRecord = {
+      itemId: 'l1',
+      name: 'x',
+      quantity: 0,
+      packedCount: 0,
+      state: STATE_SKIPPED,
+    }
     port.restorePacked([skippedRecord])
     expect(writes.skipLine).toHaveBeenCalledOnce()
     expect(writes.setLineCount).not.toHaveBeenCalled()

@@ -6,12 +6,13 @@
  */
 
 import { MIN_TRAVELERS_FOR_PER_PERSON } from './membership'
+import { STATE_SKIPPED } from '@/types/domain'
 import type { Container, Traveler, TripItem } from '@/types/domain'
 
 /** containerWeight sums the planned weight assigned to one container. */
 export function containerWeight(items: TripItem[], containerId: string): number {
   return items
-    .filter((i) => i.container_id === containerId && i.state !== 'skipped')
+    .filter((i) => i.container_id === containerId && i.state !== STATE_SKIPPED)
     .reduce((sum, i) => sum + (i.weight_grams ?? 0) * i.quantity, 0)
 }
 
@@ -25,7 +26,7 @@ export function unassignedItems(items: TripItem[], travelers: Traveler[]): TripI
   const who = (item: TripItem) =>
     travelers.find((tr) => tr.id === item.assigned_traveler_id)?.name ?? ''
   return items
-    .filter((i) => i.container_id === null && i.state !== 'skipped')
+    .filter((i) => i.container_id === null && i.state !== STATE_SKIPPED)
     .sort((a, b) => a.name.localeCompare(b.name) || who(a).localeCompare(who(b)))
 }
 

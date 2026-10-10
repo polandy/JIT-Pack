@@ -1,4 +1,5 @@
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { DEPENDENCY_MODE_REQUIRED, DEPENDENCY_MODE_SUGGESTED } from '@/domain/dependencies'
 import type { DependencyMode, TemplateKind } from '@/types/domain'
 import {
   ITEM_MODE_BUY_BEFORE,
@@ -6,6 +7,8 @@ import {
   ITEM_MODE_PACK,
   TASK_PHASE_BEFORE,
   TASK_PHASE_DURING,
+  TEMPLATE_KIND_GROUP,
+  TEMPLATE_KIND_TEMPLATE,
 } from '@/types/domain'
 
 /**
@@ -169,7 +172,7 @@ const INVENTORY: ItemSeed[] = [
 const DEPENDENCIES: { item: string; dependsOn: string; mode?: DependencyMode }[] = [
   { item: 'Ersatzakkus', dependsOn: 'Kamera' },
   { item: 'Ringlicht', dependsOn: 'Makro-Objektiv' },
-  { item: 'Powerbank', dependsOn: 'Kamera', mode: 'suggested' },
+  { item: 'Powerbank', dependsOn: 'Kamera', mode: DEPENDENCY_MODE_SUGGESTED },
   // On the duplicate, not on the row that stays: an edge the merge has to
   // carry over is worth more here than one it can ignore.
   { item: 'Stirnlampe Petzl', dependsOn: 'Ersatzakkus' },
@@ -367,7 +370,11 @@ function seedRetiredRows(
   itemIds: Map<string, string>,
   tagIds: Map<string, string>,
 ): void {
-  const groupId = orchestrator.masterData.createTemplate(RETIRE_DEMO.group, 'group', '🧼')
+  const groupId = orchestrator.masterData.createTemplate(
+    RETIRE_DEMO.group,
+    TEMPLATE_KIND_GROUP,
+    '🧼',
+  )
   if (groupId === null) return
   const keepId = itemIds.get(RETIRE_DEMO.keep)
   if (keepId) orchestrator.masterData.addTemplateItem(groupId, keepId, {})
@@ -441,7 +448,9 @@ export function seedSampleMaster(
     const itemId = itemIds.get(dep.item)
     const mainId = itemIds.get(dep.dependsOn)
     if (itemId && mainId)
-      orchestrator.dependencies.addItemDependency(itemId, mainId, { mode: dep.mode ?? 'required' })
+      orchestrator.dependencies.addItemDependency(itemId, mainId, {
+        mode: dep.mode ?? DEPENDENCY_MODE_REQUIRED,
+      })
   }
 
   // A second seed run on a device that already carries the sample data finds
@@ -461,12 +470,12 @@ export function seedSampleMaster(
 
   const groupIds = new Map<string, string>()
   for (const group of GROUPS) {
-    const id = seedTemplate(group.name, 'group', group.icon ?? null)
+    const id = seedTemplate(group.name, TEMPLATE_KIND_GROUP, group.icon ?? null)
     groupIds.set(group.name, id)
     if (created.has(id)) addPositions(orchestrator, id, itemIds, group.positions)
   }
 
-  const vacationTemplateId = seedTemplate(VACATION.name, 'template', VACATION.icon)
+  const vacationTemplateId = seedTemplate(VACATION.name, TEMPLATE_KIND_TEMPLATE, VACATION.icon)
   if (created.has(vacationTemplateId)) {
     for (const name of VACATION.includes) {
       const groupId = groupIds.get(name)

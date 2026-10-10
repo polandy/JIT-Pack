@@ -10,6 +10,7 @@
  */
 
 import { MIN_TRAVELERS_FOR_PER_PERSON } from './membership'
+import { TEMPLATE_KIND_GROUP } from '@/types/domain'
 import type {
   MasterItem,
   Template,
@@ -98,7 +99,7 @@ export function recogniseTripComposition(input: RecognitionInput): TripCompositi
   const looseRows: TripItem[] = []
   for (const row of input.tripItems) {
     const source = row.source_template_id ? byId.get(row.source_template_id) : undefined
-    if (source?.kind === 'group') {
+    if (source?.kind === TEMPLATE_KIND_GROUP) {
       const rows = rowsByGroup.get(source.id)
       if (rows) rows.push(row)
       else rowsByGroup.set(source.id, [row])

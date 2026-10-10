@@ -18,6 +18,7 @@ import WhoChips from '@/components/global/WhoChips.vue'
 import { resolveTemplate, searchGroups, type GroupSearchCandidate } from '@/domain/templates'
 import { t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
+import { TEMPLATE_KIND_GROUP } from '@/types/domain'
 import type { Excursion, Traveler } from '@/types/domain'
 
 /** What the sheet hands back: the fields, and for a new one its start. */
@@ -93,7 +94,7 @@ const candidates = computed<GroupSearchCandidate[]>(() => {
     positions: masterStore.positionList,
   }
   return masterStore.activeTemplateList
-    .filter((tpl) => tpl.kind === 'group')
+    .filter((tpl) => tpl.kind === TEMPLATE_KIND_GROUP)
     .map((tpl) => ({
       id: tpl.id,
       name: tpl.name,

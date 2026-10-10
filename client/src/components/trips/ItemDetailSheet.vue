@@ -41,10 +41,7 @@ import {
   removeCircleOutline,
   timeOutline,
 } from 'ionicons/icons'
-import { computed, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
-
-import { COMMENT_QUERY_PARAM } from '@/router/paths'
+import { computed, ref } from 'vue'
 
 import ItemMark from '@/components/items/ItemMark.vue'
 import FactChip from '@/components/global/FactChip.vue'
@@ -52,7 +49,6 @@ import SaveIndicator from '@/components/global/SaveIndicator.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import QuantityEditor from '@/components/global/QuantityEditor.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
-import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 import ForWhomStrip from '@/components/trips/ForWhomStrip.vue'
 import { resolveDependencies, type SuggestedCompanion } from '@/domain/dependencies'
 import { MIN_TRAVELERS_FOR_PER_PERSON } from '@/domain/membership'
@@ -65,11 +61,18 @@ import { t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { isPackingClosed } from '@/domain/shared/tripPhase'
-import { ITEM_MODE_BUY_BEFORE, ITEM_MODES, isShoppingMode } from '@/types/domain'
-import type { ItemComment, ItemMode, PrepTask, ReviewFlag, TripMemberProfile } from '@/types/domain'
+import {
+  ITEM_MODE_BUY_BEFORE,
+  ITEM_MODES,
+  isShoppingMode,
+  STATE_SKIPPED,
+  TASK_STATE_RESOLVED,
+} from '@/types/domain'
+import type { ItemMode, ReviewFlag, TripMemberProfile } from '@/types/domain'
 import { lockNoteText, nameFrom, packedStampText, responsibleNote } from '@/lib/rowFacts'
 import { stateLabel as stateLabelFor } from '@/lib/stateLabels'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
+import { useItemDiscussion } from '@/composables/useItemDiscussion'
 import SheetHead from '@/components/global/SheetHead.vue'
 import type { InventoryRename } from '@/domain/inventoryNames'
 
@@ -189,74 +192,26 @@ function nameOf(userId: string | null): string | null {
   return nameFrom(props.memberProfiles, userId)
 }
 
-// --- Preparation (FR-7.3) ---
-const prepTasks = computed(() => tripStore.getRowPrepTasks(props.tripId, props.itemId))
-const openPrepCount = computed(() => prepTasks.value.filter((t) => t.task_state === 'open').length)
-const hasPrepWithPacked = computed(() => item.value?.state === 'packed' && openPrepCount.value > 0)
-const newPrepTaskText = ref('')
-
-function addPrepTask() {
-  const body = newPrepTaskText.value.trim()
-  if (!body || isLocked.value) return
-  orchestrator.comments.addPrepTask(props.tripId, props.itemId, CLIENT_ACTOR_PLACEHOLDER, body)
-  newPrepTaskText.value = ''
-}
-
-function togglePrepTask(task: PrepTask) {
-  if (isLocked.value) return
-  if (task.task_state === 'open') orchestrator.comments.resolvePrepTask(task)
-  else orchestrator.comments.reopenPrepTask(task)
-}
-
-// --- Notes (FR-7.1/7.2) ---
-const itemComments = computed(() => tripStore.getItemComments(props.tripId, props.itemId))
-const newCommentText = ref('')
-
-// G-4: a notification deep link (?comment=) scrolls to the referenced
-// message and flashes it. The thread may still be syncing when we arrive,
-// so this watches the list and fires once the target appears.
-const route = useRoute()
-const flashedCommentId = ref<string | null>(null)
-/**
- * The same id, kept after the animation has ended.
- *
- * The flash is a 2.4 s window, so it is not something a test can assert
- * without racing it — and the arrival it reports is exactly what G-4
- * promises. This records the outcome instead: set once the referenced
- * comment has been found and scrolled to, never cleared (E2E-G4-01).
- */
-const deepLinkedCommentId = ref<string | null>(null)
-watch(
+// --- Preparation (FR-7.3) and notes (FR-7.1/7.2), including the G-4 deep link ---
+const {
+  prepTasks,
+  openPrepCount,
+  hasPrepWithPacked,
+  newPrepTaskText,
+  addPrepTask,
+  togglePrepTask,
   itemComments,
-  (comments) => {
-    const target = route.query[COMMENT_QUERY_PARAM]
-    if (typeof target !== 'string' || flashedCommentId.value === target) return
-    if (!comments.some((c) => c.id === target)) return
-    flashedCommentId.value = target
-    deepLinkedCommentId.value = target
-    requestAnimationFrame(() => {
-      document
-        .getElementById(`comment-${target}`)
-        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    })
-    setTimeout(() => {
-      if (flashedCommentId.value === target) flashedCommentId.value = null
-    }, 2400)
-  },
-  { immediate: true },
+  newCommentText,
+  flashedCommentId,
+  deepLinkedCommentId,
+  addComment,
+  flagAsTask,
+} = useItemDiscussion(
+  () => props.tripId,
+  () => props.itemId,
+  item,
+  isLocked,
 )
-
-function addComment() {
-  const body = newCommentText.value.trim()
-  if (!body) return
-  orchestrator.comments.addComment(props.tripId, props.itemId, CLIENT_ACTOR_PLACEHOLDER, body)
-  newCommentText.value = ''
-}
-
-/** FR-7.2: promoting a note moves it into the Preparation section above. */
-function flagAsTask(comment: ItemComment) {
-  orchestrator.comments.flagCommentAsTask(props.tripId, comment)
-}
 
 // --- FR-20.4 companions ---
 const suggestedCompanions = computed(() => {
@@ -368,12 +323,12 @@ function onToggle() {
  * hidden behind a gesture — M4's press-and-hold is the fast path, this one
  * is the one you can find without knowing it exists.
  */
-const isSkipped = computed(() => item.value?.state === 'skipped')
+const isSkipped = computed(() => item.value?.state === STATE_SKIPPED)
 
 function onSkipToggle() {
   const row = item.value
   if (!row || isLocked.value) return
-  if (row.state === 'skipped') orchestrator.packing.unskipItem(row)
+  if (row.state === STATE_SKIPPED) orchestrator.packing.unskipItem(row)
   else orchestrator.packing.skipItem(props.tripId, row)
 }
 
@@ -575,13 +530,13 @@ const packedStamp = computed(() => {
         v-for="task in prepTasks"
         :key="task.id"
         class="task"
-        :class="{ done: task.task_state === 'resolved' }"
+        :class="{ done: task.task_state === TASK_STATE_RESOLVED }"
       >
         <span class="task-body">{{ task.body }}</span>
         <!-- The tick sits at the end, where M4 puts the control it stands
              for — a task is ticked at the row's edge on both screens. -->
         <IonCheckbox
-          :checked="task.task_state === 'resolved'"
+          :checked="task.task_state === TASK_STATE_RESOLVED"
           :disabled="isLocked"
           :data-testid="`m5-task-${task.body}`"
           @ion-change="togglePrepTask(task)"

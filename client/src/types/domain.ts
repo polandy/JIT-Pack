@@ -91,6 +91,9 @@ export const STATE_PACKED = 'packed' as const satisfies ItemState
  * separately), so „quantity is 0" is not the same question.
  */
 export const STATE_SKIPPED = 'skipped' as const satisfies ItemState
+
+/** The row's starting state — not yet packed, not yet decided against (FR-5.2). */
+export const STATE_OPEN = 'open' as const satisfies ItemState
 export type ItemMode = ColumnEnum<'trip_items', 'mode'>
 
 /**
@@ -394,6 +397,13 @@ export interface NoteAck {
 export type TaskState = ColumnEnum<'comments', 'task_state'>
 
 /**
+ * The two task states (FR-7.x), as values for the reason {@link STATE_PACKING_NOW}
+ * is one: a misspelling of either compiles cleanly while silently never matching.
+ */
+export const TASK_STATE_OPEN = 'open' as const satisfies TaskState
+export const TASK_STATE_RESOLVED = 'resolved' as const satisfies TaskState
+
+/**
  * FR-7.7: when a task is meant to be done — before the trip or during it.
  *
  * Stored rather than derived, because nothing else in the row tells „not done
@@ -617,6 +627,13 @@ export interface MasterItem {
  */
 export type TemplateKind = ColumnEnum<'templates', 'kind'>
 
+/**
+ * The two template kinds (FR-27.1/27.6), as values for the reason
+ * {@link STATE_PACKING_NOW} is one.
+ */
+export const TEMPLATE_KIND_GROUP = 'group' as const satisfies TemplateKind
+export const TEMPLATE_KIND_TEMPLATE = 'template' as const satisfies TemplateKind
+
 export interface Template {
   id: string
   /** FR-1.6 MVP: creator metadata only — every account may edit every
@@ -796,56 +813,4 @@ export interface AppliedChange {
   created_at: string
 }
 
-/*
- * The options a creating write is built from. They are named here, below both
- * the mutation factory that takes them and the portable import that hands
- * them over, so the import's port (`ImportMutations`) and the builders read
- * one declaration (ADR-096).
- */
-
-/** A master item's optional fields at creation. */
-export interface MasterItemOptions {
-  weightGrams?: number | null
-  valueCents?: number | null
-  /** FR-28.1: the optional mark, absent as often as not. */
-  icon?: string | null
-  /** FR-1.9: the account the item is normally assigned to. */
-  defaultAssigneeId?: string | null
-}
-
-/** A template position's optional fields at creation. */
-export interface TemplateItemOptions {
-  quantity?: number
-  assignment?: string
-  dedup?: string
-  defaultMode?: ItemMode
-  latePacker?: boolean
-  conditions?: Record<string, unknown> | null
-}
-
-/** A trip's optional fields at creation. */
-export interface TripOptions {
-  seriesId?: string | null
-  attributes?: Record<string, unknown> | null
-  /** FR-2.2: a restore gives back the status it saved (ADR-024). */
-  status?: TripStatus
-}
-
-/** A container's optional fields at creation. */
-export interface ContainerOptions {
-  carrierTravelerId?: string | null
-  maxWeightGrams?: number | null
-}
-
-/** A trip row as a portable document carries it (FR-18.4), every field decided. */
-export interface PortableTripItemFields {
-  name: string
-  sourceItemId: string | null
-  categoryName: string | null
-  quantity: number
-  packedCount: number
-  mode: ItemMode
-  latePacker: boolean
-  /** FR-25.11j: the shopping list the row was bought from, if any. */
-  boughtFrom: ShoppingMode | null
-}
+/** The options a creating write is built from live in `types/creationOptions.ts` (ADR-096). */

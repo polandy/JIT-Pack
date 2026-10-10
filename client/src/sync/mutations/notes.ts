@@ -7,7 +7,7 @@ import { TABLE } from '@/api/tables'
 import { dbBool } from '@/sync/columns'
 import { newId } from '@/lib/ids'
 import type { Mutation } from '@/api/types'
-import type { TaskPhase } from '@/types/domain'
+import { TASK_STATE_OPEN, type TaskPhase } from '@/types/domain'
 import type { MutationContext } from './context'
 
 /**
@@ -85,7 +85,7 @@ export function createNotesMutations({ make, nowIso }: MutationContext) {
    * it the task reads as *before*, as every task without a phase does.
    */
   function flagCommentAsTask(commentId: string, phase?: TaskPhase): Mutation {
-    const fields = { is_task: 1, task_state: 'open' }
+    const fields = { is_task: 1, task_state: TASK_STATE_OPEN }
     return make('upsert', TABLE.comments, commentId, phase ? { ...fields, phase } : fields)
   }
 

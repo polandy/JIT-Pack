@@ -24,6 +24,7 @@ import {
   SPLASH_TARGET_ATTR,
   flightTransform,
 } from '@/lib/splash'
+import { prefersReducedMotion } from '@/lib/motion'
 
 const emit = defineEmits<{ done: [] }>()
 
@@ -36,8 +37,7 @@ const LANDING_HIDDEN_CLASS = 'jp-splash-landing'
 const WORDMARK = ['J', 'I', 'T', '·', 'P', 'a', 'c', 'k']
 const WORDMARK_DOT = 3
 
-const reduced =
-  typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+const reduced = prefersReducedMotion()
 const leaveMs = reduced ? SPLASH_REDUCED_LEAVE_MS : SPLASH_LEAVE_MS
 
 const phase = ref<Phase>('intro')

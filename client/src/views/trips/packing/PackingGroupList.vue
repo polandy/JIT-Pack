@@ -16,6 +16,7 @@ import PackingRow from '@/components/trips/PackingRow.vue'
 import type { LongPress } from '@/composables/shared/useLongPress'
 import type { PackableRow, PackingCluster, PackingEntry, PackingGroup } from '@/domain/packingView'
 import { t } from '@/i18n'
+import { prefersReducedMotion } from '@/lib/motion'
 import { collapseRow } from '@/lib/rowCollapse'
 import type { TripMemberProfile } from '@/types/domain'
 
@@ -68,7 +69,6 @@ defineEmits<{
  * the setting can change while the screen is open. The duration lives in CSS
  * only: `collapseRow` waits on `transitionend` rather than on a number.
  */
-const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 
 /**
  * Collapse a leaving row to zero height — the rules are in `collapseRow`.
@@ -82,7 +82,7 @@ function onRowLeave(el: Element, done: () => void) {
     done()
     return
   }
-  collapseRow(el as HTMLElement, done, reducedMotion.matches)
+  collapseRow(el as HTMLElement, done, prefersReducedMotion())
 }
 
 /**

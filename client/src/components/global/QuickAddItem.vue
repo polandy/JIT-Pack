@@ -101,7 +101,7 @@ import {
 import { recentItemIds, recordRecentItem } from '@/local/quickAddRecents'
 import { previewText } from '@/lib/groupPreview'
 import { formatWeight } from '@/lib/format'
-import type { MasterItem } from '@/types/domain'
+import { TEMPLATE_KIND_GROUP, type MasterItem } from '@/types/domain'
 
 /**
  * How many matches the composer offers per kind. The list sits under a soft
@@ -302,7 +302,7 @@ const groupMatches = computed(() => {
   if (!props.offerGroups || query.value.length < MIN_SEARCH_LENGTH) return []
   const needle = query.value.trim().toLowerCase()
   return masterStore.activeTemplateList
-    .filter((tpl) => tpl.kind === 'group' && tpl.name.toLowerCase().includes(needle))
+    .filter((tpl) => tpl.kind === TEMPLATE_KIND_GROUP && tpl.name.toLowerCase().includes(needle))
     .sort((a, b) => a.name.localeCompare(b.name))
     .map((tpl) => {
       const lines = resolvedLines(masterStore.resolve(tpl.id), masterStore.itemList)

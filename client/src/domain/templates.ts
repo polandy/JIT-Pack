@@ -8,6 +8,7 @@
  * row count, the M8 resolution footer and trip generation alike.
  */
 
+import { TEMPLATE_KIND_GROUP, TEMPLATE_KIND_TEMPLATE } from '@/types/domain'
 import type {
   ItemMode,
   MasterItem,
@@ -169,8 +170,8 @@ export function scopeSwitchBlock(
   includes: TemplateInclude[],
   includedBy: Template[],
 ): ScopeSwitchBlock | null {
-  if (target === 'group' && includes.length > 0) return 'has-includes'
-  if (target === 'template' && includedBy.length > 0) return 'included-by'
+  if (target === TEMPLATE_KIND_GROUP && includes.length > 0) return 'has-includes'
+  if (target === TEMPLATE_KIND_TEMPLATE && includedBy.length > 0) return 'included-by'
   return null
 }
 

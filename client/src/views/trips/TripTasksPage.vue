@@ -86,7 +86,12 @@ import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { pickAssignee as pickAssigneeFrom } from '@/composables/shared/pickAssignee'
 import { beforeIsOver, isPackingClosed, standingOf } from '@/domain/shared/tripPhase'
-import { TASK_PHASE_BEFORE, TASK_PHASE_DURING, type TaskPhase } from '@/types/domain'
+import {
+  TASK_PHASE_BEFORE,
+  TASK_PHASE_DURING,
+  TASK_STATE_OPEN,
+  type TaskPhase,
+} from '@/types/domain'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -251,7 +256,7 @@ watch(dragHost, (el) => drag.bindHost(el), { immediate: true })
 
 /** FR-7.17: a group with every open task of its phase in it, unfiltered. */
 function wholeGroup(phase: TaskPhase, key: string): TripTask[] {
-  const open = tasks.value.filter((t) => t.phase === phase && t.task_state === 'open')
+  const open = tasks.value.filter((t) => t.phase === phase && t.task_state === TASK_STATE_OPEN)
   return taskGroups(open, taskTags.value, today.value).find((g) => g.key === key)?.tasks ?? []
 }
 
@@ -276,7 +281,8 @@ const selection = useRowSelection()
 const selectable = computed(() =>
   shown.value.filter(
     (task) =>
-      task.task_state === 'open' && !(beforeLocked.value && task.phase === TASK_PHASE_BEFORE),
+      task.task_state === TASK_STATE_OPEN &&
+      !(beforeLocked.value && task.phase === TASK_PHASE_BEFORE),
   ),
 )
 const selectedTasks = computed(() =>
