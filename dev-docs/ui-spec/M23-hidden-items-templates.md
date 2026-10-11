@@ -13,9 +13,11 @@
   good*.
 * **A row that got here by a merge says so (FR-24.15):** beneath the retire date it names the surviving
   item — *„zusammengeführt mit ‚Stirnlampe'"* — because a bare *Wiederherstellen* is otherwise an offer to re-create
-  the duplicate the user has just removed. The restore is ADR-034's act unchanged and additionally **clears the merge
-  alias**: a row that is active again has a past of its own. What it does *not* bring back are the references the
-  merge moved — the tags, positions and companions are the survivor's now.
+  the duplicate the user has just removed. It reads the alias by ADR-069's one-hop rule (`aliasOf`): a survivor that
+  is itself merged away — two devices merging the same pair in opposite directions — names nothing. The restore is
+  ADR-034's act unchanged and additionally **clears the merge alias**: a row that is active again has a past of its
+  own. What it does *not* bring back are the references the merge moved — the tags, positions and companions are the
+  survivor's now.
 * **Elements:** the FR's sentence in one line, then a two-value segment — *Artikel (N)* / *Vorlagen (N)* — and one card
   list per side, **newest retire first**, because the row someone wants back is almost always the one they just lost. A
   row carries the mark, the name, the date it was hidden, and its usage count. **Both segments are always present, and

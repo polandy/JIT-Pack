@@ -159,6 +159,17 @@ describe('M23 — a row that got here by a merge (FR-24.15)', () => {
     expect(merged).toHaveLength(1)
     expect(merged[0]!.text()).toContain(t('items.mergedInto', { name: 'Stirnlampe' }))
   })
+
+  it('names nothing for two rows merged into each other on two devices (ADR-069)', async () => {
+    seedRetired('i-a', 'Stirnlampe', { merged_into_id: 'i-b' })
+    seedRetired('i-b', 'Stirnlampe Petzl', { merged_into_id: 'i-a' })
+
+    const page = mountPage()
+    await flushPromises()
+
+    expect(page.findAll('[data-testid="m23-row"]')).toHaveLength(2)
+    expect(page.findAll('[data-testid="m23-row-merged"]')).toHaveLength(0)
+  })
 })
 
 /*

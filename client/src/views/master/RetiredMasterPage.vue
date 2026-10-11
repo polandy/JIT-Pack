@@ -49,6 +49,7 @@ import { t, formatDate } from '@/i18n'
 import type { MessageKey } from '@/i18n'
 import { presentToast } from '@/composables/shared/toast'
 import { useMasterStore } from '@/stores/masterStore'
+import { aliasOf } from '@/domain/itemMerge'
 import { DELETION_REMOVE } from '@/domain/masterDeletion'
 import { RESTORE_NAME_TAKEN, type RestoreVerdict } from '@/domain/masterRestore'
 import { TEMPLATE_KIND_GROUP } from '@/types/domain'
@@ -92,7 +93,8 @@ interface RetiredRow {
   /**
    * FR-24.15: the item this row was merged into, by name, or null. A row that
    * got here by a merge says so, because its restore is otherwise an offer to
-   * re-create the duplicate the user has just removed.
+   * re-create the duplicate the user has just removed. Read through
+   * `aliasOf`, so two rows merged into each other name neither (ADR-069).
    */
   mergedInto: string | null
   /** The sentence the permanent-delete confirm carries. */
@@ -115,9 +117,7 @@ const itemRows = computed<RetiredRow[]>(() =>
       photoItem: item,
       references: outlook.references,
       removable: outlook.kind === DELETION_REMOVE,
-      mergedInto: item.merged_into_id
-        ? (masterStore.getItem(item.merged_into_id)?.name ?? null)
-        : null,
+      mergedInto: aliasOf(item, masterStore.getItem)?.name ?? null,
       // Read only where `removable` is true, and there the key is the remove
       // one — a retiring row's button is not rendered.
       removeKey: deletionOutlookKey(DELETION_SUBJECT_ITEM, outlook),
