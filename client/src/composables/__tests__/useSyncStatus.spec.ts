@@ -1,23 +1,24 @@
 import { describe, it, expect } from 'vitest'
 import { useSyncStatus } from '../useSyncStatus'
+import { fixedClock } from '@/__tests__/fixedClock'
 
 describe('useSyncStatus', () => {
   it('starts in synced state with zero pending', () => {
-    const status = useSyncStatus()
+    const status = useSyncStatus(fixedClock)
     expect(status.state.value).toBe('synced')
     expect(status.pendingCount.value).toBe(0)
     expect(status.label.value).toBe('Synced')
   })
 
   it('transitions to syncing', () => {
-    const status = useSyncStatus()
+    const status = useSyncStatus(fixedClock)
     status.setSyncing()
     expect(status.state.value).toBe('syncing')
     expect(status.label.value).toBe('Syncing…')
   })
 
   it('transitions to synced after syncing', () => {
-    const status = useSyncStatus()
+    const status = useSyncStatus(fixedClock)
     status.setSyncing()
     status.setSynced()
     expect(status.state.value).toBe('synced')
@@ -37,28 +38,28 @@ describe('useSyncStatus', () => {
   })
 
   it('transitions to offline', () => {
-    const status = useSyncStatus()
+    const status = useSyncStatus(fixedClock)
     status.setOffline()
     expect(status.state.value).toBe('offline')
     expect(status.label.value).toBe('Offline')
   })
 
   it('shows pending count in offline label', () => {
-    const status = useSyncStatus()
+    const status = useSyncStatus(fixedClock)
     status.setOffline()
     status.setPendingCount(3)
     expect(status.label.value).toBe('Offline (3 queued)')
   })
 
   it('offline takes priority over syncing', () => {
-    const status = useSyncStatus()
+    const status = useSyncStatus(fixedClock)
     status.setSyncing()
     status.setOffline()
     expect(status.state.value).toBe('offline')
   })
 
   it('setSynced clears offline state', () => {
-    const status = useSyncStatus()
+    const status = useSyncStatus(fixedClock)
     status.setOffline()
     status.setSynced()
     expect(status.state.value).toBe('synced')
@@ -73,7 +74,7 @@ describe('useSyncStatus', () => {
  */
 describe('Local Mode writes (FR-19.2)', () => {
   it('reports syncing while a local write is open, not "local"', () => {
-    const status = useSyncStatus()
+    const status = useSyncStatus(fixedClock)
     status.setLocal()
     expect(status.state.value).toBe('local')
 
@@ -83,7 +84,7 @@ describe('Local Mode writes (FR-19.2)', () => {
   })
 
   it('returns to "local" once the write has landed', () => {
-    const status = useSyncStatus()
+    const status = useSyncStatus(fixedClock)
     status.setLocal()
     status.setSyncing()
 
@@ -93,7 +94,7 @@ describe('Local Mode writes (FR-19.2)', () => {
   })
 
   it('a failed local write shows offline rather than a false all-clear', () => {
-    const status = useSyncStatus()
+    const status = useSyncStatus(fixedClock)
     status.setLocal()
     status.setSyncing()
 
@@ -103,7 +104,7 @@ describe('Local Mode writes (FR-19.2)', () => {
   })
 
   it('clears that offline state once a later write lands', () => {
-    const status = useSyncStatus()
+    const status = useSyncStatus(fixedClock)
     status.setLocal()
     status.setSyncing()
     status.setOffline()
@@ -123,14 +124,14 @@ describe('Local Mode writes (FR-19.2)', () => {
  */
 describe('useSyncStatus — durable queue facts', () => {
   it('starts out claiming a durable queue and nothing parked', () => {
-    const status = useSyncStatus()
+    const status = useSyncStatus(fixedClock)
 
     expect(status.parkedCount.value).toBe(0)
     expect(status.queueDurable.value).toBe(true)
   })
 
   it('carries the parked count, its reason, and the withdrawn durability', () => {
-    const status = useSyncStatus()
+    const status = useSyncStatus(fixedClock)
 
     status.setParked(2, 'still_referenced')
     status.setQueueDurable(false)
@@ -149,11 +150,11 @@ describe('useSyncStatus — the last failed request', () => {
   const failure = { method: 'GET', path: '/api/v1/master/sync', status: 503, at: 1_757_000_000_000 }
 
   it('has nothing to say before anything has failed', () => {
-    expect(useSyncStatus().lastFailure.value).toBeNull()
+    expect(useSyncStatus(fixedClock).lastFailure.value).toBeNull()
   })
 
   it('keeps the failure after the device is synced again — nobody was watching when it failed', () => {
-    const status = useSyncStatus()
+    const status = useSyncStatus(fixedClock)
 
     status.setLastFailure(failure)
     status.setSynced()
@@ -164,7 +165,7 @@ describe('useSyncStatus — the last failed request', () => {
   })
 
   it('carries the most recent one, not the first', () => {
-    const status = useSyncStatus()
+    const status = useSyncStatus(fixedClock)
 
     status.setLastFailure(failure)
     status.setLastFailure({ ...failure, status: null, at: failure.at + 1_000 })

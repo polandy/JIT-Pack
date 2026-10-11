@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { saveTokens } from '@/auth/tokens'
+import { fixedClock } from '@/__tests__/fixedClock'
 import {
   MIGRATION_PENDING_KEY,
   DEVICE_ID_KEY,
@@ -101,7 +102,7 @@ describe('resetConnection', () => {
 
   it('forgets the session, the mode and the server URL, and reloads', () => {
     chooseMode('server', 'https://stale.example.com')
-    saveTokens(session)
+    saveTokens(session, fixedClock)
     let reloads = 0
 
     resetConnection(() => (reloads += 1))
@@ -142,7 +143,7 @@ describe('hasCollaborativeSession', () => {
 
   it('is false in Local Mode even with tokens lying around', () => {
     localStorage.setItem(MODE_KEY, 'local')
-    saveTokens(session)
+    saveTokens(session, fixedClock)
     expect(hasCollaborativeSession()).toBe(false)
   })
 
@@ -153,7 +154,7 @@ describe('hasCollaborativeSession', () => {
 
   it('is true on a server client with a session', () => {
     localStorage.setItem(MODE_KEY, 'server')
-    saveTokens(session)
+    saveTokens(session, fixedClock)
     expect(hasCollaborativeSession()).toBe(true)
   })
 })

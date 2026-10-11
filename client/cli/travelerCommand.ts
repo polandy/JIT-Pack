@@ -139,7 +139,7 @@ export async function runTraveler(opts: TravelerOptions, io: CommandIO): Promise
   }
 
   const hlc = new HLCGenerator(io.now, io.deviceId)
-  const client = new APIClient(opts.serverUrl, () => opts.token)
+  const client = new APIClient(opts.serverUrl, () => opts.token, { now: io.now })
   const ctx = createCommandContext(hlc, io.now)
   const { trips, pending, tripLifecycle } = ctx
 

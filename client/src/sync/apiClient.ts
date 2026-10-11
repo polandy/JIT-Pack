@@ -1,6 +1,6 @@
 /** Thin HTTP client with auth header injection (Sync-API Spec §2). */
 import { endSession } from '@/auth/refresh'
-import { defaultNowMs, type NowMs } from '@/lib/clock'
+import type { NowMs } from '@/lib/clock'
 
 import { ERROR_CODE, type APIErrorBody } from '@/api/types'
 
@@ -41,7 +41,7 @@ export interface RequestFailure {
   at: number
 }
 
-/** Optional wiring; without any of it the client behaves exactly as before. */
+/** The client's wiring: hooks it may call, and the clock it must be given. */
 export interface APIClientOptions {
   /**
    * Invoked on a 401 so the caller can refresh and have the request retried
@@ -51,7 +51,7 @@ export interface APIClientOptions {
   /** Invoked for every request that ends in a failure (see {@link RequestFailure}). */
   onFailure?: (failure: RequestFailure) => void
   /** The clock the failure is stamped with (`lib/clock.ts`). */
-  now?: NowMs
+  now: NowMs
 }
 
 export class APIClient {
@@ -61,12 +61,12 @@ export class APIClient {
   private readonly onFailure?: (failure: RequestFailure) => void
   private readonly now: NowMs
 
-  constructor(baseUrl: string, getToken: TokenProvider, options: APIClientOptions = {}) {
+  constructor(baseUrl: string, getToken: TokenProvider, options: APIClientOptions) {
     this.baseUrl = baseUrl.replace(/\/+$/, '')
     this.getToken = getToken
     this.onUnauthorized = options.onUnauthorized
     this.onFailure = options.onFailure
-    this.now = options.now ?? defaultNowMs
+    this.now = options.now
   }
 
   async get<T = unknown>(path: string, params?: Record<string, string>): Promise<T> {

@@ -9,7 +9,7 @@ import { ref, computed, type Ref, type ComputedRef } from 'vue'
 
 import type { RequestFailure } from '@/sync/apiClient'
 import { t, type MessageKey } from '@/i18n'
-import { defaultNowMs, type NowMs } from '@/lib/clock'
+import type { NowMs } from '@/lib/clock'
 
 export type SyncState = 'synced' | 'syncing' | 'offline' | 'local'
 
@@ -120,7 +120,7 @@ export interface SyncStatus {
   setLastFailure(failure: RequestFailure): void
 }
 
-export function useSyncStatus(now: NowMs = defaultNowMs): SyncStatus {
+export function useSyncStatus(now: NowMs): SyncStatus {
   const connectionState = ref<'connected' | 'offline'>('connected')
   const isSyncing = ref(false)
   const isLocal = ref(false)

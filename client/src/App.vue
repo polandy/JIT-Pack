@@ -108,7 +108,8 @@ function chooseMode(selected: ClientMode, serverUrl: string | null) {
 // OIDC token lifecycle (Sync-API §2): the refresher renews the access
 // token shortly before expiry and after a 401; without stored tokens
 // (Single-User servers, Local Mode) it stays inert and hands out null.
-const refresher = mode.value === 'server' ? createAuthRefresher(serverBaseUrl()) : null
+const refresher =
+  mode.value === 'server' ? createAuthRefresher(serverBaseUrl(), defaultNowMs) : null
 
 const orchestrator = mode.value
   ? useSyncOrchestrator({
