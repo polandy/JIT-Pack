@@ -52,12 +52,6 @@ export async function readStorageStatus(
   }
 }
 
-/** usedShare is the fraction of the quota in use, or null when unknown. */
-export function usedShare(status: StorageStatus): number | null {
-  if (!status.available || status.quotaBytes <= 0) return null
-  return status.usedBytes / status.quotaBytes
-}
-
 /**
  * evictionRisk is true while the browser may drop this origin's data.
  *

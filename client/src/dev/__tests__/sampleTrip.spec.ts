@@ -13,7 +13,8 @@ import { describe, it, expect, beforeEach } from 'vitest'
 
 import { installHarness } from '@/__tests__/harness'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
-import { dueStateOf } from '@/domain/taskDue'
+import { dueState } from '@/domain/shared/dueDay'
+import { openDueDay } from '@/domain/taskDue'
 import { localIsoDate } from '@/domain/trips'
 import { taskGroups, tripTasks } from '@/domain/tripTasks'
 import { IndexedDBPersistence } from '@/local/persistence'
@@ -184,7 +185,7 @@ describe('seedSampleTrip (dev)', () => {
     const today = localIsoDate(Date.now())
     const states = trip
       .getOwnTasks(tripId)
-      .map((task) => dueStateOf(task, today))
+      .map((task) => dueState(openDueDay(task), today))
       .filter((state) => state !== null)
     expect(states.sort()).toEqual(['overdue', 'soon'])
   })

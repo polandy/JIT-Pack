@@ -15,7 +15,6 @@
 982 client/src/views/dashboard/DashboardPage.vue
 939 client/src/shopping/ShoppingPage.vue
 925 internal/store/tables.go
-814 client/src/views/items/ItemEditorPage.vue
 863 client/src/planner/ConnectionSearch.vue
 828 client/src/composables/useSyncOrchestrator.ts
 844 client/src/meals/MealPlanPage.vue

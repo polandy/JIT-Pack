@@ -372,25 +372,6 @@ function planPerPerson(
   }
 }
 
-/** How much of the roster an item's membership covers — what the FR-25.21c select-all reports. */
-export type MembershipCoverage = 'none' | 'some' | 'all'
-
-/**
- * membershipCoverage says whether none, some or every traveler of the trip is
- * a member. Only travelers the trip still has are counted: a row pointing at a
- * removed traveler is not somebody the roster can show as checked, and letting
- * it count would make a partial set read as full.
- */
-export function membershipCoverage(
-  travelers: Traveler[],
-  members: MembershipMember[],
-): MembershipCoverage {
-  const ids = new Set(members.map((m) => m.traveler_id))
-  const covered = travelers.filter((t) => ids.has(t.id)).length
-  if (covered === 0) return 'none'
-  return covered === travelers.length ? 'all' : 'some'
-}
-
 /**
  * everyoneMembers is FR-25.21c's shortcut: the membership that has the whole
  * roster in it. An amount somebody chose is a decision and is kept — the
@@ -410,9 +391,9 @@ export function everyoneMembers(
 /**
  * The membership a set of rows already expresses, in trip order.
  *
- * A row assigned to somebody the trip no longer has is left out for the reason
- * {@link membershipCoverage} gives: it is not a member the roster can show, and
- * counting it would let a partial membership read as a full one. What it is
+ * A row assigned to somebody the trip no longer has is left out: it is not a
+ * member the roster can show, and counting it would let a partial membership
+ * read as a full one. What it is
  * *not* is a licence to delete that row — that decision stays with the caller
  * and its confirm (ADR-036).
  */

@@ -29,7 +29,7 @@ export interface PackingListShapeOptions {
   /** The bar's search (`useContextSearch`): its term and whether its field is open. */
   search: { term: { value: string }; isOpen: { value: boolean } }
   /**
-   * The list's view, built over {@link PackingListShape.groupBy} and the two
+   * The list's view, built over the shape's `groupBy` and the two
    * folds this returns — so it is read lazily, once the page has built it.
    */
   view: () => PackingView
@@ -46,10 +46,7 @@ export interface PackingListShapeOptions {
   menuActive: () => boolean
 }
 
-/** The shape's state and handlers. */
-export type PackingListShape = ReturnType<typeof usePackingListShape>
-
-/** Builds {@link PackingListShape}; call once, in the page's setup. */
+/** Builds the shape's state and handlers; call once, in the page's setup. */
 export function usePackingListShape(options: PackingListShapeOptions) {
   const { filter, search, view } = options
   const reveals = new Set<string>(options.reveals)

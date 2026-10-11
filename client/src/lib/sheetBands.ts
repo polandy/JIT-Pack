@@ -12,9 +12,6 @@
 /** The three bands, named by what their entries do to the row. */
 export type SheetBand = 'act' | 'flag' | 'destructive'
 
-/** G-14: the order the bands are listed in, top to bottom. */
-export const SHEET_BAND_ORDER: readonly SheetBand[] = ['act', 'flag', 'destructive']
-
 /** The class that marks a flag entry; surfaces.css draws the hairline above the first. */
 export const SHEET_FLAG_CLASS = 'jp-sheet-flag'
 

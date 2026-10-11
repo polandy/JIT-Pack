@@ -20,10 +20,10 @@ import { useTripStore } from '@/stores/tripStore'
 import type { WizardComposition } from './useWizardComposition'
 import { NEW_SERIES, type WizardMetadata } from './useWizardMetadata'
 
-/** Step 4's draft and the rows the trip will be created from. */
-export type WizardReview = ReturnType<typeof useWizardReview>
-
-/** Builds {@link WizardReview} over step 1's series and step 3's generation. */
+/**
+ * Builds step 4's draft and the rows the trip will be created from, over
+ * step 1's series and step 3's generation.
+ */
 export function useWizardReview(metadata: WizardMetadata, composition: WizardComposition) {
   const masterStore = useMasterStore()
   const tripStore = useTripStore()

@@ -481,11 +481,6 @@ function keywordHits(keyword: string, haystack: string, haystackWords: string[])
     : haystackWords.includes(keyword)
 }
 
-/** markFacetOf answers which facet an emoji belongs to, or null if it is not curated. */
-export function markFacetOf(emoji: string): MarkFacet | null {
-  return MARK_INDEX.find((entry) => entry.emoji === emoji)?.facet ?? null
-}
-
 /**
  * searchMarks answers the picker's search field and its facet chips (FR-28.2).
  *

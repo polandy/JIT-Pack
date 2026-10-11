@@ -11,10 +11,7 @@ import { STATE_PACKED, STATE_SKIPPED } from '@/types/domain'
 
 import type { RowPort } from './rowPort'
 
-/** The acts {@link useRowSteps} returns. */
-export type RowSteps<R extends PackableRow = PackableRow> = ReturnType<typeof useRowSteps<R>>
-
-/** Builds {@link RowSteps} over a list's port. */
+/** Builds the row's acts over a list's port. */
 export function useRowSteps<R extends PackableRow>(port: RowPort<R>) {
   const { rowUndo, announceAct, announcePacked, announceSkipped } = port
 
