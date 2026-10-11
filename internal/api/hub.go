@@ -61,6 +61,18 @@ type conn struct {
 	// done ends the pump. Closed once, by `stop`.
 	done     chan struct{}
 	stopOnce sync.Once
+	// logger receives this connection's drop/pump log lines. Set by
+	// `Register` to the owning hub's logger; nil (a conn used directly,
+	// without going through a hub) falls back to slog.Default() — see `log`.
+	logger *slog.Logger
+}
+
+// log returns c's logger, or slog.Default() when none was attached.
+func (c *conn) log() *slog.Logger {
+	if c.logger != nil {
+		return c.logger
+	}
+	return slog.Default()
 }
 
 // HeadSeqFunc returns the current change_log head sequence for a trip.
@@ -84,6 +96,11 @@ type Hub struct {
 	mayReceive ReceiveFunc
 	// now is the hub's clock, the server's own (see `clock`).
 	now func() time.Time
+	// logger receives the hub's own log lines (marshal/head-seq failures).
+	// Set once, by the Server that owns the hub, before it serves any
+	// request; nil (a hub built directly, e.g. by a test) falls back to
+	// slog.Default() — see `log`.
+	logger *slog.Logger
 }
 
 // NewHub creates a hub. headSeq may be nil if in_sync is not needed
@@ -99,8 +116,19 @@ func NewHub(headSeq HeadSeqFunc, mayReceive ReceiveFunc) *Hub {
 	}
 }
 
+// log returns h's logger, or slog.Default() when none was attached.
+func (h *Hub) log() *slog.Logger {
+	if h.logger != nil {
+		return h.logger
+	}
+	return slog.Default()
+}
+
 // Register adds a connection to the hub and starts writing to it.
 func (h *Hub) Register(c *conn) {
+	// Attached before c is published in conns: from then on a concurrent
+	// broadcast may drop c, which reads it.
+	c.logger = h.log()
 	h.mu.Lock()
 	h.conns[c] = struct{}{}
 	h.mu.Unlock()
@@ -284,7 +312,7 @@ func (h *Hub) broadcast(tripID string, evt WSEvent) {
 func (h *Hub) send(targets []*conn, evt WSEvent) {
 	data, err := json.Marshal(evt)
 	if err != nil {
-		slog.Error("marshal event", "error", err)
+		h.log().Error("marshal event", "error", err)
 		return
 	}
 	for _, c := range targets {
@@ -330,7 +358,7 @@ func (h *Hub) broadcastPresence(tripID string) {
 		var err error
 		headSeq, err = h.headSeq(context.Background(), tripID)
 		if err != nil {
-			slog.Error("head seq for presence", "trip", tripID, "error", err)
+			h.log().Error("head seq for presence", "trip", tripID, "error", err)
 		}
 	}
 
@@ -431,7 +459,7 @@ func (h *Hub) broadcastRoster(only *conn) {
 		}
 		data, err := json.Marshal(rosterEvent(members))
 		if err != nil {
-			slog.Error("marshal roster", "error", err)
+			h.log().Error("marshal roster", "error", err)
 			continue
 		}
 		h.mu.Lock()
@@ -473,10 +501,10 @@ func (c *conn) stop() {
 func (c *conn) drop() {
 	c.stopOnce.Do(func() {
 		close(c.done)
-		slog.Info("ws peer fell behind, disconnecting", "user", c.userID)
+		c.log().Info("ws peer fell behind, disconnecting", "user", c.userID)
 		go func() {
 			if err := c.ws.CloseNow(); err != nil {
-				slog.Debug("close slow ws", "user", c.userID, "error", err)
+				c.log().Debug("close slow ws", "user", c.userID, "error", err)
 			}
 		}()
 	})
@@ -496,7 +524,7 @@ func (c *conn) pump() {
 			if err != nil {
 				// The peer is gone; the handler's read loop is about to
 				// discover the same thing and unregister.
-				slog.Debug("write to ws", "user", c.userID, "error", err)
+				c.log().Debug("write to ws", "user", c.userID, "error", err)
 				return
 			}
 		}

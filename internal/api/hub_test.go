@@ -1,8 +1,11 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -675,6 +678,26 @@ func TestHub_DroppingAPeerDoesNotStallTheBroadcastEither(t *testing.T) {
 
 	hub.NotifyTripChanged("t1", 1000)
 	awaitTripChanged(t, reading, 1000)
+}
+
+// A caller that supplies its own logger (ARCH-08c) must see the hub's own
+// log lines on it too — otherwise its output is split between the logger
+// it configured and whatever slog.Default() happens to be.
+func TestHub_LogsToTheInjectedLogger(t *testing.T) {
+	var buf bytes.Buffer
+	injected := slog.New(slog.NewJSONHandler(&buf, nil))
+
+	failingHeadSeq := func(context.Context, string) (int64, error) {
+		return 0, errors.New("head seq unavailable")
+	}
+	hub := NewHub(failingHeadSeq, allowAll)
+	hub.logger = injected
+
+	hub.broadcastPresence("trip-1")
+
+	if got := buf.String(); !strings.Contains(got, "head seq for presence") || !strings.Contains(got, "head seq unavailable") {
+		t.Fatalf("hub log line did not reach the injected logger; got %q", got)
+	}
 }
 
 // awaitTripChanged reads the peer's frames until the trip.changed carrying
