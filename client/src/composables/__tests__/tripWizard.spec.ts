@@ -5,17 +5,12 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-import { createMutations } from '@/sync/mutations'
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
-import { HLCGenerator } from '@/sync/hlc'
 import { useTripStore } from '@/stores/tripStore'
 import type { GeneratedItem } from '@/domain/instantiate'
 import type { PullResponse, PushResponse } from '@/api/types'
 import { installHarness } from '@/__tests__/harness'
-import { isoFrom } from '@/lib/clock'
-
-/** The instant every write in this file is stamped with. */
-const clock = () => Date.parse('2026-03-14T09:00:00.000Z')
+import { fixedMutations } from '@/__tests__/fixedClock'
 
 let fetchMock: ReturnType<typeof vi.fn>
 
@@ -60,7 +55,7 @@ function generated(overrides: Partial<GeneratedItem> = {}): GeneratedItem {
 }
 
 describe('createMutations wizard additions', () => {
-  const mutations = createMutations(new HLCGenerator(clock, 'aabbccdd'), isoFrom(clock))
+  const mutations = fixedMutations()
 
   it('addTraveler builds a travelers insert on the trip partition', () => {
     const { mutation } = mutations.addTraveler('trip-1', 'Ronja')

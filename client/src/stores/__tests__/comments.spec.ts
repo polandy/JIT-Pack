@@ -7,16 +7,11 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
-import { createMutations } from '@/sync/mutations'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
-import { HLCGenerator } from '@/sync/hlc'
 import { useTripStore } from '@/stores/tripStore'
 import type { PullChange } from '@/api/types'
 import { installHarness } from '@/__tests__/harness'
-import { isoFrom } from '@/lib/clock'
-
-/** The instant every write in this file is stamped with. */
-const clock = () => Date.parse('2026-03-14T09:00:00.000Z')
+import { fixedMutations } from '@/__tests__/fixedClock'
 
 function commentChange(id: string, row: Record<string, unknown>): PullChange {
   return {
@@ -151,7 +146,7 @@ describe('tripStore comments (FR-7.1)', () => {
 })
 
 describe('comment mutations', () => {
-  const mutations = createMutations(new HLCGenerator(clock, 'aabbccdd'), isoFrom(clock))
+  const mutations = fixedMutations()
 
   it('addComment builds a plain comment insert', () => {
     const { mutation } = mutations.addComment('t1', 'ti1', 'u1', 'Ventil prüfen')

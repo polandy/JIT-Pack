@@ -7,15 +7,10 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-import { createMutations } from '@/sync/mutations'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
-import { HLCGenerator } from '@/sync/hlc'
 import { useTripStore } from '@/stores/tripStore'
 import { installHarness } from '@/__tests__/harness'
-import { isoFrom } from '@/lib/clock'
-
-/** The instant every write in this file is stamped with. */
-const clock = () => Date.parse('2026-03-14T09:00:00.000Z')
+import { fixedMutations } from '@/__tests__/fixedClock'
 
 interface WSStub {
   send: ReturnType<typeof vi.fn>
@@ -66,7 +61,7 @@ function seedItem(tripStore: ReturnType<typeof useTripStore>, row: Record<string
 }
 
 describe('packing-now mutations', () => {
-  const mutations = createMutations(new HLCGenerator(clock, 'aabbccdd'), isoFrom(clock))
+  const mutations = fixedMutations()
 
   it('startPackingNow claims the item with a timestamp', () => {
     const mut = mutations.startPackingNow('ti1')
