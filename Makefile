@@ -152,10 +152,10 @@ fmt: $(CLIENT_DEPS)
 	cd client && $(RUN) npm run format
 
 # The one place this file deliberately does *not* mirror its CI job: CI passes
-# `-count=1`, this does not, so Go's test cache answers for a package whose
-# inputs have not moved. That is sound rather than a shortcut — the cache key
-# is the package's own content plus its dependencies, flags and the files and
-# env the test read, so a hit means this exact run already happened; the tests
+# `-count=1` to the race pass, this does not, so Go's test cache answers for a
+# package whose inputs have not moved. That is sound rather than a shortcut —
+# the cache key is the package's own content plus its dependencies, flags and
+# the files and env the test read, so a hit means this exact run already happened; the tests
 # here are hermetic (in-memory SQLite, no network, no wall clock), which is the
 # condition under which that guarantee holds. A cached run still writes a
 # byte-identical coverage profile, so `cover` below is checking real numbers
@@ -165,7 +165,8 @@ fmt: $(CLIENT_DEPS)
 # the cache a session working on the client re-runs the whole race suite each
 # time to be told nothing. CI keeps `-count=1`: a fresh runner has a cold
 # cache anyway, so it costs nothing there and keeps the pipeline's verdict
-# independent of any cache.
+# independent of any cache. The plain pass keeps `-count=1` here as well: it
+# hunts timing-sensitive hangs, which a cache hit would hide, and takes seconds.
 test: build vet
 	$(RUN) go test $(GO_PKGS) -race -coverprofile=coverage.txt
 	$(RUN) go test $(GO_PKGS) -count=1 -timeout=$(GO_PLAIN_TIMEOUT)
