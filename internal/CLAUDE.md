@@ -54,7 +54,7 @@ ADR-085), and an excursion's in `excursion_tracks` (FR-31.15, ADR-089).
 - **Table-driven** with named `t.Run` subtests for domain logic.
 - **Real in-memory SQLite** for store and api tests — never a mocked database. Hand-written fakes behind small
   consumer-side interfaces; no mocking frameworks.
-- **Always `-race`** — `make test` does; `go test ./...` from the root does not stay inside `GO_PKGS` (see the root file).
+- **Always `-race`, and once plain** — `make test` runs both (the plain pass catches a hang `-race` hides); `go test ./...` from the root does not stay inside `GO_PKGS` (see the root file).
 
 ## Packages
 

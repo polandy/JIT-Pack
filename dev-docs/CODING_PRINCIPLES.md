@@ -34,8 +34,9 @@
     NFR-4.2a.
 * **Coverage:** the thresholds are CLAUDE.md invariant 7 and live once, in `scripts/coverage-gate.sh`, shared by
   `make cover` and the CI `go` job. Coverage is a smoke detector, not a goal.
-* **Always run with `-race`.** `make test` and `make ci` do, over `GO_PKGS` — never `go test ./...` (CLAUDE.md
-  §Commands).
+* **Always run with `-race`, and once without.** `make test` and `make ci` run both passes over `GO_PKGS` — never
+  `go test ./...` (CLAUDE.md §Commands); the plain pass, with a per-package timeout, catches a hang that `-race`'s
+  slower scheduling hides.
 * **Standard library testing only** (`testing`, `httptest`); a tiny diff helper (`go-cmp`) is allowed. No mocking
   frameworks — use hand-written fakes behind small interfaces.
 * Tests are deterministic: fake clock injected (`Clock` interface), seeded randomness, no sleeps — synchronization via

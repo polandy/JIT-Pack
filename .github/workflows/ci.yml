@@ -110,6 +110,9 @@ jobs:
       - name: Check the client's wire types match the contract
         run: ./scripts/wire-contract-gate.sh
       - run: go test ./cmd/... ./internal/... -race -count=1 -coverprofile=coverage.txt
+      # Plain as well: a hang the race detector's scheduling hides (see the
+      # GO_PLAIN_TIMEOUT comment in the Makefile; keep the two limits equal).
+      - run: go test ./cmd/... ./internal/... -count=1 -timeout=60s
       # Thresholds live in the script, so `make cover` enforces the same ones.
       - name: Enforce coverage gates (working agreement)
         run: ./scripts/coverage-gate.sh coverage.txt
