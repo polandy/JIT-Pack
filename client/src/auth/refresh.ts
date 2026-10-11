@@ -22,7 +22,7 @@
 import { API } from '@/api/routes'
 import { isClientError, isTransientClientStatus } from '@/api/status'
 import type { SessionTokens } from '@/api/types'
-import { defaultNowMs, type NowMs } from '@/lib/clock'
+import type { NowMs } from '@/lib/clock'
 import { clearTokens, loadTokens, type StoredTokens, saveTokens } from './tokens'
 
 /** Refresh this long before expiry so in-flight requests don't race the deadline. */
@@ -101,7 +101,7 @@ export interface AuthRefresher {
  * a comparison, and a test that cannot name the instant can only assert that
  * a token was truthy (`lib/clock.ts`).
  */
-export function createAuthRefresher(baseUrl: string, now: NowMs = defaultNowMs): AuthRefresher {
+export function createAuthRefresher(baseUrl: string, now: NowMs): AuthRefresher {
   const base = baseUrl.replace(/\/+$/, '')
   let inflight: Promise<string | null> | null = null
   /** Consecutive refreshes that could not be completed; 0 once one lands. */

@@ -205,7 +205,7 @@ export async function runTags(opts: TagsOptions, io: CommandIO): Promise<number>
   }
 
   const hlc = new HLCGenerator(io.now, io.deviceId)
-  const client = new APIClient(opts.serverUrl, () => opts.token)
+  const client = new APIClient(opts.serverUrl, () => opts.token, { now: io.now })
   const ctx = createCommandContext(hlc, io.now)
   try {
     ctx.applyPulled('master', (await pullPartitionAll(client, hlc, MASTER_PARTITION, 0)).changes)

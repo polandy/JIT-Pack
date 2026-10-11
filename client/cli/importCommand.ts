@@ -102,7 +102,7 @@ export async function runImport(opts: ImportOptions, io: CommandIO): Promise<num
   // already holds its trips and templates must add nothing.
   const trips = useTripStore()
   const hlc = new HLCGenerator(io.now, io.deviceId)
-  const client = new APIClient(opts.serverUrl, () => opts.token)
+  const client = new APIClient(opts.serverUrl, () => opts.token, { now: io.now })
   const mutations = createMutations(hlc, isoFrom(io.now))
 
   // The inventory has to be here before anything is planned: FR-18.4 matches

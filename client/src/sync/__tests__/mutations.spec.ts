@@ -605,8 +605,8 @@ describe('createMutations', () => {
   })
 
   // C-5: every instant a mutation writes comes from the clock it was given.
-  // Before the seam these four could only be asserted `expect.any(String)`,
-  // which is green whether the value is right, wrong or a decade off.
+  // Each is asserted as the exact instant, not `expect.any(String)`, which
+  // would be green whether the value is right, wrong or a decade off.
   it('every stamped instant comes from the injected clock (C-5)', () => {
     const m = mutations()
 
