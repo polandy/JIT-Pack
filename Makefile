@@ -127,6 +127,12 @@ ci-remote:
 # exactly the local/CI divergence this Makefile exists to prevent.
 GO_PKGS := ./cmd/... ./internal/...
 
+# `make test` runs the suite twice: under the race detector, then plain. A
+# timing-sensitive case can keep up under `-race`'s slower scheduling and hang
+# without it, so the plain pass is what catches a hang; the per-package limit
+# makes it fail by name, not at the job's. The whole plain pass takes seconds.
+GO_PLAIN_TIMEOUT := 60s
+
 build:
 	$(RUN) go build $(GO_PKGS)
 
@@ -162,6 +168,7 @@ fmt: $(CLIENT_DEPS)
 # independent of any cache.
 test: build vet
 	$(RUN) go test $(GO_PKGS) -race -coverprofile=coverage.txt
+	$(RUN) go test $(GO_PKGS) -count=1 -timeout=$(GO_PLAIN_TIMEOUT)
 	@$(MAKE) --no-print-directory cover
 
 # Thresholds live in the script, shared with the ci.yml `go` job. It shells out
