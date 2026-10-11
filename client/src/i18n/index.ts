@@ -166,20 +166,8 @@ export function regionalLocale(
   return languages.find((tag) => tag.toLowerCase().startsWith(language)) ?? language
 }
 
-let pinnedTimeZone: string | undefined
-
-/**
- * Pins the device's time zone in place of the browser's — the seam a spec
- * uses, since a formatted date must not follow the machine it runs on.
- * `undefined` hands it back to the browser.
- */
-export function pinDeviceTimeZone(timeZone: string | undefined): void {
-  pinnedTimeZone = timeZone
-}
-
 /** The device's time zone, as the browser names it; undefined where it names none. */
 function deviceTimeZone(): string | undefined {
-  if (pinnedTimeZone) return pinnedTimeZone
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone
   } catch {

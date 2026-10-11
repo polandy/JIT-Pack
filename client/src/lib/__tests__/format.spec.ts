@@ -8,7 +8,8 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 
-import { pinDeviceTimeZone, setLocale } from '@/i18n'
+import { pinDeviceTimeZone } from '@/__tests__/deviceRegion'
+import { setLocale } from '@/i18n'
 
 import { formatTripPeriod, formatValue, formatWeight } from '../format'
 
