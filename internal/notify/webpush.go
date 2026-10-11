@@ -113,6 +113,14 @@ func (n *Notifier) vapidKeys(ctx context.Context) (pub, priv string, err error) 
 	return pub, priv, nil
 }
 
+// pushMessage is the body of one push — api.WebPushMessage, which this
+// package cannot import; the api package's mirror test holds the two equal.
+type pushMessage struct {
+	NotificationID string         `json:"notification_id"`
+	Kind           string         `json:"kind"`
+	Payload        map[string]any `json:"payload"`
+}
+
 // sendWebPush delivers a created notification to all push endpoints of
 // the target user. Runs detached from the request: failures only cost
 // this channel, the WebSocket ping already went out. Push services
@@ -133,9 +141,7 @@ func (n *Notifier) sendWebPush(userID, notificationID, kind string, payload map[
 		slog.Error("vapid keys", "error", err)
 		return
 	}
-	message, err := json.Marshal(map[string]any{
-		"notification_id": notificationID, "kind": kind, "payload": payload,
-	})
+	message, err := json.Marshal(pushMessage{NotificationID: notificationID, Kind: kind, Payload: payload})
 	if err != nil {
 		slog.Error("marshal push message", "error", err)
 		return

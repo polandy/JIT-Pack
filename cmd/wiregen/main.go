@@ -1,6 +1,6 @@
 // Command wiregen writes the client's half of the wire contract (NFR-4.14).
 //
-// It reads internal/api/wire.go and writes client/src/api/types.ts and
+// It reads internal/api/wire*.go and writes client/src/api/types.ts and
 // client/src/api/routes.ts — the shapes and the paths, one declaration — and
 // reads the store's table registry and schema.sql to write
 // client/src/api/tables.ts, the per-table half (ARCH-11). Run it
@@ -20,7 +20,9 @@ import (
 )
 
 const (
-	sourcePath       = "internal/api/wire.go"
+	contractDir      = "internal/api"
+	contractGlob     = "wire*.go"
+	routesSourcePath = "internal/api/wire.go"
 	targetPath       = "client/src/api/types.ts"
 	routesTargetPath = "client/src/api/routes.ts"
 	storeDir         = "internal/store"
@@ -40,17 +42,19 @@ func main() {
 }
 
 func run(target, routesTarget, tablesTarget string) error {
-	src, err := os.ReadFile(sourcePath)
-	if err != nil {
-		return fmt.Errorf("read the contract (run this from the repository root): %w", err)
-	}
-	name := filepath.Base(sourcePath)
-
-	types, err := wiregen.Generate(name, src)
+	sources, err := contractSources()
 	if err != nil {
 		return err
 	}
-	routes, err := wiregen.GenerateRoutes(name, src)
+	types, err := wiregen.GenerateFiles(sources)
+	if err != nil {
+		return err
+	}
+	routesSrc, err := os.ReadFile(routesSourcePath)
+	if err != nil {
+		return err
+	}
+	routes, err := wiregen.GenerateRoutes(filepath.Base(routesSourcePath), routesSrc)
 	if err != nil {
 		return err
 	}
@@ -68,6 +72,31 @@ func run(target, routesTarget, tablesTarget string) error {
 		return err
 	}
 	return write(tablesTarget, tables)
+}
+
+// contractSources reads every wire*.go file of the api package but its tests,
+// in name order — wire.go first — so the generated declarations keep a stable
+// order.
+func contractSources() ([]wiregen.Source, error) {
+	paths, err := filepath.Glob(filepath.Join(contractDir, contractGlob))
+	if err != nil {
+		return nil, err
+	}
+	var sources []wiregen.Source
+	for _, path := range paths {
+		if strings.HasSuffix(path, "_test.go") {
+			continue
+		}
+		src, err := os.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
+		sources = append(sources, wiregen.Source{Name: filepath.Base(path), Src: src})
+	}
+	if len(sources) == 0 {
+		return nil, fmt.Errorf("read the contract (run this from the repository root): no %s in %s", contractGlob, contractDir)
+	}
+	return sources, nil
 }
 
 // generateTables reads the store package as source — never imports it, so the

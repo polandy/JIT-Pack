@@ -34,7 +34,7 @@ func (s *Server) handleListNotifications(w http.ResponseWriter, r *http.Request)
 	out := make([]NotificationEntry, 0, len(list))
 	for _, n := range list {
 		out = append(out, NotificationEntry{
-			ID: n.ID, Kind: n.Kind, Payload: n.Payload, CreatedAt: n.CreatedAt, ReadAt: n.ReadAt,
+			ID: n.ID, Kind: NotificationKind(n.Kind), Payload: n.Payload, CreatedAt: n.CreatedAt, ReadAt: n.ReadAt,
 		})
 	}
 	writeJSON(w, NotificationListResponse{Notifications: out})

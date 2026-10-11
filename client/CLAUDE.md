@@ -43,6 +43,8 @@ against its `en.ts`, so a key missing in German fails the type check in the file
 - **The globals come from one harness**, `client/src/__tests__/harness.ts` (`installHarness()` in `beforeEach`):
   pinia, `fetch`, `WebSocket`, response builders. It stubs `localStorage` only under `node`. A spec owns anything
   bespoke and stubs after the call.
+- **`public/sw.js` cannot import the app**: `notifications/__tests__/workerBody.spec.ts` holds its sentence choice to
+  `messages.ts`, `workerWire.spec.ts` its push-body names to the generated `WebPushMessage` and notification words.
 - **Every export and every i18n key has a reader outside specs and e2e**, or is named with a reason —
   `client/src/__tests__/surface.spec.ts` (ARCH-31), the client's equivalent of `internal/store/surface_test.go`.
 

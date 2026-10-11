@@ -24,7 +24,7 @@
 
 import type { TokenProvider } from '@/sync/apiClient'
 import { API } from '@/api/routes'
-import type { WSEvent } from '@/api/types'
+import { WS_EVENT_TYPE, type WSClientFrame, type WSEvent } from '@/api/types'
 
 /** How often the client pings an open socket (Sync-API §9). */
 export const WS_PING_INTERVAL_MS = 30_000
@@ -163,7 +163,7 @@ export function createWebSocket(opts: WSOptions) {
       clearTimer(pongTimer)
       pongTimer = null
       const event = JSON.parse(ev.data as string) as WSEvent
-      if (event.type === 'pong') return
+      if (event.type === WS_EVENT_TYPE.pong) return
       opts.onEvent(event)
     }
 
@@ -217,7 +217,7 @@ export function createWebSocket(opts: WSOptions) {
 
   /** Send a ping and expect *something* back within the window. */
   function ping(s: WebSocket) {
-    s.send(JSON.stringify({ ping: true }))
+    s.send(JSON.stringify({ ping: true } satisfies WSClientFrame))
     // An earlier, still-armed watchdog keeps its deadline: a second ping is
     // not a second chance.
     if (pongTimer !== null) return
@@ -256,7 +256,7 @@ export function createWebSocket(opts: WSOptions) {
   }
 
   function sendSubscribe(list: string[]) {
-    socket?.send(JSON.stringify({ subscribe: list }))
+    socket?.send(JSON.stringify({ subscribe: list } satisfies WSClientFrame))
   }
 
   function subscribe(list: string[]) {
@@ -266,7 +266,7 @@ export function createWebSocket(opts: WSOptions) {
   }
 
   function sendViewingFrame(tripId: string) {
-    socket?.send(JSON.stringify({ viewing: { trip_id: tripId } }))
+    socket?.send(JSON.stringify({ viewing: { trip_id: tripId } } satisfies WSClientFrame))
   }
 
   /**
@@ -281,7 +281,7 @@ export function createWebSocket(opts: WSOptions) {
   }
 
   function sendCursorFrame(tripId: string, seq: number) {
-    socket?.send(JSON.stringify({ cursor: { trip_id: tripId, seq } }))
+    socket?.send(JSON.stringify({ cursor: { trip_id: tripId, seq } } satisfies WSClientFrame))
   }
 
   /**
@@ -309,7 +309,7 @@ export function createWebSocket(opts: WSOptions) {
         location: fix
           ? { trip_id: tripId, lat: fix.lat, lon: fix.lon, accuracy_m: fix.accuracyM }
           : { trip_id: tripId, stop: true },
-      }),
+      } satisfies WSClientFrame),
     )
   }
 

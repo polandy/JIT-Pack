@@ -8,9 +8,9 @@
  * HTTP cache. That is why `/api`, `/ws` and `/health` are never touched
  * here — not even network-first.
  *
- * Push message body (see Sync-API §8, POST /push/subscriptions):
- *   { notification_id, kind, payload: { trip_id, item_id, actor_name,
- *     item_name, preview, ... } }
+ * Push message body: `WebPushMessage` in internal/api/wire.go, its kinds and
+ * payload keys beside it — held to this file's spellings by
+ * src/notifications/__tests__/workerWire.spec.ts.
  *
  * The wording is **not** written here (NFR-4.12, ADR-037). A worker cannot
  * import the catalogue and cannot read `localStorage`, so the app leaves the

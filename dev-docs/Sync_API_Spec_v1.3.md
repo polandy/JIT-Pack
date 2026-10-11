@@ -5,8 +5,8 @@
 
 **Base URL:** `/api/v1` — JSON only, UTF-8. All timestamps ISO-8601 UTC. Every path names its **scope** first and its
 resource second — `/trips/{id}/…`, `/master/…`, `/me/…` (NFR-4.14, ADR-027). Every envelope below is prose about a shape
-declared once in `internal/api/wire.go` and generated into the client (ADR-026); where the two disagree, `wire.go` is
-what runs.
+declared once in `internal/api/wire*.go` and generated into the client (ADR-026); where the two disagree, `wire*.go`
+is what runs.
 
 ---
 
