@@ -12,6 +12,10 @@ import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { HLCGenerator } from '@/sync/hlc'
 import { useTripStore } from '@/stores/tripStore'
 import { installHarness } from '@/__tests__/harness'
+import { isoFrom } from '@/lib/clock'
+
+/** The instant every write in this file is stamped with. */
+const clock = () => Date.parse('2026-03-14T09:00:00.000Z')
 
 interface WSStub {
   send: ReturnType<typeof vi.fn>
@@ -62,7 +66,7 @@ function seedItem(tripStore: ReturnType<typeof useTripStore>, row: Record<string
 }
 
 describe('packing-now mutations', () => {
-  const mutations = createMutations(new HLCGenerator(() => Date.now(), 'aabbccdd'))
+  const mutations = createMutations(new HLCGenerator(clock, 'aabbccdd'), isoFrom(clock))
 
   it('startPackingNow claims the item with a timestamp', () => {
     const mut = mutations.startPackingNow('ti1')
@@ -199,7 +203,7 @@ describe('a claim that was taken over (FR-5.7)', () => {
     const taken = seedItem(tripStore, {
       state: 'packing_now',
       packing_now_by: 'bob',
-      packing_now_at: new Date().toISOString(),
+      packing_now_at: '2026-03-14T09:00:00.000Z',
     })
 
     expect(orch.claims.lockHolder('t1', taken)).toBe('bob')
@@ -327,7 +331,7 @@ describe('taking a claim over (FR-5.7)', () => {
     return seedItem(tripStore, {
       state: 'packing_now',
       packing_now_by: 'sarah',
-      packing_now_at: new Date().toISOString(),
+      packing_now_at: '2026-03-14T09:00:00.000Z',
     })
   }
 

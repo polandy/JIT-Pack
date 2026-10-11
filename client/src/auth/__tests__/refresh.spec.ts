@@ -26,7 +26,7 @@ function storeTokens(
     JSON.stringify({
       access_token: 'old-access',
       refresh_token: 'old-refresh',
-      expires_at: Date.now() + 3600_000,
+      expires_at: now + 3600_000,
       ...overrides,
     }),
   )
@@ -50,24 +50,24 @@ describe('createAuthRefresher', () => {
   })
 
   it('returns null without stored tokens and never calls the server', async () => {
-    const refresher = createAuthRefresher('http://server')
+    const refresher = createAuthRefresher('http://server', clock)
     expect(await refresher.freshToken()).toBeNull()
     expect(fetchSpy).not.toHaveBeenCalled()
   })
 
   it('returns the stored token untouched while it is still fresh', async () => {
     storeTokens()
-    const refresher = createAuthRefresher('http://server')
+    const refresher = createAuthRefresher('http://server', clock)
     expect(await refresher.freshToken()).toBe('old-access')
     expect(fetchSpy).not.toHaveBeenCalled()
   })
 
   it('refreshes proactively when the token is about to expire', async () => {
-    storeTokens({ expires_at: Date.now() + 5_000 }) // inside the skew window
+    storeTokens({ expires_at: now + 5_000 }) // inside the skew window
     fetchSpy.mockResolvedValueOnce(
       tokenResponse({ access_token: 'new-access', refresh_token: 'new-refresh', expires_in: 300 }),
     )
-    const refresher = createAuthRefresher('http://server')
+    const refresher = createAuthRefresher('http://server', clock)
 
     expect(await refresher.freshToken()).toBe('new-access')
 
@@ -81,13 +81,13 @@ describe('createAuthRefresher', () => {
     const stored = loadTokens()!
     expect(stored.access_token).toBe('new-access')
     expect(stored.refresh_token).toBe('new-refresh')
-    expect(stored.expires_at).toBeGreaterThan(Date.now())
+    expect(stored.expires_at).toBeGreaterThan(now)
   })
 
   it('keeps the old refresh token when the IdP does not rotate it', async () => {
     storeTokens({ expires_at: 0 })
     fetchSpy.mockResolvedValueOnce(tokenResponse({ access_token: 'new-access', expires_in: 300 }))
-    const refresher = createAuthRefresher('http://server')
+    const refresher = createAuthRefresher('http://server', clock)
 
     await refresher.freshToken()
 
@@ -99,7 +99,7 @@ describe('createAuthRefresher', () => {
     fetchSpy.mockResolvedValueOnce(tokenResponse({ error: { code: 'unauthorized' } }, 401))
     const expired = vi.fn()
     window.addEventListener(AUTH_EXPIRED_EVENT, expired)
-    const refresher = createAuthRefresher('http://server')
+    const refresher = createAuthRefresher('http://server', clock)
 
     expect(await refresher.freshToken()).toBeNull()
 
@@ -244,7 +244,7 @@ describe('createAuthRefresher', () => {
     storeTokens({ expires_at: 0 })
     let release!: (r: Response) => void
     fetchSpy.mockReturnValueOnce(new Promise<Response>((resolve) => (release = resolve)))
-    const refresher = createAuthRefresher('http://server')
+    const refresher = createAuthRefresher('http://server', clock)
 
     const first = refresher.freshToken()
     const second = refresher.freshToken()
@@ -260,7 +260,7 @@ describe('createAuthRefresher', () => {
     fetchSpy.mockResolvedValueOnce(
       tokenResponse({ access_token: 'new-access', refresh_token: 'r2', expires_in: 300 }),
     )
-    const refresher = createAuthRefresher('http://server')
+    const refresher = createAuthRefresher('http://server', clock)
 
     expect(await refresher.refresh()).toBe('new-access')
     expect(fetchSpy).toHaveBeenCalledTimes(1)

@@ -10,6 +10,10 @@ import { createMutations } from '@/sync/mutations'
 import { HLCGenerator } from '@/sync/hlc'
 import { useTripStore } from '@/stores/tripStore'
 import type { PullChange } from '@/api/types'
+import { isoFrom } from '@/lib/clock'
+
+/** The instant every write in this file is stamped with. */
+const clock = () => Date.parse('2026-03-14T09:00:00.000Z')
 
 function itemChange(id: string, row: Record<string, unknown> = {}): PullChange {
   return {
@@ -48,7 +52,7 @@ describe('tripStore.getShoppingItems', () => {
 })
 
 describe('addTripItem with procurement mode', () => {
-  const mutations = createMutations(new HLCGenerator(() => Date.now(), 'aabbccdd'))
+  const mutations = createMutations(new HLCGenerator(clock, 'aabbccdd'), isoFrom(clock))
 
   it('lands quick-adds in the chosen shopping list', () => {
     const { mutation } = mutations.addTripItem('t1', 'Sonnencreme', { mode: 'buy_local' })

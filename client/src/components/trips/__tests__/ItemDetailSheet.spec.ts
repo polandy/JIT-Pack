@@ -345,7 +345,7 @@ describe('M5 respects the G-3 lock', () => {
         ...tripStore.getItems('t1')[0]!,
         state: 'packing_now',
         packing_now_by: holder,
-        packing_now_at: new Date().toISOString(),
+        packing_now_at: '2026-03-14T09:00:00.000Z',
       },
     })
     orchestratorFake.claims.lockHolder.mockReturnValue(holder)
