@@ -173,6 +173,8 @@ describe('durable outbox on boot', () => {
 
     expect(orch.syncStatus.parkedCount.value).toBe(1)
     expect(orch.syncStatus.parkedReason.value).toBe(REJECTION_REASON.stillReferenced)
+    // The parked entry is stamped by the orchestrator's clock, not the machine's.
+    expect(store.parked).toEqual([expect.objectContaining({ at: fixedClock() })])
   })
 
   it('remembers the reason of a refusal an earlier session parked', async () => {
