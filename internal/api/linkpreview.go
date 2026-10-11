@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"encoding/base64"
-	"log"
 	"net/http"
 	"net/url"
 	"time"
@@ -38,7 +37,7 @@ func (s *Server) handleLinkPreview(w http.ResponseWriter, r *http.Request) {
 	}
 	started := s.now()
 	page, err := s.previews.Fetch(r.Context(), req.URL)
-	logPreview("page", req.URL, err, s.now().Sub(started))
+	logPreview(r.Context(), "page", req.URL, err, s.now().Sub(started))
 	if err != nil {
 		writePreviewError(w, err)
 		return
@@ -59,7 +58,7 @@ func (s *Server) handleLinkPreviewImage(w http.ResponseWriter, r *http.Request) 
 	}
 	started := s.now()
 	image, kind, err := s.previews.FetchImage(r.Context(), req.URL)
-	logPreview("picture", req.URL, err, s.now().Sub(started))
+	logPreview(r.Context(), "picture", req.URL, err, s.now().Sub(started))
 	if err != nil {
 		writePreviewError(w, err)
 		return
@@ -90,7 +89,7 @@ func writePreviewError(w http.ResponseWriter, err error) {
 // logPreview names the host only, never the path: an operator asking why a
 // link did not fill in needs the site and the outcome, not what somebody
 // was reading.
-func logPreview(what, raw string, err error, took time.Duration) {
+func logPreview(ctx context.Context, what, raw string, err error, took time.Duration) {
 	host := "(no host)"
 	if u, perr := url.Parse(raw); perr == nil && u.Hostname() != "" {
 		host = u.Hostname()
@@ -99,5 +98,6 @@ func logPreview(what, raw string, err error, took time.Duration) {
 	if err != nil {
 		outcome = err.Error()
 	}
-	log.Printf("link preview %s %s: %s in %s", what, host, outcome, took.Round(100*time.Millisecond))
+	logger(ctx).Info("link preview",
+		"what", what, "host", host, "outcome", outcome, "took", took.Round(100*time.Millisecond))
 }

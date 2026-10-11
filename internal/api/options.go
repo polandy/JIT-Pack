@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log/slog"
 	"strings"
 	"time"
 )
@@ -76,6 +77,11 @@ type Options struct {
 	// authenticated endpoints with externally minted tokens. Multi-user
 	// mode only: Single-User Mode bypasses authentication entirely.
 	OIDC *OIDCConfig
+	// Logger is what every request-scoped logger (ARCH-08b) derives
+	// from — method, route and request_id, plus caller once authed has
+	// run. Nil means slog.Default(), which is what cmd/jitpackd passes
+	// since it never builds a *slog.Logger of its own.
+	Logger *slog.Logger
 }
 
 // OIDCConfig is the confidential-client configuration the login broker

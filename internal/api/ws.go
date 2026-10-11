@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -81,7 +80,7 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 
 	ws, err := websocket.Accept(w, r, nil)
 	if err != nil {
-		slog.Error("ws accept", "error", err)
+		logger(r.Context()).Error("ws accept", "error", err)
 		return
 	}
 

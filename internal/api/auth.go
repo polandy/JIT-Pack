@@ -16,7 +16,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -209,7 +208,7 @@ func writeAuthError(w http.ResponseWriter, err error) {
 // and the log line is the only trace it would otherwise have.
 func (s *Server) endSession(ctx context.Context, refreshHash, reason string) {
 	if err := s.store.DeleteSession(ctx, refreshHash); err != nil {
-		slog.Error(msgSessionCleanupFailed, "reason", reason, "error", err)
+		logger(ctx).Error(msgSessionCleanupFailed, "reason", reason, "error", err)
 	}
 }
 
