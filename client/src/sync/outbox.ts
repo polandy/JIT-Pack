@@ -22,6 +22,7 @@ import { APIRequestError, type APIClient } from '@/sync/apiClient'
 import { isClientError, isTransientClientStatus } from '@/api/status'
 import type { Mutation, PullChange, PushResponse } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
+import type { NowMs } from '@/lib/clock'
 import { hasFurtherPage } from '@/sync/pullProtocol'
 import {
   MAX_PUSH_BATCH,
@@ -136,7 +137,7 @@ export interface SyncOutboxOptions {
    */
   onCaptureChanged?: (uncaptured: number) => void
   /** Injected clock — parked entries are stamped with it, never Date.now(). */
-  now?: () => number
+  now: NowMs
 }
 
 export class SyncOutbox {
@@ -155,7 +156,7 @@ export class SyncOutbox {
   private readonly onRejections?: (report: RejectionReport) => void
   private readonly onDurabilityChanged?: (durable: boolean) => void
   private readonly onCaptureChanged?: (uncaptured: number) => void
-  private readonly now: () => number
+  private readonly now: NowMs
 
   /** Whether the last attempt to write the queue to the device succeeded. */
   private durable = true
@@ -177,7 +178,7 @@ export class SyncOutbox {
     client: APIClient,
     hlc: HLCGenerator,
     onChanges: (changes: PullChange[]) => void,
-    options: SyncOutboxOptions = {},
+    options: SyncOutboxOptions,
   ) {
     this.client = client
     this.hlc = hlc
@@ -188,7 +189,7 @@ export class SyncOutbox {
     this.onRejections = options.onRejections
     this.onDurabilityChanged = options.onDurabilityChanged
     this.onCaptureChanged = options.onCaptureChanged
-    this.now = options.now ?? (() => Date.now())
+    this.now = options.now
   }
 
   enqueue(type: PartitionType, id: string | null, mutation: Mutation): void {

@@ -235,8 +235,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   /** Shares this device's position on a trip, `null` to stop. Local Mode has nobody to tell. */
   function shareLocation(tripId: string, fix: LocationFrame | null) {
-    if (local) return
-    ws.shareLocation(tripId, fix)
+    if (!local) ws.shareLocation(tripId, fix)
   }
 
   // G-3 locking, and the takeover rule an `item.locked` frame carries
@@ -270,6 +269,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     },
     onRejections: (report) => config.onRejections?.(report),
     onDurabilityChanged: (durable) => syncStatus.setQueueDurable(durable),
+    now,
   })
 
   /** Trips this device has asked the hub about — the set every new socket is told. */

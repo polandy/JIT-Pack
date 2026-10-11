@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { SyncOutbox, type SyncOutboxOptions } from '../outbox'
+import { fixedClock } from '@/__tests__/fixedClock'
 import type { Mutation, PushResponse, MutationResult, PullResponse, PullChange } from '@/api/types'
 import { APIRequestError, type APIClient } from '@/sync/apiClient'
 import type { HLCGenerator } from '@/sync/hlc'
@@ -32,21 +33,27 @@ describe('SyncOutbox', () => {
   // is asserted beside it, or a builder returning nothing would pass too.
   describe('the partition a push is addressed to', () => {
     it('names the trip', async () => {
-      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+        now: fixedClock,
+      })
       outbox.enqueue('trip', 'trip-1', makeMutation())
       await outbox.drain('trip', 'trip-1')
       expect(client.post).toHaveBeenCalledWith('/api/v1/trips/trip-1/sync', expect.anything())
     })
 
     it('names the master partition', async () => {
-      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+        now: fixedClock,
+      })
       outbox.enqueue('master', null, makeMutation({ table: 'items' }))
       await outbox.drain('master', null)
       expect(client.post).toHaveBeenCalledWith('/api/v1/master/sync', expect.anything())
     })
 
     it('refuses a trip partition without a trip id instead of pushing to "null"', async () => {
-      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+        now: fixedClock,
+      })
       outbox.enqueue('trip', null, makeMutation())
       await expect(outbox.drain('trip', null)).rejects.toThrow(/trip id/)
       expect(client.post).not.toHaveBeenCalled()
@@ -77,6 +84,7 @@ describe('SyncOutbox', () => {
   describe('a merged push (NFR-4.2a)', () => {
     it('reports the fields the server merged away, with the partition they came from', async () => {
       const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+        now: fixedClock,
         onConflicts,
       })
       const mutation = makeMutation()
@@ -104,6 +112,7 @@ describe('SyncOutbox', () => {
 
     it('says nothing when the server merged nothing', async () => {
       const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+        now: fixedClock,
         onConflicts,
       })
       const mutation = makeMutation()
@@ -123,6 +132,7 @@ describe('SyncOutbox', () => {
 
     it('still forgets the mutation — a merge applied, it was not refused', async () => {
       const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+        now: fixedClock,
         onConflicts,
       })
       const mutation = makeMutation()
@@ -146,7 +156,9 @@ describe('SyncOutbox', () => {
   })
 
   it('queues mutations and reports pending count', () => {
-    const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges)
+    const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+      now: fixedClock,
+    })
     expect(outbox.pendingCount('trip', 'trip-1')).toBe(0)
 
     outbox.enqueue('trip', 'trip-1', makeMutation())
@@ -169,7 +181,9 @@ describe('SyncOutbox', () => {
       has_more: false,
     } satisfies PullResponse)
 
-    const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges)
+    const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+      now: fixedClock,
+    })
     outbox.enqueue('trip', 'trip-1', makeMutation({ mutation_id: 'u1' }))
 
     await outbox.drain('trip', 'trip-1')
@@ -192,7 +206,9 @@ describe('SyncOutbox', () => {
       has_more: false,
     } satisfies PullResponse)
 
-    const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges)
+    const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+      now: fixedClock,
+    })
     outbox.enqueue('master', null, makeMutation({ mutation_id: 'u2', table: 'items' }))
 
     await outbox.drain('master', null)
@@ -208,7 +224,9 @@ describe('SyncOutbox', () => {
       has_more: false,
     } satisfies PullResponse)
 
-    const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges)
+    const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+      now: fixedClock,
+    })
     await outbox.drain('trip', 'trip-1')
 
     expect(client.post).not.toHaveBeenCalled()
@@ -217,7 +235,9 @@ describe('SyncOutbox', () => {
   })
 
   it('total pending count across all partitions', () => {
-    const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges)
+    const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+      now: fixedClock,
+    })
     outbox.enqueue('trip', 'trip-1', makeMutation())
     outbox.enqueue('trip', 'trip-2', makeMutation())
     outbox.enqueue('master', null, makeMutation())
@@ -277,7 +297,11 @@ describe('SyncOutbox durability', () => {
   }
 
   function makeOutbox(store: OutboxStore, opts: Partial<SyncOutboxOptions> = {}) {
-    return new SyncOutbox(client as unknown as APIClient, hlc, onChanges, { store, ...opts })
+    return new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+      store,
+      now: fixedClock,
+      ...opts,
+    })
   }
 
   beforeEach(() => {
@@ -505,7 +529,9 @@ describe('SyncOutbox durability', () => {
    * *where to start*.
    */
   it('pulls from the cursor it has applied, not from the seq its own push landed at', async () => {
-    const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges)
+    const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+      now: fixedClock,
+    })
 
     // This device is caught up to seq 100.
     client.get.mockResolvedValueOnce({
@@ -542,7 +568,9 @@ describe('SyncOutbox durability', () => {
    * cursor to the beginning and re-pulls the entire partition on every drain.
    */
   it('does not rewind its cursor when a push changed nothing', async () => {
-    const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges)
+    const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+      now: fixedClock,
+    })
 
     client.get.mockResolvedValueOnce({
       changes: [],
@@ -584,7 +612,9 @@ describe('SyncOutbox durability', () => {
       // handler is one — can land on top of a drain already running.
       const held = deferred<PullResponse>()
       client.get = vi.fn().mockReturnValueOnce(held.promise).mockResolvedValue(emptyPage)
-      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+        now: fixedClock,
+      })
       outbox.enqueue('master', null, makeMutation({ table: 'items' }))
 
       const first = outbox.drain('master', null)
@@ -609,7 +639,9 @@ describe('SyncOutbox durability', () => {
           next_cursor: 500,
           has_more: false,
         } satisfies PullResponse)
-      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+        now: fixedClock,
+      })
 
       const first = outbox.drain('master', null)
       const second = outbox.drain('master', null)
@@ -642,7 +674,9 @@ describe('SyncOutbox durability', () => {
     it('still sends a mutation that was enqueued while a drain was running', async () => {
       const held = deferred<PullResponse>()
       client.get = vi.fn().mockReturnValueOnce(held.promise).mockResolvedValue(emptyPage)
-      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+        now: fixedClock,
+      })
 
       const first = outbox.drain('master', null)
       const late = makeMutation({ table: 'items', id: 'late' })
@@ -663,7 +697,9 @@ describe('SyncOutbox durability', () => {
     it('coalesces every caller that arrives during one drain into a single follow-up', async () => {
       const held = deferred<PullResponse>()
       client.get = vi.fn().mockReturnValueOnce(held.promise).mockResolvedValue(emptyPage)
-      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+        now: fixedClock,
+      })
 
       const drains = [
         outbox.drain('master', null),
@@ -683,7 +719,9 @@ describe('SyncOutbox durability', () => {
       // feed, which on a real instance is the long one.
       const held = deferred<PullResponse>()
       client.get = vi.fn().mockReturnValueOnce(held.promise).mockResolvedValue(emptyPage)
-      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+        now: fixedClock,
+      })
 
       const master = outbox.drain('master', null)
       await outbox.drain('trip', 'trip-1')
@@ -698,7 +736,9 @@ describe('SyncOutbox durability', () => {
       // out of sync for the rest of the session — the failure mode of the
       // fix would be worse than the double work it prevents.
       client.get = vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValue(emptyPage)
-      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+        now: fixedClock,
+      })
 
       await expect(outbox.drain('master', null)).rejects.toThrow(/offline/)
       await outbox.drain('master', null)
@@ -709,7 +749,9 @@ describe('SyncOutbox durability', () => {
     it("reports the follow-up drain's own failure to the caller that waited for it", async () => {
       const held = deferred<PullResponse>()
       client.get = vi.fn().mockReturnValueOnce(held.promise).mockRejectedValue(new Error('offline'))
-      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+        now: fixedClock,
+      })
 
       const first = outbox.drain('master', null)
       const second = outbox.drain('master', null)
@@ -744,7 +786,9 @@ describe('SyncOutbox durability', () => {
     it('keeps asking until the server says there is no more', async () => {
       const server = pagedServer(717)
       client.get = server.get
-      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+        now: fixedClock,
+      })
 
       await outbox.drain('master', null)
 
@@ -774,7 +818,9 @@ describe('SyncOutbox durability', () => {
         next_cursor: 1,
         has_more: false,
       } satisfies PullResponse)
-      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+        now: fixedClock,
+      })
 
       await outbox.drain('master', null)
 
@@ -791,7 +837,9 @@ describe('SyncOutbox durability', () => {
         next_cursor: 2,
         has_more: false,
       } satisfies PullResponse)
-      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+        now: fixedClock,
+      })
 
       await outbox.drain('master', null)
 
@@ -809,7 +857,9 @@ describe('SyncOutbox durability', () => {
         next_cursor: 0,
         has_more: true,
       } satisfies PullResponse)
-      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+        now: fixedClock,
+      })
 
       await outbox.drain('master', null)
 
@@ -829,12 +879,16 @@ describe('SyncOutbox durability', () => {
       const server = pagedServer(717)
       client.get = server.get
 
-      const first = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+      const first = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+        now: fixedClock,
+      })
       await first.drain('master', null)
       expect(server.asked).toEqual([0, 500])
 
       server.asked.length = 0
-      const second = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+      const second = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+        now: fixedClock,
+      })
       await second.drain('master', null)
 
       expect(server.asked).toEqual([0, 500])
@@ -860,7 +914,9 @@ describe('SyncOutbox durability', () => {
           has_more: seq < TOTAL,
         } satisfies PullResponse)
       })
-      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+        now: fixedClock,
+      })
 
       await expect(outbox.drain('master', null)).rejects.toThrow(/offline/)
       expect(outbox.getCursor('master', null)).toBe(1)
@@ -875,7 +931,9 @@ describe('SyncOutbox durability', () => {
     it('pages a trip partition by the same rule', async () => {
       const server = pagedServer(1200)
       client.get = server.get
-      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+        now: fixedClock,
+      })
 
       await outbox.drain('trip', 'trip-1')
 
