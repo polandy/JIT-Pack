@@ -60,7 +60,7 @@ const NO_REAL_CLOCK_IN_SPECS = [
   },
   {
     selector:
-      "CallExpression[callee.name='useSyncOrchestrator'] > ObjectExpression:not(:has(Property[key.name='now']))",
+      "CallExpression[callee.name='useSyncOrchestrator'] > ObjectExpression:not(:has(> Property[key.name='now']))",
     message:
       "A spec names the orchestrator's clock in the config it writes (`now: fixedClock`), so the stamps it checks are ones it can predict.",
   },
