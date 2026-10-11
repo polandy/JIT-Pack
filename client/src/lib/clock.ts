@@ -29,6 +29,3 @@ export const defaultNowMs: NowMs = () => Date.now()
 export function isoFrom(now: NowMs): NowIso {
   return () => new Date(now()).toISOString()
 }
-
-/** Real time as an ISO string. */
-export const defaultNowIso: NowIso = isoFrom(defaultNowMs)

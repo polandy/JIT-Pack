@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { defaultNowIso, defaultNowMs, isoFrom } from '../clock'
+import { defaultNowMs, isoFrom } from '../clock'
 
 describe('the client clock (C-5)', () => {
   it('isoFrom turns a millisecond clock into the string a row stores', () => {
@@ -27,7 +27,6 @@ describe('the client clock (C-5)', () => {
     vi.setSystemTime(at)
     try {
       expect(defaultNowMs()).toBe(at)
-      expect(defaultNowIso()).toBe('2026-03-14T15:09:26.535Z')
     } finally {
       vi.useRealTimers()
     }
