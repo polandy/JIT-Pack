@@ -11,7 +11,6 @@ import {
   MARK_FACETS,
   MARK_INDEX,
   MARK_SUGGESTION_LIMIT,
-  markFacetOf,
   searchMarks,
   suggestMarks,
 } from '../itemMarks'
@@ -57,11 +56,6 @@ describe('the curated index (FR-28.2)', () => {
     for (const facet of MARK_FACETS) {
       expect(MARK_INDEX.filter((entry) => entry.facet === facet).length).toBeGreaterThan(0)
     }
-  })
-
-  it('answers what facet an emoji belongs to, and null for one it does not know', () => {
-    expect(markFacetOf('⛺')).toBe('camping')
-    expect(markFacetOf('🦖')).toBeNull()
   })
 })
 

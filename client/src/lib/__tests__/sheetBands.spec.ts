@@ -9,14 +9,12 @@ import { describe, it, expect } from 'vitest'
 import { clusterMenuEntries, type ClusterInstance } from '@/domain/clusterActions'
 import { rowMenuEntries, type RowMenuContext, type RowMenuItem } from '@/domain/rowMenu'
 import { ROW_MENU_BUTTONS } from '@/lib/rowMenuButtons'
-import {
-  SHEET_BAND_ORDER,
-  SHEET_FLAG_CLASS,
-  sheetBandAttrs,
-  type SheetBand,
-} from '@/lib/sheetBands'
+import { SHEET_FLAG_CLASS, sheetBandAttrs, type SheetBand } from '@/lib/sheetBands'
 import { ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK } from '@/types/domain'
 import { CLUSTER_MENU_BUTTONS } from '@/views/trips/packing/usePackingMenus'
+
+/** G-14: the order the bands are listed in, top to bottom. */
+const SHEET_BAND_ORDER: readonly SheetBand[] = ['act', 'flag', 'destructive']
 
 function bandRank(band: SheetBand | undefined): number {
   return SHEET_BAND_ORDER.indexOf(band ?? 'act')

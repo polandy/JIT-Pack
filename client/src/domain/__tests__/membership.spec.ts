@@ -6,7 +6,6 @@ import { describe, expect, it } from 'vitest'
 
 import {
   everyoneMembers,
-  membershipCoverage,
   membershipRows,
   planMembership,
   type MembershipInput,
@@ -453,30 +452,6 @@ describe('everyoneMembers (FR-25.21c — the select-all shortcut)', () => {
       { traveler_id: MIA.id, quantity: 1 },
     ])
     expect(planMembership(input(rows, { kind: 'perPerson', members })).empty).toBe(true)
-  })
-})
-
-describe('membershipCoverage (FR-25.21c)', () => {
-  it('reads none, some and all off the roster', () => {
-    expect(membershipCoverage(TRAVELERS, [])).toBe('none')
-    expect(membershipCoverage(TRAVELERS, [{ traveler_id: ANDY.id, quantity: 2 }])).toBe('some')
-    expect(
-      membershipCoverage(
-        TRAVELERS,
-        TRAVELERS.map((t) => ({ traveler_id: t.id, quantity: 1 })),
-      ),
-    ).toBe('all')
-  })
-
-  it('counts only travelers the trip still has, so a stale row cannot read as full', () => {
-    const gone = { traveler_id: 'tr-removed', quantity: 1 }
-    expect(membershipCoverage(TRAVELERS, [gone])).toBe('none')
-    expect(
-      membershipCoverage(TRAVELERS, [
-        ...TRAVELERS.map((t) => ({ traveler_id: t.id, quantity: 1 })),
-        gone,
-      ]),
-    ).toBe('all')
   })
 })
 

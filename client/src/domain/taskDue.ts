@@ -11,7 +11,6 @@ import {
   DUE_SOON,
   DUE_SOON_DAYS,
   DUE_TODAY,
-  dueState,
   dueTally,
   isPressingDay,
   pressingGroupsFirst,
@@ -33,15 +32,6 @@ export interface DueFacts {
 /** The day that counts: an open task's date, and none for a finished one. */
 export function openDueDay(task: DueFacts): string | null {
   return task.task_state === TASK_STATE_OPEN ? task.due_date : null
-}
-
-/**
- * dueStateOf reads where a task stands against today, or null where the
- * question does not arise: no date, or already done — a finished task is
- * never overdue, whatever its date says.
- */
-export function dueStateOf(task: DueFacts, today: string): DueState | null {
-  return dueState(openDueDay(task), today)
 }
 
 /** Whether a task is one somebody should look at now: overdue, today or soon. */

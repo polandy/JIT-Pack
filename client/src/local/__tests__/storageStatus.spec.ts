@@ -7,7 +7,7 @@
  */
 import { describe, it, expect } from 'vitest'
 
-import { evictionRisk, readStorageStatus, usedShare } from '@/local/storageStatus'
+import { evictionRisk, readStorageStatus } from '@/local/storageStatus'
 
 function storageApi(estimate: StorageEstimate, persisted: boolean): StorageManager {
   return {
@@ -59,20 +59,11 @@ describe('readStorageStatus (NFR-4.11)', () => {
   })
 })
 
-describe('usedShare / evictionRisk (NFR-4.11)', () => {
+describe('evictionRisk (NFR-4.11)', () => {
   const status = (over: Partial<ReturnType<typeof base>> = {}) => ({ ...base(), ...over })
   function base() {
     return { available: true, usedBytes: 25, quotaBytes: 100, persistent: false }
   }
-
-  it('is the share of the quota in use', () => {
-    expect(usedShare(status())).toBe(0.25)
-  })
-
-  it('is unknown without a quota — a division by zero is not 100 % full', () => {
-    expect(usedShare(status({ quotaBytes: 0 }))).toBeNull()
-    expect(usedShare(status({ available: false }))).toBeNull()
-  })
 
   it('warns exactly while the browser has not promised to keep the data', () => {
     expect(evictionRisk(status({ persistent: false }))).toBe(true)

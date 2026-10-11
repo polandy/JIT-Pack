@@ -46,10 +46,10 @@ export const CLUSTER_MENU_BUTTONS: Record<ClusterMenuAction, RowMenuButton> = {
   assignAll: { labelKey: 'packing.clusterAssignAll', icon: peopleOutline, band: 'flag' },
 }
 
-/** The two holds, the menus they open, and whether one is up. */
-export type PackingMenus = ReturnType<typeof usePackingMenus>
-
-/** Builds {@link PackingMenus} over the page's core and the acts it reaches. */
+/**
+ * Builds the two holds, the menus they open, and whether one is up, over the
+ * page's core and the acts it reaches.
+ */
 export function usePackingMenus(
   core: PackingCore,
   acts: RowActions,

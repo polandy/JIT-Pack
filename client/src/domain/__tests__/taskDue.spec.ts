@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { dueState } from '../shared/dueDay'
 import {
   taskDueTally,
   byDue,
@@ -7,8 +8,8 @@ import {
   DUE_OVERDUE,
   DUE_SOON,
   DUE_TODAY,
-  dueStateOf,
   isDuePressing,
+  openDueDay,
   pressingFirst,
   type DueFacts,
 } from '../taskDue'
@@ -19,7 +20,7 @@ function task(id: string, due: string | null, state: 'open' | 'resolved' = 'open
   return { id, due_date: due, task_state: state } satisfies DueFacts & { id: string }
 }
 
-describe('FR-7.11 dueStateOf', () => {
+describe('FR-7.11 a task’s due state', () => {
   it.each([
     ['yesterday is overdue', '2026-07-07', DUE_OVERDUE],
     ['today', '2026-07-08', DUE_TODAY],
@@ -27,15 +28,15 @@ describe('FR-7.11 dueStateOf', () => {
     ['the day after is soon', '2026-07-10', DUE_SOON],
     ['three days out is later', '2026-07-11', DUE_LATER],
   ])('%s', (_, due, want) => {
-    expect(dueStateOf(task('t', due), TODAY)).toBe(want)
+    expect(dueState(openDueDay(task('t', due)), TODAY)).toBe(want)
   })
 
   it('has nothing to say about a task without a date', () => {
-    expect(dueStateOf(task('t', null), TODAY)).toBeNull()
+    expect(dueState(openDueDay(task('t', null)), TODAY)).toBeNull()
   })
 
   it('never calls a finished task overdue', () => {
-    expect(dueStateOf(task('t', '2026-07-01', 'resolved'), TODAY)).toBeNull()
+    expect(dueState(openDueDay(task('t', '2026-07-01', 'resolved')), TODAY)).toBeNull()
   })
 
   it('counts only overdue, today and soon as pressing', () => {
