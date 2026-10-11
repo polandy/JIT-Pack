@@ -10,6 +10,7 @@ import { IDBFactory } from 'fake-indexeddb'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -86,6 +87,7 @@ describe('Local Mode — the device holds every trip, so its answer is final', (
       baseUrl: '',
       getToken: () => null,
       local: new IndexedDBPersistence(),
+      now: fixedClock,
     })
   }
 
@@ -162,7 +164,11 @@ describe('Server Mode — the server decides over every trip', () => {
   }
 
   function serverOrch(): Orchestrator {
-    return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    return useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
   }
 
   it('asks the server to prune — after the removal has reached it', async () => {

@@ -105,11 +105,14 @@ function chooseMode(selected: ClientMode, serverUrl: string | null) {
   window.location.reload()
 }
 
+// The device's clock for the shell, the token refresher and the orchestrator
+// alike, so a test that sets it reaches every screen.
+const clock = defaultNowMs
+
 // OIDC token lifecycle (Sync-API §2): the refresher renews the access
 // token shortly before expiry and after a 401; without stored tokens
 // (Single-User servers, Local Mode) it stays inert and hands out null.
-const refresher =
-  mode.value === 'server' ? createAuthRefresher(serverBaseUrl(), defaultNowMs) : null
+const refresher = mode.value === 'server' ? createAuthRefresher(serverBaseUrl(), clock) : null
 
 const orchestrator = mode.value
   ? useSyncOrchestrator({
@@ -123,12 +126,9 @@ const orchestrator = mode.value
       // FR-30.3 (ADR-066): the modules' stores, so the orchestrator routes
       // their rows without importing a module.
       features: FEATURE_MODULES.map((module) => module.featureStore()),
+      now: clock,
     })
   : null
-
-// The device's clock for the shell, one with the orchestrator's so a test that
-// sets it reaches every screen; real time only before a mode is chosen.
-const clock = orchestrator?.now ?? defaultNowMs
 
 /**
  * NFR-4.2a: a push that came back `merged` dropped fields of this device's

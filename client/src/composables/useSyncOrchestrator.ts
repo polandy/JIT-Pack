@@ -81,7 +81,7 @@ import type {
 import { WS_CHANNEL_TRIP_PREFIX } from '@/api/types'
 import { routeWSEvent } from '@/sync/wsRouting'
 import { localIsoDate } from '@/domain/trips'
-import { defaultNowMs, isoFrom, type NowMs } from '@/lib/clock'
+import { isoFrom, type NowMs } from '@/lib/clock'
 import type { ServerNotification } from '@/notifications/format'
 import type { IndexedDBPersistence } from '@/local/persistence'
 import { IndexedDBOutboxStore, type OutboxStore } from '@/sync/outboxStore'
@@ -116,11 +116,11 @@ export interface SyncOrchestratorConfig {
    */
   local?: IndexedDBPersistence
   /**
-   * The device's clock, in milliseconds. One value feeds all three things
-   * that ask what time it is — the HLC generator, `today`, and the ISO
-   * stamps the mutations write — so they cannot answer differently.
+   * The clock, in milliseconds — the device's in the app, a fixed one in a
+   * spec. One value feeds the HLC generator, `today` and the ISO stamps the
+   * mutations write, so they cannot answer differently.
    */
-  now?: NowMs
+  now: NowMs
   /**
    * The clock behind FR-27.4's "is this trip past?" question. Injected so a
    * test can stand on either side of a trip's end date without moving the
@@ -204,7 +204,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       }
       return cachedSession.subject
     })
-  const now = config.now ?? defaultNowMs
+  const now = config.now
   const nowIso = isoFrom(now)
   const today = config.today ?? (() => localIsoDate(now()))
   if (local) syncStatus.setLocal()

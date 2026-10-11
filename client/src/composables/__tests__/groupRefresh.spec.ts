@@ -8,6 +8,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { proposedChangeCount } from '@/domain/refresh'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
@@ -47,6 +48,7 @@ async function localOrchestrator(today = TODAY) {
       load: () => Promise.resolve([]),
       requestDurability: () => Promise.resolve(true),
     } as never,
+    now: fixedClock,
   })
   await orch.connect()
   return orch
@@ -347,6 +349,7 @@ describe('the refresh refuses to run on rows it cannot see (FR-27.4)', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       local: { save: () => Promise.resolve(), load: () => Promise.resolve([]) } as never,
+      now: fixedClock,
     })
     const tripStore = useTripStore()
     seedWorld()
@@ -359,7 +362,11 @@ describe('the refresh refuses to run on rows it cannot see (FR-27.4)', () => {
     // No `local`, and no drainTrip has succeeded for this trip: in Server
     // Mode a trip's rows arrive only when it is opened, and M2 shows trips
     // from the *master* partition long before that.
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     seedWorld()
 
@@ -419,6 +426,7 @@ describe('a master pull asks the trips it just changed something for (FR-27.4)',
       baseUrl: 'http://localhost',
       getToken: () => null,
       today: () => TODAY,
+      now: fixedClock,
     })
     const tripStore = useTripStore()
 

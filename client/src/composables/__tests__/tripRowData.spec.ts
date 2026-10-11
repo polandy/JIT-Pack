@@ -12,6 +12,7 @@ import { nextTick, watchEffect } from 'vue'
 import { setActivePinia, createPinia } from 'pinia'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { installHarness } from '@/__tests__/harness'
 
@@ -23,7 +24,7 @@ beforeEach(() => {
   harness.mockDrain()
 })
 
-const newOrch = () => useSyncOrchestrator({ baseUrl: '', getToken: () => null })
+const newOrch = () => useSyncOrchestrator({ baseUrl: '', getToken: () => null, now: fixedClock })
 
 /** Pull requests for one trip's partition, which is what the ring waits on. */
 const tripPulls = (tripId: string) =>
@@ -82,6 +83,7 @@ describe('a trip whose own rows are not on the device (ADR-033)', () => {
       baseUrl: '',
       getToken: () => null,
       local: new IndexedDBPersistence(),
+      now: fixedClock,
     })
 
     await orch.ensureTripData('trip-1')
@@ -184,6 +186,7 @@ describe('whether the master partition is on the device (FR-2.8)', () => {
       baseUrl: '',
       getToken: () => null,
       local: new IndexedDBPersistence(),
+      now: fixedClock,
     })
 
     // Not loaded — a Local Mode device never pulls, so the answer has to come

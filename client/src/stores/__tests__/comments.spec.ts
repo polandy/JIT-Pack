@@ -11,7 +11,7 @@ import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { useTripStore } from '@/stores/tripStore'
 import type { PullChange } from '@/api/types'
 import { installHarness } from '@/__tests__/harness'
-import { fixedMutations } from '@/__tests__/fixedClock'
+import { fixedMutations, fixedClock, FIXED_NOW_ISO } from '@/__tests__/fixedClock'
 
 function commentChange(id: string, row: Record<string, unknown>): PullChange {
   return {
@@ -174,7 +174,7 @@ describe('comment mutations', () => {
     const opened = mutations.addComment('t1', null, 'u1', 'Code 4711', { title: 'Schlüsselbox' })
     expect(opened.mutation.fields).toMatchObject({ title: 'Schlüsselbox', is_task: 0 })
     expect(opened.mutation.fields).not.toHaveProperty('parent_id')
-    expect(opened.mutation.fields?.['created_at']).toEqual(expect.any(String))
+    expect(opened.mutation.fields?.['created_at']).toBe(FIXED_NOW_ISO)
 
     const answered = mutations.addComment('t1', null, 'u1', 'Danke', {
       parentId: 'note-1',
@@ -189,7 +189,7 @@ describe('comment mutations', () => {
     const first = mutations.editNote('note-1', 'Code 4712', 'Box')
     expect(first.op).toBe('upsert')
     expect(first.fields).toMatchObject({ body: 'Code 4712', title: 'Box' })
-    expect(first.fields?.['edited_at']).toEqual(expect.any(String))
+    expect(first.fields?.['edited_at']).toBe(FIXED_NOW_ISO)
 
     expect(mutations.editNote('reply-1', 'Danke!').fields).not.toHaveProperty('title')
   })
@@ -238,7 +238,11 @@ describe('orchestrator comment actions', () => {
   })
 
   it('addComment applies optimistically; flag as task moves it to preparations', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
     const id = orch.comments.addComment('t1', 'ti1', 'u1', 'Ventil prüfen')
@@ -257,7 +261,11 @@ describe('orchestrator comment actions', () => {
    * does, and flips it. This is the seam both M25 and M1 call through.
    */
   it('toggleNoteTick inserts the first tick and flips the existing row after', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
     orch.comments.toggleNoteTick('t1', 'note-1', 'u1', null, {
@@ -288,7 +296,11 @@ describe('orchestrator comment actions', () => {
    * off.
    */
   it('toggleNoteTick re-ticks a re-opened thread through its newest entry', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
     orch.comments.toggleNoteTick('t1', 'note-1', 'u1', null, {
@@ -309,7 +321,11 @@ describe('orchestrator comment actions', () => {
 
   /** FR-7.13: deleting a first note takes its thread, as the server's cascade does. */
   it('deleteComment on a first note removes its replies and its ticks', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
     const root = orch.comments.addComment('t1', null, 'u1', 'Code 4711', { title: 'Schlüsselbox' })

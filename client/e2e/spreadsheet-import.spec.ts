@@ -326,6 +326,9 @@ test.describe('M15 — the layout, the gate and the duplicates @local @m15', () 
 
     // Back through M2's own entry, so the second import is the app's own path.
     await page.getByTestId('rail-trips').click()
+    // The ⋮ lists the entries of the route it is on, so it waits for M2's:
+    // opened while the bar still stands on M9, it offers M9's.
+    await expect(page).toHaveURL(new RegExp(`${PATH.trips}$`))
     await chooseBarEntry(page, 'm2-spreadsheet-import')
     await visiblePage(page).getByTestId('import-paste').locator('textarea').fill(DUPLICATE_CSV)
     await visiblePage(page).getByTestId('import-analyze').click()

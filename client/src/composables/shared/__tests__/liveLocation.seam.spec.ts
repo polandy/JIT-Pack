@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { installHarness } from '@/__tests__/harness'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import 'fake-indexeddb/auto'
 
 interface WSStub {
@@ -75,7 +76,11 @@ describe('live locations (FR-29.19)', () => {
   })
 
   it('forgets every position when the socket dies', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => 't' })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => 't',
+      now: fixedClock,
+    })
     await orch.connect()
     sockets[0]!.onopen!()
     sockets[0]!.onmessage!(frame(SIA))
@@ -86,7 +91,11 @@ describe('live locations (FR-29.19)', () => {
   })
 
   it('sends a shared position over the socket, and nothing in Local Mode', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => 't' })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => 't',
+      now: fixedClock,
+    })
     await orch.connect()
     sockets[0]!.onopen!()
     orch.presence.shareLocation('t1', { lat: 46.5, lon: 9.8, accuracyM: 8 })
@@ -98,6 +107,7 @@ describe('live locations (FR-29.19)', () => {
       baseUrl: '',
       getToken: () => null,
       local: new IndexedDBPersistence(),
+      now: fixedClock,
     })
     await local.connect()
     const before = sockets.length

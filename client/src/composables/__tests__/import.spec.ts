@@ -14,6 +14,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { ImportPlan } from '@/domain/spreadsheet'
@@ -59,7 +60,11 @@ const plan: ImportPlan = {
 
 describe('commitImport (FR-16.2)', () => {
   it('creates categories, merges decided items, and imports archived trips', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const master = useMasterStore()
     const trips = useTripStore()
     master.applyChange({
@@ -129,7 +134,11 @@ describe('commitImport (FR-16.2)', () => {
   it('writes the noise task in the active language, not in English', () => {
     setLocale('de')
     try {
-      const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+      const orch = useSyncOrchestrator({
+        baseUrl: 'http://localhost',
+        getToken: () => null,
+        now: fixedClock,
+      })
       const trips = useTripStore()
 
       const result = orch.tripCreation.commitImport(plan)
@@ -151,7 +160,11 @@ describe('commitImport (FR-16.2)', () => {
    * optimistically — the whole inventory arrives untagged.
    */
   it('enqueues every master item before the tag assignment that references it', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
 
     orch.tripCreation.commitImport(plan)
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
@@ -176,7 +189,11 @@ describe('commitImport (FR-16.2)', () => {
   })
 
   it('reuses an existing category instead of duplicating it', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const master = useMasterStore()
     master.applyChange({
       seq: 0,

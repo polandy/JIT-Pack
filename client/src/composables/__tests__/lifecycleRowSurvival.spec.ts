@@ -15,6 +15,7 @@ import { IDBFactory } from 'fake-indexeddb'
 import { describe, it, expect, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock, FIXED_NOW_ISO } from '@/__tests__/fixedClock'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -30,6 +31,7 @@ function newLocalOrch() {
     baseUrl: '',
     getToken: () => null,
     local: new IndexedDBPersistence(),
+    now: fixedClock,
   })
 }
 
@@ -61,7 +63,7 @@ describe('a retire keeps the row it marks', () => {
     orch.masterData.deleteMasterItem('it-1')
 
     const item = master.getItem('it-1')
-    expect(item?.retired_at).toBeTruthy()
+    expect(item?.retired_at).toBe(FIXED_NOW_ISO)
     expect(item?.name).toBe('Kamera')
     expect(item?.icon).toBe('📷')
     expect(item?.image_hash).toBe('abc123')
@@ -94,7 +96,7 @@ describe('a retire keeps the row it marks', () => {
     orch.masterData.deleteTemplate('tpl-1')
 
     const template = master.getTemplate('tpl-1')
-    expect(template?.retired_at).toBeTruthy()
+    expect(template?.retired_at).toBe(FIXED_NOW_ISO)
     expect(template?.name).toBe('Fotografie')
     expect(template?.kind).toBe('group')
     expect(template?.icon).toBe('🎞️')

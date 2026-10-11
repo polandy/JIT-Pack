@@ -13,6 +13,7 @@ import { IDBFactory } from 'fake-indexeddb'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useMasterStore } from '@/stores/masterStore'
 import type { PushResponse } from '@/api/types'
@@ -35,7 +36,7 @@ function mockDrain() {
 }
 
 function newOrch() {
-  return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+  return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null, now: fixedClock })
 }
 
 function seedTemplate(id: string, name: string, kind = 'template') {
@@ -149,7 +150,12 @@ describe('series names are instance-wide (FR-13.1)', () => {
 describe('Local Mode has no constraint, so the client is the only guard', () => {
   it('never writes a second template of the same name', async () => {
     const persistence = new IndexedDBPersistence()
-    const orch = useSyncOrchestrator({ baseUrl: '', getToken: () => null, local: persistence })
+    const orch = useSyncOrchestrator({
+      baseUrl: '',
+      getToken: () => null,
+      local: persistence,
+      now: fixedClock,
+    })
     const first = orch.masterData.createTemplate('Ferien', 'template')
     expect(first).not.toBeNull()
     expect(orch.masterData.createTemplate('Ferien', 'group')).toBeNull()

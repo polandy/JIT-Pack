@@ -9,7 +9,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { useTripStore } from '@/stores/tripStore'
 import { installHarness } from '@/__tests__/harness'
-import { fixedMutations } from '@/__tests__/fixedClock'
+import { fixedMutations, fixedClock } from '@/__tests__/fixedClock'
 
 beforeEach(() => {
   installHarness().mockDrain()
@@ -45,7 +45,11 @@ describe('container mutations', () => {
 
 describe('orchestrator container actions', () => {
   it('creates, updates, and pairs containers optimistically', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
     const id = orch.containers.addContainer('t1', 'Left Pannier', { maxWeightGrams: 12000 })
@@ -61,7 +65,11 @@ describe('orchestrator container actions', () => {
   })
 
   it('deleteContainer unassigns its items before deleting (FK order)', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const containerId = orch.containers.addContainer('t1', 'Roof Box', {})
     tripStore.applyChange({

@@ -17,6 +17,7 @@ import { IDBFactory } from 'fake-indexeddb'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { installHarness } from '@/__tests__/harness'
 import type { OutboxStore } from '@/sync/outboxStore'
@@ -50,13 +51,18 @@ function heldStore(): OutboxStore & { release: () => void; appended: number } {
 
 describe('capturePending (FR-25.15)', () => {
   it('is false on a device that has written nothing', () => {
-    const orch = useSyncOrchestrator({ baseUrl: '', getToken: () => null })
+    const orch = useSyncOrchestrator({ baseUrl: '', getToken: () => null, now: fixedClock })
     expect(orch.capturePending.value).toBe(false)
   })
 
   it('is true while a Local Mode write is open and false once it lands', async () => {
     const persistence = new IndexedDBPersistence()
-    const orch = useSyncOrchestrator({ baseUrl: '', getToken: () => null, local: persistence })
+    const orch = useSyncOrchestrator({
+      baseUrl: '',
+      getToken: () => null,
+      local: persistence,
+      now: fixedClock,
+    })
 
     orch.packing.quickAddItem('t1', 'Socken', {}, false)
 
@@ -70,6 +76,7 @@ describe('capturePending (FR-25.15)', () => {
       baseUrl: '',
       getToken: () => null,
       outboxStore: store,
+      now: fixedClock,
     })
 
     orch.packing.quickAddItem('t1', 'Socken', {}, false)
@@ -86,6 +93,7 @@ describe('capturePending (FR-25.15)', () => {
       baseUrl: '',
       getToken: () => null,
       outboxStore: store,
+      now: fixedClock,
     })
 
     orch.packing.quickAddItem('t1', 'Socken', {}, false)
@@ -102,7 +110,7 @@ describe('capturePending (FR-25.15)', () => {
   })
 
   it('is unmoved by a pull that writes nothing of the user’s', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: '', getToken: () => null })
+    const orch = useSyncOrchestrator({ baseUrl: '', getToken: () => null, now: fixedClock })
 
     orch.syncStatus.setSyncing()
 

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import { installHarness } from '@/__tests__/harness'
@@ -61,7 +62,11 @@ describe('co-skip cascade (FR-20.2)', () => {
     seedTripItem('ti-camera', 'camera')
     seedTripItem('ti-battery', 'battery')
     seedTripItem('ti-other', null)
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
     const cameraItem = tripStore.getItems('t1').find((i) => i.id === 'ti-camera')!
@@ -78,7 +83,11 @@ describe('co-skip cascade (FR-20.2)', () => {
     seedTripItem('ti-camera', 'camera')
     seedTripItem('ti-battery', 'battery')
     seedTripItem('ti-other', null)
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
     const cameraItem = tripStore.getItems('t1').find((i) => i.id === 'ti-camera')!
@@ -94,7 +103,11 @@ describe('co-skip cascade (FR-20.2)', () => {
     seedMaster()
     seedTripItem('ti-camera', 'camera')
     seedTripItem('ti-battery', 'battery')
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
     const cameraItem = tripStore.getItems('t1').find((i) => i.id === 'ti-camera')!
@@ -116,7 +129,11 @@ describe('co-skip cascade (FR-20.2)', () => {
 
   it('restoreSkip leaves a row that has since been deleted deleted', () => {
     seedMaster()
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
     orch.packing.restoreSkip([{ itemId: 'gone', quantity: 1, packedCount: 0, state: 'open' }])
@@ -128,7 +145,11 @@ describe('co-skip cascade (FR-20.2)', () => {
     seedMaster()
     seedTripItem('ti-camera', 'camera')
     seedTripItem('ti-battery', 'battery')
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
     const batteryItem = tripStore.getItems('t1').find((i) => i.id === 'ti-battery')!
@@ -143,7 +164,11 @@ describe('co-skip cascade (FR-20.2)', () => {
 describe('quick-add companions (FR-20.4/FR-5.6)', () => {
   it('adds required companions alongside a quick-added main item', () => {
     seedMaster()
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
     orch.packing.quickAddItem('t1', 'Kamera', { sourceItemId: 'camera' }, false)
@@ -158,7 +183,11 @@ describe('quick-add companions (FR-20.4/FR-5.6)', () => {
   it('does not duplicate a companion already on the list (FR-20.3)', () => {
     seedMaster()
     seedTripItem('ti-battery', 'battery')
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
     orch.packing.quickAddItem('t1', 'Kamera', { sourceItemId: 'camera' }, false)
@@ -169,7 +198,11 @@ describe('quick-add companions (FR-20.4/FR-5.6)', () => {
 
   it('leaves ad-hoc quick-adds without a master match untouched', () => {
     seedMaster()
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
     orch.packing.quickAddItem('t1', 'Irgendwas', {}, false)
@@ -181,7 +214,11 @@ describe('quick-add companions (FR-20.4/FR-5.6)', () => {
 describe('dependency master actions', () => {
   it('addItemDependency applies optimistically and deleteItemDependency removes it', () => {
     seedMaster()
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const masterStore = useMasterStore()
 
     const id = orch.dependencies.addItemDependency('battery', 'camera', { mode: 'suggested' })

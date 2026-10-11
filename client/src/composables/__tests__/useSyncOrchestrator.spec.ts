@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import type { PullResponse, PushResponse } from '@/api/types'
@@ -33,7 +34,11 @@ function mockPull(changes: PullResponse['changes'] = []) {
 
 describe('useSyncOrchestrator', () => {
   it('quickAddItem adds item optimistically to trip store', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
     // Mock the drain (push + pull)
@@ -49,7 +54,11 @@ describe('useSyncOrchestrator', () => {
   })
 
   it('quickAddItem flags missing on active trips', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
     mockPush()
@@ -69,7 +78,11 @@ describe('useSyncOrchestrator', () => {
    * somebody packs it is the same defect with a longer fuse.
    */
   it('an unrelated mutation on a bought row keeps its bought_from (FR-25.11j)', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
     tripStore.applyChange({
@@ -100,7 +113,11 @@ describe('useSyncOrchestrator', () => {
   })
 
   it('buyItem records the list and moves the row off it, in one write (FR-25.11j)', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
     tripStore.applyChange({
@@ -135,7 +152,11 @@ describe('useSyncOrchestrator', () => {
   })
 
   it('packToggle flips item between open and packed', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
     // Seed an item
@@ -170,7 +191,11 @@ describe('useSyncOrchestrator', () => {
   // the other six. In Local Mode no pull ever arrives to heal them, which is
   // why the test asserts what the action did *not* change.
   it('keeps the columns its mutation never mentions', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
     tripStore.applyChange({
@@ -205,7 +230,11 @@ describe('useSyncOrchestrator', () => {
   // FR-25.24: the amount is written through the same funnel as a pack, and
   // the optimistic row is what M4 renders while the push is in flight.
   it('setQuantity clamps the packed count it would otherwise leave stranded', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
     tripStore.applyChange({
@@ -238,7 +267,11 @@ describe('useSyncOrchestrator', () => {
   })
 
   it('skipItem sets state to skipped optimistically', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
     tripStore.applyChange({
@@ -269,7 +302,11 @@ describe('useSyncOrchestrator', () => {
   })
 
   it('unskipItem restores to open', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
     tripStore.applyChange({
@@ -300,7 +337,11 @@ describe('useSyncOrchestrator', () => {
   })
 
   it('drainTrip updates sync status', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
 
     mockPull([
       {
@@ -320,7 +361,11 @@ describe('useSyncOrchestrator', () => {
   })
 
   it('drainMaster routes changes to master store', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
 
     mockPull([
       {
@@ -351,7 +396,11 @@ describe('useSyncOrchestrator', () => {
   // correct either way in a list (a stable sort keeps insertion order), which
   // is exactly why it needs asserting on the stored positions.
   it('assigns each tag the next position, so the primary one is decided data', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const masterStore = useMasterStore()
 
     const itemId = orch.masterData.createMasterItem('Badehose')
@@ -374,7 +423,11 @@ describe('useSyncOrchestrator', () => {
   })
 
   it('sets offline on network failure', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
 
     fetchMock.mockRejectedValueOnce(new Error('network error'))
 
@@ -411,7 +464,11 @@ describe('useSyncOrchestrator', () => {
   })
 
   it('keeps the failure after the next drain succeeds — nobody was watching when it failed', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 500 }))
     await orch.drainMaster()
     expect(orch.syncStatus.lastFailure.value?.status).toBe(500)
@@ -425,7 +482,11 @@ describe('useSyncOrchestrator', () => {
   })
 
   it('enqueues mutations and updates pending count', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
 
     mockPush()
     mockPull()
@@ -449,7 +510,11 @@ describe('useSyncOrchestrator', () => {
     }
 
     it('pairContainer sets both sides at once', () => {
-      const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+      const orch = useSyncOrchestrator({
+        baseUrl: 'http://localhost',
+        getToken: () => null,
+        now: fixedClock,
+      })
       const tripStore = useTripStore()
       const [a, b] = seedContainers(orch, ['Left', 'Right'])
 
@@ -463,7 +528,11 @@ describe('useSyncOrchestrator', () => {
     })
 
     it('pairContainer releases the previous partner when one side re-pairs', () => {
-      const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+      const orch = useSyncOrchestrator({
+        baseUrl: 'http://localhost',
+        getToken: () => null,
+        now: fixedClock,
+      })
       const tripStore = useTripStore()
       const [a, b, c] = seedContainers(orch, ['Left', 'Right', 'Roof Box'])
 
@@ -481,7 +550,11 @@ describe('useSyncOrchestrator', () => {
     })
 
     it('unpairContainer clears both sides', () => {
-      const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+      const orch = useSyncOrchestrator({
+        baseUrl: 'http://localhost',
+        getToken: () => null,
+        now: fixedClock,
+      })
       const tripStore = useTripStore()
       const [a, b] = seedContainers(orch, ['Left', 'Right'])
 
@@ -498,7 +571,11 @@ describe('useSyncOrchestrator', () => {
     })
 
     it('deleteContainer releases the surviving partner', () => {
-      const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+      const orch = useSyncOrchestrator({
+        baseUrl: 'http://localhost',
+        getToken: () => null,
+        now: fixedClock,
+      })
       const tripStore = useTripStore()
       const [a, b] = seedContainers(orch, ['Left', 'Right'])
 
@@ -515,7 +592,11 @@ describe('useSyncOrchestrator', () => {
     })
 
     it('deleteContainer unassigns the container’s items instead of removing them', () => {
-      const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+      const orch = useSyncOrchestrator({
+        baseUrl: 'http://localhost',
+        getToken: () => null,
+        now: fixedClock,
+      })
       const tripStore = useTripStore()
       const [a] = seedContainers(orch, ['Duffel'])
 
@@ -558,7 +639,11 @@ describe('useSyncOrchestrator — reconnect catch-up (Sync-API P-1)', () => {
       const harness = installHarness()
       fetchMock = harness.fetch
       harness.mockDrain()
-      const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+      const orch = useSyncOrchestrator({
+        baseUrl: 'http://localhost',
+        getToken: () => null,
+        now: fixedClock,
+      })
       await orch.connect()
       const sockets = () =>
         harness.webSocket.mock.instances as unknown as Array<{
@@ -598,7 +683,11 @@ describe('useSyncOrchestrator — reconnect catch-up (Sync-API P-1)', () => {
     const harness = installHarness()
     fetchMock = harness.fetch
     harness.mockDrain()
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     await orch.connect()
     orch.subscribeTrip('t1')
 

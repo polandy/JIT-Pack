@@ -31,8 +31,9 @@ import { decodeLine, defaultSource, readTrack } from '@/domain/shared/track'
 
 /**
  * The seed dates its trip, tasks and meals from the device's today, so the
- * spec pins that today. Only `Date` is faked: fake-indexeddb still needs the
- * real timers to settle its requests.
+ * spec pins that today, and hands the orchestrator a clock on the same
+ * moment. Only `Date` is faked: fake-indexeddb still needs the real timers to
+ * settle its requests.
  */
 const NOW = new Date(2026, 9, 5, 9, 0)
 const TODAY = '2026-10-05'
@@ -54,6 +55,7 @@ function seed() {
     baseUrl: '',
     getToken: () => null,
     local: new IndexedDBPersistence(),
+    now: () => NOW.getTime(),
   })
   const master = seedSampleMaster(orchestrator)
   const tripId = seedSampleTrip(orchestrator, master.items)
@@ -66,6 +68,7 @@ async function seedConnected() {
     baseUrl: '',
     getToken: () => null,
     local: new IndexedDBPersistence(),
+    now: () => NOW.getTime(),
   })
   await orchestrator.connect()
   const master = seedSampleMaster(orchestrator)
@@ -86,6 +89,7 @@ describe('seedSampleTrip (dev)', () => {
       getToken: () => null,
       local: new IndexedDBPersistence(),
       features: [plannerModule.featureStore()],
+      now: () => NOW.getTime(),
     })
     const tripId = seedSampleTrip(orchestrator, seedSampleMaster(orchestrator).items)
     const planner = usePlannerStore()
@@ -259,6 +263,7 @@ describe('seedSampleTrip (dev)', () => {
       getToken: () => null,
       local: new IndexedDBPersistence(),
       features: [mealsModule.featureStore()],
+      now: () => NOW.getTime(),
     })
     await orchestrator.connect()
     const tripId = seedSampleTrip(orchestrator, seedSampleMaster(orchestrator).items)

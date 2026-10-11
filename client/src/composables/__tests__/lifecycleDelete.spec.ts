@@ -10,6 +10,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock, FIXED_NOW_ISO } from '@/__tests__/fixedClock'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { DELETION_REMOVE, DELETION_RETIRE } from '@/domain/masterDeletion'
@@ -32,7 +33,7 @@ function mockDrain() {
 }
 
 function newOrch() {
-  return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+  return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null, now: fixedClock })
 }
 
 /** An item held by one group position — the FR-24.3 "ever referenced" case. */
@@ -79,14 +80,14 @@ describe('FR-24.3 — deleting a master item', () => {
     // The positive signal beside the "did not disappear" assertion: the row
     // is still in the store, and it carries the marker that hides it.
     expect(master.getItem('it-1')?.name).toBe('Kamera')
-    expect(master.getItem('it-1')?.retired_at).toBeTruthy()
+    expect(master.getItem('it-1')?.retired_at).toBe(FIXED_NOW_ISO)
     expect(master.activeItemList.map((i) => i.id)).not.toContain('it-1')
     expect(master.itemList.map((i) => i.id)).toContain('it-1')
 
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
     const body = JSON.parse(String(fetchMock.mock.calls[0]![1]?.body))
     expect(body.mutations[0].op).toBe('upsert')
-    expect(body.mutations[0].fields.retired_at).toBeTruthy()
+    expect(body.mutations[0].fields.retired_at).toBe(FIXED_NOW_ISO)
   })
 
   it('removes an item nothing has ever used', async () => {
@@ -181,7 +182,7 @@ describe('FR-24.3 — deleting a Vorlage', () => {
 
     orch.masterData.deleteTemplate('tpl-1')
 
-    expect(master.getTemplate('tpl-1')?.retired_at).toBeTruthy()
+    expect(master.getTemplate('tpl-1')?.retired_at).toBe(FIXED_NOW_ISO)
     // The cascade the store mirrors on a real delete must not have run.
     expect(master.getTemplateItems('tpl-1').map((p) => p.id)).toEqual(['pos-1'])
     expect(master.activeTemplateList.map((t) => t.id)).not.toContain('tpl-1')
