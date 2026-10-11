@@ -37,13 +37,10 @@ const router = useRouter()
           <template v-if="entry.retired"> · {{ t('items.editor.containedRetired') }} </template>
         </p>
       </IonLabel>
-      <!-- The scope chip M7's rows already wear, so the two lists read alike. -->
       <!--
-        Both scopes wear the same chip here, unlike M7 where only a
-        group needs one: there the two live in separate sections, so
-        the section is the label. In one mixed list an unmarked row
-        and a chipped one read as an inconsistency rather than as a
-        rule — found by rendering it (G-14).
+        M7's scope chip, on both scopes: M7 marks only groups because its
+        sections already label the scope, but in one mixed list an unmarked
+        row beside a chipped one reads as an inconsistency (G-14).
       -->
       <span
         slot="end"

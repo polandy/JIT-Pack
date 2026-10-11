@@ -393,9 +393,8 @@ export function everyoneMembers(
  *
  * A row assigned to somebody the trip no longer has is left out: it is not a
  * member the roster can show, and counting it would let a partial membership
- * read as a full one. What it is
- * *not* is a licence to delete that row — that decision stays with the caller
- * and its confirm (ADR-036).
+ * read as a full one. What it is *not* is a licence to delete that row — that
+ * decision stays with the caller and its confirm (ADR-036).
  */
 export function membersOfRows(rows: TripItem[], travelers: Traveler[]): MembershipMember[] {
   const byTraveler = new Map<string, TripItem>()
