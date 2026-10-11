@@ -7,6 +7,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { useTripStore } from '@/stores/tripStore'
 import { installHarness } from '@/__tests__/harness'
 
@@ -93,7 +94,11 @@ function seedSource(tripStore: ReturnType<typeof useTripStore>) {
 
 describe('cloneTrip (FR-12)', () => {
   it('clones the curated list with remapped links and fresh state', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     seedSource(tripStore)
     await orch.ensureTripData('src')
@@ -142,7 +147,11 @@ describe('cloneTrip (FR-12)', () => {
   })
 
   it('drops links and containers when the carry-over options are off', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     seedSource(tripStore)
     await orch.ensureTripData('src')
@@ -167,7 +176,11 @@ describe('cloneTrip (FR-12)', () => {
   })
 
   it('refuses to clone a trip whose rows are not on the device (ADR-033)', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     seedSource(tripStore)
 

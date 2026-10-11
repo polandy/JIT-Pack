@@ -10,6 +10,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { useTripStore } from '@/stores/tripStore'
 import { SPREAD } from '@/app/actions/packing'
 import { TABLE } from '@/api/tables'
@@ -58,7 +59,7 @@ function sharedRow(overrides: Record<string, unknown> = {}): PullChange {
 }
 
 function orchestrator() {
-  return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+  return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null, now: fixedClock })
 }
 
 function rowsOf() {

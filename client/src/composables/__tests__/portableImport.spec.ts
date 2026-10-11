@@ -9,6 +9,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { joinDocuments, parsePortable, parsePortableAll } from '@/domain/portable'
@@ -24,7 +25,7 @@ beforeEach(() => {
 })
 
 function newOrch() {
-  return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+  return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null, now: fixedClock })
 }
 
 describe('commitPortableImport — template (FR-18.4/FR-1.6)', () => {

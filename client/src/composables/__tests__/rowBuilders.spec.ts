@@ -33,6 +33,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock, FIXED_NOW_ISO } from '@/__tests__/fixedClock'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/api/tables'
@@ -62,7 +63,7 @@ beforeEach(() => {
 })
 
 function newOrch() {
-  return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+  return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null, now: fixedClock })
 }
 
 /** Seeds one row the way a pull would, so the store maps it itself. */
@@ -555,9 +556,8 @@ const CASES: BuilderCase[] = [
         changed: 'task_state',
         becomes: 'resolved',
         // FR-7.7: the tap's own moment, named by the client (FR-25.17's
-        // precedent). Its value is a clock reading, so the case pins that one
-        // is written rather than which.
-        also: { resolved_at: expect.any(String) as unknown },
+        // precedent), read from the spec's fixed clock.
+        also: { resolved_at: FIXED_NOW_ISO },
       },
     ],
     expected: {

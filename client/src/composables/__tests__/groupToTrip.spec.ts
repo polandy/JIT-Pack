@@ -8,6 +8,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import { TABLE } from '@/api/tables'
@@ -38,6 +39,7 @@ async function localOrchestrator(today = TODAY) {
       load: () => Promise.resolve([]),
       requestDurability: () => Promise.resolve(true),
     } as never,
+    now: fixedClock,
   })
   await orch.connect()
   return orch
@@ -230,6 +232,7 @@ describe('addGroupToTrip (FR-27.10)', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       today: () => TODAY,
+      now: fixedClock,
     })
     seedWorld()
 

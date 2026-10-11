@@ -14,6 +14,7 @@ import { createPinia, setActivePinia } from 'pinia'
 
 import { installHarness, type Harness } from '@/__tests__/harness'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { fixedClock, FIXED_NOW_ISO } from '@/__tests__/fixedClock'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useTripStore } from '@/stores/tripStore'
 import type { IdeaPictures, ModuleHost } from '@/sync/featureModule'
@@ -35,6 +36,7 @@ function serverOrch() {
     baseUrl: 'http://localhost',
     getToken: () => null,
     features: [plannerFeatureStore()],
+    now: fixedClock,
   })
 }
 
@@ -44,6 +46,7 @@ function localOrch(persistence = new IndexedDBPersistence()) {
     getToken: () => null,
     local: persistence,
     features: [plannerFeatureStore()],
+    now: fixedClock,
   })
 }
 
@@ -187,7 +190,7 @@ describe('Server Mode', () => {
     await orch.drainTrip('t1')
 
     expect(word()).toMatchObject({ body: 'Nur mit Guide' })
-    expect(word().edited_at).not.toBeNull()
+    expect(word().edited_at).toBe(FIXED_NOW_ISO)
     const edits = harness
       .pushedMutations()
       .filter((m) => m.table === TABLE.ideaComments && m.op === 'upsert')

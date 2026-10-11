@@ -10,7 +10,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { useTripStore } from '@/stores/tripStore'
 import { installHarness } from '@/__tests__/harness'
-import { fixedMutations } from '@/__tests__/fixedClock'
+import { fixedMutations, fixedClock, FIXED_NOW_ISO } from '@/__tests__/fixedClock'
 
 interface WSStub {
   send: ReturnType<typeof vi.fn>
@@ -67,7 +67,7 @@ describe('packing-now mutations', () => {
     const mut = mutations.startPackingNow('ti1')
 
     expect(mut.fields!['state']).toBe('packing_now')
-    expect(mut.fields!['packing_now_at']).toBeTruthy()
+    expect(mut.fields!['packing_now_at']).toBe(FIXED_NOW_ISO)
   })
 
   it('any pack transition releases the claim (FR-5.3)', () => {
@@ -83,7 +83,11 @@ describe('packing-now mutations', () => {
 
 describe('lock state (G-3)', () => {
   it('own packing-now claim never locks the item for me', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
 
@@ -95,7 +99,11 @@ describe('lock state (G-3)', () => {
   })
 
   it('foreign ephemeral lock events lock and unlock the item', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
     await orch.connect()
@@ -120,7 +128,11 @@ describe('lock state (G-3)', () => {
 
 describe('who holds the lock (G-3)', () => {
   it('names the holder from the ephemeral event before the pull lands', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
     await orch.connect()
@@ -136,7 +148,11 @@ describe('who holds the lock (G-3)', () => {
   })
 
   it('names nobody for a row that is not locked for me', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
 
@@ -160,6 +176,7 @@ describe('a claim that was taken over (FR-5.7)', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       currentUserId: () => 'alice',
+      now: fixedClock,
     })
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
@@ -187,6 +204,7 @@ describe('a claim that was taken over (FR-5.7)', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       currentUserId: () => 'alice',
+      now: fixedClock,
     })
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
@@ -210,6 +228,7 @@ describe('a claim that was taken over (FR-5.7)', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       currentUserId: () => 'alice',
+      now: fixedClock,
     })
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
@@ -232,7 +251,11 @@ describe('a claim that was taken over (FR-5.7)', () => {
   })
 
   it('keeps the device rule where there is no identity to compare (Single-User)', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
     await orch.connect()
@@ -253,7 +276,11 @@ describe('a claim that was taken over (FR-5.7)', () => {
 
 describe('my own claim (G-3)', () => {
   it('is reported to me, because nothing else on the row can be', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
 
@@ -267,7 +294,11 @@ describe('my own claim (G-3)', () => {
   })
 
   it('stops being reported once the row is released', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
 
@@ -280,7 +311,11 @@ describe('my own claim (G-3)', () => {
 
 describe('releasing a claim (G-3)', () => {
   it('gives the row back without packing it, and to the state it came from', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const item = seedItem(tripStore, { quantity: 3, packed_count: 1 })
 
@@ -297,7 +332,11 @@ describe('releasing a claim (G-3)', () => {
   })
 
   it('returns an untouched row to open', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const item = seedItem(tripStore, { quantity: 2, packed_count: 0 })
 
@@ -308,7 +347,11 @@ describe('releasing a claim (G-3)', () => {
   })
 
   it('unlocks the row for the other devices, which is the point of it', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
 
@@ -331,7 +374,11 @@ describe('taking a claim over (FR-5.7)', () => {
   }
 
   it('asks the server, because only it can stamp who took over', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     fetchMock.mockImplementation((url: string) =>
       Promise.resolve(
@@ -354,7 +401,11 @@ describe('taking a claim over (FR-5.7)', () => {
   })
 
   it('leaves the row claimed by me, never free in between', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const item = claimedByOther(tripStore)
     fetchMock.mockResolvedValue(
@@ -378,7 +429,11 @@ describe('taking a claim over (FR-5.7)', () => {
   })
 
   it('leaves the claim where it was when the server refuses', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const item = claimedByOther(tripStore)
     fetchMock.mockResolvedValue(

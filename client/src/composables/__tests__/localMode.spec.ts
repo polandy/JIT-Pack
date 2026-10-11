@@ -11,6 +11,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -26,7 +27,12 @@ beforeEach(() => {
 })
 
 function newLocalOrch(persistence = new IndexedDBPersistence()) {
-  return useSyncOrchestrator({ baseUrl: '', getToken: () => null, local: persistence })
+  return useSyncOrchestrator({
+    baseUrl: '',
+    getToken: () => null,
+    local: persistence,
+    now: fixedClock,
+  })
 }
 
 describe('Local Mode', () => {
@@ -427,6 +433,7 @@ describe('Local Mode', () => {
       getToken: () => null,
       local: persistence,
       onLocalWrite,
+      now: fixedClock,
     })
 
     await orch.connect()

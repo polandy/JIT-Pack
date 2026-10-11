@@ -7,6 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import type { PullResponse } from '@/api/types'
 import { installHarness } from '@/__tests__/harness'
 
@@ -41,7 +42,7 @@ beforeEach(() => {
 })
 
 function newOrch() {
-  return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => 't' })
+  return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => 't', now: fixedClock })
 }
 
 describe('presence handling (G-10)', () => {

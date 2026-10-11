@@ -6,6 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { IndexedDBPersistence } from '@/local/persistence'
 import 'fake-indexeddb/auto'
 import { installHarness } from '@/__tests__/harness'
@@ -21,7 +22,11 @@ describe('M17 profile & data actions', () => {
     fetchMock.mockResolvedValueOnce(
       new Response(JSON.stringify({ user_id: 'u1', display_name: 'Andy' }), { status: 200 }),
     )
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => 'tok' })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => 'tok',
+      now: fixedClock,
+    })
 
     const me = await orch.identity.fetchMe()
 
@@ -33,7 +38,11 @@ describe('M17 profile & data actions', () => {
 
   it('saveDisplayName PUTs the FR-17.13 payload, tolerating an empty 200', async () => {
     fetchMock.mockResolvedValueOnce(new Response('', { status: 200 }))
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
 
     await orch.identity.saveDisplayName('u1', 'Andy_2')
 
@@ -45,7 +54,11 @@ describe('M17 profile & data actions', () => {
 
   it('uploadAvatar PUTs the JPEG blob with its content type', async () => {
     fetchMock.mockResolvedValueOnce(new Response('', { status: 200 }))
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
 
     await orch.identity.uploadAvatar('u1', new Blob(['jpeg-bytes'], { type: 'image/jpeg' }))
 
@@ -59,6 +72,7 @@ describe('M17 profile & data actions', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       local: new IndexedDBPersistence(),
+      now: fixedClock,
     })
 
     expect(await orch.identity.fetchMe()).toBeNull()

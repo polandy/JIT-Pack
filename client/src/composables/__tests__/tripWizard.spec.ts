@@ -10,7 +10,7 @@ import { useTripStore } from '@/stores/tripStore'
 import type { GeneratedItem } from '@/domain/instantiate'
 import type { PullResponse, PushResponse } from '@/api/types'
 import { installHarness } from '@/__tests__/harness'
-import { fixedMutations } from '@/__tests__/fixedClock'
+import { fixedMutations, fixedClock } from '@/__tests__/fixedClock'
 
 let fetchMock: ReturnType<typeof vi.fn>
 
@@ -98,7 +98,11 @@ describe('createMutations wizard additions', () => {
 
 describe('createTripFromWizard', () => {
   it('creates trip, travelers, and items optimistically with traveler assignment', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     mockPush()
     mockPull()
@@ -138,7 +142,11 @@ describe('createTripFromWizard', () => {
   })
 
   it('drains the master partition before the trip partition (FK + membership)', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     mockPush()
     mockPull()
     mockPush()
@@ -161,7 +169,11 @@ describe('createTripFromWizard', () => {
   })
 
   it('accepts companion rows without a source template (FR-20.2)', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     mockPush()
     mockPull()
@@ -191,7 +203,11 @@ describe('createTripFromWizard', () => {
   })
 
   it('materialises FR-27.7 template tasks as open preparations on the generated row', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     mockPush()
     mockPull()
@@ -229,7 +245,11 @@ describe('createTripFromWizard', () => {
   })
 
   it('pushes a preparation after the row it hangs off (FK ordering)', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     mockPush()
     mockPull()
@@ -271,7 +291,11 @@ describe('createTripFromWizard', () => {
   })
 
   it('computes no duration without a start date (FR-2.1a)', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     mockPush()
     mockPull()
@@ -300,7 +324,11 @@ describe('createTripFromWizard', () => {
  */
 describe('a trip push waits for the master write it refers to', () => {
   it('pushes a new item before the trip row that names it, even while the item push is in flight', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     let release!: () => void
     const held = new Promise<void>((resolve) => (release = resolve))
     const order: string[] = []

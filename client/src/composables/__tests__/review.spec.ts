@@ -7,6 +7,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { dismissProposal, isDismissed } from '@/local/reviewDismissals'
@@ -18,7 +19,7 @@ beforeEach(() => {
 })
 
 function newOrch() {
-  return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+  return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null, now: fixedClock })
 }
 
 function proposal(over: Partial<ReviewProposal> = {}): ReviewProposal {

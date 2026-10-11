@@ -16,6 +16,7 @@ import { DELETION_REMOVE } from '@/domain/masterDeletion'
 
 import { seedSampleMaster } from '../sampleMaster'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -32,6 +33,7 @@ function seed() {
     baseUrl: '',
     getToken: () => null,
     local: new IndexedDBPersistence(),
+    now: fixedClock,
   })
   return { orchestrator, result: seedSampleMaster(orchestrator), master: useMasterStore() }
 }
@@ -190,6 +192,7 @@ describe('seedSampleData (dev)', () => {
       baseUrl: '',
       getToken: () => null,
       local: new IndexedDBPersistence(),
+      now: fixedClock,
     })
 
     const outcome = await seedSampleData(orchestrator)
@@ -272,6 +275,7 @@ describe('seedSampleData (dev)', () => {
       baseUrl: '',
       getToken: () => null,
       local: new IndexedDBPersistence(),
+      now: fixedClock,
     })
 
     // Connected first, because the FR-27.4 refresh refuses to run before the
@@ -402,6 +406,7 @@ describe('sample trip, FR-28.7', () => {
       baseUrl: '',
       getToken: () => null,
       local: new IndexedDBPersistence(),
+      now: fixedClock,
     })
     const master = useMasterStore()
     const tripStore = useTripStore()

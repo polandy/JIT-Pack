@@ -7,6 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import type { Mutation, PullResponse, PushResponse } from '@/api/types'
 import type { OutboxStore, ParkedMutation, PendingMutation } from '@/sync/outboxStore'
 import { REJECTION_REASON } from '@/sync/rejectionReasons'
@@ -71,6 +72,7 @@ describe('durable outbox on boot', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       outboxStore: store,
+      now: fixedClock,
     })
 
     // No notifications endpoint answer needed for the assertions below —
@@ -105,6 +107,7 @@ describe('durable outbox on boot', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       outboxStore: store,
+      now: fixedClock,
     })
     fetchMock.mockRejectedValue(new TypeError('Failed to fetch'))
 
@@ -132,6 +135,7 @@ describe('durable outbox on boot', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       outboxStore: store,
+      now: fixedClock,
     })
     jsonOnce({ changes: [], next_cursor: 0, has_more: false } satisfies PullResponse)
 
@@ -151,6 +155,7 @@ describe('durable outbox on boot', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       outboxStore: store,
+      now: fixedClock,
     })
     jsonOnce({
       results: [
@@ -192,6 +197,7 @@ describe('durable outbox on boot', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       outboxStore: store,
+      now: fixedClock,
     })
     jsonOnce({ changes: [], next_cursor: 0, has_more: false } satisfies PullResponse)
 
@@ -210,6 +216,7 @@ describe('durable outbox on boot', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       outboxStore: store,
+      now: fixedClock,
     })
     jsonOnce({ results: [], pull_hint: { next_cursor: 0 } } satisfies PushResponse)
     jsonOnce({ changes: [], next_cursor: 0, has_more: false } satisfies PullResponse)
