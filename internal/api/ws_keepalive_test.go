@@ -91,7 +91,7 @@ func TestWS_PingIsAnsweredWithPong(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read pong: %v", err)
 	}
-	var evt WSEvent
+	var evt wsFrame
 	if err := json.Unmarshal(data, &evt); err != nil {
 		t.Fatalf("unmarshal %q: %v", data, err)
 	}
@@ -225,7 +225,7 @@ func readUntilPong(t *testing.T, ctx context.Context, ws *websocket.Conn) {
 		if err != nil {
 			t.Fatalf("read pong: %v", err)
 		}
-		var evt WSEvent
+		var evt wsFrame
 		if err := json.Unmarshal(data, &evt); err != nil {
 			t.Fatalf("unmarshal %q: %v", data, err)
 		}

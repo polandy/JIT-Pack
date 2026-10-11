@@ -50,15 +50,7 @@ func (f liveFix) payload(tripID, userID string) LiveLocation {
 
 // locationEvent wraps one location payload in its frame.
 func locationEvent(l LiveLocation) WSEvent {
-	return WSEvent{Type: EventLocation, Payload: map[string]any{
-		"trip_id":    l.TripID,
-		"user_id":    l.UserID,
-		"lat":        l.Lat,
-		"lon":        l.Lon,
-		"accuracy_m": l.AccuracyM,
-		"at":         l.At,
-		"gone":       l.Gone,
-	}}
+	return WSEvent{Type: EventLocation, Payload: l}
 }
 
 // SetLocation records where a connection's person is on a trip and tells the

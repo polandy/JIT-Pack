@@ -99,7 +99,7 @@ no-sleep:
 wire-check:
 	@$(RUN) ./scripts/wire-contract-gate.sh
 
-# Regenerate them after changing internal/api/wire.go.
+# Regenerate them after changing internal/api/wire*.go.
 wire:
 	@$(RUN) go run ./cmd/wiregen
 

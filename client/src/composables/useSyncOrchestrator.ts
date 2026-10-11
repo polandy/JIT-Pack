@@ -75,10 +75,11 @@ import type {
   LockEvent,
   PresenceMember,
   RosterMember,
-  LiveLocation,
   PullChange,
   WSEvent,
 } from '@/api/types'
+import { WS_CHANNEL_TRIP_PREFIX } from '@/api/types'
+import { routeWSEvent } from '@/sync/wsRouting'
 import { localIsoDate } from '@/domain/trips'
 import { defaultNowMs, isoFrom, type NowMs } from '@/lib/clock'
 import type { ServerNotification } from '@/notifications/format'
@@ -404,59 +405,24 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   // --- WebSocket event handling ---
 
   function onWSEvent(event: WSEvent) {
-    switch (event.type) {
-      case 'trip.changed': {
-        const tripId = event.payload?.['trip_id'] as string | undefined
-        if (tripId) {
-          drainTrip(tripId)
-        }
-        break
-      }
-      case 'master.changed':
-        drainMaster()
-        break
-      case 'presence': {
-        const tripId = event.payload?.['trip_id'] as string | undefined
-        if (tripId) {
-          const users = (event.payload?.['users'] as PresenceUser[] | undefined) ?? []
-          const next = new Map(presence.value)
-          next.set(tripId, users)
-          presence.value = next
-        }
-        break
-      }
-      case 'roster':
-        roster.value = (event.payload?.['users'] as RosterMember[] | undefined) ?? []
-        break
-      case 'location': {
-        const frame = event.payload as LiveLocation | null
-        if (!frame?.trip_id || !frame.user_id) break
+    routeWSEvent(event, {
+      drainTrip: (tripId) => void drainTrip(tripId),
+      drainMaster: () => void drainMaster(),
+      setPresence: (tripId, users) => {
+        const next = new Map(presence.value)
+        next.set(tripId, users)
+        presence.value = next
+      },
+      setRoster: (users) => (roster.value = users),
+      applyLocation: (frame) => {
         const next = new Map(liveLocations.value)
         next.set(frame.trip_id, applyLocation(getLiveLocations(frame.trip_id), frame, now()))
         liveLocations.value = next
-        break
-      }
-      case 'item.locked': {
-        const tripId = event.payload?.['trip_id'] as string | undefined
-        const itemId = event.payload?.['item_id'] as string | undefined
-        const byUser = (event.payload?.['by_user'] as string) ?? ''
-        if (!tripId || !itemId) break
-        locks.onLocked(tripId, itemId, byUser)
-        break
-      }
-      case 'item.unlocked': {
-        const tripId = event.payload?.['trip_id'] as string | undefined
-        const itemId = event.payload?.['item_id'] as string | undefined
-        if (tripId && itemId) {
-          locks.onUnlocked(tripId, itemId)
-        }
-        break
-      }
-      case 'notification.created':
-        // Thin ping (§7): the row itself comes via GET /notifications.
-        void notificationActions.surfaceUnread()
-        break
-    }
+      },
+      lockItem: (tripId, itemId, byUser) => locks.onLocked(tripId, itemId, byUser),
+      unlockItem: (tripId, itemId) => locks.onUnlocked(tripId, itemId),
+      surfaceNotifications: () => void notificationActions.surfaceUnread(),
+    })
   }
 
   const notificationActions = createNotificationActions({
@@ -773,7 +739,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   function subscribeTrip(tripId: string) {
     if (local) return
     subscribedTrips.add(tripId)
-    ws.subscribe([`trip:${tripId}`])
+    ws.subscribe([`${WS_CHANNEL_TRIP_PREFIX}${tripId}`])
   }
 
   /**

@@ -194,3 +194,20 @@ column a codec pair — or a parser with no builder — names to `TABLE_COLUMNS`
 The cost accepted: a schema change that adds a vocabulary or a column is now a `make wire` away from a green build, like
 a wire change already was; and the doc comments the hand-kept `TABLE` carried per entry are gone — the registry's own
 comments in `tables.go` are where a table is explained.
+
+## Amendment (2026-10-11): the WebSocket frames and the notification vocabulary join (ARCH-05)
+
+The contract is `internal/api/wire*.go`: `wire.go`, and `wire_ws.go` for the WebSocket. Additions, each held by the gate
+or a mirror test rather than by hand:
+
+- **The frames as a union.** `wsEventPayloads` names each `WSEventType`'s payload struct (nil for none); `wiregen`
+  emits `WSEvent` as the discriminated union of them and refuses a type the table omits. The client frame
+  (`WSClientFrame`) and the channel prefix (`WSChannelTripPrefix`) are exported and generated too. The hub builds every
+  frame from those structs; `TestWSEventPayloads_EveryFrameCarriesItsDeclaredPayload` holds it to the table.
+- **The notification words.** `NotificationKind`, `NotificationPayloadKey` and `NotificationDue` are wire enums, kept
+  equal to the store's kinds and `internal/notify`'s keys by `wire_mirror_test.go`; the payload stays a map. The push
+  body is `WebPushMessage`, mirrored by notify's own struct (notify cannot import `api`).
+- **The service worker**, which cannot import TypeScript, is held to `WebPushMessage` and the vocabulary by
+  `notifications/__tests__/workerWire.spec.ts`, which reads `public/sw.js` as text.
+
+The client routes frames through `sync/wsRouting.ts`, an exhaustive switch over the union.

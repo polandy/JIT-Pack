@@ -1,5 +1,5 @@
 /**
- * Generated from internal/api/wire.go by cmd/wiregen. Do not edit.
+ * Generated from internal/api/wire.go, internal/api/wire_ws.go by cmd/wiregen. Do not edit.
  *
  * This file is the client's half of the one contract (NFR-4.14): the Go
  * declaration is the source, and `make wire` regenerates it. A hand edit here is
@@ -186,80 +186,6 @@ export interface APITokenResponse {
 }
 
 /**
- * WSEventType is the kind of a WebSocket frame.
- */
-export type WSEventType =
-  | 'trip.changed'
-  | 'master.changed'
-  | 'item.locked'
-  | 'item.unlocked'
-  | 'presence'
-  | 'roster'
-  | 'notification.created'
-  | 'location'
-  | 'pong'
-
-export const WS_EVENT_TYPE = {
-  'trip.changed': 'trip.changed',
-  'master.changed': 'master.changed',
-  'item.locked': 'item.locked',
-  'item.unlocked': 'item.unlocked',
-  presence: 'presence',
-  roster: 'roster',
-  'notification.created': 'notification.created',
-  location: 'location',
-  pong: 'pong',
-} as const
-
-/**
- * WSEvent is one frame. Which keys the payload carries is decided by Type —
- * Go cannot express that as a discriminated union, so the payload is declared
- * as what every sender actually passes: an object, or null.
- */
-export interface WSEvent {
-  type: WSEventType
-  payload: Record<string, unknown> | null
-}
-
-/**
- * PresenceMember is one entry in the presence facepile (Sync-API §7). It is
- * the payload of an EventPresence frame, one per user currently connected.
- */
-export interface PresenceMember {
-  user_id: string
-  device_count: number
-  in_sync: boolean
-}
-
-/**
- * RosterMember is one entry of an EventRoster frame (FR-4.9): a person other
- * than the receiver, and the trips they have open in the packing list right now
- * that the receiver is a member of too. A person with no such trip is not
- * listed at all, which is how the roster keeps to what the receiver may know.
- */
-export interface RosterMember {
-  user_id: string
-  trip_ids: string[]
-}
-
-/**
- * LiveLocation is the payload of an EventLocation frame (FR-29.19): where a
- * traveller is, as their device said and the server stamped — UserID and At
- * are the server's, never the client's. Gone ends it, and then carries only
- * the trip and the person. Nothing of it is stored (ADR-087).
- */
-export interface LiveLocation {
-  trip_id: string
-  user_id: string
-  lat: number
-  lon: number
-  accuracy_m: number
-  // At is when the server received the fix, RFC3339; empty when Gone.
-  at: string
-  gone: boolean
-}
-
-/**
  * ConflictEntry is one audited last-write-wins loser. MutationID and
  * ActorUserID name who lost what: the pair was added with per-field clocks
  * (ADR-022) and the client's hand-written copy of this type never grew them,
@@ -356,7 +282,7 @@ export interface AdminUserListResponse {
  */
 export interface NotificationEntry {
   id: string
-  kind: string
+  kind: NotificationKind
   // The teaser the toast and the OS notification render; the deep link
   // carries the rest. Null where the stored payload was empty.
   payload: Record<string, unknown> | null
@@ -364,6 +290,84 @@ export interface NotificationEntry {
   // Absent while unread.
   read_at?: string
 }
+
+/**
+ * NotificationKind is what a notification is about (FR-6.2, UI-Spec M17).
+ */
+export type NotificationKind =
+  | 'delegation'
+  | 'mention'
+  | 'task'
+  | 'lock_taken'
+  | 'note'
+  | 'note_reply'
+  | 'task_due'
+  | 'shopping_due'
+  | 'excursion_due'
+  | 'idea'
+  | 'idea_comment'
+  | 'idea_shortlisted'
+
+export const NOTIFICATION_KIND = {
+  delegation: 'delegation',
+  mention: 'mention',
+  task: 'task',
+  lock_taken: 'lock_taken',
+  note: 'note',
+  note_reply: 'note_reply',
+  task_due: 'task_due',
+  shopping_due: 'shopping_due',
+  excursion_due: 'excursion_due',
+  idea: 'idea',
+  idea_comment: 'idea_comment',
+  idea_shortlisted: 'idea_shortlisted',
+} as const
+
+/**
+ * NotificationPayloadKey is a key of NotificationEntry.Payload. The payload
+ * stays a map because each kind fills a different subset; the keys are
+ * internal/notify's, held equal by TestWireNotificationPayload_MirrorNotify.
+ */
+export type NotificationPayloadKey =
+  | 'trip_id'
+  | 'item_id'
+  | 'item_name'
+  | 'actor_id'
+  | 'actor_name'
+  | 'comment_id'
+  | 'preview'
+  | 'thread_id'
+  | 'thread'
+  | 'idea_id'
+  | 'due'
+  | 'entry_id'
+  | 'excursion_id'
+
+export const NOTIFICATION_PAYLOAD_KEY = {
+  trip_id: 'trip_id',
+  item_id: 'item_id',
+  item_name: 'item_name',
+  actor_id: 'actor_id',
+  actor_name: 'actor_name',
+  comment_id: 'comment_id',
+  preview: 'preview',
+  thread_id: 'thread_id',
+  thread: 'thread',
+  idea_id: 'idea_id',
+  due: 'due',
+  entry_id: 'entry_id',
+  excursion_id: 'excursion_id',
+} as const
+
+/**
+ * NotificationDue is a reminder's `due` value: the day it is about, as a word.
+ */
+export type NotificationDue = 'today' | 'tomorrow'
+
+export const NOTIFICATION_DUE = {
+  today: 'today',
+  tomorrow: 'tomorrow',
+} as const
 
 /**
  * NotificationListResponse is the list envelope, newest first.
@@ -410,6 +414,18 @@ export interface NotificationPrefs {
  */
 export interface VAPIDKeyResponse {
   key: string
+}
+
+/**
+ * WebPushMessage is the encrypted body of one push, read by client/public/sw.js
+ * (held to these names by notifications/__tests__/workerWire.spec.ts).
+ * internal/notify marshals it from its own pushMessage, which cannot import
+ * this package; TestWireWebPushMessage_MirrorNotify holds the two equal.
+ */
+export interface WebPushMessage {
+  notification_id: string
+  kind: NotificationKind
+  payload: Record<string, unknown> | null
 }
 
 /**
@@ -714,4 +730,196 @@ export interface ActivityEntry {
 export interface ActivityListResponse {
   entries: ActivityEntry[]
   before: number
+}
+
+/**
+ * WSEventType is the kind of a WebSocket frame.
+ */
+export type WSEventType =
+  | 'trip.changed'
+  | 'master.changed'
+  | 'item.locked'
+  | 'item.unlocked'
+  | 'presence'
+  | 'roster'
+  | 'notification.created'
+  | 'location'
+  | 'pong'
+
+export const WS_EVENT_TYPE = {
+  'trip.changed': 'trip.changed',
+  'master.changed': 'master.changed',
+  'item.locked': 'item.locked',
+  'item.unlocked': 'item.unlocked',
+  presence: 'presence',
+  roster: 'roster',
+  'notification.created': 'notification.created',
+  location: 'location',
+  pong: 'pong',
+} as const
+
+/**
+ * WSEvent is one frame. Which payload it carries is decided by Type, as
+ * wsEventPayloads declares; the client's type is the discriminated union
+ * cmd/wiregen builds from that table.
+ */
+export type WSEvent =
+  | { type: 'trip.changed'; payload: TripChangedPayload }
+  | { type: 'master.changed'; payload: MasterChangedPayload }
+  | { type: 'item.locked'; payload: ItemLockPayload }
+  | { type: 'item.unlocked'; payload: ItemLockPayload }
+  | { type: 'presence'; payload: PresencePayload }
+  | { type: 'roster'; payload: RosterPayload }
+  | { type: 'notification.created'; payload: NotificationCreatedPayload }
+  | { type: 'location'; payload: LiveLocation }
+  | { type: 'pong'; payload: null }
+
+/**
+ * TripChangedPayload says a trip's change feed has grown to HeadSeq. A ping,
+ * not the change: the client pulls.
+ */
+export interface TripChangedPayload {
+  trip_id: string
+  head_seq: number
+}
+
+/**
+ * MasterChangedPayload says the receiver's master feed has grown to Seq.
+ */
+export interface MasterChangedPayload {
+  seq: number
+}
+
+/**
+ * ItemLockPayload is the ephemeral G-3 claim on a row, or its release: who
+ * holds it and the row's name.
+ */
+export interface ItemLockPayload {
+  trip_id: string
+  item_id: string
+  by_user: string
+  name: string
+}
+
+/**
+ * PresencePayload is the facepile of one trip: every user connected to it.
+ */
+export interface PresencePayload {
+  trip_id: string
+  users: PresenceMember[]
+}
+
+/**
+ * RosterPayload is everyone the receiver shares a trip with who has one open
+ * (FR-4.9).
+ */
+export interface RosterPayload {
+  users: RosterMember[]
+}
+
+/**
+ * NotificationCreatedPayload names a new notification; the row itself comes
+ * through the list endpoint.
+ */
+export interface NotificationCreatedPayload {
+  notification_id: string
+}
+
+/**
+ * PresenceMember is one entry in the presence facepile (Sync-API §7). It is
+ * the payload of an EventPresence frame, one per user currently connected.
+ */
+export interface PresenceMember {
+  user_id: string
+  device_count: number
+  in_sync: boolean
+}
+
+/**
+ * RosterMember is one entry of an EventRoster frame (FR-4.9): a person other
+ * than the receiver, and the trips they have open in the packing list right now
+ * that the receiver is a member of too. A person with no such trip is not
+ * listed at all, which is how the roster keeps to what the receiver may know.
+ */
+export interface RosterMember {
+  user_id: string
+  trip_ids: string[]
+}
+
+/**
+ * LiveLocation is the payload of an EventLocation frame (FR-29.19): where a
+ * traveller is, as their device said and the server stamped — UserID and At
+ * are the server's, never the client's. Gone ends it, and then carries only
+ * the trip and the person. Nothing of it is stored (ADR-087).
+ */
+export interface LiveLocation {
+  trip_id: string
+  user_id: string
+  lat: number
+  lon: number
+  accuracy_m: number
+  // At is when the server received the fix, RFC3339; empty when Gone.
+  at: string
+  gone: boolean
+}
+
+/**
+ * WSChannelTripPrefix starts a trip's channel name in a subscribe frame:
+ * "trip:<id>". A "user:<id>" channel is accepted and ignored — a user's own
+ * frames follow the connection's identity.
+ */
+export const WS_CHANNEL_TRIP_PREFIX = 'trip:'
+
+/**
+ * WSClientFrame is the one frame a client sends; each key present is one
+ * instruction:
+ *
+ * 	{"subscribe":   ["trip:<id>"]}
+ * 	{"unsubscribe": ["trip:<id>"]}
+ * 	{"cursor":      {"trip_id": "...", "seq": 123}}
+ * 	{"location":    {"trip_id": "...", "lat": 46.5, "lon": 9.8, "accuracy_m": 12}}
+ * 	{"location":    {"trip_id": "...", "stop": true}}
+ */
+export interface WSClientFrame {
+  subscribe?: string[]
+  unsubscribe?: string[]
+  cursor?: WSCursor
+  // Viewing names the trip the packing list is open on, "trip_id": "" for
+  // none (FR-4.9).
+  viewing?: WSViewing
+  // Ping is the client's keepalive (Sync-API §9), answered with an
+  // EventPong frame. App-level on purpose: a browser cannot send
+  // protocol pings, and the client needs a frame it can *see* to know
+  // the connection is still two-way.
+  ping?: boolean
+  // Location shares where the sender is on a trip, or stops sharing it
+  // (FR-29.19).
+  location?: WSLocation
+}
+
+/**
+ * WSLocation is a position to share, or Stop. The server only decodes it, so
+ * omitempty shapes nothing but the client's type: a stop carries no fix.
+ */
+export interface WSLocation {
+  trip_id: string
+  lat?: number
+  lon?: number
+  accuracy_m?: number
+  stop?: boolean
+}
+
+/**
+ * WSViewing names the trip open in the packing list, "" for none.
+ */
+export interface WSViewing {
+  trip_id: string
+}
+
+/**
+ * WSCursor reports how far the sender has pulled a trip, for in_sync (§7).
+ */
+export interface WSCursor {
+  trip_id: string
+  seq: number
 }

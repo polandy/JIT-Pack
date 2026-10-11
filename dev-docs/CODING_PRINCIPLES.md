@@ -51,7 +51,7 @@ internal/linkpreview/        what a web page says about itself (FR-29.16, FR-29.
 internal/store/              SQLite repositories; the only package importing database/sql
 internal/store/schema.sql    the whole schema, always current (//go:embed, ADR-018)
 internal/notify/             who is notified of what (FR-6.2, FR-7.11), the rows, Web Push delivery (ADR-099)
-internal/api/                HTTP handlers, WebSocket hub, auth middleware; wire.go is the contract
+internal/api/                HTTP handlers, WebSocket hub, auth middleware; wire*.go is the contract
 internal/webui/              serves the built client beside the API on one origin (ADR-043) — stdlib only
 ```
 

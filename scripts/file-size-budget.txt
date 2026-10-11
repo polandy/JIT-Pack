@@ -17,6 +17,6 @@
 925 internal/store/tables.go
 814 client/src/views/items/ItemEditorPage.vue
 863 client/src/planner/ConnectionSearch.vue
-862 client/src/composables/useSyncOrchestrator.ts
+828 client/src/composables/useSyncOrchestrator.ts
 844 client/src/meals/MealPlanPage.vue
 810 client/src/app/actions/packing.ts

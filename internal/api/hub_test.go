@@ -98,7 +98,14 @@ func wsSend(t *testing.T, ws *websocket.Conn, msg any) {
 	}
 }
 
-func wsRead(t *testing.T, ws *websocket.Conn) WSEvent {
+// wsFrame is a received frame as the tests read it: the payload decoded
+// generically, so an assertion names the wire key it checks.
+type wsFrame struct {
+	Type    WSEventType    `json:"type"`
+	Payload map[string]any `json:"payload"`
+}
+
+func wsRead(t *testing.T, ws *websocket.Conn) wsFrame {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -106,22 +113,22 @@ func wsRead(t *testing.T, ws *websocket.Conn) WSEvent {
 	if err != nil {
 		t.Fatalf("read: %v", err)
 	}
-	var evt WSEvent
+	var evt wsFrame
 	if err := json.Unmarshal(data, &evt); err != nil {
 		t.Fatalf("unmarshal event: %v", err)
 	}
 	return evt
 }
 
-func wsReadTimeout(t *testing.T, ws *websocket.Conn, timeout time.Duration) (WSEvent, bool) {
+func wsReadTimeout(t *testing.T, ws *websocket.Conn, timeout time.Duration) (wsFrame, bool) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	_, data, err := ws.Read(ctx)
 	if err != nil {
-		return WSEvent{}, false
+		return wsFrame{}, false
 	}
-	var evt WSEvent
+	var evt wsFrame
 	if err := json.Unmarshal(data, &evt); err != nil {
 		t.Fatalf("unmarshal event: %v", err)
 	}
@@ -172,7 +179,7 @@ func TestHub_TripChanged_BroadcastToSubscribers(t *testing.T) {
 	evt1 := wsRead(t, ws1)
 	evt2 := wsRead(t, ws2)
 
-	for _, evt := range []WSEvent{evt1, evt2} {
+	for _, evt := range []wsFrame{evt1, evt2} {
 		if evt.Type != "trip.changed" {
 			t.Errorf("type = %q, want trip.changed", evt.Type)
 		}
@@ -445,7 +452,7 @@ func TestHub_Roster_AnOlderSnapshotNeverArrivesLast_FR4_9(t *testing.T) {
 	hub.NotifyMasterChanged("sarah", marker)
 	var last []any
 	for {
-		var evt WSEvent
+		var evt wsFrame
 		if err := json.Unmarshal(<-sarahPeer.got, &evt); err != nil {
 			t.Fatalf("unmarshal frame: %v", err)
 		}
@@ -555,7 +562,7 @@ func TestHub_ABroadcastDoesNotWaitForAStalledPeer(t *testing.T) {
 
 	// The reading peer has the event while the other is still parked. No
 	// deadline is involved: the channel read is the rendezvous.
-	var evt WSEvent
+	var evt wsFrame
 	for {
 		frame := <-reading.got
 		if err := json.Unmarshal(frame, &evt); err != nil {
@@ -619,7 +626,7 @@ func TestHub_AReadingPeerKeepsEveryFrameInOrder(t *testing.T) {
 	}
 
 	for i := 0; i < sent; i++ {
-		var evt WSEvent
+		var evt wsFrame
 		if err := json.Unmarshal(<-peer.got, &evt); err != nil {
 			t.Fatalf("unmarshal frame %d: %v", i, err)
 		}
@@ -665,7 +672,7 @@ func TestHub_DroppingAPeerDoesNotStallTheBroadcastEither(t *testing.T) {
 	hub.NotifyTripChanged("t1", 1000)
 
 	for {
-		var evt WSEvent
+		var evt wsFrame
 		if err := json.Unmarshal(<-reading.got, &evt); err != nil {
 			t.Fatalf("unmarshal frame: %v", err)
 		}

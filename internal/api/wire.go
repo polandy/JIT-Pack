@@ -1,10 +1,11 @@
 // This file is the contract between the server and the client (NFR-4.14).
 //
-// It is the single declaration of the sync envelopes, the WebSocket frame and
-// the error vocabulary; `make wire` regenerates client/src/api/types.ts
-// from it, and the CI gate fails the build when the two drift apart. Adding a
-// field here and forgetting the client is therefore not possible — which is
-// the defect class this file exists to close (ADR-026).
+// It is the single declaration of the sync envelopes, the error vocabulary and
+// the routes, and with wire_ws.go of the WebSocket frames; `make wire`
+// regenerates client/src/api/types.ts and routes.ts from the two, and the CI
+// gate fails the build when they drift apart. Adding a field here and
+// forgetting the client is therefore not possible — which is the defect class
+// this file exists to close (ADR-026).
 //
 // Prose about *why* the protocol behaves as it does stays in
 // dev-docs/Sync_API_Spec_v1.3.md; what lives here is the shape.
@@ -177,72 +178,6 @@ type APITokenResponse struct {
 	ExpiresAt string `json:"expires_at"`
 }
 
-// --- WebSocket (Sync-API §7) ---
-
-// WSEventType is the kind of a WebSocket frame.
-type WSEventType string
-
-// Every frame the hub sends. A client that receives an unknown type ignores it.
-const (
-	EventTripChanged   WSEventType = "trip.changed"
-	EventMasterChanged WSEventType = "master.changed"
-	EventItemLocked    WSEventType = "item.locked"
-	EventItemUnlocked  WSEventType = "item.unlocked"
-	EventPresence      WSEventType = "presence"
-	// EventRoster tells a connection who else is working on a trip it shares
-	// (FR-4.9). Sent to every connection, not only to a trip's subscribers:
-	// it answers a question about the account, asked from any screen.
-	EventRoster              WSEventType = "roster"
-	EventNotificationCreated WSEventType = "notification.created"
-	// EventLocation is one person's live position on a trip, or its end
-	// (FR-29.19, ADR-087). Sent to the trip's other subscribers only.
-	EventLocation WSEventType = "location"
-	// EventPong answers a client {"ping": true} frame (Sync-API §7/§9).
-	// It carries no payload: its arrival is the information — the client's
-	// liveness watchdog eats it, nothing else reads it.
-	EventPong WSEventType = "pong"
-)
-
-// WSEvent is one frame. Which keys the payload carries is decided by Type —
-// Go cannot express that as a discriminated union, so the payload is declared
-// as what every sender actually passes: an object, or null.
-type WSEvent struct {
-	Type    WSEventType    `json:"type"`
-	Payload map[string]any `json:"payload"`
-}
-
-// PresenceMember is one entry in the presence facepile (Sync-API §7). It is
-// the payload of an EventPresence frame, one per user currently connected.
-type PresenceMember struct {
-	UserID      string `json:"user_id"`
-	DeviceCount int    `json:"device_count"`
-	InSync      bool   `json:"in_sync"`
-}
-
-// RosterMember is one entry of an EventRoster frame (FR-4.9): a person other
-// than the receiver, and the trips they have open in the packing list right now
-// that the receiver is a member of too. A person with no such trip is not
-// listed at all, which is how the roster keeps to what the receiver may know.
-type RosterMember struct {
-	UserID  string   `json:"user_id"`
-	TripIDs []string `json:"trip_ids"`
-}
-
-// LiveLocation is the payload of an EventLocation frame (FR-29.19): where a
-// traveller is, as their device said and the server stamped — UserID and At
-// are the server's, never the client's. Gone ends it, and then carries only
-// the trip and the person. Nothing of it is stored (ADR-087).
-type LiveLocation struct {
-	TripID    string  `json:"trip_id"`
-	UserID    string  `json:"user_id"`
-	Lat       float64 `json:"lat"`
-	Lon       float64 `json:"lon"`
-	AccuracyM float64 `json:"accuracy_m"`
-	// At is when the server received the fix, RFC3339; empty when Gone.
-	At   string `json:"at"`
-	Gone bool   `json:"gone"`
-}
-
 // --- Conflict log (Sync-API §8, NFR-4.2a) ---
 
 // ConflictEntry is one audited last-write-wins loser. MutationID and
@@ -329,8 +264,8 @@ type AdminUserListResponse struct {
 // that is a DOM global on the client, and a generated type shadowing it would
 // be a trap rather than a contract.
 type NotificationEntry struct {
-	ID   string `json:"id"`
-	Kind string `json:"kind"`
+	ID   string           `json:"id"`
+	Kind NotificationKind `json:"kind"`
 	// The teaser the toast and the OS notification render; the deep link
 	// carries the rest. Null where the stored payload was empty.
 	Payload   map[string]any `json:"payload"`
@@ -338,6 +273,57 @@ type NotificationEntry struct {
 	// Absent while unread.
 	ReadAt *string `json:"read_at,omitempty"`
 }
+
+// NotificationKind is what a notification is about (FR-6.2, UI-Spec M17).
+type NotificationKind string
+
+// The kinds, each FR's meaning beside store.Notify*, whose spelling
+// TestWireNotificationKinds_MirrorStore holds these to.
+const (
+	NotificationKindDelegation      NotificationKind = "delegation"
+	NotificationKindMention         NotificationKind = "mention"
+	NotificationKindTask            NotificationKind = "task"
+	NotificationKindLockTaken       NotificationKind = "lock_taken"
+	NotificationKindNote            NotificationKind = "note"
+	NotificationKindNoteReply       NotificationKind = "note_reply"
+	NotificationKindTaskDue         NotificationKind = "task_due"
+	NotificationKindShoppingDue     NotificationKind = "shopping_due"
+	NotificationKindExcursionDue    NotificationKind = "excursion_due"
+	NotificationKindIdea            NotificationKind = "idea"
+	NotificationKindIdeaComment     NotificationKind = "idea_comment"
+	NotificationKindIdeaShortlisted NotificationKind = "idea_shortlisted"
+)
+
+// NotificationPayloadKey is a key of NotificationEntry.Payload. The payload
+// stays a map because each kind fills a different subset; the keys are
+// internal/notify's, held equal by TestWireNotificationPayload_MirrorNotify.
+type NotificationPayloadKey string
+
+// Every key a payload may carry (FR-6.3's deep link and the teaser).
+const (
+	NotificationKeyTripID      NotificationPayloadKey = "trip_id"
+	NotificationKeyItemID      NotificationPayloadKey = "item_id"
+	NotificationKeyItemName    NotificationPayloadKey = "item_name"
+	NotificationKeyActorID     NotificationPayloadKey = "actor_id"
+	NotificationKeyActorName   NotificationPayloadKey = "actor_name"
+	NotificationKeyCommentID   NotificationPayloadKey = "comment_id"
+	NotificationKeyPreview     NotificationPayloadKey = "preview"
+	NotificationKeyThreadID    NotificationPayloadKey = "thread_id"
+	NotificationKeyThread      NotificationPayloadKey = "thread"
+	NotificationKeyIdeaID      NotificationPayloadKey = "idea_id"
+	NotificationKeyDue         NotificationPayloadKey = "due"
+	NotificationKeyEntryID     NotificationPayloadKey = "entry_id"
+	NotificationKeyExcursionID NotificationPayloadKey = "excursion_id"
+)
+
+// NotificationDue is a reminder's `due` value: the day it is about, as a word.
+type NotificationDue string
+
+// The two days a reminder is sent for (FR-7.11).
+const (
+	NotificationDueToday    NotificationDue = "today"
+	NotificationDueTomorrow NotificationDue = "tomorrow"
+)
 
 // NotificationListResponse is the list envelope, newest first.
 type NotificationListResponse struct {
@@ -380,6 +366,16 @@ type NotificationPrefs struct {
 // first use and persisted beside the database.
 type VAPIDKeyResponse struct {
 	Key string `json:"key"`
+}
+
+// WebPushMessage is the encrypted body of one push, read by client/public/sw.js
+// (held to these names by notifications/__tests__/workerWire.spec.ts).
+// internal/notify marshals it from its own pushMessage, which cannot import
+// this package; TestWireWebPushMessage_MirrorNotify holds the two equal.
+type WebPushMessage struct {
+	NotificationID string           `json:"notification_id"`
+	Kind           NotificationKind `json:"kind"`
+	Payload        map[string]any   `json:"payload"`
 }
 
 // --- Auth (ADR-007) ---

@@ -9,17 +9,17 @@
  */
 
 import { t } from '@/i18n'
-import type { NotificationEntry, NotificationPrefs } from '@/api/types'
+import {
+  NOTIFICATION_KIND,
+  NOTIFICATION_PAYLOAD_KEY as KEY,
+  type NotificationEntry,
+  type NotificationPrefs,
+} from '@/api/types'
 import {
   bodyMessageKey,
   notificationBodyName,
   notificationDetail,
   notificationParams,
-  NOTIFY_NOTE,
-  NOTIFY_NOTE_REPLY,
-  NOTIFY_SHOPPING_DUE,
-  NOTIFY_EXCURSION_DUE,
-  NOTIFY_TASK_DUE,
 } from './messages'
 import {
   tripExcursionsPath,
@@ -65,27 +65,27 @@ function str(payload: Record<string, unknown> | null, key: string): string {
  * so M5 can scroll to and flash that specific message in the thread.
  */
 export function notificationRoute(n: ServerNotification): string | null {
-  const tripId = str(n.payload, 'trip_id')
+  const tripId = str(n.payload, KEY.trip_id)
   if (!tripId) return null
   // FR-7.11: a reminder is about the trip's tasks, which live on M25.
-  if (n.kind === NOTIFY_TASK_DUE) return tripSubPath(tripId, 'tasks')
+  if (n.kind === NOTIFICATION_KIND.task_due) return tripSubPath(tripId, 'tasks')
   // FR-30.10: a purchase's reminder opens the trip's shopping list (M6).
-  if (n.kind === NOTIFY_SHOPPING_DUE) return tripSubPath(tripId, 'shopping')
+  if (n.kind === NOTIFICATION_KIND.shopping_due) return tripSubPath(tripId, 'shopping')
   // FR-30.12: so does a purchase handed to the reader.
-  if (str(n.payload, 'entry_id')) return tripSubPath(tripId, 'shopping')
+  if (str(n.payload, KEY.entry_id)) return tripSubPath(tripId, 'shopping')
   // FR-31.9: an excursion's reminder opens its own list.
-  if (n.kind === NOTIFY_EXCURSION_DUE) {
-    return tripExcursionsPath(tripId, str(n.payload, 'excursion_id') || undefined)
+  if (n.kind === NOTIFICATION_KIND.excursion_due) {
+    return tripExcursionsPath(tripId, str(n.payload, KEY.excursion_id) || undefined)
   }
   // FR-29.8: every idea kind opens its idea, a comment's included.
-  const ideaId = str(n.payload, 'idea_id')
+  const ideaId = str(n.payload, KEY.idea_id)
   if (ideaId) return tripIdeasPath(tripId, ideaId)
   // FR-7.13: a note or a reply opens its thread on the trip's notes (M26).
-  if (n.kind === NOTIFY_NOTE || n.kind === NOTIFY_NOTE_REPLY) {
-    const thread = str(n.payload, 'thread_id') || str(n.payload, 'comment_id')
+  if (n.kind === NOTIFICATION_KIND.note || n.kind === NOTIFICATION_KIND.note_reply) {
+    const thread = str(n.payload, KEY.thread_id) || str(n.payload, KEY.comment_id)
     return tripNotesPath(tripId, thread || undefined)
   }
-  const itemId = str(n.payload, 'item_id')
+  const itemId = str(n.payload, KEY.item_id)
   if (!itemId) return tripPath(tripId)
-  return tripItemPath(tripId, itemId, str(n.payload, 'comment_id') || undefined)
+  return tripItemPath(tripId, itemId, str(n.payload, KEY.comment_id) || undefined)
 }

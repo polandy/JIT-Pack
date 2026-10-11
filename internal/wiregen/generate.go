@@ -33,42 +33,78 @@ const (
 
 const jsIdentChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_$"
 
-// Generate reads the contract source and returns the TypeScript module for it.
-// The filename is used for parse errors and for the generated header, so the
-// client can see at a glance which file it must not edit instead.
+// Source is one file of the contract, by name and content.
+type Source struct {
+	Name string
+	Src  []byte
+}
+
+// Generate reads one contract file and returns the TypeScript module for it.
 func Generate(filename string, src []byte) (string, error) {
+	return GenerateFiles([]Source{{Name: filename, Src: src}})
+}
+
+// GenerateFiles reads the contract's files and returns the TypeScript module
+// for them, the declarations in file order. The names are used for parse
+// errors and for the generated header, so the client can see at a glance
+// which files it must not edit instead.
+func GenerateFiles(sources []Source) (string, error) {
 	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, filename, src, parser.ParseComments)
-	if err != nil {
-		return "", fmt.Errorf("parse %s: %w", filename, err)
+	files := make([]*ast.File, 0, len(sources))
+	names := make([]string, 0, len(sources))
+	for _, s := range sources {
+		file, err := parser.ParseFile(fset, s.Name, s.Src, parser.ParseComments)
+		if err != nil {
+			return "", fmt.Errorf("parse %s: %w", s.Name, err)
+		}
+		files = append(files, file)
+		names = append(names, s.Name)
 	}
 
-	enums := collectEnums(file)
+	enums := map[string][]string{}
+	consts := map[string]string{}
+	for _, file := range files {
+		collectEnums(file, enums, consts)
+	}
+	unions, err := collectFrameUnions(files, enums, consts)
+	if err != nil {
+		return "", err
+	}
 
 	var b strings.Builder
-	writeHeader(&b, filename)
+	writeHeader(&b, names)
 
-	for _, decl := range file.Decls {
-		gen, ok := decl.(*ast.GenDecl)
-		if !ok || gen.Tok != token.TYPE {
-			continue
-		}
-		for _, spec := range gen.Specs {
-			ts, ok := spec.(*ast.TypeSpec)
+	for _, file := range files {
+		for _, decl := range file.Decls {
+			gen, ok := decl.(*ast.GenDecl)
 			if !ok {
 				continue
 			}
-			if err := writeType(&b, ts, docOf(gen, ts), enums); err != nil {
-				return "", err
+			switch gen.Tok {
+			case token.TYPE:
+				for _, spec := range gen.Specs {
+					ts, ok := spec.(*ast.TypeSpec)
+					if !ok {
+						continue
+					}
+					if err := writeType(&b, ts, docOf(gen, ts), enums, unions); err != nil {
+						return "", err
+					}
+				}
+			case token.CONST:
+				writeChannelConsts(&b, gen)
 			}
 		}
+	}
+	if err := unions.allWritten(); err != nil {
+		return "", err
 	}
 	// One trailing newline, not the blank line the last block leaves behind:
 	// prettier strips it, and the strip would fail the drift gate.
 	return strings.TrimRight(b.String(), "\n") + "\n", nil
 }
 
-func writeHeader(b *strings.Builder, filename string) {
+func writeHeader(b *strings.Builder, filenames []string) {
 	fmt.Fprintf(b, `/**
  * Generated from internal/api/%s by cmd/wiregen. Do not edit.
  *
@@ -77,14 +113,15 @@ func writeHeader(b *strings.Builder, filename string) {
  * undone by the next generation and reported by the CI gate before that.
  */
 
-`, filename, "`make wire`")
+`, strings.Join(filenames, ", internal/api/"), "`make wire`")
 }
 
 // collectEnums maps a named string type to the constant values declared for it,
 // in source order — the order is part of the emitted union and must not depend
 // on map iteration.
-func collectEnums(file *ast.File) map[string][]string {
-	enums := map[string][]string{}
+// consts receives each typed string constant's value by name, so a table keyed
+// by the constants can be read back as values.
+func collectEnums(file *ast.File, enums map[string][]string, consts map[string]string) {
 	for _, decl := range file.Decls {
 		gen, ok := decl.(*ast.GenDecl)
 		if !ok || gen.Tok != token.CONST {
@@ -108,9 +145,11 @@ func collectEnums(file *ast.File) map[string][]string {
 				continue
 			}
 			enums[typeName.Name] = append(enums[typeName.Name], value)
+			if len(vs.Names) == 1 {
+				consts[vs.Names[0].Name] = value
+			}
 		}
 	}
-	return enums
 }
 
 func docOf(gen *ast.GenDecl, ts *ast.TypeSpec) string {
@@ -123,9 +162,12 @@ func docOf(gen *ast.GenDecl, ts *ast.TypeSpec) string {
 	return ""
 }
 
-func writeType(b *strings.Builder, ts *ast.TypeSpec, doc string, enums map[string][]string) error {
+func writeType(b *strings.Builder, ts *ast.TypeSpec, doc string, enums map[string][]string, unions frameUnions) error {
 	switch t := ts.Type.(type) {
 	case *ast.StructType:
+		if u, ok := unions.of(ts.Name.Name); ok {
+			return writeFrameUnion(b, ts.Name.Name, doc, t, u)
+		}
 		return writeInterface(b, ts.Name.Name, doc, t)
 	case *ast.Ident:
 		if t.Name != goString {

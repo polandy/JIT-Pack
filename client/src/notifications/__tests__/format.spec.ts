@@ -3,6 +3,7 @@
 // `document.documentElement.lang` — a `node` run would assert against the
 // throw instead of the translation.
 /** FR-6.2/FR-6.3: toast wording and deep-link routes per notification kind. */
+import type { NotificationKind } from '@/api/types'
 import { describe, it, expect, afterEach } from 'vitest'
 
 import {
@@ -13,8 +14,9 @@ import {
 } from '../format'
 import { DEFAULT_LOCALE, setLocale } from '@/i18n'
 
+// `kind` is a string: a newer server's kind, outside this client's union, is a case.
 function notif(kind: string, payload: Record<string, unknown> | null): ServerNotification {
-  return { id: 'n1', kind, payload, created_at: '2026-07-09T12:00:00Z' }
+  return { id: 'n1', kind: kind as NotificationKind, payload, created_at: '2026-07-09T12:00:00Z' }
 }
 
 describe('describeNotification', () => {
