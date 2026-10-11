@@ -79,7 +79,7 @@ type Options struct {
 	OIDC *OIDCConfig
 	// Logger is what every request-scoped logger (ARCH-08b) derives
 	// from — method, route and request_id, plus caller once authed has
-	// run. Nil means slog.Default(), which is what cmd/jitpackd passes
+	// run — and where the hub and OIDC.JWKS write their own lines. Nil means slog.Default(), which is what cmd/jitpackd passes
 	// since it never builds a *slog.Logger of its own.
 	Logger *slog.Logger
 }

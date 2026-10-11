@@ -126,10 +126,12 @@ func (h *Hub) log() *slog.Logger {
 
 // Register adds a connection to the hub and starts writing to it.
 func (h *Hub) Register(c *conn) {
+	// Attached before c is published in conns: from then on a concurrent
+	// broadcast may drop c, which reads it.
+	c.logger = h.log()
 	h.mu.Lock()
 	h.conns[c] = struct{}{}
 	h.mu.Unlock()
-	c.logger = h.log()
 	go c.pump()
 }
 
