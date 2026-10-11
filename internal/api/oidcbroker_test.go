@@ -162,7 +162,7 @@ func TestClassifyTokenResponse(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := classifyTokenResponse(tc.status, []byte(tc.body)); got != tc.want {
+			if got := classifyTokenResponse(context.Background(), tc.status, []byte(tc.body)); got != tc.want {
 				t.Errorf("classifyTokenResponse(%d, %q) = %v, want %v", tc.status, tc.body, got, tc.want)
 			}
 		})

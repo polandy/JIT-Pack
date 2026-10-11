@@ -145,8 +145,10 @@ client/src/views/            screens
 * `defer` for all cleanup, immediately after acquisition.
 * Concurrency: share memory by communicating; every goroutine has a defined owner and shutdown path (context
   cancellation); no naked `go func()` in handlers.
-* Logging: `log/slog`, structured key-value, levels `debug/info/warn/error`; never log secrets or JWTs; request-scoped
-  logger with trip/user IDs via middleware.
+* Logging: `log/slog`, structured key-value, levels `debug/info/warn/error`; never log secrets, JWTs, tokens or row
+  contents. `internal/api`'s `withLogging` middleware carries method, route and a generated `request_id` on every
+  request's context; `authed` adds `caller` once it knows who is asking. `logger(ctx)` reads it back, falling back
+  to `slog.Default()` outside a request (ARCH-08b).
 
 ## 4a. Named Constants — no magic strings or numbers
 
