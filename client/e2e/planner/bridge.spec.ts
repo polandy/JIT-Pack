@@ -9,6 +9,7 @@ import {
   openIdea,
   openIdeas,
   planIdea,
+  showSegment,
 } from '../helpers/m28'
 import {
   chooseDay,
@@ -334,6 +335,7 @@ test.describe('M29 an idea and its excursion on the day plan @local @planner', (
     await expect(timelineLines(page).filter({ hasText: IDEA })).toHaveCount(0)
 
     await openIdeas(page)
+    await showSegment(page, 'shortlisted')
     const kept = await openIdea(page, IDEA)
     await expect(kept.getByTestId('idea-act-plan')).toHaveAttribute('data-planned', '')
   })
