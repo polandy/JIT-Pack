@@ -159,6 +159,7 @@ removed, because no screen, analytic or rule starts from a trip row and asks whe
 surface guard (ARCH-31) does not keep an export that only its own spec reads.
 
 The one-hop rule is unchanged and still lives in `client/src/domain/itemMerge.ts`: `planItemMerge` flattens the
-alias at merge time, so a reader never walks a chain. The first reader that starts from a trip row — the *Revisit
-Trigger*'s per-trip usage history is the likely one — adds the backwards read beside `mergedIdsOf` and honours the
-same rule there: follow at most one hop, and treat an alias whose target is itself aliased as no alias.
+alias at merge time, so a reader never walks a chain, and `aliasOf` is the reader's half — one hop, and an alias
+whose target is itself aliased is no alias. `mergedIdsOf` and M23's *„zusammengeführt mit"* both read through it.
+The first reader that starts from a trip row — the *Revisit Trigger*'s per-trip usage history is the likely one —
+adds the backwards read beside `mergedIdsOf` and honours the same rule there, through `aliasOf`.
