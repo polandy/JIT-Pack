@@ -9,13 +9,12 @@
  */
 import 'fake-indexeddb/auto'
 import { IDBFactory } from 'fake-indexeddb'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
 import { installHarness } from '@/__tests__/harness'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { dueState } from '@/domain/shared/dueDay'
 import { openDueDay } from '@/domain/taskDue'
-import { localIsoDate } from '@/domain/trips'
 import { taskGroups, tripTasks } from '@/domain/tripTasks'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useMasterStore } from '@/stores/masterStore'
@@ -30,9 +29,23 @@ import { mealsModule, useMealStore } from '@/meals'
 import { SAMPLE_ROUTES, sampleGpx } from '../sampleTracks'
 import { decodeLine, defaultSource, readTrack } from '@/domain/shared/track'
 
+/**
+ * The seed dates its trip, tasks and meals from the device's today, so the
+ * spec pins that today. Only `Date` is faked: fake-indexeddb still needs the
+ * real timers to settle its requests.
+ */
+const NOW = new Date(2026, 9, 5, 9, 0)
+const TODAY = '2026-10-05'
+
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(NOW)
   globalThis.indexedDB = new IDBFactory()
   installHarness()
+})
+
+afterEach(() => {
+  vi.useRealTimers()
 })
 
 /** Local Mode: the seed must work on a device with no server at all. */
@@ -165,7 +178,7 @@ describe('seedSampleTrip (dev)', () => {
 
     const rows = trip.getItems(tripId).map((item) => ({ id: item.id, name: item.name, icon: null }))
     const tasks = tripTasks(trip.getOwnTasks(tripId), trip.getPrepTasks(tripId), rows)
-    const groups = taskGroups(tasks, master.taskTagList, localIsoDate(Date.now()))
+    const groups = taskGroups(tasks, master.taskTagList, TODAY)
 
     const byTag = groups.filter((group) => group.tag !== null)
     expect(byTag.length).toBeGreaterThan(0)
@@ -182,10 +195,9 @@ describe('seedSampleTrip (dev)', () => {
   // beside the undated tasks that are the normal case.
   it('dates two of its tasks: one overdue and one due tomorrow (FR-7.11)', () => {
     const { tripId, trip } = seed()
-    const today = localIsoDate(Date.now())
     const states = trip
       .getOwnTasks(tripId)
-      .map((task) => dueState(openDueDay(task), today))
+      .map((task) => dueState(openDueDay(task), TODAY))
       .filter((state) => state !== null)
     expect(states.sort()).toEqual(['overdue', 'soon'])
   })
