@@ -622,13 +622,18 @@ describe('createMutations', () => {
     ).toBe(FIXED_ISO)
   })
 
-  // The default is real time, so a caller that supplies no clock is not
-  // silently stamping the epoch.
-  it('an unsupplied clock is real time, not a fixed value', () => {
-    const before = Date.now()
-    const stamped = createMutations(mockHLC()).startPackingNow('i1').fields!
-      .packing_now_at as string
-    expect(Date.parse(stamped)).toBeGreaterThanOrEqual(before)
+  // The default is the machine clock, so a caller that supplies no clock is
+  // not silently stamping the epoch. The machine clock is set, not read.
+  it('an unsupplied clock is the machine clock, not a fixed value', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(Date.parse(FIXED_ISO))
+    try {
+      expect(createMutations(mockHLC()).startPackingNow('i1').fields!.packing_now_at).toBe(
+        FIXED_ISO,
+      )
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
 

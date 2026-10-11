@@ -11,13 +11,17 @@ import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { HLCGenerator } from '@/sync/hlc'
 import { useTripStore } from '@/stores/tripStore'
 import { installHarness } from '@/__tests__/harness'
+import { isoFrom } from '@/lib/clock'
+
+/** The instant every write in this file is stamped with. */
+const clock = () => Date.parse('2026-03-14T09:00:00.000Z')
 
 beforeEach(() => {
   installHarness().mockDrain()
 })
 
 describe('container mutations', () => {
-  const mutations = createMutations(new HLCGenerator(() => Date.now(), 'aabbccdd'))
+  const mutations = createMutations(new HLCGenerator(clock, 'aabbccdd'), isoFrom(clock))
 
   it('addContainer builds a complete containers insert', () => {
     const { mutation } = mutations.addContainer('t1', 'Left Pannier', {
