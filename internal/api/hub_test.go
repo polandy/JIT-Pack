@@ -663,20 +663,30 @@ func TestHub_DroppingAPeerDoesNotStallTheBroadcastEither(t *testing.T) {
 
 	// Fill the queue, then overrun it — the next broadcast is the one that
 	// decides to drop it, and it is a broadcast the other peer is in too.
+	// The reading peer takes each frame before the next is sent, so only the
+	// stalled one ever falls behind; a burst would race its pump.
 	for i := 0; i < wsSendQueue; i++ {
 		hub.NotifyTripChanged("t1", int64(i))
+		awaitTripChanged(t, reading, int64(i))
 	}
 	hub.NotifyTripChanged("t1", 999)
 	<-stalled.closed // it was dropped, and CloseNow is now parked
+	awaitTripChanged(t, reading, 999)
 
 	hub.NotifyTripChanged("t1", 1000)
+	awaitTripChanged(t, reading, 1000)
+}
 
+// awaitTripChanged reads the peer's frames until the trip.changed carrying
+// headSeq arrives, skipping any other frame (presence, roster).
+func awaitTripChanged(t *testing.T, peer *fakePeer, headSeq int64) {
+	t.Helper()
 	for {
 		var evt wsFrame
-		if err := json.Unmarshal(<-reading.got, &evt); err != nil {
+		if err := json.Unmarshal(<-peer.got, &evt); err != nil {
 			t.Fatalf("unmarshal frame: %v", err)
 		}
-		if evt.Type == EventTripChanged && evt.Payload["head_seq"] == float64(1000) {
+		if evt.Type == EventTripChanged && evt.Payload["head_seq"] == float64(headSeq) {
 			return
 		}
 	}
