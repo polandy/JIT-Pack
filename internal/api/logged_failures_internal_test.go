@@ -99,6 +99,33 @@ func TestJWKSRefresh_NamesAKeyItCannotParse(t *testing.T) {
 	}
 }
 
+// A caller that supplies its own logger (ARCH-08c) via SetLogger must see
+// the provider's own log lines on it, not on whatever slog.Default()
+// happens to be — otherwise the two are split.
+func TestJWKSProvider_SetLogger_SendsItsLinesThereInsteadOfTheDefault(t *testing.T) {
+	logs := captureLogs(t)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	t.Cleanup(srv.Close)
+
+	var buf bytes.Buffer
+	injected := slog.New(slog.NewTextHandler(&buf, nil))
+
+	p := &JWKSProvider{url: srv.URL, client: srv.Client()}
+	p.SetLogger(injected)
+
+	p.refreshTick()
+
+	if !strings.Contains(buf.String(), msgJWKSRefreshFailed) {
+		t.Fatalf("the injected logger got nothing; buf = %q", buf.String())
+	}
+	if strings.Contains(logs.String(), msgJWKSRefreshFailed) {
+		t.Errorf("the line also reached slog.Default(), want it only on the injected logger; logs = %q", logs.String())
+	}
+}
+
 // The refusal has already been decided when the cleanup runs: the client is
 // logged out either way, so a failed delete leaves a row that should be dead
 // and no other trace.

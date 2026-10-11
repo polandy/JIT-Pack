@@ -124,6 +124,7 @@ func newServer(st *store.Store, opts Options) *Server {
 	if s.logger == nil {
 		s.logger = slog.Default()
 	}
+	s.hub.logger = s.logger
 	// FR-29.19: a shared position is stamped with the server's clock.
 	s.hub.now = func() time.Time { return s.now() }
 	s.notifier = notify.New(st, s.hub, notify.Options{Contact: opts.PushContact, Now: s.now})
@@ -134,6 +135,9 @@ func newServer(st *store.Store, opts Options) *Server {
 	s.previews = opts.LinkPreviews
 	if opts.OIDC != nil {
 		s.oidc = newOIDCBroker(*opts.OIDC)
+		if opts.OIDC.JWKS != nil {
+			opts.OIDC.JWKS.SetLogger(s.logger)
+		}
 	}
 	return s
 }
