@@ -149,3 +149,16 @@ An analytic or a screen that aggregates by `source_item_id` across trips — FR-
 is the likely first. At that point the one-hop rule has to be honoured in a third place, and the choice is between
 teaching that reader the hop and doing what Option B would have done once, in a migration, where the whole database
 is in hand and the `UNIQUE` collisions can be resolved deliberately rather than per device.
+
+## Amendment (2026-10-11): one read direction until a reader needs the other (ARCH-31c)
+
+The alias is read in one direction only: `mergedIdsOf`, from the item outwards, for M10's FR-27.9 section. The
+backwards read the decision named — `resolveMergedItem`, from a trip row's `source_item_id` to the survivor — is
+removed, because no screen, analytic or rule starts from a trip row and asks where its item went: FR-27.8's
+„Enthalten in" and FR-8/FR-14's analytics deliberately do not read the alias (see *Consequences*), and the client's
+surface guard (ARCH-31) does not keep an export that only its own spec reads.
+
+The one-hop rule is unchanged and still lives in `client/src/domain/itemMerge.ts`: `planItemMerge` flattens the
+alias at merge time, so a reader never walks a chain. The first reader that starts from a trip row — the *Revisit
+Trigger*'s per-trip usage history is the likely one — adds the backwards read beside `mergedIdsOf` and honours the
+same rule there: follow at most one hop, and treat an alias whose target is itself aliased as no alias.

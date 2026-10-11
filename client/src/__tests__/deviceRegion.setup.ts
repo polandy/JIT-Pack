@@ -7,6 +7,6 @@
  */
 import { beforeEach } from 'vitest'
 
-import { pinDeviceTimeZone } from '@/i18n'
+import { pinDeviceTimeZone } from './deviceRegion'
 
 beforeEach(() => pinDeviceTimeZone('Europe/Zurich'))

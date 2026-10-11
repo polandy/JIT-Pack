@@ -315,28 +315,10 @@ function planAliases(
  *
  * A trip row keeps naming the item it was generated from, so the survivor's
  * own id finds only its own history. One hop out, over the rows this device
- * holds, is what makes „was on trips X and Y" true again after a merge —
- * and it is the same hop {@link resolveMergedItem} makes in the other
- * direction, for a reader that starts from the trip row instead.
+ * holds, is what makes „was on trips X and Y" true again after a merge.
+ * One hop, never a chain: {@link planItemMerge} flattens the alias at merge
+ * time, so a reader never has to walk one (ADR-069).
  */
 export function mergedIdsOf(itemId: string, items: readonly MasterItem[]): string[] {
   return [itemId, ...items.filter((row) => row.merged_into_id === itemId).map((row) => row.id)]
-}
-
-/**
- * Where a trip's `source_item_id` reads back to today (FR-24.15).
- *
- * **One hop, never a chain.** {@link planItemMerge} flattens the alias at
- * merge time, so a reader never has to walk; following a second hop would
- * also be the one way two devices that merged the same pair in opposite
- * directions could loop, since field-level LWW can leave a pair of rows
- * naming each other (ADR-069). An alias whose target is itself aliased is
- * therefore treated as no alias at all: the rear view reports the two pasts
- * separately, which is the state the product was in before the merge existed.
- */
-export function resolveMergedItem(itemId: string, items: readonly MasterItem[]): string {
-  const byId = new Map(items.map((row) => [row.id, row]))
-  const target = byId.get(itemId)?.merged_into_id
-  if (!target || target === itemId) return itemId
-  return byId.get(target)?.merged_into_id ? itemId : target
 }

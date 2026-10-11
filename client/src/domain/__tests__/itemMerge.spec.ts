@@ -1,11 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import {
-  mergedIdsOf,
-  planItemMerge,
-  resolveMergedItem,
-  type ItemMergeSources,
-} from '@/domain/itemMerge'
+import { mergedIdsOf, planItemMerge, type ItemMergeSources } from '@/domain/itemMerge'
 import type { ItemDependency, ItemTag, MasterItem, TemplateItem } from '@/types/domain'
 
 /**
@@ -347,22 +342,5 @@ describe('reading through the alias (FR-24.15, ADR-069)', () => {
 
   it('gives a plain item only itself', () => {
     expect(mergedIdsOf('i-zelt', [survivor, loser, other])).toEqual(['i-zelt'])
-  })
-
-  it('resolves a trip row’s item to the survivor, one hop', () => {
-    expect(resolveMergedItem(LOSER, [survivor, loser, other])).toBe(SURVIVOR)
-    expect(resolveMergedItem(SURVIVOR, [survivor, loser, other])).toBe(SURVIVOR)
-  })
-
-  it('treats a chain as no alias rather than walking it', () => {
-    // Two devices merging the same pair in opposite directions converge on a
-    // pair of rows naming each other (field-level LWW). A reader that walked
-    // would loop; one that stops reports the two pasts separately, which is
-    // where the product was before the merge existed.
-    const a = item('i-a', 'A', { merged_into_id: 'i-b' })
-    const b = item('i-b', 'B', { merged_into_id: 'i-a' })
-
-    expect(resolveMergedItem('i-a', [a, b])).toBe('i-a')
-    expect(resolveMergedItem('i-b', [a, b])).toBe('i-b')
   })
 })

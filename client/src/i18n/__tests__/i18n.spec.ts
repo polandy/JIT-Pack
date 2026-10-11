@@ -7,6 +7,8 @@
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
+import { pinDeviceTimeZone } from '@/__tests__/deviceRegion'
+
 import { de } from '../messages/de'
 import {
   CATALOGUE_PARTS,
@@ -16,7 +18,6 @@ import {
   formatDate,
   formatNumber,
   initLocale,
-  pinDeviceTimeZone,
   regionalLocale,
   resolveLocale,
   setLocale,
