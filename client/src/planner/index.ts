@@ -5,8 +5,10 @@
  * to write its ideas through the module's own actions.
  */
 import type { DayPlanSource } from '@/domain/shared/dayPlanLine'
-import type { IdeaLookup } from '@/domain/shared/ideaBridge'
+import type { IdeaLookup, IdeaPlanWrites } from '@/domain/shared/ideaBridge'
 import type { FeatureModule, IdeaShortlist } from '@/kernel/moduleContribution'
+import type { ModuleHost } from '@/sync/featureModule'
+import { createPlannerActions } from './actions'
 import { plannerActivityReaders } from './domain/activity'
 import { openingDayHoldsNothing, type TripDates } from './domain/dayPlan'
 import { undecidedCount } from './domain/ideas'
@@ -17,7 +19,7 @@ import { plannerFeatureStore, usePlannerStore } from './store'
 import { IDEA_STATE_SHORTLISTED } from './types'
 
 export { usePlannerStore }
-export { createPlannerActions } from './actions'
+export { createPlannerActions }
 export { voteTally } from './domain/ideas'
 
 /** The module's registration (ADR-066 amendment 3), folded by the composition root. */
@@ -33,6 +35,8 @@ export const plannerModule: FeatureModule = {
       dayPlanEmpty: dayPlanEmpty(host.dayPlanSources),
       // FR-29.13: the idea the packing side and the shopping module name.
       ideaLookup: ideaLookup(),
+      // FR-29.15: an excursion made from an idea takes the idea's day with it.
+      ideaPlanWrites: ideaPlanWrites(host.module),
       // M31: where to eat out, offered to the meal plan.
       shortlist: ideaShortlist(),
       // FR-29.18: an excursion's day — the way there, the way back — on M27.
@@ -78,6 +82,18 @@ export function ideaLookup(): IdeaLookup {
     idea(tripId, ideaId) {
       const idea = plannerStore.getIdeas(tripId).find((candidate) => candidate.id === ideaId)
       return idea && { id: idea.id, title: idea.title, plannedOn: idea.planned_on ?? null }
+    },
+  }
+}
+
+/** The idea's day taken away through the planner's own write (FR-29.14), for the packing side. */
+export function ideaPlanWrites(host: ModuleHost): IdeaPlanWrites {
+  const plannerStore = usePlannerStore()
+  const actions = createPlannerActions(host, plannerStore)
+  return {
+    unplan(tripId, ideaId) {
+      const idea = plannerStore.getIdeas(tripId).find((candidate) => candidate.id === ideaId)
+      if (idea) actions.planIdea(idea, null, null)
     },
   }
 }

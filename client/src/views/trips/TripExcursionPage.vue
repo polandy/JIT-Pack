@@ -102,6 +102,7 @@ import { noteThreads, threadsAboutExcursion } from '@/domain/tripNotes'
 import { t } from '@/i18n'
 import { chooseAction, confirmDestructive, promptText } from '@/composables/shared/confirm'
 import { EXCURSION_CONNECTIONS } from '@/kernel/excursionConnections'
+import { IDEA_PLAN_WRITES } from '@/kernel/ideaBridge'
 import { excursionDays } from '@/lib/excursionText'
 import { formatDistance, tracksSummary } from '@/lib/trackFormat'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
@@ -136,6 +137,8 @@ const GROUPING_CONTAINER = 'container'
 const orchestrator = useOrchestrator()
 /** The planner's section for a connection that belongs to this excursion (FR-29.18). */
 const ConnectionsSection = inject(EXCURSION_CONNECTIONS, null)
+/** The planner's write that takes the idea's day away with the excursion (FR-29.15). */
+const ideaPlan = inject(IDEA_PLAN_WRITES, null)
 const tripStore = useTripStore()
 const masterStore = useMasterStore()
 const router = useRouter()
@@ -586,7 +589,7 @@ async function remove() {
     testid: 'm27-delete-confirm',
   })
   if (!ok) return
-  orchestrator.excursions.deleteExcursion(props.tripId, ex.id)
+  orchestrator.excursions.deleteExcursion(props.tripId, ex.id, ideaPlan ?? undefined)
   void router.replace(tripExcursionsPath(props.tripId))
 }
 

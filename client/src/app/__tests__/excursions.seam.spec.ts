@@ -6,7 +6,7 @@
  * list as a Gruppe writes.
  */
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { createExcursionActions } from '../actions/excursions'
@@ -21,6 +21,7 @@ import { ref } from 'vue'
 import { keyedSink } from '@/sync/bucketedRows'
 import { specifiedSinks } from '@/sync/sinks'
 import { PLANNER_ROWS } from '@/planner/rows'
+import type { IdeaPlanWrites } from '@/domain/shared/ideaBridge'
 
 /** No track is uploaded here — `excursionTracks.seam.spec.ts` drives those. */
 const noTrackFiles = {
@@ -290,6 +291,32 @@ describe('the line’s own acts — FR-31.6, FR-31.8', () => {
 })
 
 describe('deleting — FR-31.1, FR-31.5', () => {
+  /*
+   * FR-29.15: an excursion made from an idea is the idea's one line on the
+   * day plan, so the idea's day goes with it — the planner's write, through
+   * the port the composition root binds.
+   */
+  it('takes the day of the idea it was made from away, and of no other', () => {
+    seedTrip()
+    const actions = build()
+    const unplan = vi.fn<IdeaPlanWrites['unplan']>()
+    const made = (ideaId: string | null) =>
+      actions.createExcursion(TRIP_ID, {
+        name: 'Gola Gorropu',
+        startsOn: '2026-07-14',
+        endsOn: '2026-07-14',
+        travelerIds: null,
+        templateId: null,
+        ideaId,
+      })!.excursionId
+
+    actions.deleteExcursion(TRIP_ID, made(null), { unplan })
+    expect(unplan).not.toHaveBeenCalled()
+    actions.deleteExcursion(TRIP_ID, made('idea-gorropu'), { unplan })
+    expect(unplan.mock.calls).toEqual([[TRIP_ID, 'idea-gorropu']])
+    expect(ctx.tripStore.getExcursions(TRIP_ID)).toEqual([])
+  })
+
   it('takes the excursion’s participants and lines with it, and leaves the suitcase', () => {
     seedTrip()
     seedGroup()

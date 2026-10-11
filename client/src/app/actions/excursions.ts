@@ -52,6 +52,7 @@ import {
   planLinks,
 } from '@/domain/excursionSuitcase'
 import type { BrowseDecision } from '@/domain/browseRows'
+import type { IdeaPlanWrites } from '@/domain/shared/ideaBridge'
 import { beforeIsOver, standingOf } from '@/domain/shared/tripPhase'
 
 /** What creating an excursion did, for the screen's one undo. */
@@ -332,7 +333,7 @@ export function createExcursionActions(
       notInLuggage: written.notInLuggage,
       undo: () => {
         written.undo()
-        deleteExcursion(tripId, id)
+        dropExcursion(tripId, id)
       },
     }
   }
@@ -355,8 +356,22 @@ export function createExcursionActions(
     write(mutations.updateExcursion(excursion.id, changed))
   }
 
-  /** FR-31.1: the excursion goes, with its participants, lines and tracks; the suitcase is untouched. */
-  function deleteExcursion(tripId: string, excursionId: string): void {
+  /**
+   * FR-31.1: the excursion goes, with its participants, lines and tracks; the
+   * suitcase is untouched. One made from an idea was the idea's line on the
+   * day plan, so the idea's day goes too and the idea stays (FR-29.15); the
+   * planner writes it, absent where no planner is composed.
+   */
+  function deleteExcursion(tripId: string, excursionId: string, ideas?: IdeaPlanWrites): void {
+    const ideaId = tripStore
+      .getExcursions(tripId)
+      .find((excursion) => excursion.id === excursionId)?.idea_id
+    dropExcursion(tripId, excursionId)
+    if (ideaId) ideas?.unplan(tripId, ideaId)
+  }
+
+  /** The excursion and its rows, and nothing beside — the creation's undo, under an idea planned before it. */
+  function dropExcursion(tripId: string, excursionId: string): void {
     const trackIds = tripStore.getExcursionTracks(tripId, excursionId).map((track) => track.id)
     const mutation = mutations.deleteExcursion(excursionId)
     write({

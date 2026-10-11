@@ -6,7 +6,12 @@
  */
 import type { InjectionKey } from 'vue'
 
-import type { IdeaLookup, IdeaResultKind, IdeaResultSource } from '@/domain/shared/ideaBridge'
+import type {
+  IdeaLookup,
+  IdeaPlanWrites,
+  IdeaResultKind,
+  IdeaResultSource,
+} from '@/domain/shared/ideaBridge'
 import {
   IDEA_RESULT_EXCURSION,
   IDEA_RESULT_SHOPPING,
@@ -23,6 +28,9 @@ export const IDEA_RESULT_SCREEN: Record<IdeaResultKind, IdeaBridgeScreen> = {
 
 /** The injection key the packing side and the shopping module read the idea through. */
 export const IDEA_LOOKUP = Symbol('ideaLookup') as InjectionKey<IdeaLookup>
+
+/** The injection key M27 takes an idea's day away through when its excursion goes. */
+export const IDEA_PLAN_WRITES = Symbol('ideaPlanWrites') as InjectionKey<IdeaPlanWrites>
 
 /** The injection key the planner reads an idea's results from. */
 export const IDEA_RESULT_SOURCES = Symbol('ideaResultSources') as InjectionKey<

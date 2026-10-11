@@ -118,3 +118,8 @@
   *„„Briefkasten leeren" abhaken"*; the idea, the entry and the eaten-out meal have their line's button and nothing
   else. The checkbox strikes the task through, and a tap on the meal's ring opens the meal's sheet. The words per kind
   are `dayLineTime`'s in `planner/__tests__/dayLineText.spec.ts`, the ring's names the sources' specs'.
+* **E2E-M29-23** `local` (FR-29.13/29.15) — **implemented** (`planner/bridge.spec.ts`): the excursion made from a
+  shortlisted idea planned on the third day stands there as the *Excursion* line, the pool bar absent; opened from the
+  plan and deleted on M27, the day holds no line naming the idea, the pool bar offers it again and the idea's detail
+  names no day. The action's rule is `excursions.seam.spec.ts` (*takes the day of the idea it was made from away*), the
+  planner's write `planner/__tests__/sync.spec.ts`.

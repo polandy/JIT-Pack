@@ -173,7 +173,8 @@ The back arrow then leads to the idea again. Whatever you made appears under **D
 entry, a small line with the light bulb and the idea's title says where it came from; tap it to open the idea.
 
 Deleting the idea leaves the excursion, tasks and shopping entries in place; they just no longer name it. Deleting
-one of them leaves the idea.
+one of them leaves the idea. An excursion made from an idea stands on the day plan in the idea's place, so deleting the
+excursion also takes the idea's day away: the idea stays under the ideas, without a day, and the day plan holds neither.
 
 ## Who is told
 

@@ -23,6 +23,7 @@ import { createPlannerActions, type IdeaFields } from '../actions'
 import { voteTally } from '../domain/ideas'
 import { plannerFeatureStore, usePlannerStore } from '../store'
 import { cascadeOf } from '@/sync/cascade'
+import { ideaPlanWrites } from '@/planner'
 
 let harness: Harness
 
@@ -257,6 +258,36 @@ describe('the day plan (FR-29.14, FR-29.15)', () => {
     expect(plans.map((m) => m.fields)).toEqual([
       { planned_on: '2026-07-14', planned_at: '09:00' },
       { planned_on: null, planned_at: null },
+    ])
+  })
+
+  /*
+   * FR-29.15: the port the packing side reaches when an excursion made from an
+   * idea is deleted — the idea keeps its state, loses its day, and an idea
+   * this device does not hold is no write.
+   */
+  it('takes an idea’s day away for the packing side, and writes nothing for one it lacks', async () => {
+    const orch = serverOrch()
+    harness.mockDrain()
+    const plannerStore = usePlannerStore()
+    const actions = createPlannerActions(orch.moduleHost, plannerStore)
+    const id = actions.addIdea('t1', GORROPU, 'user-andy')!
+    actions.planIdea(plannerStore.getIdea(id)!, '2026-07-14', '09:00')
+    const port = ideaPlanWrites(orch.moduleHost)
+
+    port.unplan('t1', id)
+    port.unplan('t1', 'idea-unknown')
+
+    expect(plannerStore.getIdea(id)).toMatchObject({
+      state: 'idea',
+      planned_on: null,
+      planned_at: null,
+    })
+    await orch.drainTrip('t1')
+    const plans = harness.pushedMutations().filter((m) => m.op === 'upsert')
+    expect(plans.map((m) => [m.id, m.fields])).toEqual([
+      [id, { planned_on: '2026-07-14', planned_at: '09:00' }],
+      [id, { planned_on: null, planned_at: null }],
     ])
   })
 
