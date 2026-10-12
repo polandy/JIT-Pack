@@ -21,7 +21,7 @@ import {
 import { trainOutline, addOutline } from 'ionicons/icons'
 import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import { DUE_PURCHASES, TRIP_CARDS, dueBlockAnchor } from '@/kernel/tripCards'
-import { isPackingClosed } from '@/lib/tripPhase'
+import { isPackingClosed } from '@/domain/shared/tripPhase'
 import { useRouter } from 'vue-router'
 
 import { isFullyPacked, isPartlyPacked } from '@/domain/packState'
@@ -50,7 +50,7 @@ import { useTripStore } from '@/stores/tripStore'
 import type { Trip } from '@/types/domain'
 import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
 import { byDepartureSoonestFirst, isActive } from '@/domain/trips'
-import { dueExcursions } from '@/domain/excursions'
+import { dueExcursions } from '@/domain/excursionSchedule'
 import { useIdentity } from '@/composables/shared/useTripIdentity'
 import { useTripTasks } from '@/composables/useTripTasks'
 import { nameFrom } from '@/lib/rowFacts'
@@ -70,16 +70,16 @@ import { useTripHero } from '@/composables/useTripHero'
 import TripPhase from '@/components/trips/TripPhase.vue'
 import DashboardTasksBlock from './DashboardTasksBlock.vue'
 import { taskPhaseInFront, tripDay } from '@/domain/tripDay'
-import TripTodoFigure from '@/components/trips/TripTodoFigure.vue'
-import TripTodosOverview from '@/components/trips/TripTodosOverview.vue'
-import { tripTodoProgress, tripTodoStatus } from '@/domain/tripTodos'
+import TripTaskFigure from '@/views/trips/tasks/TripTaskFigure.vue'
+import TripTasksOverview from '@/views/trips/tasks/TripTasksOverview.vue'
+import { tripTaskProgress, tripTaskStatus } from '@/domain/tripTasks'
 import { useDueLine } from '@/composables/useDueLine'
 import { callBlock } from '@/composables/blockCall'
 
 const tripStore = useTripStore()
 const { tasksOf } = useTripTasks()
 const orchestrator = useOrchestrator()
-const { myUserId, directory, load } = useIdentity(orchestrator)
+const { myUserId, directory, load } = useIdentity(orchestrator.identity)
 const router = useRouter()
 
 onMounted(() => {
@@ -234,8 +234,8 @@ function openItemCount(tripId: string): number {
  * rather than claiming „all done" about nothing.
  */
 function taskLine(trip: Trip): string | null {
-  const progress = tripTodoProgress(tasksOf(trip.id))
-  const status = tripTodoStatus(progress)
+  const progress = tripTaskProgress(tasksOf(trip.id))
+  const status = tripTaskStatus(progress)
   if (status === 'none') return null
   if (status === 'allDone') return t('dashboard.taskLineDone')
   return t('dashboard.taskLineOpen', { n: progress.open })
@@ -291,7 +291,7 @@ function tickNote(row: DashboardNoteRow): void {
   if (!myUserId.value) return
   const acks = noteTrips.value.find((trip) => trip.tripId === row.tripId)?.acks ?? []
   const root = row.thread.root
-  orchestrator.toggleNoteTick(
+  orchestrator.comments.toggleNoteTick(
     row.tripId,
     root.id,
     CLIENT_ACTOR_PLACEHOLDER,
@@ -548,7 +548,7 @@ async function handleRefresh(event: CustomEvent) {
 
       <!-- FR-7.6: every open task of every active trip, its own and its
            rows' preparations, reported; they are written in the trip. -->
-      <TripTodosOverview :trips="overviewTrips" />
+      <TripTasksOverview :trips="overviewTrips" />
 
       <!--
         The trip that is next, as a card rather than as a row (FR-21.13).
@@ -612,10 +612,10 @@ async function handleRefresh(event: CustomEvent) {
             <span aria-hidden="true">›</span>
           </RouterLink>
         </template>
-        <!-- FR-7.4: the trip's todos as a second figure beside the share,
+        <!-- FR-7.4: the trip's tasks as a second figure beside the share,
              read-only like the rest of the card; they are ticked in M4. -->
         <template v-if="!movedOn(heroTrip) && taskLine(heroTrip)" #beside="{ ringSize }">
-          <TripTodoFigure
+          <TripTaskFigure
             :trip-id="heroTrip.id"
             :ring-size="ringSize"
             :testid="`dashboard-tasks-${heroTrip.name}`"

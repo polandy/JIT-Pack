@@ -5,8 +5,8 @@
 
 **Base URL:** `/api/v1` — JSON only, UTF-8. All timestamps ISO-8601 UTC. Every path names its **scope** first and its
 resource second — `/trips/{id}/…`, `/master/…`, `/me/…` (NFR-4.14, ADR-027). Every envelope below is prose about a shape
-declared once in `internal/api/wire.go` and generated into the client (ADR-026); where the two disagree, `wire.go` is
-what runs.
+declared once in `internal/api/wire*.go` and generated into the client (ADR-026); where the two disagree, `wire*.go`
+is what runs.
 
 ---
 
@@ -146,7 +146,7 @@ what runs.
 * Rows are **full snapshots** of the current state (not diffs) — pulling the same entity twice is harmless, which keeps
   the client applier trivial: `INSERT OR REPLACE` / `DELETE`.
   * A snapshot carries the table's **syncable columns**, plus `updated_hlc` — and nothing else (`syncableColumns`,
-    `internal/store/store.go`). A generated column such as `trips.duration_days` is in neither direction of the
+    `internal/store/tables.go`). A generated column such as `trips.duration_days` is in neither direction of the
     protocol. **A client derives such a value from the columns it does receive** rather than reading it off the row —
     `durationDays()` mirrors the schema's own definition — because reading it leaves every pulled trip without one.
   * **`updated_hlc` is the one column that travels without being writable.** §3 has every client advance its clock to
@@ -180,8 +180,8 @@ what runs.
   optimistic change list is what the device persists, and it deletes exactly the keys it names — so a delete naming only
   the parent leaves every child row on the device, where the next start reads them back. It is the delete twin of §4's
   snapshot rule, and it hides the same way: the stores drop their own buckets, so the screen is right while the disk is
-  not. `client/src/sync/cascade.ts` derives the same list from each table's `cascadeParents` in `TABLE_SPECS`, which
-  `cascade.spec.ts` holds to the schema's `ON DELETE CASCADE` references.
+  not. `client/src/sync/cascade.ts` derives the same list from each table's `cascadeParents`, carried by the sinks of
+  the stores that hold it, which `cascade.spec.ts` holds to the schema's `ON DELETE CASCADE` references.
 * The server compacts consecutive changes to the same entity within one response (only the latest snapshot is sent).
 
 ### `GET /master/sync?cursor={seq}&limit={n}`

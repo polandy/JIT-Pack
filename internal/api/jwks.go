@@ -48,6 +48,33 @@ type JWKSProvider struct {
 	// backgroundRefresh's goroutine touches it, so it needs no lock —
 	// and must not take mu, which refresh already holds.
 	failing bool
+	// logger receives the provider's own log lines. Guarded by mu because
+	// construction (NewJWKSProvider, which starts backgroundRefresh)
+	// predates the Server whose logger it is set to — SetLogger is called
+	// afterward, once, from a second goroutine. Nil means slog.Default() —
+	// see `log`.
+	logger *slog.Logger
+}
+
+// SetLogger directs p's log lines to l instead of slog.Default(). The
+// Server that owns p calls this once, after Options.Logger is resolved —
+// which is necessarily after p was built, since the provider is created
+// ahead of the Server (e.g. cmd/jitpackd's OIDC discovery step, run before
+// the Server exists).
+func (p *JWKSProvider) SetLogger(l *slog.Logger) {
+	p.mu.Lock()
+	p.logger = l
+	p.mu.Unlock()
+}
+
+// log returns p's logger, or slog.Default() when none was attached.
+func (p *JWKSProvider) log() *slog.Logger {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	if p.logger != nil {
+		return p.logger
+	}
+	return slog.Default()
 }
 
 // NewJWKSProvider creates a provider that immediately fetches keys from
@@ -121,7 +148,7 @@ func (p *JWKSProvider) refresh() error {
 			// Dropping the key silently makes every token signed with it
 			// fail later as "unknown kid", which names neither the cause
 			// nor the remedy. One bad key must not discard the rest.
-			slog.Warn(msgJWKSKeyUnparsable, "kid", k.Kid, "url", p.url, "error", err)
+			p.log().Warn(msgJWKSKeyUnparsable, "kid", k.Kid, "url", p.url, "error", err)
 			continue
 		}
 		keys[k.Kid] = pub
@@ -155,10 +182,10 @@ func (p *JWKSProvider) refreshTick() {
 	err := p.refresh()
 	switch {
 	case err != nil && !p.failing:
-		slog.Warn(msgJWKSRefreshFailed, "url", p.url, "error", err)
+		p.log().Warn(msgJWKSRefreshFailed, "url", p.url, "error", err)
 		p.failing = true
 	case err == nil && p.failing:
-		slog.Info(msgJWKSRefreshRecovered, "url", p.url)
+		p.log().Info(msgJWKSRefreshRecovered, "url", p.url)
 		p.failing = false
 	}
 }

@@ -299,7 +299,7 @@ const retiredCount = computed(() => masterStore.retiredItemList.length)
         @merge="mergeTag"
         @merge-many="mergeTagsSelected"
         @remove="removeTag"
-        @move="orchestrator.reorderTags"
+        @move="orchestrator.masterData.reorderTags"
         @mark="markingTag = $event"
       />
 

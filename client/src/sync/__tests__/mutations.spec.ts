@@ -17,12 +17,17 @@ function mockHLC(): HLCGenerator {
   } as unknown as HLCGenerator
 }
 
+/** Every case's factory: a deterministic HLC and the clock fixed at {@link FIXED_ISO}. */
+function mutations() {
+  return createMutations(mockHLC(), () => FIXED_ISO)
+}
+
 describe('createMutations', () => {
   // FR-24.9: refiling an item moves its assignment rather than tearing it
   // down and building it again — a delete plus an insert would put a
   // tombstone in the feed for a change that removed nothing (ADR-052).
   it('moveTag upserts the position of the assignment that exists', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const mut = m.moveTag('a-sport', -1)
 
     expect(mut.op).toBe('upsert')
@@ -37,7 +42,7 @@ describe('createMutations', () => {
   // insert would both tombstone a change that removed nothing (ADR-052) and
   // lose the position the item was filed at.
   it('retagAssignment upserts the tag and the position together', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const mut = m.retagAssignment('a-sport', 't-kleidung', 3)
 
     expect(mut.op).toBe('upsert')
@@ -54,7 +59,7 @@ describe('createMutations', () => {
   // field overwrites a concurrent edit to it, and a subset assertion is
   // exactly the one that cannot see that.
   it('renameTag writes the name alone', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const mut = m.renameTag('t-kleidung', 'Bekleidung')
 
     expect(mut.op).toBe('upsert')
@@ -63,7 +68,7 @@ describe('createMutations', () => {
   })
 
   it('setTagMark writes the mark alone (FR-24.13)', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
 
     expect(m.setTagMark('t-bad', '🧼').fields).toEqual({ icon: '🧼' })
     // Clearing is a write of null, not an absent field — FR-28.1's first-class
@@ -72,7 +77,7 @@ describe('createMutations', () => {
   })
 
   it('createTag carries a mark only when one was chosen (FR-24.13)', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
 
     expect(m.createTag('Bad', 3).mutation.fields).toEqual({ name: 'Bad', sort_order: 3 })
     expect(m.createTag('Wasser', 4, '🌊').mutation.fields).toEqual({
@@ -83,7 +88,7 @@ describe('createMutations', () => {
   })
 
   it('reorderTag writes the axis number alone', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const mut = m.reorderTag('t-kleidung', 2)
 
     // `sort_order`, not `position`: `tags` and `item_tags` spell the same
@@ -92,7 +97,7 @@ describe('createMutations', () => {
   })
 
   it('deleteTag is a delete, carrying no fields', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const mut = m.deleteTag('t-kleidung')
 
     expect(mut.op).toBe('delete')
@@ -101,7 +106,7 @@ describe('createMutations', () => {
   })
 
   it('incrementPacked creates upsert with correct count and state', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const mut = m.incrementPacked('i1', 2, 5)
     expect(mut.op).toBe('upsert')
     expect(mut.table).toBe('trip_items')
@@ -110,14 +115,14 @@ describe('createMutations', () => {
   })
 
   it('incrementPacked caps at quantity and sets packed', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const mut = m.incrementPacked('i1', 4, 5)
     expect(mut.fields).toMatchObject({ packed_count: 5, state: 'packed' })
   })
 
   // FR-25.24: the planned amount, and the two fields the schema ties to it.
   it('setQuantity writes the amount, the clamped count and the state it implies', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     // Four were packed of five; the row is corrected down to two.
     const mut = m.setQuantity('i1', 2, 4, 'partial')
     expect(mut.op).toBe('upsert')
@@ -128,13 +133,13 @@ describe('createMutations', () => {
   })
 
   it('setQuantity leaves a count below the new amount where it is', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const mut = m.setQuantity('i1', 5, 2, 'partial')
     expect(mut.fields).toEqual({ quantity: 5, packed_count: 2, state: 'partial' })
   })
 
   it('setQuantity keeps the editor inside its bounds (FR-25.24)', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     // FR-5.5's zero belongs to the skip control, which also takes an
     // item's companions with it.
     expect(m.setQuantity('i1', 0, 0, 'open').fields).toMatchObject({ quantity: 1 })
@@ -142,7 +147,7 @@ describe('createMutations', () => {
   })
 
   it('setQuantity does not release a claim somebody is holding (G-3)', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const mut = m.setQuantity('i1', 3, 1, 'packing_now')
     // Changing how many are meant to come along is not a pack transition,
     // so it writes no state — and the claim outlives it.
@@ -151,13 +156,13 @@ describe('createMutations', () => {
   })
 
   it('decrementPacked goes to zero with open state', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const mut = m.decrementPacked('i1', 1, 3)
     expect(mut.fields).toMatchObject({ packed_count: 0, state: 'open' })
   })
 
   it('decrementPacked does not go below zero', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const mut = m.decrementPacked('i1', 0, 3)
     expect(mut.fields?.['packed_count']).toBe(0)
   })
@@ -166,31 +171,31 @@ describe('createMutations', () => {
   // FR-5.5's skipped row; `incrementPacked` clamped the count to 0 and read
   // `0 >= 0` as packed, `releasePackingNow` did the same.
   it('incrementPacked on a quantity-0 row stays skipped, never packed with a count of 0', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const mut = m.incrementPacked('i1', 0, 0)
     expect(mut.fields).toMatchObject({ packed_count: 0, state: 'skipped' })
   })
 
   it('releasePackingNow on a quantity-0 row hands back a skipped row (FR-5.3, FR-5.5)', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const mut = m.releasePackingNow('i1', 0, 0)
     expect(mut.fields).toMatchObject({ state: 'skipped', packing_now_by: null })
   })
 
   it('completePacked sets packed to quantity', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const mut = m.completePacked('i1', 5)
     expect(mut.fields).toMatchObject({ packed_count: 5, state: 'packed' })
   })
 
   it('zeroPacked resets to 0/open', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const mut = m.zeroPacked('i1')
     expect(mut.fields).toMatchObject({ packed_count: 0, state: 'open' })
   })
 
   it('togglePacked flips between packed and open for qty=1', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const pack = m.togglePacked('i1', 0)
     expect(pack.fields).toMatchObject({ packed_count: 1, state: 'packed' })
     const unpack = m.togglePacked('i1', 1)
@@ -198,7 +203,7 @@ describe('createMutations', () => {
   })
 
   it('skipItem sets quantity 0 and skipped state', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const mut = m.skipItem('i1')
     expect(mut.fields).toEqual({ quantity: 0, packed_count: 0, state: 'skipped' })
   })
@@ -206,7 +211,7 @@ describe('createMutations', () => {
   it('restoreSkipped writes back the three fields a skip changed, and records no packing (FR-5.5)', () => {
     // An undo of "do not pack this" must not leave a packing record
     // behind — which is what going through packItem would have done.
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const mut = m.restoreSkipped('i1', 3, 2, 'partial')
     expect(mut.fields).toEqual({ quantity: 3, packed_count: 2, state: 'partial' })
   })
@@ -216,7 +221,7 @@ describe('createMutations', () => {
   // standing. A decided row that still reads „Sonja packt gerade" is the
   // defect this field pair exists to prevent.
   it('closeRowUnpacked skips the row and releases the claim (FR-5.10)', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const mut = m.closeRowUnpacked('i1')
     expect(mut.fields).toEqual({
       quantity: 0,
@@ -232,7 +237,7 @@ describe('createMutations', () => {
   // `packed_at` is deliberately absent — nothing was packed at this moment,
   // so the row keeps saying when the four actually went in.
   it('closeRowPartlyPacked shrinks the amount to the count and stamps no packing (FR-5.10)', () => {
-    const m = createMutations(mockHLC(), () => FIXED_ISO)
+    const m = mutations()
     const mut = m.closeRowPartlyPacked('i1', 4)
     expect(mut.fields).toEqual({
       quantity: 4,
@@ -246,20 +251,20 @@ describe('createMutations', () => {
   // One field, both ways: NFR-4.2a merges it alone, so a status another
   // device set meanwhile survives the stamp.
   it('setPackingClosed writes the moment alone, and null reopens (FR-5.10)', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     expect(m.setPackingClosed('t1', FIXED_ISO).fields).toEqual({ packing_closed_at: FIXED_ISO })
     expect(m.setPackingClosed('t1', null).fields).toEqual({ packing_closed_at: null })
     expect(m.setPackingClosed('t1', null).table).toBe(TABLE.trips)
   })
 
   it('unskipItem restores to qty 1 open', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const mut = m.unskipItem('i1')
     expect(mut.fields).toEqual({ quantity: 1, packed_count: 0, state: 'open' })
   })
 
   it('setItemMode creates mode upsert', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const mut = m.setItemMode('i1', 'buy_before')
     expect(mut.fields).toEqual({ mode: 'buy_before' })
   })
@@ -269,7 +274,7 @@ describe('createMutations', () => {
   // a landing order — in which the row has left the shopping side with no
   // record of where from, and the purchase is then irreversible.
   it('buyItem records the list a BUY_BEFORE row left as it moves to packing (FR-25.11j)', () => {
-    const m = createMutations(mockHLC(), () => FIXED_ISO)
+    const m = mutations()
     const mut = m.buyItem('i1', 'buy_before', 3)
     expect(mut.op).toBe('upsert')
     expect(mut.table).toBe('trip_items')
@@ -278,7 +283,7 @@ describe('createMutations', () => {
   })
 
   it('buyItem marks a BUY_LOCAL row packed and records the list too (FR-25.11j)', () => {
-    const m = createMutations(mockHLC(), () => FIXED_ISO)
+    const m = mutations()
     const mut = m.buyItem('i1', 'buy_local', 3)
     expect(mut.fields).toEqual({
       bought_from: 'buy_local',
@@ -292,7 +297,7 @@ describe('createMutations', () => {
   })
 
   it('unbuyItem puts a BUY_BEFORE row back on the list it was bought from (FR-25.11j)', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const mut = m.unbuyItem('i1', 'buy_before')
     // FR-30.4: the purchase record goes with the purchase.
     expect(mut.fields).toEqual({
@@ -304,7 +309,7 @@ describe('createMutations', () => {
   })
 
   it('unbuyItem unpacks a BUY_LOCAL row without touching its mode (FR-25.11j)', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const mut = m.unbuyItem('i1', 'buy_local')
     expect(mut.fields).toEqual({
       bought_from: null,
@@ -319,7 +324,7 @@ describe('createMutations', () => {
   })
 
   it('addTripItem creates insert with unique id', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const { mutation, id } = m.addTripItem('t1', 'Towel', {
       weightGrams: 300,
       flagMissing: true,
@@ -335,7 +340,7 @@ describe('createMutations', () => {
   })
 
   it('addTripItem writes the quantity it was given, and one where nobody said', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
 
     expect(m.addTripItem('t1', 'Ersatzakku', { quantity: 2 }).mutation.fields?.['quantity']).toBe(2)
     expect(m.addTripItem('t1', 'Towel', {}).mutation.fields?.['quantity']).toBe(1)
@@ -344,7 +349,7 @@ describe('createMutations', () => {
   it('a skip-add is a quantity of zero whatever was asked for (FR-5.5)', () => {
     // The two rules meet here: a companion brings its dependency's quantity,
     // and a decided *skipped* row is the statement that none are coming.
-    const m = createMutations(mockHLC())
+    const m = mutations()
 
     expect(
       m.addTripItem('t1', 'Ersatzakku', { quantity: 2, decided: 'skipped' }).mutation.fields?.[
@@ -354,7 +359,7 @@ describe('createMutations', () => {
   })
 
   it('a forgotten-add is skipped at quantity zero, whatever was asked for (FR-5.11)', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
 
     const { fields } = m.addTripItem('t1', 'Sonnencreme', {
       quantity: 2,
@@ -365,7 +370,7 @@ describe('createMutations', () => {
   })
 
   it('createTrip creates insert with planning status', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const { mutation, id } = m.createTrip('Beach', 2026, '2026-08-01', '2026-08-07')
     expect(mutation.op).toBe('insert')
     expect(mutation.table).toBe('trips')
@@ -375,7 +380,7 @@ describe('createMutations', () => {
   })
 
   it('every mutation gets a unique mutation_id and hlc', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const a = m.skipItem('i1')
     const b = m.skipItem('i2')
     expect(a.mutation_id).not.toBe(b.mutation_id)
@@ -383,24 +388,24 @@ describe('createMutations', () => {
   })
 
   it('assignTraveler and assignContainer', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     expect(m.assignTraveler('i1', 'tv1').fields).toEqual({ assigned_traveler_id: 'tv1' })
     expect(m.assignContainer('i1', 'c1').fields).toEqual({ container_id: 'c1' })
   })
 
   it('createMasterItem', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const { mutation } = m.createMasterItem('Soap', { weightGrams: 40 })
     expect(mutation.op).toBe('insert')
     expect(mutation.table).toBe('items')
     expect(mutation.fields?.['name']).toBe('Soap')
   })
 
-  // --- Preparation Todos (FR-7.3) ---
+  // --- Preparation tasks (FR-7.3) ---
 
-  it('addTodo creates insert on comments table', () => {
-    const m = createMutations(mockHLC())
-    const { mutation, id } = m.addTodo('t1', 'i1', 'u1', 'Charge battery', 'before')
+  it('addTask creates insert on comments table', () => {
+    const m = mutations()
+    const { mutation, id } = m.addTask('t1', 'i1', 'u1', 'Charge battery', 'before')
     expect(mutation.op).toBe('insert')
     expect(mutation.table).toBe('comments')
     expect(mutation.id).toBe(id)
@@ -416,7 +421,7 @@ describe('createMutations', () => {
       // moment is named here too, because Local Mode has no database server
       // to default the column and the task's line would otherwise say nothing.
       phase: 'before',
-      created_at: expect.any(String),
+      created_at: FIXED_ISO,
     })
   })
 
@@ -426,19 +431,19 @@ describe('createMutations', () => {
    * push can land days later. The *who* is absent on purpose: the server
    * stamps it (invariant 3), and in Local Mode there is nobody to name.
    */
-  it('resolveTodo sets task_state to resolved and names the tap', () => {
-    const m = createMutations(mockHLC())
-    const mut = m.resolveTodo('todo1')
+  it('resolveTask sets task_state to resolved and names the tap', () => {
+    const m = mutations()
+    const mut = m.resolveTask('task1')
     expect(mut.op).toBe('upsert')
     expect(mut.table).toBe('comments')
-    expect(mut.id).toBe('todo1')
-    expect(mut.fields).toEqual({ task_state: 'resolved', resolved_at: expect.any(String) })
+    expect(mut.id).toBe('task1')
+    expect(mut.fields).toEqual({ task_state: 'resolved', resolved_at: FIXED_ISO })
     expect(mut.fields?.['resolved_by_user_id']).toBeUndefined()
   })
 
-  it('reopenTodo sets task_state to open and clears the record with it', () => {
-    const m = createMutations(mockHLC())
-    const mut = m.reopenTodo('todo1')
+  it('reopenTask sets task_state to open and clears the record with it', () => {
+    const m = mutations()
+    const mut = m.reopenTask('task1')
     expect(mut.fields).toEqual({ task_state: 'open', resolved_at: null })
   })
 
@@ -448,11 +453,11 @@ describe('createMutations', () => {
    * written — a move that rewrote any of those would be a different act.
    */
   it('setTaskPhase writes the phase alone', () => {
-    const m = createMutations(mockHLC())
-    expect(m.setTaskPhase('todo1', 'during').fields).toEqual({ phase: 'during' })
+    const m = mutations()
+    expect(m.setTaskPhase('task1', 'during').fields).toEqual({ phase: 'during' })
     // Null is a legal value, not an omission: it is what a task written
     // before FR-7.7 carries, and an undo has to be able to put it back.
-    expect(m.setTaskPhase('todo1', null).fields).toEqual({ phase: null })
+    expect(m.setTaskPhase('task1', null).fields).toEqual({ phase: null })
   })
 
   /*
@@ -463,40 +468,40 @@ describe('createMutations', () => {
    * tag, because a field that is not sent is a field that does not merge.
    */
   it('setTaskTag writes the tag alone, and can write it away', () => {
-    const m = createMutations(mockHLC())
-    expect(m.setTaskTag('todo1', 'tt-apotheke').fields).toEqual({ task_tag_id: 'tt-apotheke' })
-    expect(m.setTaskTag('todo1', null).fields).toEqual({ task_tag_id: null })
+    const m = mutations()
+    expect(m.setTaskTag('task1', 'tt-apotheke').fields).toEqual({ task_tag_id: 'tt-apotheke' })
+    expect(m.setTaskTag('task1', null).fields).toEqual({ task_tag_id: null })
     // The task's own table, not the tag's: the row being changed is the task.
-    expect(m.setTaskTag('todo1', null).table).toBe(TABLE.comments)
+    expect(m.setTaskTag('task1', null).table).toBe(TABLE.comments)
   })
 
   // FR-7.11: a day or none, and nothing beside it — a date set on one device
   // and a tag set on another must both survive the merge (NFR-4.2a).
   it('setTaskDueDate writes the day alone, and can write it away', () => {
-    const m = createMutations(mockHLC())
-    expect(m.setTaskDueDate('todo1', '2026-07-09').fields).toEqual({ due_date: '2026-07-09' })
-    expect(m.setTaskDueDate('todo1', null).fields).toEqual({ due_date: null })
-    expect(m.setTaskDueDate('todo1', null).table).toBe(TABLE.comments)
+    const m = mutations()
+    expect(m.setTaskDueDate('task1', '2026-07-09').fields).toEqual({ due_date: '2026-07-09' })
+    expect(m.setTaskDueDate('task1', null).fields).toEqual({ due_date: null })
+    expect(m.setTaskDueDate('task1', null).table).toBe(TABLE.comments)
   })
 
   // FR-7.14: the words alone, with no note's edit stamp — a task is shared
   // work, not a signed entry.
   it('setTaskBody writes the words alone', () => {
-    const m = createMutations(mockHLC())
-    expect(m.setTaskBody('todo1', 'Pass verlängern').fields).toEqual({ body: 'Pass verlängern' })
-    expect(m.setTaskBody('todo1', 'x').table).toBe(TABLE.comments)
+    const m = mutations()
+    expect(m.setTaskBody('task1', 'Pass verlängern').fields).toEqual({ body: 'Pass verlängern' })
+    expect(m.setTaskBody('task1', 'x').table).toBe(TABLE.comments)
   })
 
   // FR-7.14: a task filed as it is typed carries its tag and day in the one
   // insert; one typed without them is written exactly as before.
-  it('addTodo files a tag and a day only where they were named', () => {
-    const m = createMutations(mockHLC())
-    const filed = m.addTodo('t1', null, 'u1', 'Salbe holen', 'before', {
+  it('addTask files a tag and a day only where they were named', () => {
+    const m = mutations()
+    const filed = m.addTask('t1', null, 'u1', 'Salbe holen', 'before', {
       taskTagId: 'tt-apo',
       dueDate: '2026-07-09',
     }).mutation.fields
     expect(filed).toMatchObject({ task_tag_id: 'tt-apo', due_date: '2026-07-09' })
-    const plain = m.addTodo('t1', null, 'u1', 'Salbe holen', 'before', {
+    const plain = m.addTask('t1', null, 'u1', 'Salbe holen', 'before', {
       taskTagId: null,
       dueDate: null,
     }).mutation.fields
@@ -506,7 +511,7 @@ describe('createMutations', () => {
 
   // FR-7.12: a promoted comment names a phase only when the caller says so.
   it('flagCommentAsTask writes a phase only when one is named', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     expect(m.flagCommentAsTask('c1').fields).toEqual({ is_task: 1, task_state: 'open' })
     expect(m.flagCommentAsTask('c1', 'during').fields).toEqual({
       is_task: 1,
@@ -519,7 +524,7 @@ describe('createMutations', () => {
   // and never to the inventory's `tags` — where it would appear in the item
   // picker as a word no item uses.
   it('createTaskTag inserts into the tasks’ own vocabulary', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const { mutation, id } = m.createTaskTag('Apotheke')
 
     expect(mutation.op).toBe('insert')
@@ -535,16 +540,16 @@ describe('createMutations', () => {
     })
   })
 
-  it('deleteTodo creates delete mutation', () => {
-    const m = createMutations(mockHLC())
-    const mut = m.deleteTodo('todo1')
+  it('deleteTask creates delete mutation', () => {
+    const m = mutations()
+    const mut = m.deleteTask('task1')
     expect(mut.op).toBe('delete')
     expect(mut.table).toBe('comments')
-    expect(mut.id).toBe('todo1')
+    expect(mut.id).toBe('task1')
   })
 
   it('addItemDependency inserts a master-partition relation (FR-20.1)', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const { mutation } = m.addItemDependency('battery', 'camera', {
       mode: 'suggested',
       quantity: 2,
@@ -560,13 +565,13 @@ describe('createMutations', () => {
   })
 
   it('addItemDependency defaults to required without a quantity', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const { mutation } = m.addItemDependency('battery', 'camera')
     expect(mutation.fields).toMatchObject({ mode: 'required', quantity: null })
   })
 
   it('updateItemDependency and deleteItemDependency target the relation row', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
     const upd = m.updateItemDependency('dep1', { mode: 'required' })
     expect(upd.op).toBe('upsert')
     expect(upd.table).toBe('item_dependencies')
@@ -581,7 +586,7 @@ describe('createMutations', () => {
   // JSON.stringify in a template sheet, one dbBool in the same file — so the
   // encoding of a column lived wherever it happened to be written.
   it('an update mutation encodes the columns its edit names (C-10)', () => {
-    const m = createMutations(mockHLC())
+    const m = mutations()
 
     expect(m.updateTrip('t1', { name: 'Elba', attributes: { season: 'summer' } }).fields).toEqual({
       name: 'Elba',
@@ -600,10 +605,10 @@ describe('createMutations', () => {
   })
 
   // C-5: every instant a mutation writes comes from the clock it was given.
-  // Before the seam these four could only be asserted `expect.any(String)`,
-  // which is green whether the value is right, wrong or a decade off.
+  // Each is asserted as the exact instant, not `expect.any(String)`, which
+  // would be green whether the value is right, wrong or a decade off.
   it('every stamped instant comes from the injected clock (C-5)', () => {
-    const m = createMutations(mockHLC(), () => FIXED_ISO)
+    const m = mutations()
 
     expect(m.buyItem('i1', 'buy_local', 1).fields!.packed_at).toBe(FIXED_ISO)
     expect(m.startPackingNow('i1').fields!.packing_now_at).toBe(FIXED_ISO)
@@ -621,15 +626,6 @@ describe('createMutations', () => {
       }).mutation.fields!.created_at,
     ).toBe(FIXED_ISO)
   })
-
-  // The default is real time, so a caller that supplies no clock is not
-  // silently stamping the epoch.
-  it('an unsupplied clock is real time, not a fixed value', () => {
-    const before = Date.now()
-    const stamped = createMutations(mockHLC()).startPackingNow('i1').fields!
-      .packing_now_at as string
-    expect(Date.parse(stamped)).toBeGreaterThanOrEqual(before)
-  })
 })
 
 /**
@@ -640,7 +636,7 @@ describe('createMutations', () => {
  */
 describe('make holds fields to the push whitelist (ARCH-11)', () => {
   it('builds a mutation from whitelisted columns and refuses others at compile time', () => {
-    const { make } = createMutations(mockHLC())
+    const { make } = mutations()
 
     const ok = make('upsert', TABLE.tripItems, 'i1', { state: 'packed' })
     // @ts-expect-error — field_hlcs is the server's merge bookkeeping, never pushed.

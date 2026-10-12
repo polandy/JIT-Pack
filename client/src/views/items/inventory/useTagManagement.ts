@@ -46,7 +46,7 @@ export function useTagManagement() {
       testid: 'm9-tag-rename-prompt',
       onConfirm: async (name) => {
         if (name === '' || name === tag.name) return
-        const result = orchestrator.renameTag(tag.id, name)
+        const result = orchestrator.masterData.renameTag(tag.id, name)
         if (!result.ok) {
           await presentToast({ message: t('items.tagNameTaken', { name: result.collision }) })
           // `false` keeps the alert open *with the typed text*, so a near-miss
@@ -63,7 +63,7 @@ export function useTagManagement() {
     await promptTagMerge(tag, {
       tags: masterStore.tagList,
       usage: tagUsage.value.get(tag.id) ?? 0,
-      merge: orchestrator.mergeTags,
+      merge: orchestrator.masterData.mergeTags,
     })
   }
 
@@ -80,7 +80,7 @@ export function useTagManagement() {
     // are gone from `tagList`, which is what the picked set is read against.
     await promptTagMergeMany(tags, {
       usage: tagUsage.value,
-      merge: orchestrator.mergeTagsMany,
+      merge: orchestrator.masterData.mergeTagsMany,
     })
   }
 
@@ -111,7 +111,7 @@ export function useTagManagement() {
     })
     if (!ok) return
 
-    const result = orchestrator.deleteTag(tag.id)
+    const result = orchestrator.masterData.deleteTag(tag.id)
     if (result.ok) await presentToast({ message: t('items.tagDeleted', { tag: tag.name }) })
   }
 
@@ -123,7 +123,7 @@ export function useTagManagement() {
   const markingTag = ref<Tag | null>(null)
 
   function onTagMarkPicked(mark: string | null) {
-    if (markingTag.value) orchestrator.setTagMark(markingTag.value.id, mark)
+    if (markingTag.value) orchestrator.masterData.setTagMark(markingTag.value.id, mark)
   }
 
   return {

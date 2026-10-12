@@ -64,7 +64,7 @@ func validIdeaVote(_ context.Context, _ *sql.Tx, in guardInput) (RejectReason, e
 
 // ideaCommentWords are the fields an edit of a discussion entry changes —
 // the ones only its author may send, since the entry carries their name.
-var ideaCommentWords = []string{columnBody, columnEditedAt}
+var ideaCommentWords = []string{ColumnBody, columnEditedAt}
 
 // validIdeaComment is FR-29.4's part of the trip partition's write gate: a
 // word about an idea is its author's to change, as a trip note's is

@@ -50,7 +50,7 @@ func (s *Server) handlePutIdeaImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tripID := r.PathValue(PathTripID)
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 	if _, err := s.store.AddIdeaImage(r.Context(), tripID, userID, r.PathValue(PathIdeaID), r.PathValue(PathImageID), data); err != nil {
 		writeStoreError(w, err, "could not store the picture")
 		return

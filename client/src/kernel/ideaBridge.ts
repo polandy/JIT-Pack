@@ -1,13 +1,22 @@
 /**
  * Where the composition root (`App.vue`) binds the bridge from an idea to the
- * packing side (FR-29.13, ADR-078) — the shapes are `domain/ideaBridge.ts`, so
+ * packing side (FR-29.13, ADR-078) — the shapes are `domain/shared/ideaBridge.ts`, so
  * the planner's rules read them without reaching up into `kernel/`. The screen
  * each kind of result is made on stays here: it names a route.
  */
 import type { InjectionKey } from 'vue'
 
-import type { IdeaLookup, IdeaResultKind, IdeaResultSource } from '@/domain/ideaBridge'
-import { IDEA_RESULT_EXCURSION, IDEA_RESULT_SHOPPING, IDEA_RESULT_TASK } from '@/domain/ideaBridge'
+import type {
+  IdeaLookup,
+  IdeaPlanWrites,
+  IdeaResultKind,
+  IdeaResultSource,
+} from '@/domain/shared/ideaBridge'
+import {
+  IDEA_RESULT_EXCURSION,
+  IDEA_RESULT_SHOPPING,
+  IDEA_RESULT_TASK,
+} from '@/domain/shared/ideaBridge'
 import type { IdeaBridgeScreen } from '@/router/paths'
 
 /** The screen each kind of result is made on. */
@@ -19,6 +28,9 @@ export const IDEA_RESULT_SCREEN: Record<IdeaResultKind, IdeaBridgeScreen> = {
 
 /** The injection key the packing side and the shopping module read the idea through. */
 export const IDEA_LOOKUP = Symbol('ideaLookup') as InjectionKey<IdeaLookup>
+
+/** The injection key M27 takes an idea's day away through when its excursion goes. */
+export const IDEA_PLAN_WRITES = Symbol('ideaPlanWrites') as InjectionKey<IdeaPlanWrites>
 
 /** The injection key the planner reads an idea's results from. */
 export const IDEA_RESULT_SOURCES = Symbol('ideaResultSources') as InjectionKey<

@@ -7,6 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import type { Mutation, PullResponse, PushResponse } from '@/api/types'
 import type { OutboxStore, ParkedMutation, PendingMutation } from '@/sync/outboxStore'
 import { REJECTION_REASON } from '@/sync/rejectionReasons'
@@ -71,6 +72,7 @@ describe('durable outbox on boot', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       outboxStore: store,
+      now: fixedClock,
     })
 
     // No notifications endpoint answer needed for the assertions below —
@@ -105,6 +107,7 @@ describe('durable outbox on boot', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       outboxStore: store,
+      now: fixedClock,
     })
     fetchMock.mockRejectedValue(new TypeError('Failed to fetch'))
 
@@ -132,6 +135,7 @@ describe('durable outbox on boot', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       outboxStore: store,
+      now: fixedClock,
     })
     jsonOnce({ changes: [], next_cursor: 0, has_more: false } satisfies PullResponse)
 
@@ -151,6 +155,7 @@ describe('durable outbox on boot', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       outboxStore: store,
+      now: fixedClock,
     })
     jsonOnce({
       results: [
@@ -168,6 +173,8 @@ describe('durable outbox on boot', () => {
 
     expect(orch.syncStatus.parkedCount.value).toBe(1)
     expect(orch.syncStatus.parkedReason.value).toBe(REJECTION_REASON.stillReferenced)
+    // The parked entry is stamped by the orchestrator's clock, not the machine's.
+    expect(store.parked).toEqual([expect.objectContaining({ at: fixedClock() })])
   })
 
   it('remembers the reason of a refusal an earlier session parked', async () => {
@@ -192,6 +199,7 @@ describe('durable outbox on boot', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       outboxStore: store,
+      now: fixedClock,
     })
     jsonOnce({ changes: [], next_cursor: 0, has_more: false } satisfies PullResponse)
 
@@ -210,6 +218,7 @@ describe('durable outbox on boot', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       outboxStore: store,
+      now: fixedClock,
     })
     jsonOnce({ results: [], pull_hint: { next_cursor: 0 } } satisfies PushResponse)
     jsonOnce({ changes: [], next_cursor: 0, has_more: false } satisfies PullResponse)
@@ -224,13 +233,13 @@ describe('durable outbox on boot', () => {
       row: { trip_id: 'trip-1', quantity: 1, packed_count: 0, state: 'open' },
     })
 
-    orch.packComplete({
+    orch.packing.packComplete({
       id: 'i1',
       trip_id: 'trip-1',
       quantity: 1,
       packed_count: 0,
       state: 'open',
-    } as Parameters<typeof orch.packComplete>[0])
+    } as Parameters<typeof orch.packing.packComplete>[0])
     await orch.outbox.whenPersisted()
 
     expect(orch.syncStatus.queueDurable.value).toBe(false)

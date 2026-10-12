@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { defaultNowIso, defaultNowMs, isoFrom } from '../clock'
+import { describe, it, expect, vi } from 'vitest'
+import { defaultNowMs, isoFrom } from '../clock'
 
 describe('the client clock (C-5)', () => {
   it('isoFrom turns a millisecond clock into the string a row stores', () => {
@@ -19,9 +19,16 @@ describe('the client clock (C-5)', () => {
     expect(iso()).toBe('2026-03-15T00:00:00.000Z')
   })
 
-  it('the default clock is real time', () => {
-    const before = Date.now()
-    expect(defaultNowMs()).toBeGreaterThanOrEqual(before)
-    expect(Date.parse(defaultNowIso())).toBeGreaterThanOrEqual(before)
+  // The machine clock is set rather than read, so the default is held to
+  // the exact instant instead of to "not earlier than".
+  it('the default clock is the machine clock', () => {
+    const at = Date.parse('2026-03-14T15:09:26.535Z')
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(at)
+    try {
+      expect(defaultNowMs()).toBe(at)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

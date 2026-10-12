@@ -16,10 +16,10 @@ import {
 import { PATH } from './routes'
 import {
   addBuyRowOnM4,
-  addPrepTodo,
-  addTripTodo,
+  addPrepTask,
+  addOwnTask,
   openTasks,
-  openTripTodos,
+  openTripTasks,
   packRow,
   startTrip,
   tripWithRows,
@@ -179,11 +179,11 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
     page,
   }) => {
     const trip = await tripWithRows(page, ['Zelt', 'Kulturbeutel'], 'Abschluss')
-    await addPrepTodo(page, 'Kulturbeutel', 'Fetch the salve')
-    await addPrepTodo(page, 'Kulturbeutel', 'Pack the toothbrush')
+    await addPrepTask(page, 'Kulturbeutel', 'Fetch the salve')
+    await addPrepTask(page, 'Kulturbeutel', 'Pack the toothbrush')
     // The one that must not move: done is done, in the phase it was done in.
-    const window = await openTripTodos(page)
-    await window.getByTestId('trip-todo-Pack the toothbrush').locator('ion-checkbox').click()
+    const window = await openTripTasks(page)
+    await window.getByTestId('trip-task-Pack the toothbrush').locator('ion-checkbox').click()
     await writesLanded(page)
 
     // Only the other row is packed: FR-7.3 keeps a packed row with an open
@@ -201,15 +201,15 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
     // sentence is read off the plan the write will use.
     await expect(closeSheet(page)).toContainText('1 open task')
     await confirmClose(page)
-    await expect(visiblePage(page).getByTestId('trip-todo-Fetch the salve')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('trip-task-Fetch the salve')).toHaveCount(0)
 
     // One undo for the whole act: the row the close decided *and* the task it
     // moved come back together, because a second undo would have replaced the
     // first and one of the two would have lost its way back.
     await page.locator('ion-toast.pack-toast').getByRole('button', { name: /undo/i }).click()
     await expect(visiblePage(page).getByTestId('m4-packing-closed')).toHaveCount(0)
-    const back = await openTripTodos(page)
-    await expect(back.getByTestId('trip-todo-Fetch the salve')).toBeVisible()
+    const back = await openTripTasks(page)
+    await expect(back.getByTestId('trip-task-Fetch the salve')).toBeVisible()
     await expect(visiblePage(page).getByTestId('m4-row-Kulturbeutel')).toBeVisible()
     await writesLanded(page)
 
@@ -218,9 +218,9 @@ test.describe('FR-5.10 — the packing is finished @local @m4', () => {
     await tripAction(page, 'closePacking')
     await confirmClose(page)
     await writesLanded(page)
-    await expect(visiblePage(page).getByTestId('trip-todo-Fetch the salve')).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId('trip-task-Fetch the salve')).toHaveCount(0)
     const during = await openTasks(page, 'during')
-    await expect(during.getByTestId('trip-todo-Fetch the salve')).toBeVisible()
+    await expect(during.getByTestId('trip-task-Fetch the salve')).toBeVisible()
     await page.goto(trip)
   })
 
@@ -677,8 +677,8 @@ test.describe('FR-7.16 — the leftovers follow the trip into its during phase @
   }) => {
     await tripWithRows(page, ['Zelt', 'Kulturbeutel'], 'Losfahren')
     await addBuyRowOnM4(page, 'Sun hat', 'Buy before')
-    await addPrepTodo(page, 'Kulturbeutel', 'Fetch the salve')
-    await addTripTodo(page, 'Book the ferry')
+    await addPrepTask(page, 'Kulturbeutel', 'Fetch the salve')
+    await addOwnTask(page, 'Book the ferry')
 
     await askToStart(page)
     await expect(page.getByTestId('m4-close-sheet-title')).toHaveText('Start trip')
@@ -714,12 +714,12 @@ test.describe('FR-7.16 — the leftovers follow the trip into its during phase @
     const tagged = during.locator('[data-testid^="m25-group-"]').filter({
       hasText: 'From before departure',
     })
-    await expect(tagged.getByTestId('trip-todo-Book the ferry')).toBeVisible()
+    await expect(tagged.getByTestId('trip-task-Book the ferry')).toBeVisible()
     const prep = during.locator('[data-testid^="m25-group-"]').filter({
       hasText: 'From the packing list',
     })
-    await expect(prep.getByTestId('trip-todo-Fetch the salve')).toBeVisible()
-    await expect(tagged.getByTestId('trip-todo-Fetch the salve')).toHaveCount(0)
+    await expect(prep.getByTestId('trip-task-Fetch the salve')).toBeVisible()
+    await expect(tagged.getByTestId('trip-task-Fetch the salve')).toHaveCount(0)
   })
 
   /**

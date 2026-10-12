@@ -56,7 +56,7 @@ export interface TripWizardDraft {
    */
   sourceTemplateIds?: string[]
   /**
-   * FR-7.4: the trip todos the trip starts with, already deduplicated — each
+   * FR-7.4: the trip's own tasks the trip starts with, already deduplicated — each
    * with the phase its template gave it (FR-7.7).
    */
   tripTasks?: DraftTripTask[]
@@ -127,23 +127,23 @@ export function createTripCreationActions(ctx: SyncContext) {
       const { mutation, id } = mutations.addGeneratedTripItem(tripId, item, assignedTravelerId)
       queue(mutation)
 
-      // FR-27.7: a position's preparation tasks become ordinary FR-7.3 todos
+      // FR-27.7: a position's preparation tasks become ordinary FR-7.3 preparations
       // on the row they were generated for — no new flag, so "an item with an
-      // open prep todo is not done" applies without a second mechanism.
-      // Enqueued inside this loop so each todo follows the trip_items row it
+      // open preparation is not done" applies without a second mechanism.
+      // Enqueued inside this loop so each preparation follows the trip_items row it
       // references; pushed ahead of it, the server rejects the foreign key.
       for (const taskBody of item.tasks) {
         // FR-7.7: a row's preparation is something you do to get packed, so
         // it starts *before* the trip. It can be moved afterwards like any
         // other task — the salve that was never fetched is exactly this one.
-        const { mutation: todoMut } = mutations.addTodo(
+        const { mutation: prepTaskMut } = mutations.addTask(
           tripId,
           id,
           CLIENT_ACTOR_PLACEHOLDER,
           taskBody,
           TASK_PHASE_BEFORE,
         )
-        queue(todoMut)
+        queue(prepTaskMut)
       }
     }
 
@@ -157,7 +157,7 @@ export function createTripCreationActions(ctx: SyncContext) {
     // FR-7.4: the templates' trip tasks, on the trip itself rather than on a
     // row, so they hold back nothing the packing list counts.
     for (const task of draft.tripTasks ?? []) {
-      const { mutation } = mutations.addTodo(
+      const { mutation } = mutations.addTask(
         tripId,
         null,
         CLIENT_ACTOR_PLACEHOLDER,
@@ -334,14 +334,14 @@ export function createTripCreationActions(ctx: SyncContext) {
           // Author placeholder — the server stamps author_id on insert.
           // NFR-4.12: resolved at write time, never a module constant — a
           // finished string is unreachable by a language switch (ADR-037).
-          const todo = mutations.addTodo(
+          const prepTask = mutations.addTask(
             tripId,
             id,
             'import',
-            t('import.wizard.noiseTodo', { name: item.name }),
+            t('import.wizard.noiseTask', { name: item.name }),
             TASK_PHASE_BEFORE,
           )
-          queue(todo.mutation)
+          queue(prepTask.mutation)
         }
       }
     }

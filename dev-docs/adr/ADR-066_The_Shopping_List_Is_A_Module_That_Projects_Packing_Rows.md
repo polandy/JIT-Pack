@@ -165,3 +165,65 @@ the right end state once `wiregen` emits tables (ARCH-11), but a generator for o
 **Cost accepted.** The walk finds children a level at a time by scanning each child table once per level, not
 through an index; on a family's data that is a few passes over a few thousand rows per delete. Siblings come out in
 `TABLE_SPECS` order rather than a hand-chosen one — only leaf-first is a contract, and the specs hold that alone.
+
+## Amendment 2 (2026-10-09) — a module's rows and types leave the kernel; the specs ride the sinks (ARCH-15)
+
+The revisit trigger's "single module registration shape" is being cut in two. This half moves the data layer. A module's
+entity types moved from `types/domain.ts` to `<m>/types.ts`. Its parsers and encoders moved from `sync/tableRegistry.ts`
+and `sync/rows.ts` to `<m>/rows.ts`, which declares the module's `RowSpec`s (`SHOPPING_ROWS`, `PLANNER_ROWS`,
+`MEAL_ROWS`). The kernel's registry is now `KERNEL_TABLE_SPECS` and names none of the module's tables. A store hands its
+sinks over through `specifiedSinks(specs, …)`, so **each sink carries its table's spec**. A pulled row is parsed by its
+sink's codec, a write's base row is encoded by it, and `cascadeOf` builds its edges from the `cascadeParents` of the
+sinks it is handed. Routing calls every table the kernel does not specify a feature table. A fourth module's rows are
+now a diff inside its own directory.
+
+**Options weighed.** (a) A registry the modules fill at start-up — rejected above, and for the same reason: it would be
+empty in every spec that forgot to fill it, and its failure is a silently dropped row. (b) A full spec map composed in
+`App.vue` and handed to the orchestrator beside `features` — explicit, but a second list kept in step with the stores,
+and `cascade.ts`, `sinks.ts` and the trip store would all need it threaded in. (c) **The spec rides the sink**
+*(chosen)* — a store that holds a table necessarily knows how to read it, and the cascade can only find rows in the
+sinks it walks anyway, so the edges of the stores at hand are all it needs. A spec that builds a store gets the module's
+specs with it.
+
+**Cost accepted.** The build no longer refuses a `TABLE.*` without a spec: `satisfies Record<SyncTable, TableSpec>`
+could only hold one map. `src/__tests__/moduleRows.spec.ts` now holds that, by composing the kernel's specs and each
+module's against `TABLE`. It also holds each module store's sinks to its module's specs. The specs that read the codecs
+against each other and against the schema compose the same way (`src/__tests__/rowSpecs.ts`). The edges are rebuilt per
+cascade from a few dozen sinks rather than once at load. The picture and track rows of the planner (`IdeaImage`,
+`IdeaTrack`) and their codecs stay in the kernel, because the kernel serves their files (ADR-002, ADR-085;
+`ModuleHost.pictures`/`tracks`). The planner's spec names them. A module's `types.ts` is vocabulary in the layer order
+(ADR-096), so its rules read it (`layer-gate.mjs`, `domain-purity-gate.mjs`). The composition half — one `contribute()`
+per module, which `App.vue` folds over — is ARCH-15b.
+
+## Amendment 3 (2026-10-09) — one registration shape per module; `App.vue` folds (ARCH-15b)
+
+The second half of the revisit trigger's "single module registration shape". `App.vue` bound each module by name: its
+store into `features`, and its sources, counts, cards, readers, crossings and bridge halves into ten injection keys,
+each by hand. It also held logic: the kernel's adapters and a `mealContext` that read the planner store for M31's
+shortlist. Now each `<m>/index.ts` exports a `FeatureModule` (`kernel/moduleContribution.ts`): a `featureStore()` and
+`contribute(host)`, which returns the module's `ModuleContribution` — activity readers, trip cards, shell components,
+shopping, day-plan and excursion sources, idea results, a shortlist, view counts, close crossings, and the single
+answers (`ideaLookup`, `dayPlanEmpty`, `duePurchases`, the excursion connections and journey line). The kernel's
+adapters moved to `kernel/kernelPorts.ts`, a contribution like any other, folded first. `composeModules` folds them
+all. Lists append in order. A record key or a single answer given twice throws. `provideComposition` provides the
+result under the existing keys. `featureModules.ts` is the constant list. It is now the only file besides the router,
+the catalogue and the dev seed that names a module's face, and `App.vue` names none.
+
+Aggregates that cross modules are handed back **lazily**. The shopping count and `duePurchases` read every shopping
+source, meals' included. `dayPlanEmpty` reads every day-plan source. The kernel's day plan reads every excursion's
+extra lines. They read the folded lists through the host when called, and a read during `contribute` throws. So a
+module reads the folded list and never another module. M31's shortlist is the planner's `shortlist` contribution,
+which the kernel's `mealContext` reads through the host.
+
+**Options weighed.** (a) A registry the modules fill at start-up — rejected in the decision above, for the same reason.
+(b) `featureStore` inside the contribution — one member fewer, but the host is built from the orchestrator, and the
+orchestrator is built from the stores. The store would have to be created before its own contribution, or the actions
+built lazily behind the host. (c) **Two members, `featureStore()` and `contribute(host)`** *(chosen)* — the order the
+app is built in, said in the type. (d) Eager aggregates, with `App.vue` passing each module the others' lists —
+explicit, but the root again knows which module needs whose list, which is the knowledge this amendment removes.
+
+**Cost accepted.** A contract a module adds is three edits in the kernel: a field on `ModuleContribution`, its fold
+in `foldContributions` and its `provide` in `provideComposition`. The order of `FEATURE_MODULES` is M1's card order
+and the order of module lines after the kernel's. `features` follows it too, which nothing reads by order. The fold
+throws at start-up on a doubled answer instead of refusing it at build time.
+`src/__tests__/activityReadersWiring.spec.ts` folds the real list, so CI meets the throw first.

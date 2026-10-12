@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -199,7 +198,7 @@ func (b *oidcBroker) tokenRequest(ctx context.Context, form url.Values) (idpToke
 	if err != nil {
 		return idpTokenSet{}, errIDPUnreachable
 	}
-	if err := classifyTokenResponse(resp.StatusCode, body); err != nil {
+	if err := classifyTokenResponse(ctx, resp.StatusCode, body); err != nil {
 		return idpTokenSet{}, err
 	}
 	var tokens idpTokenSet
@@ -285,7 +284,7 @@ const (
 // off anyway (no refresh ever succeeds); reading an outage as a
 // rejection destroys the session for good. Only the latter is
 // unrecoverable, so anything ambiguous resolves to outage.
-func classifyTokenResponse(statusCode int, body []byte) error {
+func classifyTokenResponse(ctx context.Context, statusCode int, body []byte) error {
 	if statusCode == http.StatusOK {
 		return nil
 	}
@@ -298,7 +297,7 @@ func classifyTokenResponse(statusCode int, body []byte) error {
 	}
 	if oauthErr.Code != errInvalidGrant {
 		if oauthErr.Code == errInvalidClient {
-			slog.Error("IdP refused the broker's client credentials — check JITPACK_OIDC_CLIENT_ID and JITPACK_OIDC_CLIENT_SECRET",
+			logger(ctx).Error("IdP refused the broker's client credentials — check JITPACK_OIDC_CLIENT_ID and JITPACK_OIDC_CLIENT_SECRET",
 				"error", oauthErr.Code, "description", oauthErr.Description)
 		}
 		return errIDPUnreachable

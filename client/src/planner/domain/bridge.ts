@@ -6,8 +6,8 @@ import {
   IDEA_RESULT_KINDS,
   type IdeaResult,
   type IdeaResultKind,
-} from '@/domain/ideaBridge'
-import { IDEA_STATE_SHORTLISTED, type IdeaState } from '@/types/domain'
+} from '@/domain/shared/ideaBridge'
+import { IDEA_STATE_SHORTLISTED, type IdeaState } from '../types'
 
 /**
  * The kinds of result an idea in `state` still offers, given what already

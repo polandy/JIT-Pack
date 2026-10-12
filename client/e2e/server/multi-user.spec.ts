@@ -14,7 +14,7 @@ import {
 } from '../fixtures'
 import {
   FOR_WHOM_M5,
-  addTripTodo,
+  addOwnTask,
   chooseInRowMenu,
   lightTraveler,
   openCluster,
@@ -825,25 +825,25 @@ test.describe('Two accounts on one instance @server', () => {
 
     const tripPath = await createTripViaWizard(alice, { name: trip })
     await tripAction(alice, 'start')
-    await addTripTodo(alice, task, 'during')
+    await addOwnTask(alice, task, 'during')
     await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
 
     const subscribedBob = watchSubscribed(bob)
     await bob.goto(tripPath)
     await subscribedBob
     const bobsSection = await openTasks(bob, 'during')
-    const bobsTodo = bobsSection.getByTestId(`trip-todo-${task}`)
-    await expect(bobsTodo).toBeVisible()
+    const bobsTask = bobsSection.getByTestId(`trip-task-${task}`)
+    await expect(bobsTask).toBeVisible()
 
     // An unassigned task carries the empty seat, as an unassigned row does.
     await alice.goto(tripPath)
     const section = await openTasks(alice, 'during')
-    const seat = section.getByTestId(`trip-todo-assign-${task}`)
+    const seat = section.getByTestId(`trip-task-assign-${task}`)
     await expect(seat).toBeVisible()
     await expect(seat.getByTestId('user-avatar')).toHaveCount(0)
 
-    // The picker is the row's, with one difference that is the rule: a todo
-    // can be taken on oneself, so Alice is offered too — a row's picker
+    // The picker is the row's, with one difference that is the rule: a task
+    // of the trip itself can be taken on oneself, so Alice is offered too — a row's picker
     // leaves her out (FR-25.20).
     await seat.click()
     const picker = alice.locator('ion-action-sheet')
@@ -859,13 +859,13 @@ test.describe('Two accounts on one instance @server', () => {
 
     // …and his own screen names him on the task, from the server's copy.
     await expect(
-      bobsTodo.getByTestId(`trip-todo-assign-${task}`).getByTestId('user-avatar'),
+      bobsTask.getByTestId(`trip-task-assign-${task}`).getByTestId('user-avatar'),
     ).toHaveAttribute('aria-label', ACCOUNT_NAMES.bob)
 
-    // M1 reports it: the open todo carries whose job it is.
+    // M1 reports it: the open task carries whose job it is.
     await bob.goto(PATH.dashboard)
     await expect(
-      visiblePage(bob).getByTestId(`dashboard-trip-todo-assignee-${task}`),
+      visiblePage(bob).getByTestId(`dashboard-trip-task-assignee-${task}`),
     ).toContainText(ACCOUNT_NAMES.bob)
 
     await ctxAlice.close()
@@ -965,12 +965,12 @@ test.describe('Two accounts on one instance @server', () => {
     const tripPath = await createTripViaWizard(alice, { name: trip })
     await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
     await alice.goto(tripPath)
-    await addTripTodo(alice, task)
+    await addOwnTask(alice, task)
 
     const section = await openTasks(alice, 'before')
-    const row = section.getByTestId(`trip-todo-${task}`)
-    await expect(row.getByTestId(`trip-todo-assign-${task}`)).toBeVisible()
-    await expect(row.getByTestId(`trip-todo-facts-${task}`)).toHaveCount(0)
+    const row = section.getByTestId(`trip-task-${task}`)
+    await expect(row.getByTestId(`trip-task-assign-${task}`)).toBeVisible()
+    await expect(row.getByTestId(`trip-task-facts-${task}`)).toHaveCount(0)
     const taskHeight = (await row.boundingBox())!.height
 
     const m6 = await openShopping(alice)

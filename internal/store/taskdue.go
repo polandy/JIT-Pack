@@ -1,7 +1,8 @@
-// Package store — taskdue.go reads what FR-7.11's daily reminder needs: the
+// taskdue.go reads what FR-7.11's daily reminder needs: the
 // open tasks, the open shopping entries (FR-30.10) and the excursions still
 // to pack (FR-31.9) due on the days it asks about, and the record of which
 // day it last ran for.
+
 package store
 
 import (
@@ -9,10 +10,6 @@ import (
 	"fmt"
 	"strings"
 )
-
-// TripStatusArchived is the lifecycle state of a finished trip (FR-9.2). A
-// task on an archived trip is history, and nobody is reminded of it.
-const TripStatusArchived = "archived"
 
 // taskReminderDayKey names the server_keys row holding the last day the
 // FR-7.11 reminder ran for.

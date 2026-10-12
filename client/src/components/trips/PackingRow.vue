@@ -32,7 +32,8 @@ import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import RowGlyphs from '@/components/trips/RowGlyphs.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { t } from '@/i18n'
-import type { MasterItem, Traveler, TripItem } from '@/types/domain'
+import type { PackableRow } from '@/domain/packingView'
+import type { MasterItem, Traveler } from '@/types/domain'
 
 /** The one sentence under the name, in the order the row prefers them. */
 export interface PackingRowNotes {
@@ -60,7 +61,7 @@ const MARK_SIZE = 22
 
 const props = withDefaults(
   defineProps<{
-    item: TripItem
+    item: PackableRow
     /** The name the row shows — the item's, or the traveler's under a cluster. */
     label: string
     /**
@@ -237,7 +238,7 @@ const emit = defineEmits<{
           :aria-label="t('facet.flagUnused')"
           :data-testid="`m4-unused-${testKey}`"
         />
-        <RowGlyphs :mode="item.mode" :late="item.late_packer" />
+        <RowGlyphs :mode="item.mode" :late="item.late_packer === true" />
       </template>
       <!-- FR-25.25: the same place either way — the avatar names who is
            responsible, and tapping it is how that is decided. A row nobody
@@ -279,7 +280,7 @@ const emit = defineEmits<{
           v-else-if="closingPass"
           class="pass-toggle"
           :class="{ on: item.flag_unused }"
-          :aria-pressed="item.flag_unused"
+          :aria-pressed="item.flag_unused === true"
           :aria-label="t('facet.flagUnused')"
           :data-testid="`m4-pass-toggle-${testKey}`"
           @click="emit('passToggle')"

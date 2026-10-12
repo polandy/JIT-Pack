@@ -6,35 +6,39 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  isExcursionOnly,
+  lineSetOf,
+  planForWhom,
+  draftLinesFor,
+  draftLinesFromGroup,
+  isLeftBehind,
+  isOpenPurchase,
+  lineForOf,
+  participantsOf,
+  planGroupFromExcursion,
+  planParticipantChange,
+  type DraftLine,
+  type GroupDraftInput,
+} from '../excursionLines'
+import {
   arrangeExcursions,
+  dueExcursions,
+  isDueSoon,
+  pendingExcursionCount,
+  whenOf,
+} from '../excursionSchedule'
+import {
   borrowersByTripItem,
   canAdoptIntoInventory,
   canJoinPackingList,
   excursionMenuEntries,
   inventoryItemFor,
-  isExcursionOnly,
-  lineSetOf,
-  planForWhom,
-  dayAfter,
-  dueExcursions,
-  excursionLineAsRow,
-  draftLinesFor,
-  draftLinesFromGroup,
-  isDueSoon,
-  isLeftBehind,
-  isOpenPurchase,
-  pendingExcursionCount,
-  participantsOf,
-  planGroupFromExcursion,
+  planBorrowOnly,
   planLinks,
-  planParticipantChange,
-  whenOf,
-  type DraftLine,
-  type GroupDraftInput,
-} from '../excursions'
+} from '../excursionSuitcase'
 import type {
   CategorisedMasterItem,
-  ExcursionItem,
+  ExcursionLine,
   ExcursionTraveler,
   Template,
   TemplateItem,
@@ -109,7 +113,7 @@ function tripItem(id: string, name: string, extra: Partial<TripItem> = {}): Trip
   }
 }
 
-function line(id: string, name: string, extra: Partial<ExcursionItem> = {}): ExcursionItem {
+function line(id: string, name: string, extra: Partial<ExcursionLine> = {}): ExcursionLine {
   return {
     id,
     trip_id: 'trip-1',
@@ -234,6 +238,16 @@ describe('draftLinesFromGroup — FR-31.2', () => {
       }),
     )[0]!
     expect(lamp.assigned_traveler_id).toBeNull()
+  })
+})
+
+describe('lineForOf — the composer strip read as the excursion reads it (FR-31.5)', () => {
+  it.each([
+    ['nobody chosen is one shared line', [], { kind: 'shared' }],
+    ['every participant is für alle', ['a', 'b'], { kind: 'all' }],
+    ['some are named', ['a'], { kind: 'named', travelerIds: ['a'] }],
+  ])('%s', (_name, ids, want) => {
+    expect(lineForOf(ids, 2)).toEqual(want)
   })
 })
 
@@ -392,6 +406,35 @@ describe('planLinks — FR-31.4, FR-31.7', () => {
       [{ existing: 'ti-lamp' }, true],
       [null, true],
     ])
+  })
+})
+
+describe('planBorrowOnly — a line added nicht einpacken (FR-25.13f)', () => {
+  it('borrows the row the suitcase has, raises nothing, and creates nothing', () => {
+    const bottle = tripItem('ti-bottle', 'Trinkflasche', {
+      source_item_id: 'item-bottle',
+      quantity: 1,
+    })
+    const plan = planBorrowOnly(
+      [
+        draft('Trinkflasche', { source_item_id: 'item-bottle', quantity: 3 }),
+        draft('Stirnlampe', { source_item_id: 'item-lamp' }),
+      ],
+      [bottle],
+    )
+    expect(plan.suitcase).toEqual([])
+    expect(plan.lines.map((l) => [l.link, l.not_in_luggage])).toEqual([
+      [{ existing: 'ti-bottle' }, false],
+      [null, false],
+    ])
+  })
+
+  it('links no suitcase row to a vor-Ort line or one of the excursion alone', () => {
+    const plan = planBorrowOnly(
+      [draft('Proviant', { mode: 'buy_local' }), draft('Schokoriegel', { source_item_id: null })],
+      [tripItem('ti-food', 'Proviant'), tripItem('ti-bar', 'Schokoriegel')],
+    )
+    expect(plan.lines.map((l) => l.link)).toEqual([null, null])
   })
 })
 
@@ -611,11 +654,6 @@ describe('dueExcursions — M1 (FR-31.10)', () => {
       ['Hütte', false, 'Sardinien'],
     ])
   })
-
-  it('steps across a month end', () => {
-    expect(dayAfter('2026-07-31')).toBe('2026-08-01')
-    expect(dayAfter('2026-12-31')).toBe('2027-01-01')
-  })
 })
 
 describe('planGroupFromExcursion — FR-31.11', () => {
@@ -688,33 +726,6 @@ describe('bought on the spot, kept — FR-31.13', () => {
     })
     expect(inventoryItemFor(line('l', ' regencape'), inventory)).toEqual({ itemId: 'item-cape' })
     expect(inventoryItemFor(line('l', 'Sonnenhut '), inventory)).toEqual({ create: 'Sonnenhut' })
-  })
-})
-
-describe('excursionLineAsRow — M4’s row (FR-31.6)', () => {
-  it('carries what the row renders and nothing a line does not have', () => {
-    const row = excursionLineAsRow(
-      line('l', 'Proviant', {
-        quantity: 2,
-        packed_count: 1,
-        state: 'partial',
-        mode: 'buy_local',
-        assigned_traveler_id: 'tr-sia',
-      }),
-    )
-    expect(row).toMatchObject({
-      id: 'l',
-      name: 'Proviant',
-      quantity: 2,
-      packed_count: 1,
-      state: 'partial',
-      mode: 'buy_local',
-      assigned_traveler_id: 'tr-sia',
-      packer_user_id: null,
-      container_id: null,
-      packing_now_by: null,
-      late_packer: false,
-    })
   })
 })
 

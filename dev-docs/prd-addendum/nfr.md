@@ -190,8 +190,8 @@
   server is a separate question, to be asked per rule with that price written out, and this NFR
   does not open it.
 
-  **The Go declaration is the source (ADR-026).** `internal/api/wire.go` is the one declaration of
-  the sync envelopes, the WebSocket frame, the conflict-log shapes, every response body and the
+  **The Go declaration is the source (ADR-026).** `internal/api/wire*.go` is the one declaration of
+  the sync envelopes, the WebSocket frames, the conflict-log shapes, every response body and the
   error vocabulary; `cmd/wiregen` writes `client/src/api/types.ts` from it, `make wire`
   regenerates, and `scripts/wire-contract-gate.sh` — in `make ci` and in the CI `go` job — fails
   the build when the checked-in file does not match. The error codes are `ErrorCode` constants in

@@ -17,7 +17,7 @@ const cases = [
       'client/e2e/planner/ideas.spec.ts',
       'internal/store/planner.go',
       'internal/api/planner.go',
-      'dev-docs/ui-spec/M28-ideen.md',
+      'dev-docs/ui-spec/M28-ideas.md',
       'client/src/planner/__tests__/actions.spec.ts',
     ],
     want: { appUntouched: false, module: 'planner' },

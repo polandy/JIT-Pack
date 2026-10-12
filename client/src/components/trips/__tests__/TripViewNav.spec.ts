@@ -98,7 +98,7 @@ function mountNav(
     props: { tripId: TRIP, current },
     global: {
       provide: {
-        [TRIP_VIEW_COUNTS]: { shopping: shoppingCount([source]), notes: () => notes },
+        [TRIP_VIEW_COUNTS]: { shopping: shoppingCount(() => [source]), notes: () => notes },
       },
     },
   })

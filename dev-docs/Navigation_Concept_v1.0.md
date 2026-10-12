@@ -236,7 +236,7 @@ today; **Proposal** = the recommended target. Nothing here is invented — every
 
 ## 5. Desktop nav-rail
 
-*Source: `components/global/NavRail.vue`, `App.vue`, `views/TabsLayout.vue`.*
+*Source: `components/shell/NavRail.vue`, `App.vue`, `views/TabsLayout.vue`.*
 
 **As built.** Below 900 px the bottom tab bar (`TabsLayout.vue`) is shown and the rail is hidden; the breakpoint
 lives in the component that owns it (`NavRail.vue`), since a rule on `App.vue`'s `.desktop-nav` loses to the rail's own
@@ -264,7 +264,7 @@ primary actions render inline in the top bar on desktop, as a floating FAB on mo
 ## 6. Trip-context entry points
 
 *Source: `lib/tripViews.ts` (the six views), `components/trips/TripViewNav.vue` (the switcher),
-`components/global/AppHeader.vue` (the ⋮), `views/trips/PackingListPage.vue` (M4), `App.vue` (`onSyncTap`),
+`components/shell/AppHeader.vue` (the ⋮), `views/trips/PackingListPage.vue` (M4), `App.vue` (`onSyncTap`),
 `views/trips/TripListPage.vue` and `domain/trips.ts` (`tripRowActions`, M2's row menu and hero).*
 
 There is **no single trip toolbar**. The trip-scoped screens are reached from a small number of distinct places, each

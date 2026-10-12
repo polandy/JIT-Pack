@@ -1,9 +1,10 @@
 /** FR-29.14/FR-29.15: the day plan's days, its pool and one day's timeline. */
 import { describe, expect, it } from 'vitest'
 
-import type { DayPlanLine } from '@/domain/dayPlanLine'
-import type { DayEntry, DayEntryTraveler, Idea, IdeaState, Traveler } from '@/types/domain'
-import { DAY_ENTRY_CONNECTION, DAY_ENTRY_NOTE } from '@/types/domain'
+import type { DayPlanLine } from '@/domain/shared/dayPlanLine'
+import type { Traveler } from '@/types/domain'
+import type { DayEntry, DayEntryTraveler, Idea, IdeaState } from '../../types'
+import { DAY_ENTRY_CONNECTION, DAY_ENTRY_NOTE } from '../../types'
 import {
   DAY_LINE,
   MAX_PLAN_DAYS,
@@ -19,7 +20,6 @@ import {
   ideasWithExcursion,
   isPlanTime,
   linesAhead,
-  nextDay,
   openingDay,
   tripDays,
   unplannedIdeas,
@@ -93,7 +93,6 @@ describe('tripDays', () => {
       '2027-01-01',
       '2027-01-02',
     ])
-    expect(nextDay('2028-02-28')).toBe('2028-02-29')
   })
 
   it.each([

@@ -8,7 +8,7 @@
  */
 
 import type { DirectoryUser } from '@/api/types'
-import type { TripMember, TripParticipant, TripRole } from '@/types/domain'
+import type { TripMember, TripMemberProfile, TripRole } from '@/types/domain'
 
 /**
  * Re-exported so a caller that only deals in rosters imports one module. The
@@ -79,12 +79,12 @@ export function buildRosterView(
  * is the floor the server grants, and nothing here may invent a higher one
  * (invariant 3).
  */
-export function tripParticipants(
+export function tripMemberProfiles(
   directory: readonly DirectoryUser[],
   members: readonly TripMember[],
-): TripParticipant[] {
+): TripMemberProfile[] {
   const roles = new Map(members.map((member) => [member.user_id, member.role]))
-  const known = new Map<string, TripParticipant>()
+  const known = new Map<string, TripMemberProfile>()
   for (const user of directory) {
     known.set(user.user_id, {
       user_id: user.user_id,

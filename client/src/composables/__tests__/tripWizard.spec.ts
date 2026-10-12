@@ -5,13 +5,12 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-import { createMutations } from '@/sync/mutations'
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
-import { HLCGenerator } from '@/sync/hlc'
 import { useTripStore } from '@/stores/tripStore'
 import type { GeneratedItem } from '@/domain/instantiate'
 import type { PullResponse, PushResponse } from '@/api/types'
 import { installHarness } from '@/__tests__/harness'
+import { fixedMutations, fixedClock } from '@/__tests__/fixedClock'
 
 let fetchMock: ReturnType<typeof vi.fn>
 
@@ -56,7 +55,7 @@ function generated(overrides: Partial<GeneratedItem> = {}): GeneratedItem {
 }
 
 describe('createMutations wizard additions', () => {
-  const mutations = createMutations(new HLCGenerator(() => Date.now(), 'aabbccdd'))
+  const mutations = fixedMutations()
 
   it('addTraveler builds a travelers insert on the trip partition', () => {
     const { mutation } = mutations.addTraveler('trip-1', 'Ronja')
@@ -99,14 +98,18 @@ describe('createMutations wizard additions', () => {
 
 describe('createTripFromWizard', () => {
   it('creates trip, travelers, and items optimistically with traveler assignment', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     mockPush()
     mockPull()
     mockPush()
     mockPull()
 
-    const tripId = orch.createTripFromWizard({
+    const tripId = orch.tripCreation.createTripFromWizard({
       name: 'Engadin',
       year: 2026,
       startDate: '2026-08-01',
@@ -139,13 +142,17 @@ describe('createTripFromWizard', () => {
   })
 
   it('drains the master partition before the trip partition (FK + membership)', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     mockPush()
     mockPull()
     mockPush()
     mockPull()
 
-    const tripId = orch.createTripFromWizard({
+    const tripId = orch.tripCreation.createTripFromWizard({
       name: 'Engadin',
       year: 2026,
       startDate: null,
@@ -162,14 +169,18 @@ describe('createTripFromWizard', () => {
   })
 
   it('accepts companion rows without a source template (FR-20.2)', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     mockPush()
     mockPull()
     mockPush()
     mockPull()
 
-    const tripId = orch.createTripFromWizard({
+    const tripId = orch.tripCreation.createTripFromWizard({
       name: 'Fototour',
       year: 2026,
       startDate: null,
@@ -191,15 +202,19 @@ describe('createTripFromWizard', () => {
     await vi.waitFor(() => expect(fetchMock.mock.calls.length).toBe(4))
   })
 
-  it('materialises FR-27.7 template tasks as open prep todos on the generated row', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+  it('materialises FR-27.7 template tasks as open preparations on the generated row', async () => {
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     mockPush()
     mockPull()
     mockPush()
     mockPull()
 
-    const tripId = orch.createTripFromWizard({
+    const tripId = orch.tripCreation.createTripFromWizard({
       name: 'Fototour',
       year: 2026,
       startDate: null,
@@ -214,30 +229,34 @@ describe('createTripFromWizard', () => {
 
     const charger = tripStore.getItems(tripId).find((i) => i.name === 'Ladegerät')!
     const tent = tripStore.getItems(tripId).find((i) => i.name === 'Zelt')!
-    const todos = tripStore.getTodos(tripId)
+    const prepTasks = tripStore.getPrepTasks(tripId)
 
-    expect(todos).toHaveLength(1)
-    expect(todos[0]).toMatchObject({
+    expect(prepTasks).toHaveLength(1)
+    expect(prepTasks[0]).toMatchObject({
       trip_item_id: charger.id,
       body: 'Akkus laden',
       task_state: 'open',
     })
-    // The row without tasks stays clean — a todo on it would block it from
+    // The row without tasks stays clean — a preparation on it would block it from
     // ever counting as done (FR-7.3).
-    expect(tripStore.getItemTodos(tripId, tent.id)).toHaveLength(0)
+    expect(tripStore.getRowPrepTasks(tripId, tent.id)).toHaveLength(0)
 
     await vi.waitFor(() => expect(fetchMock.mock.calls.length).toBe(4))
   })
 
-  it('pushes a prep todo after the row it hangs off (FK ordering)', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+  it('pushes a preparation after the row it hangs off (FK ordering)', async () => {
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     mockPush()
     mockPull()
     mockPush()
     mockPull()
 
-    const tripId = orch.createTripFromWizard({
+    const tripId = orch.tripCreation.createTripFromWizard({
       name: 'Fototour',
       year: 2026,
       startDate: null,
@@ -259,12 +278,12 @@ describe('createTripFromWizard', () => {
     }[]
 
     const rowIndex = mutations.findIndex((m) => m.table === 'trip_items' && m.id === charger.id)
-    const todoIndex = mutations.findIndex((m) => m.table === 'comments')
+    const prepTaskIndex = mutations.findIndex((m) => m.table === 'comments')
     expect(rowIndex).toBeGreaterThanOrEqual(0)
     // The comments row carries trip_item_id as a foreign key: pushed first, the
     // server rejects it.
-    expect(todoIndex).toBeGreaterThan(rowIndex)
-    expect(mutations[todoIndex]!.fields).toMatchObject({
+    expect(prepTaskIndex).toBeGreaterThan(rowIndex)
+    expect(mutations[prepTaskIndex]!.fields).toMatchObject({
       trip_item_id: charger.id,
       is_task: 1,
       task_state: 'open',
@@ -272,14 +291,18 @@ describe('createTripFromWizard', () => {
   })
 
   it('computes no duration without a start date (FR-2.1a)', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     mockPush()
     mockPull()
     mockPush()
     mockPull()
 
-    const tripId = orch.createTripFromWizard({
+    const tripId = orch.tripCreation.createTripFromWizard({
       name: 'Offen',
       year: 2026,
       startDate: null,
@@ -301,7 +324,11 @@ describe('createTripFromWizard', () => {
  */
 describe('a trip push waits for the master write it refers to', () => {
   it('pushes a new item before the trip row that names it, even while the item push is in flight', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     let release!: () => void
     const held = new Promise<void>((resolve) => (release = resolve))
     const order: string[] = []
@@ -319,8 +346,8 @@ describe('a trip push waits for the master write it refers to', () => {
           })
     })
 
-    const itemId = orch.createMasterItem('Kletterseil')
-    orch.quickAddItem('trip-1', 'Kletterseil', { sourceItemId: itemId }, false)
+    const itemId = orch.masterData.createMasterItem('Kletterseil')
+    orch.packing.quickAddItem('trip-1', 'Kletterseil', { sourceItemId: itemId }, false)
     // The master push is on the wire and held there; under the defect the trip
     // push leaves beside it now, before the item exists on the server.
     await vi.waitFor(() => expect(order).toContain('master push'))

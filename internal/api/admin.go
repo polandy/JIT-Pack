@@ -1,7 +1,8 @@
-// Package api — admin.go exposes instance user management (Addendum
+// admin.go exposes instance user management (Addendum
 // 3.23) under /api/v1/admin/, guarded by adminOnly. Application-data
 // administration only: who holds the admin role is declarative
 // (JITPACK_ADMIN_EMAILS) and has no endpoint.
+
 package api
 
 import (

@@ -8,7 +8,7 @@
  */
 import type { TaskPhase } from '@/types/domain'
 import { TASK_PHASE_BEFORE } from '@/types/domain'
-import { daysBetween } from './taskDue'
+import { addDays, daysBetween } from '@/domain/shared/calendar'
 
 export const QUICK_DAY_TODAY = 'today'
 export const QUICK_DAY_TOMORROW = 'tomorrow'
@@ -20,14 +20,6 @@ export type QuickDayKey =
 export interface QuickDay {
   key: QuickDayKey
   day: string
-}
-
-const MS_PER_DAY = 24 * 60 * 60 * 1000
-
-/** `day` moved by `n` calendar days, counted in UTC so no DST can bend it. */
-export function addDays(day: string, n: number): string {
-  const [year = 0, month = 1, date = 1] = day.split('-').map(Number)
-  return new Date(Date.UTC(year, month - 1, date) + n * MS_PER_DAY).toISOString().slice(0, 10)
 }
 
 /**

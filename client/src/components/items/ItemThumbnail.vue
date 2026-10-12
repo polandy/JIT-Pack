@@ -41,7 +41,7 @@ watch(
   async () => {
     const mine = ++generation
     release()
-    const resolved = await orchestrator.itemImageUrl(props.item)
+    const resolved = await orchestrator.images.itemImageUrl(props.item)
     if (mine !== generation) {
       revoke(resolved)
       return

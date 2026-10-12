@@ -6,14 +6,15 @@
  * the packing mutations. A packing line's check-off never comes through here;
  * it is bound into the line by the packing side (`kernel/shoppingSources.ts`).
  */
-import { nextPosition } from '@/domain/handOrder'
+import { nextPosition } from '@/domain/shared/handOrder'
 import { newId } from '@/lib/ids'
 import type { PackingCloseCrossing } from '@/kernel/packingClose'
 import type { ShoppingLine, ShoppingSource } from '@/kernel/shoppingSources'
 import { dbBool } from '@/sync/columns'
 import type { ModuleHost } from '@/sync/featureModule'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL } from '@/types/domain'
-import type { ShoppingEntry, ShoppingMode } from '@/types/domain'
+import type { ShoppingMode } from '@/types/domain'
+import type { ShoppingEntry } from './types'
 import { TABLE } from '@/api/tables'
 
 /** The key prefix that keeps an own entry's line apart from any source's. */

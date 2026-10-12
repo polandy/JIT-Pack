@@ -5,7 +5,7 @@ import {
   openRowMenu,
   openTasks,
   removeTaskFromSheet,
-  addTripTodo,
+  addOwnTask,
   packRow,
   row,
   startTrip,
@@ -180,9 +180,9 @@ test.describe('FR-25.31 — the list takes back what it wrote', () => {
   }) => {
     test.slow()
     await tripWithRows(page, ['Zelt'], 'Rückgängigprobe')
-    await addTripTodo(page, 'Pass erneuern')
+    await addOwnTask(page, 'Pass erneuern')
     const section = await openTasks(page, 'before')
-    const task = section.getByTestId('trip-todo-Pass erneuern')
+    const task = section.getByTestId('trip-task-Pass erneuern')
 
     await removeTaskFromSheet(page, 'Pass erneuern')
     await expect(task).toHaveCount(0)
@@ -201,8 +201,8 @@ test.describe('FR-25.31 — the list takes back what it wrote', () => {
     const reloadedComposer = await openListComposer(page, 'm25')
     // The input rendering is the positive signal that the list is there —
     // without it, „the task is gone" is also what an empty screen says.
-    await expect(reloadedComposer.getByTestId('trip-todo-input')).toBeVisible()
-    await expect(reloaded.getByTestId('trip-todo-Pass erneuern')).toHaveCount(0)
+    await expect(reloadedComposer.getByTestId('trip-task-input')).toBeVisible()
+    await expect(reloaded.getByTestId('trip-task-Pass erneuern')).toHaveCount(0)
   })
 
   // E2E-M4-125: two menu acts whose undo is the opposite act — bringing a

@@ -43,16 +43,20 @@ function packed(label: string, over: Partial<ActivityEntry> = {}): ActivityEntry
 const page = (entries: ActivityEntry[], before = 0): ActivityListResponse => ({ entries, before })
 
 const orchestrator = {
-  ...identityStub(),
+  identity: {
+    ...identityStub(),
+    fetchUsers: vi.fn(() =>
+      Promise.resolve([
+        { user_id: 'u-andy', display_name: 'Andy' },
+        { user_id: 'u-stella', display_name: 'Stella' },
+      ]),
+    ),
+  },
   now: () => NOW,
-  fetchTripActivity: vi.fn<(tripId: string, before?: number) => Promise<ActivityListResponse>>(),
-  fetchInventoryActivity: vi.fn<(before?: number) => Promise<ActivityListResponse>>(),
-  fetchUsers: vi.fn(() =>
-    Promise.resolve([
-      { user_id: 'u-andy', display_name: 'Andy' },
-      { user_id: 'u-stella', display_name: 'Stella' },
-    ]),
-  ),
+  activity: {
+    fetchTripActivity: vi.fn<(tripId: string, before?: number) => Promise<ActivityListResponse>>(),
+    fetchInventoryActivity: vi.fn<(before?: number) => Promise<ActivityListResponse>>(),
+  },
 }
 
 beforeEach(() => {
@@ -60,8 +64,8 @@ beforeEach(() => {
   setLocale('en')
   vi.clearAllMocks()
   collaborative = true
-  orchestrator.fetchTripActivity.mockResolvedValue(page([]))
-  orchestrator.fetchInventoryActivity.mockResolvedValue(page([]))
+  orchestrator.activity.fetchTripActivity.mockResolvedValue(page([]))
+  orchestrator.activity.fetchInventoryActivity.mockResolvedValue(page([]))
 })
 
 async function mountPage(props: { tripId?: string } = { tripId: 'trip-1' }) {
@@ -75,7 +79,7 @@ async function mountPage(props: { tripId?: string } = { tripId: 'trip-1' }) {
 
 describe('ActivityLogPage (M30)', () => {
   it('folds a run of packs into one line that names who and opens to its parts', async () => {
-    orchestrator.fetchTripActivity.mockResolvedValue(
+    orchestrator.activity.fetchTripActivity.mockResolvedValue(
       page([packed('Socken'), packed('Zahnbürste'), packed('Badehose'), packed('Sonnenhut')]),
     )
     const wrapper = await mountPage()
@@ -95,15 +99,15 @@ describe('ActivityLogPage (M30)', () => {
 
   it('names nobody in Single-User, where there is one person', async () => {
     collaborative = false
-    orchestrator.fetchTripActivity.mockResolvedValue(page([packed('Socken')]))
+    orchestrator.activity.fetchTripActivity.mockResolvedValue(page([packed('Socken')]))
     const wrapper = await mountPage()
 
     expect(wrapper.find('[data-testid="activity-meta"]').text()).not.toContain('Andy')
-    expect(orchestrator.fetchUsers).not.toHaveBeenCalled()
+    expect(orchestrator.identity.fetchUsers).not.toHaveBeenCalled()
   })
 
   it('says what a change changed', async () => {
-    orchestrator.fetchTripActivity.mockResolvedValue(
+    orchestrator.activity.fetchTripActivity.mockResolvedValue(
       page([packed('Socken', { changes: { quantity: [2, 3] } })]),
     )
     const wrapper = await mountPage()
@@ -114,7 +118,7 @@ describe('ActivityLogPage (M30)', () => {
   })
 
   it('reads the older page below the cursor, and offers no more once at the start', async () => {
-    orchestrator.fetchTripActivity
+    orchestrator.activity.fetchTripActivity
       .mockResolvedValueOnce(page([packed('Socken')], 7))
       .mockResolvedValueOnce(page([packed('Zelt', { actor_user_id: 'u-stella' })]))
     const wrapper = await mountPage()
@@ -122,24 +126,24 @@ describe('ActivityLogPage (M30)', () => {
     await wrapper.find('[data-testid="activity-more"]').trigger('click')
     await flushPromises()
 
-    expect(orchestrator.fetchTripActivity).toHaveBeenLastCalledWith('trip-1', 7)
+    expect(orchestrator.activity.fetchTripActivity).toHaveBeenLastCalledWith('trip-1', 7)
     expect(wrapper.findAll('[data-testid="activity-row"]')).toHaveLength(2)
     expect(wrapper.find('[data-testid="activity-more"]').exists()).toBe(false)
   })
 
   it('reads the inventory log without a trip', async () => {
-    orchestrator.fetchInventoryActivity.mockResolvedValue(
+    orchestrator.activity.fetchInventoryActivity.mockResolvedValue(
       page([packed('Stirnlampe', { entity_table: 'items', op: 'insert', changes: {} })]),
     )
     const wrapper = await mountPage({})
 
-    expect(orchestrator.fetchTripActivity).not.toHaveBeenCalled()
+    expect(orchestrator.activity.fetchTripActivity).not.toHaveBeenCalled()
     expect(wrapper.find('[data-testid="activity-what"]').text()).toContain(t('items.title'))
   })
 
   it('says the log is empty only once it was read, and unavailable when it could not be', async () => {
     let resolve!: (p: ActivityListResponse) => void
-    orchestrator.fetchTripActivity.mockReturnValue(new Promise((r) => (resolve = r)))
+    orchestrator.activity.fetchTripActivity.mockReturnValue(new Promise((r) => (resolve = r)))
     const wrapper = mount(ActivityLogPage, {
       props: { tripId: 'trip-1' },
       global: { provide: { [ORCHESTRATOR]: orchestrator } },
@@ -150,7 +154,7 @@ describe('ActivityLogPage (M30)', () => {
     await flushPromises()
     expect(wrapper.find('[data-testid="activity-empty"]').text()).toContain(t('activity.empty'))
 
-    orchestrator.fetchTripActivity.mockRejectedValue(new Error('offline'))
+    orchestrator.activity.fetchTripActivity.mockRejectedValue(new Error('offline'))
     const failed = await mountPage()
     expect(failed.find('[data-testid="activity-empty"]').text()).toContain(
       t('activity.unavailable'),

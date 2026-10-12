@@ -6,6 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { useTripStore } from '@/stores/tripStore'
 import type { PullResponse, PushResponse } from '@/api/types'
 import { installHarness } from '@/__tests__/harness'
@@ -35,7 +36,7 @@ function mockPull() {
 }
 
 function newOrchestrator() {
-  return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+  return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null, now: fixedClock })
 }
 
 function pushedMutations(
@@ -52,7 +53,7 @@ describe('membership actions', () => {
     mockPush()
     mockPull()
 
-    const memberId = orch.addTripMember('trip-1', 'user-b', 'editor')
+    const memberId = orch.membership.addTripMember('trip-1', 'user-b', 'editor')
 
     const members = tripStore.getMembers('trip-1')
     expect(members).toHaveLength(1)
@@ -89,7 +90,7 @@ describe('membership actions', () => {
     mockPush()
     mockPull()
 
-    orch.setTripMemberRole(tripStore.getMembers('trip-1')[0]!, 'admin')
+    orch.membership.setTripMemberRole(tripStore.getMembers('trip-1')[0]!, 'admin')
 
     expect(tripStore.getMembers('trip-1')[0]!.role).toBe('admin')
     await vi.waitFor(() => expect(fetchMock.mock.calls.length).toBe(2))
@@ -117,7 +118,7 @@ describe('membership actions', () => {
     mockPush()
     mockPull()
 
-    orch.removeTripMember('mem-1')
+    orch.membership.removeTripMember('mem-1')
 
     expect(tripStore.getMembers('trip-1')).toHaveLength(0)
     await vi.waitFor(() => expect(fetchMock.mock.calls.length).toBe(2))
@@ -157,7 +158,7 @@ describe('wizard sharing step (M3 step 2, FR-4.5)', () => {
     mockPush()
     mockPull()
 
-    const tripId = orch.createTripFromWizard({
+    const tripId = orch.tripCreation.createTripFromWizard({
       name: 'Geteilt',
       year: 2026,
       startDate: null,
@@ -203,7 +204,7 @@ describe('user directory (GET /users)', () => {
       ),
     )
 
-    const users = await orch.fetchUsers()
+    const users = await orch.identity.fetchUsers()
 
     expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/users')
     expect(users.map((u) => u.display_name)).toEqual(['Andy', 'Sarah'])
@@ -213,6 +214,6 @@ describe('user directory (GET /users)', () => {
     const orch = newOrchestrator()
     fetchMock.mockRejectedValueOnce(new TypeError('network down'))
 
-    expect(await orch.fetchUsers()).toEqual([])
+    expect(await orch.identity.fetchUsers()).toEqual([])
   })
 })

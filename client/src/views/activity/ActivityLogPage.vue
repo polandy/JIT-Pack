@@ -70,7 +70,7 @@ const orchestrator = useOrchestrator()
 const trips = useTripStore()
 /** The feature modules' readings of their own rows, bound by `App.vue`. */
 const readers = inject(ACTIVITY_READERS, {})
-const { directory, load: loadIdentity } = useIdentity(orchestrator)
+const { directory, load: loadIdentity } = useIdentity(orchestrator.identity)
 
 /** Single-User has one person; a name on every line would say nothing. */
 const namesPeople = hasCollaborativeSession()
@@ -91,8 +91,8 @@ const open = ref<Set<string>>(new Set())
 
 function fetchPage(cursor?: number) {
   return props.tripId
-    ? orchestrator.fetchTripActivity(props.tripId, cursor)
-    : orchestrator.fetchInventoryActivity(cursor)
+    ? orchestrator.activity.fetchTripActivity(props.tripId, cursor)
+    : orchestrator.activity.fetchInventoryActivity(cursor)
 }
 
 async function load() {
@@ -144,8 +144,8 @@ const SHOWN_FIELDS: ReadonlySet<string> = new Set(
 function isTask(commentId: string): boolean | undefined {
   if (!props.tripId) return undefined
   const id = props.tripId
-  if (trips.getTodos(id).some((c) => c.id === commentId)) return true
-  if (trips.getTripTodos(id).some((c) => c.id === commentId)) return true
+  if (trips.getPrepTasks(id).some((c) => c.id === commentId)) return true
+  if (trips.getOwnTasks(id).some((c) => c.id === commentId)) return true
   if (trips.getComments(id).some((c) => c.id === commentId)) return false
   return undefined
 }

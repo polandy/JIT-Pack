@@ -1,6 +1,7 @@
-// Package store — travelers.go holds the one rule the trip partition's
+// travelers.go holds the one rule the trip partition's
 // push path enforces about travelers.linked_user_id (FR-2.5, ADR-058):
 // a link may only ever name a current trip_members row of the same trip.
+
 package store
 
 import (
@@ -11,8 +12,8 @@ import (
 )
 
 // validTravelerLink enforces that linked_user_id names a current member
-// of the traveler's own trip. It is the one thing internal/api's
-// notification pipeline (notificationrules.go) trusts about every
+// of the traveler's own trip. It is the one thing internal/notify's
+// notification rules (rules.go) trust about every
 // recipient it is handed: a link outside trip_members would point a
 // notification's deep link at a trip the recipient's device cannot pull.
 //

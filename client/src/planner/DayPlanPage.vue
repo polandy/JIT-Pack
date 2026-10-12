@@ -32,7 +32,7 @@ import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { shortDueDay } from '@/lib/taskDueText'
 import { presentToast } from '@/composables/shared/toast'
 import { tripIdeasPath } from '@/router/paths'
-import type { DayEntry, Idea } from '@/types/domain'
+import type { DayEntry, Idea } from './types'
 import { createPlannerActions, type DayEntryFields } from './actions'
 import DayEntrySheet from './DayEntrySheet.vue'
 import DayLineRow from './DayLineRow.vue'
@@ -49,7 +49,6 @@ import {
   IDEA_LINE_PREFIX,
   ideasOutsideTrip,
   ideasWithExcursion,
-  nextDay,
   openingDay,
   openingFilter,
   tripDays,
@@ -58,6 +57,7 @@ import {
   type DayLine,
 } from './domain/dayPlan'
 import { connectionDay } from './domain/connections'
+import { addDays } from '@/domain/shared/calendar'
 import { usePageLinks } from './usePageLinks'
 import { usePlannerStore } from './store'
 
@@ -73,7 +73,11 @@ const travelersOf = inject(DAY_PLAN_TRAVELERS, () => [])
 const travelers = computed(() => travelersOf(props.tripId))
 
 const { trip, loaded, ensure } = useTripScreen(props.tripId, orchestrator)
-const { myUserId, nameOf, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator)
+const {
+  myUserId,
+  nameOf,
+  load: loadIdentity,
+} = useTripIdentity(props.tripId, orchestrator.identity)
 
 onMounted(async () => {
   await ensure()
@@ -152,7 +156,7 @@ const chosenDay = computed(() => narrowed(chosen.value ? dayLines(chosen.value, 
 const chosenLines = computed(() => chosenDay.value.lines)
 const tomorrow = computed(() => {
   if (!chosen.value) return null
-  const day = nextDay(chosen.value)
+  const day = addDays(chosen.value, 1)
   return days.value.includes(day) ? day : null
 })
 const tomorrowDay = computed(() =>

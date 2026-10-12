@@ -42,8 +42,9 @@
   * **Two sections**, *Vor der Reise* (`m6-before`) and *Vor Ort* (`m6-local`), each a `SectionHead` whose count is
     **what stands under it** (*„N offen"*). **A list with nothing open under its heading** — also when its last open
     lines stand in the *Fällig* block, since a heading over nothing reads as a list left over — leaves reading order for
-    **one line at the end of the screen** (`RestLine`, M25 alike): *„Vor der Reise · nichts offen"*, a statement; *„· 1
-    fällig"* in place of *nichts offen* while the block holds some of its lines; *„· 2 gekauft ›"* once something was
+    **one line at the end of the screen** (`RestLine`; the rule is `usePhasedShelves`, shared with M25): *„Vor der
+    Reise · nichts offen"*, a statement; *„· 1 fällig"* in place of *nichts offen* while the block holds some of its
+    lines; *„· 2 gekauft ›"* once something was
     bought, a fold that opens onto the bought rows directly (`m6-before-fold` / `m6-local-fold`). Inside each: the
     packing list's rows in that mode first, **combined under one *„Packliste"* heading regardless of category** (a
     packing category is not this list's tag), then the list's own entries — **a section per tag, A–Z, then the untagged
@@ -75,7 +76,7 @@
   visit, and *＋ Tag*. A chip selected files the next entry and stays selected after the add; a second tap on it
   unselects and the chip stays. *＋ Tag* (carrying what was typed in the field), and a tap on an own entry's name, open
   the **entry sheet**, laid out like the packing list's creation sheet (`CreateItemSheet.vue`): head *Neuer Eintrag* /
-  *Eintrag bearbeiten* with the close, a **Name** field, M10's **search-or-create mask** (`ShoppingTagChooser.vue`, the
+  *Eintrag bearbeiten* with the close, a **Name** field, M10's **search-or-create mask** (`ShoppingTagPicker.vue`, the
   shape of `TagChooser.vue`: a search field *„Tags suchen oder anlegen…"*, the chosen tag as a chip with its ✕, the
   matching tags as chips, a dashed *„… neu anlegen"* chip for a name nothing carries — matched case-insensitively, Enter
   chooses or creates — and a summary line) and one button, *Hinzufügen* or *Speichern*, disabled while the name is

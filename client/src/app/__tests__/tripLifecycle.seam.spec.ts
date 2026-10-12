@@ -115,7 +115,7 @@ describe('createTripLifecycleActions without an orchestrator', () => {
 
     expect(report).toMatchObject({ groupName: 'Makro Fotografie', added: 1 })
     // Each of the three is a different edge: the row is this group's own
-    // write, the todo goes through the comment group, and the registration
+    // write, the preparation goes through the comment group, and the registration
     // is the master-partition half (P-3).
     expect(tablesQueued()).toContain(TABLE.tripItems)
     expect(tablesQueued()).toContain(TABLE.comments)

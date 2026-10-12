@@ -5,17 +5,20 @@ package api
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 
+	"jitpack/internal/notify"
 	"jitpack/internal/store"
 	syncpkg "jitpack/internal/sync"
 )
@@ -51,12 +54,9 @@ type Server struct {
 	// wsIdleWatch decides the context a single WebSocket read waits on.
 	// Never nil, see newServer; replaced only by a test.
 	wsIdleWatch idleWatchFunc
-	// Web Push (NFR-4.6): VAPID keypair lazily loaded/generated via the
-	// store; contact is the RFC 8292 sub claim.
-	pushContact string
-	vapidMu     sync.Mutex
-	vapidPub    string
-	vapidPriv   string
+	// notifier is the notification sub-domain (FR-6.2, NFR-4.6): who a
+	// push or a takeover notifies, the daily reminder and Web Push.
+	notifier *notify.Notifier
 	// version is the release tag this binary was built as (Options.Version);
 	// empty in a build that names none.
 	version string
@@ -70,37 +70,23 @@ type Server struct {
 	// adminEmails (FR-23.1): the lowercased Options.AdminEmails
 	// allowlist, matched against the token's email claim.
 	adminEmails map[string]bool
-	// detached counts the background work a request started and then
-	// stopped waiting for — today only Web Push delivery. See
-	// WaitDetached for what it is counted for.
-	detached sync.WaitGroup
+	// logger is the base every request-scoped logger (ARCH-08b) derives
+	// from. Never nil, see newServer.
+	logger *slog.Logger
 }
 
-// WaitDetached blocks until the background work started by requests
-// already served has finished, or until ctx is done — in which case it
-// returns ctx.Err() and that work is abandoned mid-flight.
-//
-// It exists because a detached delivery is not a fire-and-forget in the
-// only moment that matters: process shutdown. A notification created a
-// millisecond before SIGTERM has already answered its push and pinged
-// the WebSocket, and its Web Push send is the one part still in the air
-// — exiting under it drops the notification for exactly the clients it
-// was invented for, the backgrounded and the closed ones (NFR-4.6).
-//
-// Call it only once the server has stopped accepting requests: it makes
-// no promise about work a request starts while it waits.
+// WaitDetached blocks until the Web Push deliveries the requests already
+// served started have finished, or until ctx is done — notify.Notifier.Wait,
+// which says why shutdown needs it. Call it only once the server has stopped
+// accepting requests.
 func (s *Server) WaitDetached(ctx context.Context) error {
-	done := make(chan struct{})
-	go func() {
-		s.detached.Wait()
-		close(done)
-	}()
-	select {
-	case <-done:
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return s.notifier.Wait(ctx)
+}
+
+// RunTaskReminders runs FR-7.11's daily reminder at `at` past midnight
+// until ctx ends — notify.Notifier.RunReminders.
+func (s *Server) RunTaskReminders(ctx context.Context, at time.Duration) {
+	s.notifier.RunReminders(ctx, at)
 }
 
 // isAdminEmail resolves the FR-23.1 allowlist; a token without an
@@ -122,12 +108,12 @@ func newServer(st *store.Store, opts Options) *Server {
 	s := &Server{
 		store:          st,
 		instance:       InstanceConfigResponse{Currency: opts.Currency, MapTiles: !opts.NoMapTiles, Timetable: !opts.NoTimetable, RoutingURL: opts.RoutingURL},
-		pushContact:    opts.PushContact,
 		wsIdleOverride: opts.WSIdle,
 		wsIdleWatch:    idleDeadline,
 		adminEmails:    emailSet(opts.AdminEmails),
 		now:            opts.Now,
 		version:        opts.Version,
+		logger:         opts.Logger,
 	}
 	// The gate reads s.identity, which both constructors fill in after
 	// this one returns — a method value is what makes that legal.
@@ -135,8 +121,13 @@ func newServer(st *store.Store, opts Options) *Server {
 	if s.now == nil {
 		s.now = time.Now
 	}
+	if s.logger == nil {
+		s.logger = slog.Default()
+	}
+	s.hub.logger = s.logger
 	// FR-29.19: a shared position is stamped with the server's clock.
 	s.hub.now = func() time.Time { return s.now() }
+	s.notifier = notify.New(st, s.hub, notify.Options{Contact: opts.PushContact, Now: s.now})
 	// After the clock is settled, and reading it through a closure rather
 	// than by value: the checker's idea of "a day ago" must be the
 	// server's own clock, including the one a test injects (G-4).
@@ -144,6 +135,9 @@ func newServer(st *store.Store, opts Options) *Server {
 	s.previews = opts.LinkPreviews
 	if opts.OIDC != nil {
 		s.oidc = newOIDCBroker(*opts.OIDC)
+		if opts.OIDC.JWKS != nil {
+			opts.OIDC.JWKS.SetLogger(s.logger)
+		}
 	}
 	return s
 }
@@ -184,92 +178,96 @@ func pattern(method, route string) string { return method + " " + route }
 // Handler returns the routed HTTP handler.
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
+	// handle is the one place a route reaches the mux, so a route added
+	// here cannot forget withLogging — attached at registration, rather
+	// than at each handler, because r.Pattern (ARCH-08b's route
+	// attribute) is only set once the mux has matched, and every
+	// handler below sees it already on r.Context() either way.
+	handle := func(method, route string, next http.HandlerFunc) {
+		mux.HandleFunc(pattern(method, route), s.withLogging(next))
+	}
 	// Grouped by scope, because the scope is what the path leads with
 	// (NFR-4.14, ADR-027). The paths themselves are declared in wire.go and
 	// generated into the client from there; what belongs here is the method
 	// and the middleware, which are the server's alone.
 
 	// Trip scope.
-	mux.HandleFunc(pattern(http.MethodGet, RouteTripSync), s.authed(s.member(s.handlePull)))
-	mux.HandleFunc(pattern(http.MethodPost, RouteTripSync), s.authed(s.member(s.handlePush)))
-	mux.HandleFunc(pattern(http.MethodGet, RouteTripConflicts), s.authed(s.member(s.handleListConflicts)))
+	handle(http.MethodGet, RouteTripSync, s.authed(s.member(s.handlePull)))
+	handle(http.MethodPost, RouteTripSync, s.authed(s.member(s.handlePush)))
+	handle(http.MethodGet, RouteTripConflicts, s.authed(s.member(s.handleListConflicts)))
 	// The revert half of NFR-4.2a, one endpoint per partition beside its
 	// list — a conflict belongs to the partition it was pushed to.
-	mux.HandleFunc(pattern(http.MethodPost, RouteTripConflictRevert), s.authed(s.member(s.handleRevertConflict)))
+	handle(http.MethodPost, RouteTripConflictRevert, s.authed(s.member(s.handleRevertConflict)))
 	// The one server-side part of G-3's lock (FR-5.7): a takeover has to
 	// be stamped and has to notify, so it is an RPC rather than a mutation.
-	mux.HandleFunc(pattern(http.MethodPost, RouteTripItemTakeover), s.authed(s.member(s.handleTakeover)))
-	mux.HandleFunc(pattern(http.MethodGet, RouteTripLockEvents), s.authed(s.member(s.handleListLockEvents)))
-	mux.HandleFunc(pattern(http.MethodGet, RouteTripActivity), s.authed(s.member(s.handleTripActivity)))
-	mux.HandleFunc(pattern(http.MethodGet, RouteTripExportCSV), s.authed(s.member(s.handleExportTripCSV)))
-	mux.HandleFunc(pattern(http.MethodGet, RouteTripIdeaImage), s.authed(s.member(s.handleGetIdeaImage)))
-	mux.HandleFunc(pattern(http.MethodPut, RouteTripIdeaImage), s.authed(s.member(s.handlePutIdeaImage)))
-	mux.HandleFunc(pattern(http.MethodGet, RouteTripIdeaTrack), s.authed(s.member(s.handleGetIdeaTrack)))
-	mux.HandleFunc(pattern(http.MethodPut, RouteTripIdeaTrack), s.authed(s.member(s.handlePutIdeaTrack)))
-	mux.HandleFunc(pattern(http.MethodGet, RouteTripExcursionTrack), s.authed(s.member(s.handleGetExcursionTrack)))
-	mux.HandleFunc(pattern(http.MethodPut, RouteTripExcursionTrack), s.authed(s.member(s.handlePutExcursionTrack)))
-	mux.HandleFunc(pattern(http.MethodPost, RouteTripLinkPreview), s.authed(s.member(s.handleLinkPreview)))
-	mux.HandleFunc(pattern(http.MethodPost, RouteTripLinkPreviewImage), s.authed(s.member(s.handleLinkPreviewImage)))
+	handle(http.MethodPost, RouteTripItemTakeover, s.authed(s.member(s.handleTakeover)))
+	handle(http.MethodGet, RouteTripLockEvents, s.authed(s.member(s.handleListLockEvents)))
+	handle(http.MethodGet, RouteTripActivity, s.authed(s.member(s.handleTripActivity)))
+	handle(http.MethodGet, RouteTripExportCSV, s.authed(s.member(s.handleExportTripCSV)))
+	handle(http.MethodGet, RouteTripIdeaImage, s.authed(s.member(s.handleGetIdeaImage)))
+	handle(http.MethodPut, RouteTripIdeaImage, s.authed(s.member(s.handlePutIdeaImage)))
+	handle(http.MethodGet, RouteTripIdeaTrack, s.authed(s.member(s.handleGetIdeaTrack)))
+	handle(http.MethodPut, RouteTripIdeaTrack, s.authed(s.member(s.handlePutIdeaTrack)))
+	handle(http.MethodGet, RouteTripExcursionTrack, s.authed(s.member(s.handleGetExcursionTrack)))
+	handle(http.MethodPut, RouteTripExcursionTrack, s.authed(s.member(s.handlePutExcursionTrack)))
+	handle(http.MethodPost, RouteTripLinkPreview, s.authed(s.member(s.handleLinkPreview)))
+	handle(http.MethodPost, RouteTripLinkPreviewImage, s.authed(s.member(s.handleLinkPreviewImage)))
 
 	// Master scope.
-	mux.HandleFunc(pattern(http.MethodGet, RouteMasterSync), s.authed(s.handlePullMaster))
-	mux.HandleFunc(pattern(http.MethodPost, RouteMasterSync), s.authed(s.handlePushMaster))
-	mux.HandleFunc(pattern(http.MethodGet, RouteMasterConflicts), s.authed(s.handleListMasterConflicts))
-	mux.HandleFunc(pattern(http.MethodGet, RouteMasterActivity), s.authed(s.handleMasterActivity))
-	mux.HandleFunc(pattern(http.MethodPost, RouteMasterConflictRevert), s.authed(s.handleRevertMasterConflict))
-	mux.HandleFunc(pattern(http.MethodDelete, RouteMasterTag),
-		s.authed(s.deleteMasterRow(store.TableTags, PathTagID)))
-	mux.HandleFunc(pattern(http.MethodDelete, RouteMasterItem),
-		s.authed(s.deleteMasterRow(store.TableItems, PathItemID)))
-	mux.HandleFunc(pattern(http.MethodPost, RouteMasterItemPrune), s.authed(s.handlePruneMasterItem))
-	mux.HandleFunc(pattern(http.MethodDelete, RouteMasterTemplate),
-		s.authed(s.deleteMasterRow(store.TableTemplates, PathTemplateID)))
-	mux.HandleFunc(pattern(http.MethodDelete, RouteMasterTemplateItem),
-		s.authed(s.deleteMasterRow(store.TableTemplateItems, PathTemplateItemID)))
+	handle(http.MethodGet, RouteMasterSync, s.authed(s.handlePullMaster))
+	handle(http.MethodPost, RouteMasterSync, s.authed(s.handlePushMaster))
+	handle(http.MethodGet, RouteMasterConflicts, s.authed(s.handleListMasterConflicts))
+	handle(http.MethodGet, RouteMasterActivity, s.authed(s.handleMasterActivity))
+	handle(http.MethodPost, RouteMasterConflictRevert, s.authed(s.handleRevertMasterConflict))
+	handle(http.MethodDelete, RouteMasterTag, s.authed(s.deleteMasterRow(store.TableTags, PathTagID)))
+	handle(http.MethodDelete, RouteMasterItem, s.authed(s.deleteMasterRow(store.TableItems, PathItemID)))
+	handle(http.MethodPost, RouteMasterItemPrune, s.authed(s.handlePruneMasterItem))
+	handle(http.MethodDelete, RouteMasterTemplate, s.authed(s.deleteMasterRow(store.TableTemplates, PathTemplateID)))
+	handle(http.MethodDelete, RouteMasterTemplateItem, s.authed(s.deleteMasterRow(store.TableTemplateItems, PathTemplateItemID)))
 
 	// The caller's own scope.
-	mux.HandleFunc(pattern(http.MethodGet, RouteMe), s.authed(s.handleMe))
-	mux.HandleFunc(pattern(http.MethodGet, RouteMeNotificationPrefs), s.authed(s.handleGetNotificationPrefs))
-	mux.HandleFunc(pattern(http.MethodPut, RouteMeNotificationPrefs), s.authed(s.handlePutNotificationPrefs))
-	mux.HandleFunc(pattern(http.MethodGet, RouteMeExport), s.authed(s.handleExportFull))
-	mux.HandleFunc(pattern(http.MethodPost, RouteMeTokens), s.authed(s.handleMintAPIToken))
+	handle(http.MethodGet, RouteMe, s.authed(s.handleMe))
+	handle(http.MethodGet, RouteMeNotificationPrefs, s.authed(s.handleGetNotificationPrefs))
+	handle(http.MethodPut, RouteMeNotificationPrefs, s.authed(s.handlePutNotificationPrefs))
+	handle(http.MethodGet, RouteMeExport, s.authed(s.handleExportFull))
+	handle(http.MethodPost, RouteMeTokens, s.authed(s.handleMintAPIToken))
 
 	// User scope.
-	mux.HandleFunc(pattern(http.MethodGet, RouteUsers), s.authed(s.handleListUsers))
-	mux.HandleFunc(pattern(http.MethodGet, RouteUserAvatar), s.handleGetAvatar)
-	mux.HandleFunc(pattern(http.MethodPut, RouteUserAvatar), s.authed(s.self(s.handlePutAvatar)))
-	mux.HandleFunc(pattern(http.MethodPut, RouteUserDisplayName), s.authed(s.self(s.handlePutDisplayName)))
+	handle(http.MethodGet, RouteUsers, s.authed(s.handleListUsers))
+	handle(http.MethodGet, RouteUserAvatar, s.handleGetAvatar)
+	handle(http.MethodPut, RouteUserAvatar, s.authed(s.self(s.handlePutAvatar)))
+	handle(http.MethodPut, RouteUserDisplayName, s.authed(s.self(s.handlePutDisplayName)))
 
 	// Item scope. Item images (FR-22): GET public like avatars; PUT/DELETE
 	// need only authentication (FR-22.6) — items carry no trip role to check.
-	mux.HandleFunc(pattern(http.MethodGet, RouteItemImage), s.handleGetItemImage)
-	mux.HandleFunc(pattern(http.MethodPut, RouteItemImage), s.authed(s.handlePutItemImage))
-	mux.HandleFunc(pattern(http.MethodDelete, RouteItemImage), s.authed(s.handleDeleteItemImage))
+	handle(http.MethodGet, RouteItemImage, s.handleGetItemImage)
+	handle(http.MethodPut, RouteItemImage, s.authed(s.handlePutItemImage))
+	handle(http.MethodDelete, RouteItemImage, s.authed(s.handleDeleteItemImage))
 
 	// Notification scope.
-	mux.HandleFunc(pattern(http.MethodGet, RouteNotifications), s.authed(s.handleListNotifications))
-	mux.HandleFunc(pattern(http.MethodPost, RouteNotificationRead), s.authed(s.handleMarkNotificationRead))
+	handle(http.MethodGet, RouteNotifications, s.authed(s.handleListNotifications))
+	handle(http.MethodPost, RouteNotificationRead, s.authed(s.handleMarkNotificationRead))
 
 	// Web Push scope.
-	mux.HandleFunc(pattern(http.MethodGet, RoutePushVAPIDKey), s.authed(s.handleGetVAPIDKey))
-	mux.HandleFunc(pattern(http.MethodPost, RoutePushSubscriptions), s.authed(s.handleRegisterPushSubscription))
-	mux.HandleFunc(pattern(http.MethodDelete, RoutePushSubscriptions), s.authed(s.handleDeletePushSubscription))
+	handle(http.MethodGet, RoutePushVAPIDKey, s.authed(s.handleGetVAPIDKey))
+	handle(http.MethodPost, RoutePushSubscriptions, s.authed(s.handleRegisterPushSubscription))
+	handle(http.MethodDelete, RoutePushSubscriptions, s.authed(s.handleDeletePushSubscription))
 
 	// Admin scope.
-	mux.HandleFunc(pattern(http.MethodGet, RouteAdminUsers), s.authed(s.adminOnly(s.handleAdminUsers)))
-	mux.HandleFunc(pattern(http.MethodPost, RouteAdminDeactivateUser), s.authed(s.adminOnly(s.handleDeactivateUser)))
-	mux.HandleFunc(pattern(http.MethodPost, RouteAdminReactivateUser), s.authed(s.adminOnly(s.handleReactivateUser)))
-	mux.HandleFunc(pattern(http.MethodDelete, RouteAdminResetAvatar), s.authed(s.adminOnly(s.handleAdminResetAvatar)))
-	mux.HandleFunc(pattern(http.MethodDelete, RouteAdminResetDisplayName), s.authed(s.adminOnly(s.handleAdminResetDisplayName)))
+	handle(http.MethodGet, RouteAdminUsers, s.authed(s.adminOnly(s.handleAdminUsers)))
+	handle(http.MethodPost, RouteAdminDeactivateUser, s.authed(s.adminOnly(s.handleDeactivateUser)))
+	handle(http.MethodPost, RouteAdminReactivateUser, s.authed(s.adminOnly(s.handleReactivateUser)))
+	handle(http.MethodDelete, RouteAdminResetAvatar, s.authed(s.adminOnly(s.handleAdminResetAvatar)))
+	handle(http.MethodDelete, RouteAdminResetDisplayName, s.authed(s.adminOnly(s.handleAdminResetDisplayName)))
 
 	// Instance scope: no caller, no partition.
-	mux.HandleFunc(pattern(http.MethodPost, RouteAuthToken), s.handleAuthToken)
-	mux.HandleFunc(pattern(http.MethodPost, RouteAuthRefresh), s.handleAuthRefresh)
-	mux.HandleFunc(pattern(http.MethodGet, RouteAuthConfig), s.handleAuthConfig)
-	mux.HandleFunc(pattern(http.MethodGet, RouteInstanceConfig), s.handleInstanceConfig)
-	mux.HandleFunc(pattern(http.MethodGet, RouteInstanceUpdate), s.handleInstanceUpdate)
-	mux.HandleFunc(pattern(http.MethodGet, RouteWS), s.wsAuth(s.handleWS))
-	mux.HandleFunc(pattern(http.MethodGet, RouteHealth), func(w http.ResponseWriter, _ *http.Request) {
+	handle(http.MethodPost, RouteAuthToken, s.handleAuthToken)
+	handle(http.MethodPost, RouteAuthRefresh, s.handleAuthRefresh)
+	handle(http.MethodGet, RouteAuthConfig, s.handleAuthConfig)
+	handle(http.MethodGet, RouteInstanceConfig, s.handleInstanceConfig)
+	handle(http.MethodGet, RouteInstanceUpdate, s.handleInstanceUpdate)
+	handle(http.MethodGet, RouteWS, s.wsAuth(s.handleWS))
+	handle(http.MethodGet, RouteHealth, func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 	return mux
@@ -282,7 +280,60 @@ const (
 	// tokenKindKey carries the credential's own kind, so one endpoint —
 	// the mint — can refuse to be called by what it produces (FR-23.7).
 	tokenKindKey
+	// loggerKey carries the request-scoped *slog.Logger withLogging built
+	// (ARCH-08b), so a handler's log line can be tied back to the request
+	// it ran inside.
+	loggerKey
 )
+
+// callerID is the authenticated user id authed stamped onto the request's
+// context, or "" when none was (a route reached without that middleware).
+func callerID(ctx context.Context) string {
+	id, _ := ctx.Value(userIDKey).(string)
+	return id
+}
+
+// withLogger attaches l to ctx for logger to find.
+func withLogger(ctx context.Context, l *slog.Logger) context.Context {
+	return context.WithValue(ctx, loggerKey, l)
+}
+
+// logger is the request-scoped logger withLogging built — carrying
+// method, route and request_id, and caller once authed has run — or
+// slog.Default() when ctx carries none: a background goroutine, or a
+// test that calls a handler directly rather than through Handler().
+func logger(ctx context.Context) *slog.Logger {
+	if l, ok := ctx.Value(loggerKey).(*slog.Logger); ok {
+		return l
+	}
+	return slog.Default()
+}
+
+// requestLogID is a per-request correlation id (ARCH-08b): 8 random bytes,
+// hex-encoded, generated here rather than read from an inbound
+// X-Request-ID — a header the caller fully controls would let one
+// request's log lines be stitched onto another's, or onto none at all.
+func requestLogID() string {
+	b := make([]byte, 8)
+	_, _ = rand.Read(b)
+	return hex.EncodeToString(b)
+}
+
+// withLogging is the one place every route — authenticated or not —
+// gets a request-scoped logger on its context, carrying the attributes
+// that do not depend on who is asking: method, route (the ServeMux
+// pattern r.Pattern, never the raw path or a query — either could repeat
+// a row's content) and request_id. It runs as the innermost step of
+// registration, below authed/member/adminOnly/self, so every one of
+// those — and therefore every handler — sees it already on r.Context();
+// authed is the single place downstream that knows a caller, and adds it
+// to the same logger rather than this middleware existing twice.
+func (s *Server) withLogging(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		l := s.logger.With("method", r.Method, "route", r.Pattern, "request_id", requestLogID())
+		next(w, r.WithContext(withLogger(r.Context(), l)))
+	}
+}
 
 // identityRefusals is the one place a refused identity becomes an HTTP
 // answer, for the same reason the broker's table exists: a refusal must
@@ -307,6 +358,10 @@ func (s *Server) authed(next http.HandlerFunc) http.HandlerFunc {
 			}
 			return
 		}
+		// The caller is only known from here on, so it is added to the
+		// logger withLogging already placed on ctx rather than that
+		// middleware running a second time for authenticated routes.
+		ctx = withLogger(ctx, logger(ctx).With("caller", callerID(ctx)))
 		next(w, r.WithContext(ctx))
 	}
 }
@@ -315,7 +370,7 @@ func (s *Server) authed(next http.HandlerFunc) http.HandlerFunc {
 // endpoints reject with 403, the screen is never merely hidden.
 func (s *Server) adminOnly(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID := r.Context().Value(userIDKey).(string)
+		userID := callerID(r.Context())
 		admin, err := s.store.IsInstanceAdmin(r.Context(), userID)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, ErrInternal, "admin lookup failed")
@@ -332,7 +387,7 @@ func (s *Server) adminOnly(next http.HandlerFunc) http.HandlerFunc {
 func (s *Server) member(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tripID := r.PathValue(PathTripID)
-		userID, _ := r.Context().Value(userIDKey).(string)
+		userID := callerID(r.Context())
 		ok, err := s.identity.isMember(r.Context(), tripID, userID)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, ErrInternal, "membership check failed")
@@ -353,7 +408,7 @@ func (s *Server) member(next http.HandlerFunc) http.HandlerFunc {
 // /admin/users/{userID} endpoints, which carry their own authorization.
 func (s *Server) self(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, _ := r.Context().Value(userIDKey).(string)
+		userID := callerID(r.Context())
 		if !s.identity.ownsProfile(r, userID) {
 			writeError(w, http.StatusForbidden, ErrForbidden, "cannot modify another user's profile")
 			return
@@ -402,7 +457,7 @@ func writePullPage(w http.ResponseWriter, page store.PullPage) {
 
 func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 	tripID := r.PathValue(PathTripID)
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 	out, pushed, ok := applyPushBatch(w, r, func(m syncpkg.Mutation) (store.MutationResult, error) {
 		return s.store.ApplyMutation(r.Context(), tripID, userID, m)
 	})
@@ -420,13 +475,21 @@ func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 	// FR-6.2 side effects last — FR-17.3: no second party in Single-User
 	// Mode, so no detection at all.
 	if s.identity.hasSecondParty() {
-		s.emitNotifications(r.Context(), tripID, userID, pushed)
+		s.notifier.Pushed(r.Context(), tripID, userID, landedMutations(pushed))
 	}
 }
 
-// columnAssignee is whom a task (FR-7.5) or a shopping entry (FR-30.12) is
-// handed to — one column name on both tables.
-const columnAssignee = "assignee_user_id"
+// landedMutations are the mutations of a push that changed the trip — the
+// ones a side effect is owed for.
+func landedMutations(pushed []pushedMutation) []syncpkg.Mutation {
+	out := make([]syncpkg.Mutation, 0, len(pushed))
+	for _, p := range pushed {
+		if p.landed() {
+			out = append(out, p.mut)
+		}
+	}
+	return out
+}
 
 // notifyLockEvents emits item.locked/item.unlocked for state changes
 // that touched packing_now. Over-notifying on merges is fine — the

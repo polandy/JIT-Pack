@@ -63,21 +63,13 @@ import ArchivedTripCard from '@/components/trips/ArchivedTripCard.vue'
 import ClosingPassBanner from '@/components/trips/ClosingPassBanner.vue'
 import PackingClosedCard from '@/components/trips/PackingClosedCard.vue'
 import ClosePackingSheet from '@/components/trips/ClosePackingSheet.vue'
-import TripTaskSheet from '@/components/trips/TripTaskSheet.vue'
+import TripTaskSheet from '@/views/trips/tasks/TripTaskSheet.vue'
 import TravelerProgressStrip from '@/components/trips/TravelerProgressStrip.vue'
 import ItemDetailSheet from '@/components/trips/ItemDetailSheet.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
-import {
-  activeChips as chipsFor,
-  emptyReason as emptyReasonFor,
-  filterFacets as facetsFor,
-  filterSwitches as switchesFor,
-  SWITCH_KEYS,
-  groupingAxis,
-  onlyOthersHidden as isOnlyOthersHidden,
-} from '@/lib/packingFilterPanel'
+import { SWITCH_KEYS, onlyOthersHidden as isOnlyOthersHidden } from '@/lib/packingFilterPanel'
 import { readMode } from '@/mode'
 import { presentToast } from '@/composables/shared/toast'
 import { setHeaderActions, type HeaderAction } from '@/composables/shared/useHeaderActions'
@@ -86,6 +78,7 @@ import { useContextSearch } from '@/composables/useContextSearch'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { useTripScreen } from '@/composables/shared/useTripScreen'
 import { usePackingFilter } from '@/composables/usePackingFilter'
+import { useDesktopLayout } from '@/composables/shared/useDesktopLayout'
 import { buildPackingView } from '@/domain/packingView'
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
@@ -101,7 +94,7 @@ import { ITEM_QUERY_PARAM, tripItemPath, tripPath, tripSubPath } from '@/router/
 import PackingGroupList from './packing/PackingGroupList.vue'
 import PackingHeadline from './packing/PackingHeadline.vue'
 import RowQuantityPopover from './packing/RowQuantityPopover.vue'
-import TripTodosSection from './packing/TripTodosSection.vue'
+import TripTasksSection from './packing/TripTasksSection.vue'
 import { useBrowseAdd } from './packing/useBrowseAdd'
 import { useForWhom } from './packing/useForWhom'
 import { usePackingClose } from './packing/usePackingClose'
@@ -110,6 +103,7 @@ import { usePackingMenus } from './packing/usePackingMenus'
 import { usePackingTasks } from './packing/usePackingTasks'
 import { useRowActions } from './packing/useRowActions'
 import { useRowFacts } from './packing/useRowFacts'
+import { usePackingListShape } from './packing/usePackingListShape'
 import { useRowQuantity } from './packing/useRowQuantity'
 
 const props = defineProps<{ tripId: string; itemId?: string }>()
@@ -125,7 +119,7 @@ const {
   trip,
   rowsLoaded,
   myUserId,
-  participants,
+  memberProfiles,
   nameOf,
   closingPass,
   allItems,
@@ -144,7 +138,7 @@ onMounted(async () => {
   // follows would change. After the drain, not before — the diff must see the
   // rows the pull just brought, or it would offer what another device already
   // applied.
-  orchestrator.proposeTripRefresh(props.tripId)
+  orchestrator.groupRefresh.proposeTripRefresh(props.tripId)
   await core.loadIdentity()
 })
 
@@ -153,8 +147,8 @@ onMounted(async () => {
 // composable because they outlive this component (FR-25.18): the filter
 // for the session, the grouping durably. The search term deliberately
 // does not — see there.
-const { facets, showDone, showOthers, showLate, groupBy, reset, toggleValue, clearFacet } =
-  usePackingFilter(props.tripId)
+const filter = usePackingFilter(props.tripId)
+const { facets, showDone, showOthers, showLate, groupBy, reset, toggleValue, clearFacet } = filter
 
 const {
   term: search,
@@ -162,26 +156,48 @@ const {
   toggle: toggleSearch,
   action: searchAction,
 } = useContextSearch('m4-search')
-const collapsedGroups = ref<string[]>([])
-/** FR-25.24: per-person clusters the user opened; shut is the default. */
-const expandedClusters = ref<string[]>([])
+
+// The folds, the filter panel and the reset — the list's shape, which an
+// excursion's list shares (`usePackingListShape`).
+const {
+  collapsedGroups,
+  expandedClusters,
+  allFolded,
+  toggleFoldAll,
+  toggleGroup,
+  toggleCluster,
+  filterFacets,
+  grouping,
+  filterSwitches,
+  onToggleSwitch,
+  activeChips,
+  emptyReason,
+  searching,
+  resetNarrowing,
+} = usePackingListShape({
+  filter,
+  search: { term: search, isOpen: searchOpen },
+  view: () => view.value,
+  reveals: [SWITCH_KEYS.done, SWITCH_KEYS.others, SWITCH_KEYS.late],
+  menuActive: () => menus.menuActive(),
+})
 const filterOpen = ref(false)
 const quickAdd = ref<InstanceType<typeof QuickAddItem> | null>(null)
 /**
  * FR-7.4: the user's own fold of *Aufgaben für die Reise* this visit; null
- * while untouched, and then the tasks decide (`tripTodosUnfolded`).
+ * while untouched, and then the tasks decide (`tripTasksUnfolded`).
  */
-const tripTodosFold = ref<boolean | null>(null)
+const tripTasksFold = ref<boolean | null>(null)
 /** FR-7.4: the section itself, which the header figure scrolls to. */
-const todosSection = ref<InstanceType<typeof TripTodosSection> | null>(null)
+const tasksSection = ref<InstanceType<typeof TripTasksSection> | null>(null)
 
 /**
- * FR-7.4: the header figure leads to the todos — unfolded, and in view,
+ * FR-7.4: the header figure leads to the tasks — unfolded, and in view,
  * because the header line stays while the section may be scrolled past.
  */
-function revealTripTodos() {
-  tripTodosFold.value = true
-  todosSection.value?.scrollIntoView()
+function revealTripTasks() {
+  tripTasksFold.value = true
+  tasksSection.value?.scrollIntoView()
 }
 
 /** Whether the composer is open — the ＋ has nothing to add while it is. */
@@ -198,7 +214,7 @@ const view = computed(() =>
     items: allItems.value,
     travelers: travelers.value,
     containers: tripStore.getContainers(props.tripId),
-    participants: participants.value,
+    memberProfiles: memberProfiles.value,
     groupBy: groupBy.value,
     showDone: showDone.value || closingPass.value,
     facets: facets.value,
@@ -237,7 +253,7 @@ function closeItem() {
 const forWhom = useForWhom(core, view)
 const facts = useRowFacts(core)
 const acts = useRowActions(core, facts, { openItemId, closeItem })
-const quantity = useRowQuantity(core)
+const quantity = useRowQuantity(core.port)
 const menus = usePackingMenus(core, acts, quantity, forWhom)
 const browse = useBrowseAdd(core, facts)
 const tasks = usePackingTasks(core)
@@ -258,32 +274,24 @@ function openItem(itemId: string) {
   router.replace(tripItemPath(props.tripId, itemId))
 }
 
-/**
- * G-9: below the breakpoint the detail is a bottom sheet; at or above it
- * a persistent side panel beside the list, so selecting another row swaps
- * the panel's content instead of covering the list.
- */
-const isDesktop = ref(window.matchMedia('(min-width: 900px)').matches)
-const breakpoint = window.matchMedia('(min-width: 900px)')
-const onBreakpoint = (event: MediaQueryListEvent) => (isDesktop.value = event.matches)
-breakpoint.addEventListener('change', onBreakpoint)
-onUnmounted(() => breakpoint.removeEventListener('change', onBreakpoint))
+/** G-9: the detail as a bottom sheet, or as a side panel beside the list. */
+const isDesktop = useDesktopLayout()
 
 // --- Who is working here (FR-4.9) ---------------------------------------
 // The roster on M1 lists people by the trip they have *open*, which is not the
 // subscription — the dashboard follows every active trip and never lets go.
 // Ionic keeps a page mounted under the one that replaced it, so leaving is a
 // view event and unmounting only the fallback.
-onIonViewDidEnter(() => orchestrator.setViewing(props.tripId))
-onIonViewWillLeave(() => orchestrator.setViewing(null))
-onUnmounted(() => orchestrator.setViewing(null))
+onIonViewDidEnter(() => orchestrator.presence.setViewing(props.tripId))
+onIonViewWillLeave(() => orchestrator.presence.setViewing(null))
+onUnmounted(() => orchestrator.presence.setViewing(null))
 
 // --- Header line --------------------------------------------------------
 
-const presenceUsers = computed(() => orchestrator.getPresence(props.tripId))
+const presenceUsers = computed(() => orchestrator.presence.getPresence(props.tripId))
 
 const kpis = computed(() =>
-  tripStore.kpis(props.tripId, new Set([...core.removingRows.value, ...core.removingTodos.value])),
+  tripStore.kpis(props.tripId, new Set([...core.removingRows.value, ...core.removingOwn.value])),
 )
 
 /**
@@ -313,14 +321,18 @@ function selectTraveler(value: string) {
  * and after every master pull; nothing is written until one of the two
  * buttons is pressed.
  */
-const groupProposal = computed(() => orchestrator.refreshProposals.value[props.tripId] ?? null)
+const groupProposal = computed(
+  () => orchestrator.groupRefresh.refreshProposals.value[props.tripId] ?? null,
+)
 
 /**
  * FR-27.16: the names on this trip the inventory has moved on from. Derived,
  * like the proposal above, and never stored — the ⋮ entry and M5's line both
  * read it, and it empties itself once the names match.
  */
-const inventoryRenames = computed(() => orchestrator.inventoryRenamesOf(props.tripId))
+const inventoryRenames = computed(() =>
+  orchestrator.inventoryNames.inventoryRenamesOf(props.tripId),
+)
 const inventoryNamesOpen = ref(false)
 
 /** The choice the open row belongs to, for M5's own „Übernehmen". */
@@ -337,21 +349,21 @@ const openItemRename = computed(
 function adoptInventoryNames(chosen: InventoryRename[]) {
   inventoryNamesOpen.value = false
   if (chosen.length === 0) return
-  const undo = orchestrator.adoptInventoryNames(props.tripId, chosen)
+  const undo = orchestrator.inventoryNames.adoptInventoryNames(props.tripId, chosen)
   rowUndo.armUndo(
     undo.adoption.rows.map((r) => r.item),
-    () => orchestrator.restoreInventoryNames(props.tripId, undo),
+    () => orchestrator.inventoryNames.restoreInventoryNames(props.tripId, undo),
   )
   void announceRenamed(chosen.length)
 }
 
 async function applyGroupChanges() {
-  const applied = orchestrator.acceptTripRefresh(props.tripId)
+  const applied = orchestrator.groupRefresh.acceptTripRefresh(props.tripId)
   await reportGroupAnswer(t('trips.proposedApplied', { n: applied?.log.length ?? 0 }))
 }
 
 async function declineGroupChanges() {
-  orchestrator.declineTripRefresh(props.tripId)
+  orchestrator.groupRefresh.declineTripRefresh(props.tripId)
   await reportGroupAnswer(t('trips.proposedDeclined'))
 }
 
@@ -387,36 +399,6 @@ const closingProposals = computed(() =>
 )
 
 // --- App-bar cluster (G-12) --------------------------------------------
-
-const allFolded = computed(
-  () => view.value.groups.length > 0 && view.value.groups.every((g) => g.collapsed),
-)
-
-/** Fold-all turns the list into a table of contents, and back (FR-25.16). */
-function toggleFoldAll() {
-  collapsedGroups.value = allFolded.value ? [] : view.value.groups.map((g) => g.key)
-}
-
-function toggleGroup(key: string) {
-  collapsedGroups.value = collapsedGroups.value.includes(key)
-    ? collapsedGroups.value.filter((k) => k !== key)
-    : [...collapsedGroups.value, key]
-}
-
-/**
- * FR-25.24: the opened set, not the shut one, because a cluster is shut by
- * default. Keyed like a group's fold so a re-render — or packing one
- * instance — does not close what the user just opened.
- */
-function toggleCluster(key: string) {
-  // The release of a hold lands on the overlay rather than on the head, but
-  // a dismissed sheet can still deliver the click — the same swallow the
-  // rows do, or opening the head's menu would also fold it.
-  if (menus.menuActive()) return
-  expandedClusters.value = expandedClusters.value.includes(key)
-    ? expandedClusters.value.filter((k) => k !== key)
-    : [...expandedClusters.value, key]
-}
 
 /**
  * G-12: the cluster acts on *this list*, so it lives in the one app bar
@@ -494,62 +476,7 @@ setHeaderActions(() => {
 
 // --- Empty states (FR-25.11e) ------------------------------------------
 
-const visibleOpenRows = computed(
-  () =>
-    view.value.groups
-      .flatMap((group) => group.entries)
-      .flatMap((entry) => (entry.kind === 'item' ? [entry] : entry.children))
-      .filter((row) => !row.done).length,
-)
-
-// Rows on both sides (FR-25.22): the sentence counts *Sachen* behind the
-// filter, and counting the trip's open **units** on the left-hand side would
-// have a single open row of quantity three report two hidden things on a
-// list hiding nothing.
-const hiddenOpenCount = computed(() => Math.max(view.value.openRowCount - visibleOpenRows.value, 0))
-
-const searching = computed(() => search.value.trim() !== '')
-
 const onlyOthersHidden = computed(() => isOnlyOthersHidden(view.value, search.value))
-
-const emptyReason = computed(() => emptyReasonFor(view.value, search.value, hiddenOpenCount.value))
-
-/**
- * FR-25.11e: a reset that leaves part of the narrowing behind re-renders
- * the same empty screen, so this clears all of it — search, facets and all
- * three reveal switches.
- */
-function resetNarrowing() {
-  search.value = ''
-  searchOpen.value = false
-  reset()
-  showOthers.value = true
-}
-
-// --- The filter panel (FR-25.11) ---------------------------------------
-
-const filterFacets = computed(() => facetsFor(view.value))
-
-const grouping = computed(() => groupingAxis(groupBy.value))
-
-const filterSwitches = computed(() =>
-  switchesFor({
-    showDone: showDone.value,
-    showOthers: showOthers.value,
-    showLate: showLate.value,
-    packedCount: view.value.doneCount,
-    hiddenOtherCount: view.value.hiddenOtherCount,
-    lateCount: view.value.lateCount,
-  }),
-)
-
-function onToggleSwitch(key: string) {
-  if (key === SWITCH_KEYS.done) showDone.value = !showDone.value
-  else if (key === SWITCH_KEYS.late) showLate.value = !showLate.value
-  else showOthers.value = !showOthers.value
-}
-
-const activeChips = computed(() => chipsFor(view.value, facets.value))
 
 async function handleRefresh(event: CustomEvent) {
   const refresher = event.target as HTMLIonRefresherElement
@@ -599,12 +526,12 @@ setHeaderTitle(
         :loaded="rowsLoaded"
         :collapsed="headCollapsed"
         :tasks="tasks.windowTasks.value"
-        :todo-state="tasks.state.value"
-        :todo-line="tasks.line.value"
+        :task-state="tasks.state.value"
+        :task-line="tasks.line.value"
         :presence-users="presenceUsers"
-        :participants="participants"
+        :member-profiles="memberProfiles"
         :is-desktop="isDesktop"
-        @reveal-todos="revealTripTodos"
+        @reveal-tasks="revealTripTasks"
       >
         <!-- FR-25.11k: the field exists only while it is being used, and
              opens in the sticky band under the switcher (G-12). -->
@@ -635,20 +562,20 @@ setHeaderTitle(
         @select="selectTraveler"
       />
 
-      <!-- FR-7.4: the trip's own todos. Above the list, because at its foot
+      <!-- FR-7.4: the trip's tasks. Above the list, because at its foot
            they went unseen. Always present, because the section is where the
            first one is found — but only once the partition is here
            (ADR-033): before that it would read „folded" and then spring open
            under a tap that was meant to open it, which closes it again. -->
-      <TripTodosSection
+      <TripTasksSection
         v-if="rowsLoaded && !closingPass"
-        ref="todosSection"
-        v-model:fold="tripTodosFold"
+        ref="tasksSection"
+        v-model:fold="tripTasksFold"
         :trip-id="tripId"
         :tasks="tasks.windowTasks.value"
         :state="tasks.state.value"
         :line="tasks.line.value"
-        :assignable="core.todoAssignees.value.length > 1"
+        :assignable="core.ownTaskAssignees.value.length > 1"
         :name-of="nameOf"
         :today="orchestrator.today()"
         @assign="tasks.acts.assign"
@@ -713,26 +640,17 @@ setHeaderTitle(
         :offer-forgotten="packingClosed"
         :show-trigger="false"
         :offer-groups="true"
-        :traveler-count="travelers.length"
-        :travelers="travelers"
-        :exclude-item-ids="browse.excludeIds.value"
-        :browse-row-states="browse.browseStates.value"
+        :scope="browse.scope.value"
         @add="browse.onQuickAdd"
-        @add-for-all="browse.onAddForAll"
-        @assign-for-travelers="browse.onAssignForTravelers"
-        @spread-carried="browse.onSpread"
         @add-group="browse.onAddGroup"
-        @pack-carried="browse.onPack"
-        @skip-carried="browse.onSkip"
-        @undo-browse="browse.onUndo"
-        @reopen-carried="browse.onReopen"
+        @browse="browse.onBrowse"
       />
 
       <PackingGroupList
         v-if="view.groups.length > 0"
         :trip-id="tripId"
         :groups="view.groups"
-        :participants="participants"
+        :member-profiles="memberProfiles"
         :closing-pass="closingPass"
         :facts="facts"
         :for-whom="forWhom"
@@ -879,6 +797,7 @@ setHeaderTitle(
       </IonFab>
 
       <RowQuantityPopover
+        testid="m4-quantity-popover"
         :open="quantity.isOpen.value"
         :event="quantity.event.value"
         :label="quantity.clusterLabel.value"
@@ -904,7 +823,7 @@ setHeaderTitle(
           v-if="openItemId"
           :trip-id="tripId"
           :item-id="openItemId"
-          :participants="participants"
+          :member-profiles="memberProfiles"
           :current-user-id="myUserId"
           :inventory-rename="openItemRename"
           @close="closeItem"
@@ -922,7 +841,7 @@ setHeaderTitle(
           <ItemDetailSheet
             :trip-id="tripId"
             :item-id="openItemId"
-            :participants="participants"
+            :member-profiles="memberProfiles"
             :current-user-id="myUserId"
             :inventory-rename="openItemRename"
             @close="closeItem"

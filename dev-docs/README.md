@@ -48,6 +48,8 @@ Which tier a document belongs to is decided by **who reads it**, never by what i
   cost, with its consequences and a revisit trigger. One file per decision.
 - [`CODING_PRINCIPLES.md`](CODING_PRINCIPLES.md) — **binding**; read before writing
   code.
+- [`glossary.md`](glossary.md) — one word per concept (task, row, line, entry, member,
+  traveler …) and where each lives: table, Go constant, TS type, i18n prefix, spec section.
 - [`ci.md`](ci.md) — what runs locally and what on GitHub, reading a red run, the e2e legs,
   the workflows and `main`'s protection.
 - [`agent-tooling.md`](agent-tooling.md) — which agent CLI reads which configuration: hooks,
@@ -70,7 +72,7 @@ Which tier a document belongs to is decided by **who reads it**, never by what i
 
 - [`Sync_API_Spec_v1.3.md`](Sync_API_Spec_v1.3.md) — the wire protocol: pull/push
   envelopes, HLC format, the merge algorithm, WebSocket events, RPC endpoints.
-- [`ui-spec/`](ui-spec/README.md) — screens M1–M30, one file each (`M04-packing-list.md`),
+- [`ui-spec/`](ui-spec/README.md) — screens M1–M31, one file each (English names) (`M04-packing-list.md`),
   and the global patterns G-1–G-20 in `global-patterns.md`.
 - [`Navigation_Concept_v1.0.md`](Navigation_Concept_v1.0.md) — how the screens hang
   together.

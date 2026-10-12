@@ -49,7 +49,7 @@ func nextLocation(t *testing.T, p *fakePeer) map[string]any {
 	for {
 		select {
 		case data := <-p.got:
-			var evt WSEvent
+			var evt wsFrame
 			if err := json.Unmarshal(data, &evt); err != nil {
 				t.Fatalf("unmarshal frame: %v", err)
 			}
@@ -101,7 +101,7 @@ func TestLiveLocation_NeitherTheSenderNorARefusedMemberIsTold_FR29_19(t *testing
 	// queued after both fixes: a location before it would have been sent.
 	p.hub.NotifyMasterChanged("eve", 7)
 	for {
-		var evt WSEvent
+		var evt wsFrame
 		if err := json.Unmarshal(<-p.otherPeer.got, &evt); err != nil {
 			t.Fatalf("unmarshal frame: %v", err)
 		}

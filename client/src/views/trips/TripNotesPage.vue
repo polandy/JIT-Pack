@@ -50,7 +50,11 @@ const router = useRouter()
 // ADR-033: notes travel the trip partition; „no notes" is only true of a
 // partition that has arrived.
 const { trip, loaded, ensure } = useTripScreen(props.tripId, orchestrator)
-const { myUserId, nameOf, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator)
+const {
+  myUserId,
+  nameOf,
+  load: loadIdentity,
+} = useTripIdentity(props.tripId, orchestrator.identity)
 
 /**
  * Whether anybody else reads what is written here: an identity to tell
@@ -94,7 +98,7 @@ function add() {
   const body = draft.value.trim()
   if (!body) return
   const title = draftTitle.value.trim() || null
-  orchestrator.addComment(props.tripId, null, CLIENT_ACTOR_PLACEHOLDER, body, {
+  orchestrator.comments.addComment(props.tripId, null, CLIENT_ACTOR_PLACEHOLDER, body, {
     title,
     excursionId: draftExcursion.value,
   })

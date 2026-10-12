@@ -98,9 +98,9 @@ The last four mean the server will not start while your IdP is down or misconfig
 A successful start logs which shape it picked, so the first line after a restart tells you what you actually got:
 
 ```
-starting in single-user mode (user=andy)
-starting in multi-user mode (OIDC broker: https://auth.example.com)
-starting in multi-user mode (externally minted session tokens)
+INFO starting in single-user mode user=andy
+INFO starting in multi-user mode oidc_broker=https://auth.example.com
+INFO starting in multi-user mode (externally minted session tokens)
 ```
 
 ---

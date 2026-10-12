@@ -133,7 +133,7 @@ function setMerge(name: string, merge: boolean) {
  */
 function commitRestore() {
   const documents = restore.value ?? []
-  const results = orchestrator.commitPortableRestore(
+  const results = orchestrator.portable.commitPortableRestore(
     documents.flatMap((r) => (r.doc ? [r.doc] : [])),
   )
   // ADR-030: a restore run twice adds nothing the second time, and saying how
@@ -180,7 +180,7 @@ function commit() {
       decisions.set(match.name, match.existingId)
     }
   }
-  const result = orchestrator.commitPortableImport(doc.value, decisions)
+  const result = orchestrator.portable.commitPortableImport(doc.value, decisions)
   if (result.outcome === 'duplicate') {
     void presentToast({ message: t('import.portable.alreadyHereHint') })
   }

@@ -43,17 +43,25 @@ enableAutoUnmount(afterEach)
 
 const tripScreen = tripScreenStub()
 const orchestratorFake = {
-  ...identityStub(),
+  identity: {
+    ...identityStub(),
+  },
   ...tripScreen,
-  refreshProposals: { value: {} as Record<string, unknown> },
-  proposeTripRefresh: vi.fn(),
-  acceptTripRefresh: vi.fn(),
-  declineTripRefresh: vi.fn(),
-  getPresence: vi.fn(() => []),
-  setViewing: vi.fn(),
-  holdsClaim: vi.fn(() => false),
-  isLockedByOther: vi.fn(() => false),
-  lockHolder: vi.fn(() => null),
+  groupRefresh: {
+    refreshProposals: { value: {} as Record<string, unknown> },
+    proposeTripRefresh: vi.fn(),
+    acceptTripRefresh: vi.fn(),
+    declineTripRefresh: vi.fn(),
+  },
+  presence: {
+    getPresence: vi.fn(() => []),
+    setViewing: vi.fn(),
+  },
+  claims: {
+    holdsClaim: vi.fn(() => false),
+    isLockedByOther: vi.fn(() => false),
+    lockHolder: vi.fn(() => null),
+  },
 }
 
 function seedTrip(rows: Record<string, unknown>[] = [], status = 'active') {
@@ -231,8 +239,10 @@ describe('M4 packing list — the closing pass, asked for by M2 (FR-9.3)', () =>
  */
 describe('M4 packing list — the start, asked for by M2 (FR-7.16)', () => {
   const acts = {
-    closePacking: vi.fn(() => ({ rows: [], tasks: [], buyRows: [] })),
-    activateTrip: vi.fn(),
+    tripLifecycle: {
+      closePacking: vi.fn(() => ({ rows: [], tasks: [], buyRows: [] })),
+      activateTrip: vi.fn(),
+    },
   }
 
   function mountStarting() {
@@ -281,8 +291,8 @@ describe('M4 packing list — the start, asked for by M2 (FR-7.16)', () => {
 
     await page.get('[data-testid="m4-close-sheet-start-only"]').trigger('click')
 
-    expect(acts.activateTrip).toHaveBeenCalledWith('t1')
-    expect(acts.closePacking).not.toHaveBeenCalled()
+    expect(acts.tripLifecycle.activateTrip).toHaveBeenCalledWith('t1')
+    expect(acts.tripLifecycle.closePacking).not.toHaveBeenCalled()
   })
 
   it('finishes the packing and starts the trip from the confirm', async () => {
@@ -290,21 +300,21 @@ describe('M4 packing list — the start, asked for by M2 (FR-7.16)', () => {
 
     await page.get('[data-testid="m4-close-sheet-confirm"]').trigger('click')
 
-    expect(acts.closePacking).toHaveBeenCalledWith('t1', expect.any(Object))
-    expect(acts.activateTrip).toHaveBeenCalledWith('t1')
+    expect(acts.tripLifecycle.closePacking).toHaveBeenCalledWith('t1', expect.any(Object))
+    expect(acts.tripLifecycle.activateTrip).toHaveBeenCalledWith('t1')
   })
 
   it('starts without asking when the packing was finished meanwhile', async () => {
     const page = await arrive('planning', '2026-07-01T08:00:00Z')
 
     expect(page.find('[data-testid="m4-close-sheet"]').exists()).toBe(false)
-    expect(acts.activateTrip).toHaveBeenCalledWith('t1')
+    expect(acts.tripLifecycle.activateTrip).toHaveBeenCalledWith('t1')
     expect(replaced).toEqual([tripPath('t1')])
   })
 
   it('asks nothing on a trip that is already running', async () => {
     const page = await arrive('active')
-    expect(acts.activateTrip).not.toHaveBeenCalled()
+    expect(acts.tripLifecycle.activateTrip).not.toHaveBeenCalled()
 
     expect(page.find('[data-testid="m4-close-sheet"]').exists()).toBe(false)
     expect(page.find('[data-testid="m4-list-loading"]').exists()).toBe(false)

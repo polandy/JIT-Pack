@@ -7,7 +7,7 @@
  * ticked off is a rule about the trip's rows, and those rules live here
  * (invariant 4), beside the ones that write them. A feature module's rows
  * are the exception: the module reads them itself and hands the reading in
- * (`domain/activityReader.ts`), so this file knows no module's columns.
+ * (`domain/shared/activityReader.ts`), so this file knows no module's columns.
  *
  * Some writes are bookkeeping nobody made on purpose — a claim taken while a
  * row is open (G-3), the generation's record of what it produced — and read
@@ -22,25 +22,25 @@ import {
   type ActivityArea,
   type ActivityKind,
   type ActivityReaders,
-} from './activityReader'
+} from './shared/activityReader'
 import { TABLE, type SyncTable } from '@/api/tables'
 import {
   STATE_PACKED,
   STATE_PACKING_NOW,
   STATE_SKIPPED,
   type ItemState,
-  type ItemTodo,
+  type PrepTask,
   type MasterItem,
   type NoteAck,
   type Tag,
-  type TodoState,
+  type TaskState,
   type TripItem,
 } from '@/types/domain'
 
-export type { ActivityArea, ActivityKind } from './activityReader'
+export type { ActivityArea, ActivityKind } from './shared/activityReader'
 
 const STATE_PARTIAL = 'partial' as const satisfies ItemState
-const TASK_RESOLVED = 'resolved' as const satisfies TodoState
+const TASK_RESOLVED = 'resolved' as const satisfies TaskState
 
 /**
  * The columns the rules below read, each checked against the row type it
@@ -58,10 +58,10 @@ const FIELD = {
   packedBy: 'packed_by_user_id' satisfies keyof TripItem,
   packedAt: 'packed_at' satisfies keyof TripItem,
   shoppingPosition: 'shopping_position' satisfies keyof TripItem,
-  taskState: 'task_state' satisfies keyof ItemTodo,
-  resolvedAt: 'resolved_at' satisfies keyof ItemTodo,
-  resolvedBy: 'resolved_by_user_id' satisfies keyof ItemTodo,
-  position: 'position' satisfies keyof ItemTodo,
+  taskState: 'task_state' satisfies keyof PrepTask,
+  resolvedAt: 'resolved_at' satisfies keyof PrepTask,
+  resolvedBy: 'resolved_by_user_id' satisfies keyof PrepTask,
+  position: 'position' satisfies keyof PrepTask,
   // A wire column the client folds into which list a comment sits in; no
   // row type carries it.
   isTask: 'is_task',
@@ -116,7 +116,7 @@ const BOOKKEEPING: ReadonlySet<SyncTable> = new Set([
 
 /**
  * Where a write to a kernel table happened. A feature module's tables are
- * not here: their reader says (`domain/activityReader.ts`).
+ * not here: their reader says (`domain/shared/activityReader.ts`).
  */
 export const KERNEL_ACTIVITY_AREAS: Partial<Record<SyncTable, ActivityArea>> = {
   [TABLE.tripItems]: 'packing',

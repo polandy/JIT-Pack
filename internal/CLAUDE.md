@@ -54,13 +54,13 @@ ADR-085), and an excursion's in `excursion_tracks` (FR-31.15, ADR-089).
 - **Table-driven** with named `t.Run` subtests for domain logic.
 - **Real in-memory SQLite** for store and api tests — never a mocked database. Hand-written fakes behind small
   consumer-side interfaces; no mocking frameworks.
-- **Always `-race`** — `make test` does; `go test ./...` from the root does not stay inside `GO_PKGS` (see the root file).
+- **Always `-race`, and once plain** — `make test` runs both (the plain pass catches a hang `-race` hides); `go test ./...` from the root does not stay inside `GO_PKGS` (see the root file).
 
 ## Packages
 
 - `cmd/jitpackd` — wiring only: env-parsed `Config` → one `api.Options`, graceful shutdown. No logic.
 - `internal/sync` — HLC generator + field-level merge (NFR-4.2a). Pure, zero I/O, zero internal imports.
-- `internal/wiregen` — `wire.go` → the client's `types.ts` and `routes.ts` (ADR-026/027); `store`'s `tableSpecs` and
+- `internal/wiregen` — `wire*.go` → the client's `types.ts` and `routes.ts` (ADR-026/027); `store`'s `tableSpecs` and
   `schema.sql` → `tables.ts` (names, feeds, columns, push whitelist, CHECK vocabularies). Pure leaf: source text in,
   string out — it parses `store`, never imports it. `cmd/wiregen` is the thin main.
 - `internal/store` — the only package importing `database/sql`. SQLite repositories, change/conflict logs, the two sync
@@ -70,6 +70,11 @@ ADR-085), and an excursion's in `excursion_tracks` (FR-31.15, ADR-089).
   the one place the server fetches an address a user chose.
 - `internal/webui` — serves the built client beside the API on one origin (ADR-043). Standard library only; does
   **not** import `internal/api` (prefixes are passed in).
-- `internal/api` — HTTP handlers, WebSocket hub, session auth + OIDC broker (ADR-007), notifications, Web Push, admin,
-  export. **`wire.go` is the contract** — envelopes, frame, conflict shapes, error vocabulary, routes. **Export only** —
-  importing is the client's (invariant 4, ADR-025).
+- `internal/notify` — the notification sub-domain (ADR-099): who a push, a lock takeover or FR-7.11's daily reminder
+  notifies — pure rules reading the trip through `notificationFacts` — the rows, the WebSocket ping through `Pinger`
+  and Web Push through `pushSender`, each send bounded by a timeout. No HTTP.
+- `internal/api` — HTTP handlers, WebSocket hub, session auth + OIDC broker (ADR-007), the notification endpoints, admin,
+  export. **`wire.go` is the contract** — envelopes, conflict shapes, error vocabulary, routes; `wire_ws.go` the
+  WebSocket frames, `wire_mirror_test.go` holds the notification words to `store`/`notify`. **Export only** —
+  importing is the client's (invariant 4, ADR-025). Every route carries a request-scoped `*slog.Logger` — method,
+  route, `request_id`, and `caller` once `authed` has run — read back with `logger(ctx)` (ARCH-08b).

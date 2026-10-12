@@ -44,15 +44,19 @@ vi.mock('@ionic/vue', async () => {
 
 const orchestratorFake = {
   ...tripScreenStub(),
-  createTemplateFromTrip: vi.fn(() => 'tpl-new'),
-  templateNameCollision: vi.fn(() => undefined),
+  postTrip: {
+    createTemplateFromTrip: vi.fn(() => 'tpl-new'),
+  },
+  names: {
+    templateNameCollision: vi.fn(() => undefined),
+  },
   today: () => '2026-03-01',
 }
 
 beforeEach(() => {
   setActivePinia(createPinia())
   vi.clearAllMocks()
-  orchestratorFake.createTemplateFromTrip.mockReturnValue('tpl-new')
+  orchestratorFake.postTrip.createTemplateFromTrip.mockReturnValue('tpl-new')
   useTripStore().applyChanges([
     {
       seq: 0,
@@ -89,11 +93,11 @@ describe('M21 — creating (FR-27.5)', () => {
     await Promise.all([create.trigger('click'), create.trigger('click')])
     await page.vm.$nextTick()
 
-    expect(orchestratorFake.createTemplateFromTrip).toHaveBeenCalledTimes(1)
+    expect(orchestratorFake.postTrip.createTemplateFromTrip).toHaveBeenCalledTimes(1)
   })
 
   it('lets the user try again when the trip’s rows were not on the device', async () => {
-    orchestratorFake.createTemplateFromTrip.mockReturnValue(null as never)
+    orchestratorFake.postTrip.createTemplateFromTrip.mockReturnValue(null as never)
     const page = mountPage()
     await page.vm.$nextTick()
 

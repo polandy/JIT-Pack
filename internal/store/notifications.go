@@ -1,8 +1,9 @@
-// Package store — notifications.go persists FR-6.2 notifications and the
+// notifications.go persists FR-6.2 notifications and the
 // per-user event-type preferences behind them (UI-Spec M17). Notifications
 // are per-user rows outside both sync partitions: clients fetch them via
 // REST after a notification.created ping (Sync-API §7), they never flow
 // through pull.
+
 package store
 
 import (
@@ -261,7 +262,7 @@ func (s *Store) TripItemInfo(ctx context.Context, itemID string) (name, packerUs
 }
 
 // CommentBody returns a comment's text, for the notification an FR-7.5
-// assignment of a trip todo earns.
+// assignment of an own task earns.
 func (s *Store) CommentBody(ctx context.Context, commentID string) (string, error) {
 	var body string
 	if err := s.db.QueryRowContext(ctx,

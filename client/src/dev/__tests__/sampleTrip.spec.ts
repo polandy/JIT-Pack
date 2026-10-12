@@ -9,29 +9,44 @@
  */
 import 'fake-indexeddb/auto'
 import { IDBFactory } from 'fake-indexeddb'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
 import { installHarness } from '@/__tests__/harness'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
-import { dueStateOf } from '@/domain/taskDue'
-import { localIsoDate } from '@/domain/trips'
-import { taskGroups, tripTasks } from '@/domain/tripTodos'
+import { dueState } from '@/domain/shared/dueDay'
+import { openDueDay } from '@/domain/taskDue'
+import { taskGroups, tripTasks } from '@/domain/tripTasks'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 
 import { seedSampleMaster } from '../sampleMaster'
-import { plannerFeatureStore, usePlannerStore } from '@/planner'
-import { IDEA_STATES } from '@/types/domain'
+import { plannerModule, usePlannerStore } from '@/planner'
+import { IDEA_STATES } from '@/planner/types'
 
 import { SEED_IDEAS, SEED_MEALS, SEED_SHOPPING_ENTRIES, seedSampleTrip } from '../sampleTrip'
-import { mealFeatureStore, useMealStore } from '@/meals'
+import { mealsModule, useMealStore } from '@/meals'
 import { SAMPLE_ROUTES, sampleGpx } from '../sampleTracks'
-import { decodeLine, defaultSource, readTrack } from '@/domain/track'
+import { decodeLine, defaultSource, readTrack } from '@/domain/shared/track'
+
+/**
+ * The seed dates its trip, tasks and meals from the device's today, so the
+ * spec pins that today, and hands the orchestrator a clock on the same
+ * moment. Only `Date` is faked: fake-indexeddb still needs the real timers to
+ * settle its requests.
+ */
+const NOW = new Date(2026, 9, 5, 9, 0)
+const TODAY = '2026-10-05'
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(NOW)
   globalThis.indexedDB = new IDBFactory()
   installHarness()
+})
+
+afterEach(() => {
+  vi.useRealTimers()
 })
 
 /** Local Mode: the seed must work on a device with no server at all. */
@@ -40,6 +55,7 @@ function seed() {
     baseUrl: '',
     getToken: () => null,
     local: new IndexedDBPersistence(),
+    now: () => NOW.getTime(),
   })
   const master = seedSampleMaster(orchestrator)
   const tripId = seedSampleTrip(orchestrator, master.items)
@@ -52,6 +68,7 @@ async function seedConnected() {
     baseUrl: '',
     getToken: () => null,
     local: new IndexedDBPersistence(),
+    now: () => NOW.getTime(),
   })
   await orchestrator.connect()
   const master = seedSampleMaster(orchestrator)
@@ -71,7 +88,8 @@ describe('seedSampleTrip (dev)', () => {
       baseUrl: '',
       getToken: () => null,
       local: new IndexedDBPersistence(),
-      features: [plannerFeatureStore()],
+      features: [plannerModule.featureStore()],
+      now: () => NOW.getTime(),
     })
     const tripId = seedSampleTrip(orchestrator, seedSampleMaster(orchestrator).items)
     const planner = usePlannerStore()
@@ -121,7 +139,7 @@ describe('seedSampleTrip (dev)', () => {
       name: item.name,
       icon: null,
     }))
-    const tasks = tripTasks(trip.getTripTodos(tripId), trip.getTodos(tripId), rows)
+    const tasks = tripTasks(trip.getOwnTasks(tripId), trip.getPrepTasks(tripId), rows)
 
     // The trip's own chores (FR-7.4), and at least one that prepares a row.
     expect(tasks.filter((task) => task.item === null).length).toBeGreaterThan(0)
@@ -163,8 +181,8 @@ describe('seedSampleTrip (dev)', () => {
     const master = useMasterStore()
 
     const rows = trip.getItems(tripId).map((item) => ({ id: item.id, name: item.name, icon: null }))
-    const tasks = tripTasks(trip.getTripTodos(tripId), trip.getTodos(tripId), rows)
-    const groups = taskGroups(tasks, master.taskTagList, localIsoDate(Date.now()))
+    const tasks = tripTasks(trip.getOwnTasks(tripId), trip.getPrepTasks(tripId), rows)
+    const groups = taskGroups(tasks, master.taskTagList, TODAY)
 
     const byTag = groups.filter((group) => group.tag !== null)
     expect(byTag.length).toBeGreaterThan(0)
@@ -181,10 +199,9 @@ describe('seedSampleTrip (dev)', () => {
   // beside the undated tasks that are the normal case.
   it('dates two of its tasks: one overdue and one due tomorrow (FR-7.11)', () => {
     const { tripId, trip } = seed()
-    const today = localIsoDate(Date.now())
     const states = trip
-      .getTripTodos(tripId)
-      .map((todo) => dueStateOf(todo, today))
+      .getOwnTasks(tripId)
+      .map((task) => dueState(openDueDay(task), TODAY))
       .filter((state) => state !== null)
     expect(states.sort()).toEqual(['overdue', 'soon'])
   })
@@ -192,10 +209,10 @@ describe('seedSampleTrip (dev)', () => {
   it('hangs its preparations off a row the trip actually carries', () => {
     const { tripId, trip } = seed()
 
-    const prepared = trip.getTodos(tripId)
+    const prepared = trip.getPrepTasks(tripId)
     expect(prepared.length).toBeGreaterThan(0)
     const rowIds = new Set(trip.getItems(tripId).map((item) => item.id))
-    for (const todo of prepared) expect(rowIds.has(todo.trip_item_id)).toBe(true)
+    for (const task of prepared) expect(rowIds.has(task.trip_item_id)).toBe(true)
   })
 
   /**
@@ -245,7 +262,8 @@ describe('seedSampleTrip (dev)', () => {
       baseUrl: '',
       getToken: () => null,
       local: new IndexedDBPersistence(),
-      features: [mealFeatureStore()],
+      features: [mealsModule.featureStore()],
+      now: () => NOW.getTime(),
     })
     await orchestrator.connect()
     const tripId = seedSampleTrip(orchestrator, seedSampleMaster(orchestrator).items)

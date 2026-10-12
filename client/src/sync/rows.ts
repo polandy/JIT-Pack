@@ -10,22 +10,18 @@
  * `satisfies Record<keyof T, unknown>`.
  */
 import type {
-  Meal,
-  MealIngredient,
   Container,
   DestinationChecklistItem,
   DestinationProfile,
   ItemComment,
   ItemDependency,
-  ItemTodo,
+  PrepTask,
   NoteAck,
   Excursion,
-  ExcursionItem,
+  ExcursionLine,
   ExcursionTraveler,
-  DayEntryTraveler,
-  ShoppingEntry,
   TaskFacts,
-  TripTodo,
+  OwnTask,
   MasterItem,
   Template,
   TemplateItem,
@@ -34,17 +30,13 @@ import type {
   TripItem,
   TripMember,
   TripSeries,
-  DayEntry,
-  Idea,
-  IdeaComment,
   IdeaImage,
   IdeaTrack,
   ExcursionTrack,
   TrackFields,
-  IdeaVote,
 } from '@/types/domain'
 import { dbBool, jsonColumn } from '@/sync/columns'
-import type { TrackSettings } from '@/domain/track'
+import type { TrackSettings } from '@/domain/shared/track'
 
 export function generateDeviceId(): string {
   const bytes = new Uint8Array(4)
@@ -94,7 +86,7 @@ export function memberRow(member: TripMember): Record<string, unknown> {
 }
 
 /**
- * A comment and a todo are the same row (FR-7.2), told apart by `is_task`
+ * A comment and a task are the same row (FR-7.2), told apart by `is_task`
  * — which is why both mappers carry it: the store routes on that column,
  * so an optimistic row without it moves the row to the other list.
  */
@@ -146,7 +138,7 @@ export function excursionTravelerRow(row: ExcursionTraveler): Record<string, unk
 }
 
 /** FR-31.4: one line of an excursion's list. */
-export function excursionItemRow(line: ExcursionItem): Record<string, unknown> {
+export function excursionItemRow(line: ExcursionLine): Record<string, unknown> {
   return {
     trip_id: line.trip_id,
     excursion_id: line.excursion_id,
@@ -166,29 +158,29 @@ export function excursionItemRow(line: ExcursionItem): Record<string, unknown> {
   }
 }
 
-export function todoRow(todo: ItemTodo): Record<string, unknown> {
+export function prepTaskRow(task: PrepTask): Record<string, unknown> {
   return {
-    trip_id: todo.trip_id,
-    trip_item_id: todo.trip_item_id,
-    author_id: todo.author_id,
-    body: todo.body,
+    trip_id: task.trip_id,
+    trip_item_id: task.trip_item_id,
+    author_id: task.author_id,
+    body: task.body,
     is_task: dbBool(true),
-    task_state: todo.task_state,
-    ...taskFactRow(todo),
+    task_state: task.task_state,
+    ...taskFactRow(task),
   }
 }
 
-/** tripTodoRow is `todoRow` without an anchor: FR-7.4's null `trip_item_id`. */
-export function tripTodoRow(todo: TripTodo): Record<string, unknown> {
+/** ownTaskRow is `prepTaskRow` without an anchor: FR-7.4's null `trip_item_id`. */
+export function ownTaskRow(task: OwnTask): Record<string, unknown> {
   return {
-    trip_id: todo.trip_id,
+    trip_id: task.trip_id,
     trip_item_id: null,
-    author_id: todo.author_id,
-    body: todo.body,
+    author_id: task.author_id,
+    body: task.body,
     is_task: dbBool(true),
-    task_state: todo.task_state,
-    ...taskFactRow(todo),
-    idea_id: todo.idea_id ?? null,
+    task_state: task.task_state,
+    ...taskFactRow(task),
+    idea_id: task.idea_id ?? null,
   }
 }
 
@@ -232,106 +224,6 @@ export function containerRow(container: Container): Record<string, unknown> {
     carrier_traveler_id: container.carrier_traveler_id,
     max_weight_grams: container.max_weight_grams,
     paired_container_id: container.paired_container_id,
-  }
-}
-
-/** FR-30.1: a shopping entry as its row. */
-/** FR-29.1: an idea. */
-export function ideaRow(idea: Idea): Record<string, unknown> {
-  return {
-    trip_id: idea.trip_id,
-    author_id: idea.author_id,
-    title: idea.title,
-    note: idea.note,
-    link: idea.link,
-    tag: idea.tag,
-    rain_proof: dbBool(idea.rain_proof),
-    state: idea.state,
-    created_at: idea.created_at,
-    planned_on: idea.planned_on,
-    planned_at: idea.planned_at,
-  }
-}
-
-/** FR-29.15: an entry of the day plan's own. */
-export function dayEntryRow(entry: DayEntry): Record<string, unknown> {
-  return {
-    trip_id: entry.trip_id,
-    author_id: entry.author_id,
-    kind: entry.kind,
-    on_date: entry.on_date,
-    at_time: entry.at_time,
-    title: entry.title,
-    note: entry.note,
-    link: entry.link,
-    legs: jsonColumn(entry.legs),
-    excursion_id: entry.excursion_id ?? null,
-    excursion_role: entry.excursion_role ?? null,
-  }
-}
-
-/** FR-29.15: one traveller a day-plan entry is for. */
-export function dayEntryTravelerRow(row: DayEntryTraveler): Record<string, unknown> {
-  return {
-    trip_id: row.trip_id,
-    day_entry_id: row.day_entry_id,
-    traveler_id: row.traveler_id,
-  }
-}
-
-/** FR-33.1: a meal of the meal plan. */
-export function mealRow(meal: Meal): Record<string, unknown> {
-  return {
-    trip_id: meal.trip_id,
-    on_date: meal.on_date,
-    slot: meal.slot,
-    title: meal.title,
-    kind: meal.kind,
-    at_time: meal.at_time,
-    note: meal.note,
-    place: meal.place,
-    cook_user_id: meal.cook_user_id,
-    excursion_id: meal.excursion_id,
-    excursion_packed_at: meal.excursion_packed_at,
-  }
-}
-
-/** FR-33.2: an ingredient of a meal. */
-export function mealIngredientRow(ingredient: MealIngredient): Record<string, unknown> {
-  return {
-    trip_id: ingredient.trip_id,
-    meal_id: ingredient.meal_id,
-    name: ingredient.name,
-    amount: ingredient.amount,
-    list: ingredient.list,
-    position: ingredient.position,
-    bought: dbBool(ingredient.bought),
-    bought_at: ingredient.bought_at,
-    bought_by_user_id: ingredient.bought_by_user_id,
-    shopping_position: ingredient.shopping_position,
-    fresh: ingredient.fresh === null ? null : dbBool(ingredient.fresh),
-  }
-}
-
-/** FR-29.3: one person's vote on one idea. */
-export function ideaVoteRow(vote: IdeaVote): Record<string, unknown> {
-  return {
-    trip_id: vote.trip_id,
-    idea_id: vote.idea_id,
-    user_id: vote.user_id,
-    vote: vote.vote,
-  }
-}
-
-/** FR-29.4: one entry of an idea's discussion. */
-export function ideaCommentRow(comment: IdeaComment): Record<string, unknown> {
-  return {
-    trip_id: comment.trip_id,
-    idea_id: comment.idea_id,
-    author_id: comment.author_id,
-    body: comment.body,
-    created_at: comment.created_at,
-    edited_at: comment.edited_at,
   }
 }
 
@@ -387,23 +279,6 @@ export function excursionTrackRow(track: ExcursionTrack): Record<string, unknown
     trip_id: track.trip_id,
     excursion_id: track.excursion_id,
     ...trackFieldsRow(track),
-  }
-}
-
-export function shoppingEntryRow(entry: ShoppingEntry): Record<string, unknown> {
-  return {
-    trip_id: entry.trip_id,
-    name: entry.name,
-    list: entry.list,
-    bought: dbBool(entry.bought),
-    tag: entry.tag,
-    bought_at: entry.bought_at,
-    bought_by_user_id: entry.bought_by_user_id,
-    due_date: entry.due_date,
-    assignee_user_id: entry.assignee_user_id,
-    carried_over_at: entry.carried_over_at ?? null,
-    position: entry.position ?? null,
-    idea_id: entry.idea_id ?? null,
   }
 }
 

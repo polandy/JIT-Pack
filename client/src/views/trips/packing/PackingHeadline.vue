@@ -13,13 +13,13 @@ import { computed, useSlots } from 'vue'
 
 import PresenceFacepile from '@/components/global/PresenceFacepile.vue'
 import ProgressFigure from '@/components/global/ProgressFigure.vue'
-import TripTodoFigure from '@/components/trips/TripTodoFigure.vue'
+import TripTaskFigure from '@/views/trips/tasks/TripTaskFigure.vue'
 import type { PresenceUser } from '@/composables/useSyncOrchestrator'
 import { packedPercent } from '@/domain/packState'
-import type { TripTask, TripTodoStatus } from '@/domain/tripTodos'
+import type { TripTask, TripTaskStatus } from '@/domain/tripTasks'
 import { t } from '@/i18n'
 import { formatWeight } from '@/lib/format'
-import type { TripKPIs, TripParticipant } from '@/types/domain'
+import type { TripKPIs, TripMemberProfile } from '@/types/domain'
 
 const props = defineProps<{
   tripId: string
@@ -30,14 +30,14 @@ const props = defineProps<{
   collapsed: boolean
   /** FR-7.7: the tasks M4's window shows, which the second figure counts. */
   tasks: readonly TripTask[]
-  todoState: TripTodoStatus
-  todoLine: string | null
+  taskState: TripTaskStatus
+  taskLine: string | null
   presenceUsers: PresenceUser[]
-  participants: readonly TripParticipant[]
+  memberProfiles: readonly TripMemberProfile[]
   isDesktop: boolean
 }>()
 
-defineEmits<{ revealTodos: [] }>()
+defineEmits<{ revealTasks: [] }>()
 
 /**
  * The ring in the header line, which is not the hero's: the line yields to
@@ -60,7 +60,7 @@ const PRESENCE_FACES_DESKTOP = 4
  * nobody can read.
  */
 const presenceNames = computed<Record<string, string>>(() =>
-  Object.fromEntries(props.participants.map((p) => [p.user_id, p.display_name])),
+  Object.fromEntries(props.memberProfiles.map((p) => [p.user_id, p.display_name])),
 )
 
 /**
@@ -82,7 +82,7 @@ const statsDetail = computed(() =>
  */
 const slots = useSlots()
 const searching = (): boolean => slots.search !== undefined
-const paired = (): boolean => props.todoState !== 'none' && !searching()
+const paired = (): boolean => props.taskState !== 'none' && !searching()
 </script>
 
 <template>
@@ -124,16 +124,16 @@ const paired = (): boolean => props.todoState !== 'none' && !searching()
            it; a tap leads to the section that ticks it. -->
       <button
         v-if="loaded && paired()"
-        class="todo-figure-button"
-        data-testid="m4-trip-todos-figure"
-        :aria-label="todoLine ?? undefined"
-        @click="$emit('revealTodos')"
+        class="task-figure-button"
+        data-testid="m4-trip-tasks-figure"
+        :aria-label="taskLine ?? undefined"
+        @click="$emit('revealTasks')"
       >
-        <TripTodoFigure
+        <TripTaskFigure
           :trip-id="tripId"
           :ring-size="RING_SIZE_HEADER"
           :tasks="tasks"
-          testid="m4-trip-todos-progress"
+          testid="m4-trip-tasks-progress"
         />
       </button>
       <PresenceFacepile
@@ -212,7 +212,7 @@ const paired = (): boolean => props.todoState !== 'none' && !searching()
 }
 
 .trip-stats.paired > .figure,
-.trip-stats.paired > .todo-figure-button {
+.trip-stats.paired > .task-figure-button {
   flex: 1 1 10.5rem;
 }
 
@@ -238,7 +238,7 @@ const paired = (): boolean => props.todoState !== 'none' && !searching()
 /* The figure is the control; the button only makes it one. It takes the
    same share of the line as the packing figure, so the two tracks run on
    one level and one length. */
-.todo-figure-button {
+.task-figure-button {
   min-width: 0;
   padding: 0;
   background: none;

@@ -9,6 +9,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { joinDocuments, parsePortable, parsePortableAll } from '@/domain/portable'
@@ -24,7 +25,7 @@ beforeEach(() => {
 })
 
 function newOrch() {
-  return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+  return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null, now: fixedClock })
 }
 
 describe('commitPortableImport — template (FR-18.4/FR-1.6)', () => {
@@ -55,7 +56,7 @@ items:
       row: { name: 'Unterhosen' },
     })
 
-    const result = orch.commitPortableImport(doc, new Map([['Unterhosen', 'i1']]))
+    const result = orch.portable.commitPortableImport(doc, new Map([['Unterhosen', 'i1']]))
 
     expect(result.kind).toBe('template')
     const template = master.getTemplate(result.id)!
@@ -91,7 +92,7 @@ items:
       row: { owner_id: 'me', name: 'Base Travel', kind: 'template' },
     })
 
-    const result = orch.commitPortableImport(doc, new Map())
+    const result = orch.portable.commitPortableImport(doc, new Map())
 
     // Imported beside itself as "Base Travel (import)", a restore run twice
     // would double every Vorlage in the file.
@@ -127,7 +128,7 @@ items:
     const orch = newOrch()
     const trips = useTripStore()
 
-    const result = orch.commitPortableImport(doc, new Map())
+    const result = orch.portable.commitPortableImport(doc, new Map())
 
     expect(result.kind).toBe('trip')
     const trip = trips.getTrip(result.id)!
@@ -188,7 +189,7 @@ items:
     const master = useMasterStore()
     const trips = useTripStore()
 
-    const results = orch.commitPortableRestore(parsePortableAll(backup).map((r) => r.doc!))
+    const results = orch.portable.commitPortableRestore(parsePortableAll(backup).map((r) => r.doc!))
 
     expect(results).toHaveLength(2)
     expect(master.templateList.map((t) => t.name)).toEqual(['Sommerferien'])
@@ -199,7 +200,7 @@ items:
     const orch = newOrch()
     const master = useMasterStore()
 
-    orch.commitPortableRestore(parsePortableAll(backup).map((r) => r.doc!))
+    orch.portable.commitPortableRestore(parsePortableAll(backup).map((r) => r.doc!))
 
     // Both documents name the same camera. Re-matching between documents is
     // the whole point: matching once, up front, would create it twice and
@@ -217,7 +218,7 @@ items:
   it('pushes the partition of every trip it wrote, not the master rows alone', async () => {
     const orch = newOrch()
 
-    const results = orch.commitPortableRestore(parsePortableAll(backup).map((r) => r.doc!))
+    const results = orch.portable.commitPortableRestore(parsePortableAll(backup).map((r) => r.doc!))
     const tripId = results.find((r) => r.kind === 'trip')!.id
 
     await vi.waitFor(() =>
@@ -231,7 +232,7 @@ items:
     const orch = newOrch()
     const trips = useTripStore()
 
-    const results = orch.commitPortableRestore([
+    const results = orch.portable.commitPortableRestore([
       ...parsePortableAll(backup).map((r) => r.doc!),
       { ...parsePortableAll(backup)[1]!.doc!, name: '' },
     ])
@@ -266,7 +267,7 @@ items:
     const orch = newOrch()
     const master = useMasterStore()
 
-    const result = orch.commitPortableImport(parsePortable(file).doc!, new Map())
+    const result = orch.portable.commitPortableImport(parsePortable(file).doc!, new Map())
 
     const group = master.templateList.find((t) => t.name === 'Makro Fotografie')
     expect(group?.kind).toBe('group')
@@ -301,7 +302,7 @@ includes:
 items: []
 `
 
-    const result = orch.commitPortableImport(parsePortable(marked).doc!, new Map())
+    const result = orch.portable.commitPortableImport(parsePortable(marked).doc!, new Map())
 
     expect(master.getTemplate(result.id)?.icon).toBe('\u{1F4F7}')
     const group = master.templateList.find((t) => t.name === 'Makro Fotografie')!
@@ -314,15 +315,15 @@ items: []
     // reaches every trip that follows it — an import must not be an editor.
     const orch = newOrch()
     const master = useMasterStore()
-    const existingId = orch.createTemplate('Makro Fotografie', 'group')!
-    const itemId = orch.createMasterItem('Stativ', {})
-    orch.addTemplateItem(existingId, itemId, {
+    const existingId = orch.masterData.createTemplate('Makro Fotografie', 'group')!
+    const itemId = orch.masterData.createMasterItem('Stativ', {})
+    orch.masterData.addTemplateItem(existingId, itemId, {
       quantity: 1,
       assignment: 'trip_global',
       defaultMode: 'pack',
     })
 
-    const result = orch.commitPortableImport(parsePortable(file).doc!, new Map())
+    const result = orch.portable.commitPortableImport(parsePortable(file).doc!, new Map())
 
     expect(master.templateList.filter((t) => t.name === 'Makro Fotografie')).toHaveLength(1)
     expect(master.includeList.map((i) => i.included_template_id)).toEqual([existingId])
@@ -358,7 +359,7 @@ items:
     const orch = newOrch()
     const master = useMasterStore()
 
-    orch.commitPortableRestore(order().map((text) => parsePortable(text).doc!))
+    orch.portable.commitPortableRestore(order().map((text) => parsePortable(text).doc!))
 
     const groups = master.templateList.filter((t) => t.kind === 'group')
     expect(groups.map((g) => g.name)).toEqual(['Makro Fotografie'])
@@ -376,15 +377,15 @@ items:
     // second one behind, and must not rewrite the positions of the first.
     const orch = newOrch()
     const master = useMasterStore()
-    const existingId = orch.createTemplate('Makro Fotografie', 'group')!
-    const itemId = orch.createMasterItem('Stativ', {})
-    orch.addTemplateItem(existingId, itemId, {
+    const existingId = orch.masterData.createTemplate('Makro Fotografie', 'group')!
+    const itemId = orch.masterData.createMasterItem('Stativ', {})
+    orch.masterData.addTemplateItem(existingId, itemId, {
       quantity: 1,
       assignment: 'trip_global',
       defaultMode: 'pack',
     })
 
-    const result = orch.commitPortableImport(parsePortable(groupDoc).doc!, new Map())
+    const result = orch.portable.commitPortableImport(parsePortable(groupDoc).doc!, new Map())
 
     expect(result.id).toBe(existingId)
     expect(master.templateList.filter((t) => t.kind === 'group')).toHaveLength(1)
@@ -402,9 +403,9 @@ items:
     // what anybody wanted.
     const orch = newOrch()
     const master = useMasterStore()
-    orch.createTemplate('Fototage', 'template')
+    orch.masterData.createTemplate('Fototage', 'template')
 
-    const result = orch.commitPortableImport(parsePortable(file).doc!, new Map())
+    const result = orch.portable.commitPortableImport(parsePortable(file).doc!, new Map())
 
     expect(result.outcome).toBe('duplicate')
     expect(
@@ -474,7 +475,7 @@ applied_changes:
 
   function restore() {
     const orch = newOrch()
-    const results = orch.commitPortableRestore(parsePortableAll(backup).map((r) => r.doc!))
+    const results = orch.portable.commitPortableRestore(parsePortableAll(backup).map((r) => r.doc!))
     return { orch, tripId: results[1]!.id, templateId: results[0]!.id }
   }
 
@@ -544,7 +545,7 @@ applied_changes:
     const doc = parsePortableAll(backup)[1]!.doc!
 
     // The trip alone, without the group document that defines "Makro".
-    const { id: tripId } = orch.commitPortableImport({ ...doc }, new Map())
+    const { id: tripId } = orch.portable.commitPortableImport({ ...doc }, new Map())
 
     expect(trips.getTemplateSources(tripId)).toEqual([])
     expect(trips.getGeneratedPositions(tripId)).toEqual([])
@@ -565,7 +566,7 @@ items:
     quantity: 1
     mode: pack
 `
-    const { id: tripId } = orch.commitPortableImport(parsePortable(old).doc!, new Map())
+    const { id: tripId } = orch.portable.commitPortableImport(parsePortable(old).doc!, new Map())
 
     expect(trips.getTrip(tripId)?.name).toBe('Samedan 2025')
     expect(trips.getItems(tripId).map((i) => i.name)).toEqual(['Zelt'])
@@ -598,7 +599,7 @@ ${extra}`).doc!
     const orch = newOrch()
     const trips = useTripStore()
 
-    const result = orch.commitPortableImport(archived(), new Map())
+    const result = orch.portable.commitPortableImport(archived(), new Map())
 
     expect(trips.getTrip(result.id)!.status).toBe('archived')
   })
@@ -608,7 +609,7 @@ ${extra}`).doc!
     const trips = useTripStore()
 
     const doc = parsePortable('kind: trip\nname: Ohne Status\nyear: 2025\nitems: []\n').doc!
-    const result = orch.commitPortableImport(doc, new Map())
+    const result = orch.portable.commitPortableImport(doc, new Map())
 
     expect(trips.getTrip(result.id)!.status).toBe('planning')
   })
@@ -618,7 +619,7 @@ ${extra}`).doc!
     const master = useMasterStore()
     const trips = useTripStore()
 
-    const result = orch.commitPortableImport(archived(), new Map())
+    const result = orch.portable.commitPortableImport(archived(), new Map())
 
     const item = master.itemList.find((i) => i.name === 'Wanderschuhe')
     expect(item).toBeDefined()
@@ -633,7 +634,7 @@ ${extra}`).doc!
     const orch = newOrch()
     const master = useMasterStore()
 
-    orch.commitPortableImport(archived(), new Map())
+    orch.portable.commitPortableImport(archived(), new Map())
 
     const item = master.itemList.find((i) => i.name === 'Wanderschuhe')!
     expect(master.getItemTags(item.id).map((t) => t.name)).toEqual(['Schuhe', 'Sommer'])
@@ -643,10 +644,10 @@ ${extra}`).doc!
     const orch = newOrch()
     const master = useMasterStore()
 
-    orch.createTag('Schuhe')
+    orch.masterData.createTag('Schuhe')
     const before = master.tagList.length
 
-    orch.commitPortableImport(archived(), new Map())
+    orch.portable.commitPortableImport(archived(), new Map())
 
     // Two tags in the file, one of them already here: exactly one is new.
     expect(master.tagList.length).toBe(before + 1)
@@ -658,7 +659,7 @@ ${extra}`).doc!
     const master = useMasterStore()
     const trips = useTripStore()
 
-    const result = orch.commitPortableImport(archived(), new Map())
+    const result = orch.portable.commitPortableImport(archived(), new Map())
 
     // The positive signal: the inventory holds the one item that claimed to
     // come from it, and nothing else. Asserting only "no Zettel" would pass
@@ -683,12 +684,12 @@ describe('backup round trip — status, marks and tags survive (NFR-4.11, ADR-02
 
     // Build a device: a tagged, marked inventory item on an archived trip that
     // no template mentions — the case that can lose all three.
-    const shoes = writer.createMasterItem('Wanderschuhe', { icon: '🥾' })
+    const shoes = writer.masterData.createMasterItem('Wanderschuhe', { icon: '🥾' })
     // Position is derived from what the item already carries, so the order
     // these two are added in *is* the order they come back in.
-    writer.assignTag(shoes, writer.createTag('Schuhe'))
-    writer.assignTag(shoes, writer.createTag('Sommer'))
-    const tripId = writer.createTripFromWizard({
+    writer.masterData.assignTag(shoes, writer.masterData.createTag('Schuhe'))
+    writer.masterData.assignTag(shoes, writer.masterData.createTag('Sommer'))
+    const tripId = writer.tripCreation.createTripFromWizard({
       name: 'Samedan 2025',
       year: 2025,
       startDate: null,
@@ -697,8 +698,8 @@ describe('backup round trip — status, marks and tags survive (NFR-4.11, ADR-02
       travelers: [],
       items: [],
     })
-    writer.quickAddItem(tripId, 'Wanderschuhe', { sourceItemId: shoes }, false)
-    writer.archiveTrip(tripId)
+    writer.packing.quickAddItem(tripId, 'Wanderschuhe', { sourceItemId: shoes }, false)
+    writer.tripLifecycle.archiveTrip(tripId)
 
     const yaml = buildBackup({
       templates: [],
@@ -725,7 +726,7 @@ describe('backup round trip — status, marks and tags survive (NFR-4.11, ADR-02
     const readerMaster = useMasterStore()
     const readerTrips = useTripStore()
 
-    const restored = reader.commitPortableRestore(
+    const restored = reader.portable.commitPortableRestore(
       parsePortableAll(yaml)
         .map((r) => r.doc)
         .filter((d) => d !== null),
@@ -748,7 +749,7 @@ describe('commitPortableRestore — the move off Local Mode (FR-19.8)', () => {
     expect(loadMigrationPending()).toBe(true)
 
     const orch = newOrch()
-    orch.commitPortableRestore([])
+    orch.portable.commitPortableRestore([])
 
     expect(loadMigrationPending()).toBe(false)
   })

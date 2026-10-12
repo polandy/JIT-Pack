@@ -39,8 +39,8 @@ JITPACK_LOCAL_USER_ID: "local"
 A healthy backend logs exactly two lines and then goes quiet:
 
 ```
-2026/08/09 10:14:22 starting in single-user mode (user=local)
-2026/08/09 10:14:22 listening on :8080
+2026/08/09 10:14:22 INFO starting in single-user mode user=local
+2026/08/09 10:14:22 INFO listening addr=:8080
 ```
 
 The first line confirms the mode and echoes the user id the server will stamp on your data; the second means the HTTP listener is up. Nothing is logged per request, so silence afterwards is the expected state, not a stall.

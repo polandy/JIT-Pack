@@ -29,7 +29,9 @@ const TODAY = '2026-01-15'
 
 const orchestratorFake = {
   ...tripScreenStub(),
-  applyReviewProposal: vi.fn(() => 'g1'),
+  postTrip: {
+    applyReviewProposal: vi.fn(() => 'g1'),
+  },
   today: () => TODAY,
 }
 
@@ -177,7 +179,7 @@ describe('ReviewPage (M14, FR-27.11)', () => {
     const wrapper = mountPage()
     await wrapper.findAll('[data-testid="m14-apply"]')[0]!.trigger('click')
 
-    expect(orchestratorFake.applyReviewProposal).toHaveBeenCalledWith(
+    expect(orchestratorFake.postTrip.applyReviewProposal).toHaveBeenCalledWith(
       expect.objectContaining({ kind: 'unused', itemId: 'item1' }),
       'g1',
     )
@@ -203,7 +205,7 @@ describe('ReviewPage (M14, FR-27.11)', () => {
     const wrapper = mountPage()
     await wrapper.findAll('[data-testid="m14-skip"]')[0]!.trigger('click')
 
-    expect(orchestratorFake.applyReviewProposal).not.toHaveBeenCalled()
+    expect(orchestratorFake.postTrip.applyReviewProposal).not.toHaveBeenCalled()
     expect(wrapper.findAll('[data-testid="m14-handled-row"]')).toHaveLength(1)
     expect(wrapper.get('[data-testid="m14-state"]').text()).toContain('skipped')
   })

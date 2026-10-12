@@ -1,6 +1,7 @@
 import { ref, type Ref } from 'vue'
 
-import type { TripItem } from '@/types/domain'
+import type { PackableRow } from '@/domain/packingView'
+import { STATE_OPEN, type ItemState } from '@/types/domain'
 
 /** The pre-action state of one row, and what it takes to put it back. */
 export interface RowUndoRecord {
@@ -9,7 +10,7 @@ export interface RowUndoRecord {
   name: string
   quantity: number
   packedCount: number
-  state: string
+  state: ItemState
 }
 
 export interface RowUndo {
@@ -25,7 +26,7 @@ export interface RowUndo {
    * ones its own action touched.
    */
   actWithUndo: (
-    rows: TripItem[],
+    rows: readonly PackableRow[],
     act: () => void,
     restore: (records: RowUndoRecord[]) => void,
   ) => void
@@ -37,7 +38,7 @@ export interface RowUndo {
    * them as they were before the write, and this arms from that.
    */
   armUndo: (
-    rows: TripItem[],
+    rows: readonly PackableRow[],
     restore: (records: RowUndoRecord[]) => void,
     /**
      * What the action still owes once it can no longer be taken back — FR-5.8's
@@ -86,7 +87,7 @@ export function useRowUndo(): RowUndo {
   let lapseFn: (() => void) | null = null
 
   function actWithUndo(
-    rows: TripItem[],
+    rows: readonly PackableRow[],
     act: () => void,
     restore: (records: RowUndoRecord[]) => void,
   ): void {
@@ -107,7 +108,7 @@ export function useRowUndo(): RowUndo {
   }
 
   function armUndo(
-    rows: TripItem[],
+    rows: readonly PackableRow[],
     restore: (records: RowUndoRecord[]) => void,
     onLapse?: () => void,
   ): void {
@@ -117,7 +118,7 @@ export function useRowUndo(): RowUndo {
 
   function armAction(label: string, restore: () => void, onLapse?: () => void): void {
     clear()
-    pending.value = [{ itemId: '', name: label, quantity: 0, packedCount: 0, state: '' }]
+    pending.value = [{ itemId: '', name: label, quantity: 0, packedCount: 0, state: STATE_OPEN }]
     restoreFn = restore
     lapseFn = onLapse ?? null
   }

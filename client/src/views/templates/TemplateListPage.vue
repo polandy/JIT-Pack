@@ -51,6 +51,7 @@ import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { canShareFile, shareFile, shareableFile } from '@/lib/share'
 import { useMasterStore } from '@/stores/masterStore'
 import { scopeForNewTemplate } from '@/domain/templates'
+import { TEMPLATE_KIND_GROUP, TEMPLATE_KIND_TEMPLATE } from '@/types/domain'
 import type { Template, TemplateKind } from '@/types/domain'
 import SheetModal from '@/components/global/SheetModal.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
@@ -121,8 +122,12 @@ const visibleRows = computed(() =>
     .map(toRow),
 )
 
-const vacationRows = computed(() => visibleRows.value.filter((r) => r.template.kind === 'template'))
-const groupRows = computed(() => visibleRows.value.filter((r) => r.template.kind === 'group'))
+const vacationRows = computed(() =>
+  visibleRows.value.filter((r) => r.template.kind === TEMPLATE_KIND_TEMPLATE),
+)
+const groupRows = computed(() =>
+  visibleRows.value.filter((r) => r.template.kind === TEMPLATE_KIND_GROUP),
+)
 
 const isEmpty = computed(() => visibleRows.value.length === 0)
 /** Nothing at all versus nothing *matching* — different sentences (G-7). */
@@ -203,7 +208,7 @@ function resetChooser() {
  * that exists almost always means the thing that has it.
  */
 const createCollision = computed(() =>
-  pendingKind.value ? (orchestrator.templateNameCollision(pendingName.value) ?? null) : null,
+  pendingKind.value ? (orchestrator.names.templateNameCollision(pendingName.value) ?? null) : null,
 )
 
 function openCollision() {
@@ -217,7 +222,7 @@ function commitCreate() {
   const kind = pendingKind.value
   const name = pendingName.value.trim()
   if (!kind || !name || createCollision.value) return
-  const id = orchestrator.createTemplate(name, kind)
+  const id = orchestrator.masterData.createTemplate(name, kind)
   if (id === null) return
   resetChooser()
   router.push(templatePath(id))
@@ -307,14 +312,14 @@ async function renameTemplate(tpl: Template) {
     confirmLabel: t('common.save'),
     onConfirm: async (name) => {
       if (!name || name === tpl.name) return
-      const taken = orchestrator.templateNameCollision(name, tpl.id)
+      const taken = orchestrator.names.templateNameCollision(name, tpl.id)
       if (taken) {
         await presentToast({ message: t('templates.renameTaken', { name: taken.name }) })
         // Keeping the alert open leaves the typed name where it can be
         // corrected; dismissing it would throw the edit away.
         return false
       }
-      orchestrator.updateTemplate(tpl, { name })
+      orchestrator.masterData.updateTemplate(tpl, { name })
     },
   })
 }
@@ -340,13 +345,13 @@ async function deleteTemplate(tpl: Template) {
   // and kept (FR-9.2); one no trip ever used is removed.
   const sentence = deletionSentence(
     DELETION_SUBJECT_TEMPLATE,
-    orchestrator.templateDeletionOutlook(tpl.id),
+    orchestrator.masterData.templateDeletionOutlook(tpl.id),
   )
   const confirmed = await confirmDestructive({
     message: `${t('templates.deleteConfirm', { name: tpl.name })} ${sentence}`,
     confirmLabel: t('common.delete'),
   })
-  if (confirmed) orchestrator.deleteTemplate(tpl.id)
+  if (confirmed) orchestrator.masterData.deleteTemplate(tpl.id)
 }
 
 function portableDocument(tpl: Template): string {
@@ -475,7 +480,7 @@ async function shareTemplate(tpl: Template) {
                 </p>
               </IonLabel>
 
-              <span v-if="row.template.kind === 'group'" slot="end" class="scope-chip">
+              <span v-if="row.template.kind === TEMPLATE_KIND_GROUP" slot="end" class="scope-chip">
                 {{ t('templates.groupChip') }}
               </span>
               <IonIcon slot="end" :icon="chevronForwardOutline" class="row-chevron" />
@@ -509,9 +514,9 @@ async function shareTemplate(tpl: Template) {
           <button
             v-if="!scopeImplied"
             class="kind-card jp-card"
-            :class="{ picked: pendingKind === 'template' }"
+            :class="{ picked: pendingKind === TEMPLATE_KIND_TEMPLATE }"
             data-testid="m7-kind-template"
-            @click="chooseKind('template')"
+            @click="chooseKind(TEMPLATE_KIND_TEMPLATE)"
           >
             <IonIcon :icon="briefcaseOutline" class="kind-icon" />
             <span class="kind-name">{{ t('templates.sectionTemplate') }}</span>
@@ -521,9 +526,9 @@ async function shareTemplate(tpl: Template) {
           <button
             v-if="!scopeImplied"
             class="kind-card jp-card"
-            :class="{ picked: pendingKind === 'group' }"
+            :class="{ picked: pendingKind === TEMPLATE_KIND_GROUP }"
             data-testid="m7-kind-group"
-            @click="chooseKind('group')"
+            @click="chooseKind(TEMPLATE_KIND_GROUP)"
           >
             <IonIcon :icon="cubeOutline" class="kind-icon" />
             <span class="kind-name">{{ t('templates.sectionGroup') }}</span>
@@ -554,7 +559,7 @@ async function shareTemplate(tpl: Template) {
           <div v-if="createCollision" class="name-taken" data-testid="m7-name-taken">
             <span class="name-taken-text">
               {{
-                createCollision.kind === 'group'
+                createCollision.kind === TEMPLATE_KIND_GROUP
                   ? t('templates.nameTakenGroup', { name: createCollision.name })
                   : t('templates.nameTakenTemplate', { name: createCollision.name })
               }}

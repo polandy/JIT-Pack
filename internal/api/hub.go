@@ -1,6 +1,7 @@
-// Package api — hub.go implements the in-memory WebSocket hub that tracks
+// hub.go implements the in-memory WebSocket hub that tracks
 // per-trip subscriptions, broadcasts events, and computes presence/in_sync
 // state (Sync-API Spec §7).
+
 package api
 
 import (
@@ -60,6 +61,18 @@ type conn struct {
 	// done ends the pump. Closed once, by `stop`.
 	done     chan struct{}
 	stopOnce sync.Once
+	// logger receives this connection's drop/pump log lines. Set by
+	// `Register` to the owning hub's logger; nil (a conn used directly,
+	// without going through a hub) falls back to slog.Default() — see `log`.
+	logger *slog.Logger
+}
+
+// log returns c's logger, or slog.Default() when none was attached.
+func (c *conn) log() *slog.Logger {
+	if c.logger != nil {
+		return c.logger
+	}
+	return slog.Default()
 }
 
 // HeadSeqFunc returns the current change_log head sequence for a trip.
@@ -83,6 +96,11 @@ type Hub struct {
 	mayReceive ReceiveFunc
 	// now is the hub's clock, the server's own (see `clock`).
 	now func() time.Time
+	// logger receives the hub's own log lines (marshal/head-seq failures).
+	// Set once, by the Server that owns the hub, before it serves any
+	// request; nil (a hub built directly, e.g. by a test) falls back to
+	// slog.Default() — see `log`.
+	logger *slog.Logger
 }
 
 // NewHub creates a hub. headSeq may be nil if in_sync is not needed
@@ -98,8 +116,19 @@ func NewHub(headSeq HeadSeqFunc, mayReceive ReceiveFunc) *Hub {
 	}
 }
 
+// log returns h's logger, or slog.Default() when none was attached.
+func (h *Hub) log() *slog.Logger {
+	if h.logger != nil {
+		return h.logger
+	}
+	return slog.Default()
+}
+
 // Register adds a connection to the hub and starts writing to it.
 func (h *Hub) Register(c *conn) {
+	// Attached before c is published in conns: from then on a concurrent
+	// broadcast may drop c, which reads it.
+	c.logger = h.log()
 	h.mu.Lock()
 	h.conns[c] = struct{}{}
 	h.mu.Unlock()
@@ -181,27 +210,28 @@ func (h *Hub) UpdateCursor(c *conn, tripID string, cursor int64) {
 // NotifyTripChanged broadcasts a trip.changed event to all connections
 // subscribed to the given trip.
 func (h *Hub) NotifyTripChanged(tripID string, headSeq int64) {
-	evt := WSEvent{
-		Type:    EventTripChanged,
-		Payload: map[string]any{"trip_id": tripID, "head_seq": headSeq},
-	}
-	h.broadcast(tripID, evt)
+	h.broadcast(tripID, tripChangedEvent(tripID, headSeq))
+}
+
+func tripChangedEvent(tripID string, headSeq int64) WSEvent {
+	return WSEvent{Type: EventTripChanged, Payload: TripChangedPayload{TripID: tripID, HeadSeq: headSeq}}
 }
 
 // NotifyItemLocked broadcasts the ephemeral G-3 lock event (spec §7).
 // The lock is also persisted via the normal mutation; this only lowers
 // latency for connected clients.
 func (h *Hub) NotifyItemLocked(tripID, itemID, byUser, name string) {
-	h.broadcast(tripID, WSEvent{Type: EventItemLocked, Payload: map[string]any{
-		"trip_id": tripID, "item_id": itemID, "by_user": byUser, "name": name,
-	}})
+	h.broadcast(tripID, itemLockEvent(EventItemLocked, tripID, itemID, byUser, name))
 }
 
 // NotifyItemUnlocked broadcasts the ephemeral G-3 unlock event (spec §7).
 func (h *Hub) NotifyItemUnlocked(tripID, itemID, byUser, name string) {
-	h.broadcast(tripID, WSEvent{Type: EventItemUnlocked, Payload: map[string]any{
-		"trip_id": tripID, "item_id": itemID, "by_user": byUser, "name": name,
-	}})
+	h.broadcast(tripID, itemLockEvent(EventItemUnlocked, tripID, itemID, byUser, name))
+}
+
+// itemLockEvent builds either G-3 frame; the two carry the same payload.
+func itemLockEvent(kind WSEventType, tripID, itemID, byUser, name string) WSEvent {
+	return WSEvent{Type: kind, Payload: ItemLockPayload{TripID: tripID, ItemID: itemID, ByUser: byUser, Name: name}}
 }
 
 // NotifyMasterChanged sends a master.changed event to every connection
@@ -209,10 +239,11 @@ func (h *Hub) NotifyItemUnlocked(tripID, itemID, byUser, name string) {
 // subscriptions, and other users discover shared changes lazily on
 // their next pull (spec §8).
 func (h *Hub) NotifyMasterChanged(userID string, seq int64) {
-	h.send(h.connsOf(userID), WSEvent{
-		Type:    EventMasterChanged,
-		Payload: map[string]any{"seq": seq},
-	})
+	h.send(h.connsOf(userID), masterChangedEvent(seq))
+}
+
+func masterChangedEvent(seq int64) WSEvent {
+	return WSEvent{Type: EventMasterChanged, Payload: MasterChangedPayload{Seq: seq}}
 }
 
 // NotifyNotificationCreated sends notification.created to every
@@ -221,10 +252,11 @@ func (h *Hub) NotifyMasterChanged(userID string, seq int64) {
 // accepted but redundant, so a client can never miss (or steal) the
 // event by (mis)subscribing.
 func (h *Hub) NotifyNotificationCreated(userID, notificationID string) {
-	h.send(h.connsOf(userID), WSEvent{
-		Type:    EventNotificationCreated,
-		Payload: map[string]any{"notification_id": notificationID},
-	})
+	h.send(h.connsOf(userID), notificationCreatedEvent(notificationID))
+}
+
+func notificationCreatedEvent(notificationID string) WSEvent {
+	return WSEvent{Type: EventNotificationCreated, Payload: NotificationCreatedPayload{NotificationID: notificationID}}
 }
 
 // connsOf returns all connections authenticated as the given user.
@@ -280,7 +312,7 @@ func (h *Hub) broadcast(tripID string, evt WSEvent) {
 func (h *Hub) send(targets []*conn, evt WSEvent) {
 	data, err := json.Marshal(evt)
 	if err != nil {
-		slog.Error("marshal event", "error", err)
+		h.log().Error("marshal event", "error", err)
 		return
 	}
 	for _, c := range targets {
@@ -326,7 +358,7 @@ func (h *Hub) broadcastPresence(tripID string) {
 		var err error
 		headSeq, err = h.headSeq(context.Background(), tripID)
 		if err != nil {
-			slog.Error("head seq for presence", "trip", tripID, "error", err)
+			h.log().Error("head seq for presence", "trip", tripID, "error", err)
 		}
 	}
 
@@ -339,14 +371,15 @@ func (h *Hub) broadcastPresence(tripID string) {
 		})
 	}
 
-	evt := WSEvent{
-		Type: EventPresence,
-		Payload: map[string]any{
-			"trip_id": tripID,
-			"users":   members,
-		},
-	}
-	h.send(targets, evt)
+	h.send(targets, presenceEvent(tripID, members))
+}
+
+func presenceEvent(tripID string, members []PresenceMember) WSEvent {
+	return WSEvent{Type: EventPresence, Payload: PresencePayload{TripID: tripID, Users: members}}
+}
+
+func rosterEvent(members []RosterMember) WSEvent {
+	return WSEvent{Type: EventRoster, Payload: RosterPayload{Users: members}}
 }
 
 // broadcastRoster sends each connection the people it shares a trip with and
@@ -424,9 +457,9 @@ func (h *Hub) broadcastRoster(only *conn) {
 		if only != nil && len(members) == 0 {
 			continue
 		}
-		data, err := json.Marshal(WSEvent{Type: EventRoster, Payload: map[string]any{"users": members}})
+		data, err := json.Marshal(rosterEvent(members))
 		if err != nil {
-			slog.Error("marshal roster", "error", err)
+			h.log().Error("marshal roster", "error", err)
 			continue
 		}
 		h.mu.Lock()
@@ -468,10 +501,10 @@ func (c *conn) stop() {
 func (c *conn) drop() {
 	c.stopOnce.Do(func() {
 		close(c.done)
-		slog.Info("ws peer fell behind, disconnecting", "user", c.userID)
+		c.log().Info("ws peer fell behind, disconnecting", "user", c.userID)
 		go func() {
 			if err := c.ws.CloseNow(); err != nil {
-				slog.Debug("close slow ws", "user", c.userID, "error", err)
+				c.log().Debug("close slow ws", "user", c.userID, "error", err)
 			}
 		}()
 	})
@@ -491,7 +524,7 @@ func (c *conn) pump() {
 			if err != nil {
 				// The peer is gone; the handler's read loop is about to
 				// discover the same thing and unregister.
-				slog.Debug("write to ws", "user", c.userID, "error", err)
+				c.log().Debug("write to ws", "user", c.userID, "error", err)
 				return
 			}
 		}

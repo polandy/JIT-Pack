@@ -10,14 +10,17 @@ import (
 )
 
 // FR-7.13's columns on comments, named once for the rule below.
+// ColumnTitle, ColumnBody, ColumnIsTask and ColumnItemID are exported
+// because internal/notify reads the same mutation fields when it decides
+// what a comment or an idea insert is for.
 const (
 	columnParentID = "parent_id"
-	columnTitle    = "title"
+	ColumnTitle    = "title"
 	columnEditedAt = "edited_at"
-	columnBody     = "body"
+	ColumnBody     = "body"
 	columnAuthorID = "author_id"
-	columnIsTask   = "is_task"
-	columnItemID   = "trip_item_id"
+	ColumnIsTask   = "is_task"
+	ColumnItemID   = "trip_item_id"
 	// FR-7.15's column: the excursion a thread is about.
 	columnExcursionID = "excursion_id"
 )
@@ -26,7 +29,7 @@ const (
 // question 2: an entry carries its author's name, and words changed by
 // somebody else would still be signed by them). FR-7.15's excursion is
 // among them: which plan a note is about is part of what its author said.
-var noteWords = []string{columnBody, columnTitle, columnEditedAt, columnExcursionID}
+var noteWords = []string{ColumnBody, ColumnTitle, columnEditedAt, columnExcursionID}
 
 // validNoteThread is FR-7.13's part of the trip partition's write gate: a
 // thread is one level deep, a reply names its thread once and carries no
@@ -47,16 +50,16 @@ func validNoteThread(ctx context.Context, tx *sql.Tx, in guardInput) (RejectReas
 		// makes a conflict nobody could read.
 		delete(m.Fields, columnParentID)
 		if parent, _ := row.Fields[columnParentID].(string); parent != "" {
-			delete(m.Fields, columnTitle)
+			delete(m.Fields, ColumnTitle)
 			delete(m.Fields, columnExcursionID)
-			if sync.IsTruthy(m.Fields[columnIsTask]) {
+			if sync.IsTruthy(m.Fields[ColumnIsTask]) {
 				return ReasonConstraintViolated, nil
 			}
 		}
-		if !isNoteRow(row.Fields) {
+		if !IsNote(row.Fields) {
 			delete(m.Fields, columnExcursionID)
 		}
-		if isNoteRow(row.Fields) && touchesAny(m.Fields, noteWords) {
+		if IsNote(row.Fields) && touchesAny(m.Fields, noteWords) {
 			if author, _ := row.Fields[columnAuthorID].(string); author != actorID {
 				return ReasonNotAuthorized, nil
 			}
@@ -66,14 +69,14 @@ func validNoteThread(ctx context.Context, tx *sql.Tx, in guardInput) (RejectReas
 
 	parent, _ := m.Fields[columnParentID].(string)
 	if parent == "" {
-		if !isNoteRow(m.Fields) {
+		if !IsNote(m.Fields) {
 			delete(m.Fields, columnExcursionID)
 		}
 		return noteExcursion(ctx, tx, in)
 	}
-	delete(m.Fields, columnTitle)
+	delete(m.Fields, ColumnTitle)
 	delete(m.Fields, columnExcursionID)
-	if !isNoteRow(m.Fields) {
+	if !IsNote(m.Fields) {
 		return ReasonConstraintViolated, nil
 	}
 	return firstNoteOf(ctx, tx, tripID, parent)
@@ -127,11 +130,12 @@ func firstNoteOf(ctx context.Context, tx *sql.Tx, tripID, id string) (RejectReas
 	return ReasonNone, nil
 }
 
-// isNoteRow reports whether fields describe FR-7.9's note shape: no packing
-// row, not a task.
-func isNoteRow(fields map[string]any) bool {
-	itemID, _ := fields[columnItemID].(string)
-	return itemID == "" && !sync.IsTruthy(fields[columnIsTask])
+// IsNote reports whether fields describe FR-7.9's note shape: no packing
+// row, not a task. internal/notify checks the same mutation fields to
+// decide what a comment insert is for.
+func IsNote(fields map[string]any) bool {
+	itemID, _ := fields[ColumnItemID].(string)
+	return itemID == "" && !sync.IsTruthy(fields[ColumnIsTask])
 }
 
 func touchesAny(fields map[string]any, names []string) bool {

@@ -3,10 +3,11 @@
  * change who goes, add lines — borrowing from the suitcase while it is open —
  * tick, count, skip, buy on the spot, delete, and save the list as a Gruppe.
  *
- * Every rule is in `domain/excursions.ts`; this group only turns the plans
- * into mutations. An act the screen offers to undo returns its own undo, a
- * closure over the rows it wrote, so „Rückgängig" takes back exactly that act
- * and nothing a second device did meanwhile.
+ * Every rule is in `domain/excursionLines.ts`, `excursionSuitcase.ts` and
+ * `excursionSchedule.ts`; this group only turns the plans into mutations. An
+ * act the screen offers to undo returns its own undo, a closure over the rows
+ * it wrote, so „Rückgängig" takes back exactly that act and nothing a second
+ * device did meanwhile.
  */
 import { optimisticDelete } from '@/sync/optimistic'
 import { cascadeChanges } from '@/sync/cascade'
@@ -18,31 +19,41 @@ import {
   orderTracks,
   trackSettingsChanges,
   type TrackSettings,
-} from '@/domain/track'
+} from '@/domain/shared/track'
 import { newId } from '@/lib/ids'
 import type { TrackFiles } from '@/sync/featureModule'
 import { trackSettingsColumns } from '@/sync/rows'
-import type { Excursion, ExcursionItem, ExcursionTrack, TripItem } from '@/types/domain'
-import { ITEM_MODE_BUY_LOCAL } from '@/types/domain'
+import type { Excursion, ExcursionLine, ExcursionTrack, TripItem } from '@/types/domain'
+import {
+  ITEM_MODE_BUY_LOCAL,
+  STATE_PACKED,
+  STATE_SKIPPED,
+  TEMPLATE_KIND_GROUP,
+} from '@/types/domain'
 import type { SyncContext } from '../context'
 import {
-  canJoinPackingList,
-  draftOf,
   isExcursionOnly,
-  type LinkPlan,
-  type PlannedLine,
   lineSetOf,
   planForWhom,
   type LineFor,
   draftLinesFromGroup,
-  inventoryItemFor,
   participantsOf,
   planGroupFromExcursion,
-  planLinks,
   planParticipantChange,
   type DraftLine,
-} from '@/domain/excursions'
-import { beforeIsOver, standingOf } from '@/lib/tripPhase'
+} from '@/domain/excursionLines'
+import {
+  canJoinPackingList,
+  draftOf,
+  type LinkPlan,
+  type PlannedLine,
+  inventoryItemFor,
+  planBorrowOnly,
+  planLinks,
+} from '@/domain/excursionSuitcase'
+import type { BrowseDecision } from '@/domain/browseRows'
+import type { IdeaPlanWrites } from '@/domain/shared/ideaBridge'
+import { beforeIsOver, standingOf } from '@/domain/shared/tripPhase'
 
 /** What creating an excursion did, for the screen's one undo. */
 export interface ExcursionCreation {
@@ -74,11 +85,11 @@ export interface GroupWrites {
   createMasterItem(name: string): string
   /** FR-31.13's undo: the item it created goes again (or retires, if something names it). */
   deleteMasterItem(itemId: string): void
-  createTemplate(name: string, kind: 'group'): string | null
+  createTemplate(name: string, kind: typeof TEMPLATE_KIND_GROUP): string | null
   addTemplateItem(
     templateId: string,
     itemId: string,
-    opts: { quantity: number; assignment: string; defaultMode: ExcursionItem['mode'] },
+    opts: { quantity: number; assignment: string; defaultMode: ExcursionLine['mode'] },
   ): string
 }
 
@@ -184,17 +195,31 @@ export function createExcursionActions(
    * writeLines settles where each draft comes from and writes it, with what
    * the suitcase gains for it (FR-31.4). Returns the undo of all of it.
    */
-  function writeLines(tripId: string, excursionId: string, drafts: readonly DraftLine[]) {
-    const plan = planLinks(drafts, tripStore.getItems(tripId), suitcaseOpen(tripId))
+  function writeLines(
+    tripId: string,
+    excursionId: string,
+    drafts: readonly DraftLine[],
+    decided?: BrowseDecision,
+  ) {
+    const tripItems = tripStore.getItems(tripId)
+    const plan =
+      decided === STATE_SKIPPED
+        ? planBorrowOnly(drafts, tripItems)
+        : planLinks(drafts, tripItems, suitcaseOpen(tripId))
     const suitcase = applySuitcase(tripId, plan)
 
     const lineIds: string[] = []
     for (const planned of plan.lines) {
-      const { mutation, id } = mutations.addExcursionItem(tripId, excursionId, {
-        ...planned.draft,
-        trip_item_id: suitcase.tripItemIdOf(planned),
-        not_in_luggage: planned.not_in_luggage,
-      })
+      const { mutation, id } = mutations.addExcursionItem(
+        tripId,
+        excursionId,
+        {
+          ...planned.draft,
+          trip_item_id: suitcase.tripItemIdOf(planned),
+          not_in_luggage: planned.not_in_luggage,
+        },
+        decided,
+      )
       write(mutation)
       lineIds.push(id)
     }
@@ -217,7 +242,7 @@ export function createExcursionActions(
    * into the suitcase while it is open, marked *nicht im Gepäck* once it is
    * not. Every line of the same thing goes along. Returns the undo.
    */
-  function adoptIntoInventory(tripId: string, line: ExcursionItem): (() => void) | null {
+  function adoptIntoInventory(tripId: string, line: ExcursionLine): (() => void) | null {
     if (!isExcursionOnly(line)) return null
     const set = lineSetOf(line, tripStore.getExcursionItems(tripId, line.excursion_id))
     const target = inventoryItemFor(line, masterStore.activeItemList)
@@ -308,7 +333,7 @@ export function createExcursionActions(
       notInLuggage: written.notInLuggage,
       undo: () => {
         written.undo()
-        deleteExcursion(tripId, id)
+        dropExcursion(tripId, id)
       },
     }
   }
@@ -331,8 +356,22 @@ export function createExcursionActions(
     write(mutations.updateExcursion(excursion.id, changed))
   }
 
-  /** FR-31.1: the excursion goes, with its participants, lines and tracks; the suitcase is untouched. */
-  function deleteExcursion(tripId: string, excursionId: string): void {
+  /**
+   * FR-31.1: the excursion goes, with its participants, lines and tracks; the
+   * suitcase is untouched. One made from an idea was the idea's line on the
+   * day plan, so the idea's day goes too and the idea stays (FR-29.15); the
+   * planner writes it, absent where no planner is composed.
+   */
+  function deleteExcursion(tripId: string, excursionId: string, ideas?: IdeaPlanWrites): void {
+    const ideaId = tripStore
+      .getExcursions(tripId)
+      .find((excursion) => excursion.id === excursionId)?.idea_id
+    dropExcursion(tripId, excursionId)
+    if (ideaId) ideas?.unplan(tripId, ideaId)
+  }
+
+  /** The excursion and its rows, and nothing beside — the creation's undo, under an idea planned before it. */
+  function dropExcursion(tripId: string, excursionId: string): void {
     const trackIds = tripStore.getExcursionTracks(tripId, excursionId).map((track) => track.id)
     const mutation = mutations.deleteExcursion(excursionId)
     write({
@@ -441,7 +480,7 @@ export function createExcursionActions(
   }
 
   /** Puts a removed line back under its own id — an undo's other half. */
-  function restoreLine(line: ExcursionItem): void {
+  function restoreLine(line: ExcursionLine): void {
     write(mutations.restoreExcursionItem(line))
   }
 
@@ -472,43 +511,52 @@ export function createExcursionActions(
     return writeLines(tripId, excursionId, drafts)
   }
 
-  /** FR-31.4/31.5: lines typed or picked in the composer, linked like a Gruppe's. */
-  function addLines(tripId: string, excursionId: string, drafts: readonly DraftLine[]) {
-    return writeLines(tripId, excursionId, drafts)
+  /**
+   * FR-31.4/31.5: lines typed or picked in the composer, linked like a
+   * Gruppe's. A browse-sheet add with its decision made (FR-25.13f) writes
+   * them packed, or skipped with nothing gained by the suitcase.
+   */
+  function addLines(
+    tripId: string,
+    excursionId: string,
+    drafts: readonly DraftLine[],
+    decided?: BrowseDecision,
+  ) {
+    return writeLines(tripId, excursionId, drafts, decided)
   }
 
   /** FR-31.6: how many of a line are in the rucksack. */
-  function setLineCount(line: ExcursionItem, packedCount: number): void {
+  function setLineCount(line: ExcursionLine, packedCount: number): void {
     write(mutations.setExcursionItemCount(line.id, packedCount, line.quantity))
   }
 
   /** FR-31.6: a tap on the check — all of it in, or all of it out again. */
-  function toggleLine(line: ExcursionItem): void {
+  function toggleLine(line: ExcursionLine): void {
     setLineCount(line, line.packed_count >= line.quantity ? 0 : line.quantity)
   }
 
   /** FR-31.6: a different amount; what is packed is clamped to it. */
-  function setLineQuantity(line: ExcursionItem, quantity: number): void {
+  function setLineQuantity(line: ExcursionLine, quantity: number): void {
     write(mutations.setExcursionItemCount(line.id, line.packed_count, quantity))
   }
 
   /** FR-31.6: decided against for this outing. */
-  function skipLine(line: ExcursionItem): void {
+  function skipLine(line: ExcursionLine): void {
     write(mutations.skipExcursionItem(line.id))
   }
 
   /** FR-31.6: taken back into the list at one. */
-  function unskipLine(line: ExcursionItem): void {
+  function unskipLine(line: ExcursionLine): void {
     write(mutations.setExcursionItemCount(line.id, 0, 1))
   }
 
-  function removeLine(line: ExcursionItem): () => void {
+  function removeLine(line: ExcursionLine): () => void {
     removeRow(TABLE.excursionItems, line.id)
     return () => restoreLine(line)
   }
 
   function updateLine(
-    line: ExcursionItem,
+    line: ExcursionLine,
     fields: Parameters<typeof mutations.updateExcursionItem>[1],
   ): void {
     write(mutations.updateExcursionItem(line.id, fields))
@@ -518,7 +566,7 @@ export function createExcursionActions(
    * FR-31.7: *Vor Ort besorgen* — a line not in the luggage becomes a
    * purchase on the spot, and so a line of M6's Vor-Ort list (FR-31.8).
    */
-  function buyOnTheSpot(line: ExcursionItem): void {
+  function buyOnTheSpot(line: ExcursionLine): void {
     updateLine(line, { mode: ITEM_MODE_BUY_LOCAL, bought_at: null })
   }
 
@@ -527,7 +575,7 @@ export function createExcursionActions(
    * named people's — open lines of others go, a packed one stays, new people
    * get a line linked into the suitcase like any other. One undo for all of it.
    */
-  function setForWhom(tripId: string, line: ExcursionItem, target: LineFor): () => void {
+  function setForWhom(tripId: string, line: ExcursionLine, target: LineFor): () => void {
     const set = lineSetOf(line, tripStore.getExcursionItems(tripId, line.excursion_id))
     const change = planForWhom(set, target, participants(tripId, line.excursion_id))
     for (const gone of change.remove) removeRow(TABLE.excursionItems, gone.id)
@@ -549,18 +597,18 @@ export function createExcursionActions(
    * FR-31.8: how a line is had — packed, or bought on the spot. Back to packing
    * drops the purchase record, which only a vor-Ort line can carry.
    */
-  function setLineMode(line: ExcursionItem, mode: ExcursionItem['mode']): void {
+  function setLineMode(line: ExcursionLine, mode: ExcursionLine['mode']): void {
     if (mode === line.mode) return
     updateLine(line, mode === ITEM_MODE_BUY_LOCAL ? { mode } : { mode, bought_at: null })
   }
 
   /** FR-31.8: bought on the spot, or put back on the list. */
-  function markBought(line: ExcursionItem, bought: boolean): void {
+  function markBought(line: ExcursionLine, bought: boolean): void {
     updateLine(line, { bought_at: bought ? nowIso() : null })
   }
 
   /** FR-30.13: the line's place on M6's Vor-Ort list — not on the excursion's own. */
-  function placeLineOnShopping(line: ExcursionItem, position: number): void {
+  function placeLineOnShopping(line: ExcursionLine, position: number): void {
     updateLine(line, { shopping_position: position })
   }
 
@@ -571,7 +619,7 @@ export function createExcursionActions(
    * record of the purchase and now borrows the row. Returns the undo, or null
    * where the line is no bought vor-Ort line off the list.
    */
-  function addToPackingList(tripId: string, line: ExcursionItem): (() => void) | null {
+  function addToPackingList(tripId: string, line: ExcursionLine): (() => void) | null {
     if (!canJoinPackingList(line)) return null
     const target = inventoryItemFor(line, masterStore.activeItemList)
     const createdItem = 'create' in target ? deps.groups.createMasterItem(target.create) : null
@@ -582,7 +630,7 @@ export function createExcursionActions(
       quantity: line.quantity,
     })
     write(mutation)
-    write(mutations.packItem(id, line.quantity, 'packed'))
+    write(mutations.packItem(id, line.quantity, STATE_PACKED))
     if (line.assigned_traveler_id !== null) {
       write(mutations.assignTraveler(id, line.assigned_traveler_id))
     }
@@ -629,7 +677,7 @@ export function createExcursionActions(
       masterStore.activeItemList,
       includeUnlisted,
     )
-    const groupId = deps.groups.createTemplate(name.trim(), 'group')
+    const groupId = deps.groups.createTemplate(name.trim(), TEMPLATE_KIND_GROUP)
     if (groupId === null) return null
     const invented = new Map<string, string>()
     for (const itemName of plan.newMasterItems)

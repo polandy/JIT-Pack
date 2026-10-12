@@ -27,11 +27,15 @@ vi.mock('@/composables/shared/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() 
 
 const master = masterDataStub()
 const orchestratorFake = {
-  ...identityStub(),
+  identity: {
+    ...identityStub(),
+  },
   ...master,
-  addTripMember: vi.fn(),
-  setTripMemberRole: vi.fn(),
-  removeTripMember: vi.fn(),
+  membership: {
+    addTripMember: vi.fn(),
+    setTripMemberRole: vi.fn(),
+    removeTripMember: vi.fn(),
+  },
 }
 
 function mountPage() {

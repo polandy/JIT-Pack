@@ -36,15 +36,15 @@ One file per screen (`M04-*.md` is M4) and one for the global patterns G-1 to G-
 | M20 — User Administration | [`M20-user-administration.md`](M20-user-administration.md) |
 | M22 — Trip Properties (FR-2.7) — *built* | [`M22-trip-properties.md`](M22-trip-properties.md) |
 | M23 — Hidden Items and Templates (FR-24.3) — *built* | [`M23-hidden-items-templates.md`](M23-hidden-items-templates.md) |
-| M24 — Aufräumen (Inventory Cleanup, FR-24.12) — *built* | [`M24-aufraumen.md`](M24-aufraumen.md) |
-| M25 — Aufgaben (A Trip's Tasks, FR-7.7, FR-7.14) — *built* | [`M25-aufgaben.md`](M25-aufgaben.md) |
-| M26 — Notizen (A Trip's Notes, FR-7.13) — *built* | [`M26-notizen.md`](M26-notizen.md) |
-| M27 — Ausflüge (A Trip's Excursions, FR-31) — *built* | [`M27-ausfluge.md`](M27-ausfluge.md) |
-| M28 — Ideen (A Trip's Ideas, §3.29) — *built* | [`M28-ideen.md`](M28-ideen.md) |
-| M29 — Tagesplan (A Trip's Day Plan, FR-29.14, FR-29.15, FR-29.18) — *built* | [`M29-tagesplan.md`](M29-tagesplan.md) |
-| M30 — Aktivität (Activity Log, §3.32) — *built* | [`M30-aktivitat.md`](M30-aktivitat.md) |
-| M31 — Essen (A Trip's Meal Plan, §3.33) — *built* | [`M31-essen.md`](M31-essen.md) |
-| M21 — Vorlage aus Reise (Template from Trip) | [`M21-vorlage-aus-reise.md`](M21-vorlage-aus-reise.md) |
+| M24 — Aufräumen (Inventory Cleanup, FR-24.12) — *built* | [`M24-inventory-cleanup.md`](M24-inventory-cleanup.md) |
+| M25 — Aufgaben (A Trip's Tasks, FR-7.7, FR-7.14) — *built* | [`M25-trip-tasks.md`](M25-trip-tasks.md) |
+| M26 — Notizen (A Trip's Notes, FR-7.13) — *built* | [`M26-trip-notes.md`](M26-trip-notes.md) |
+| M27 — Ausflüge (A Trip's Excursions, FR-31) — *built* | [`M27-excursions.md`](M27-excursions.md) |
+| M28 — Ideen (A Trip's Ideas, §3.29) — *built* | [`M28-ideas.md`](M28-ideas.md) |
+| M29 — Tagesplan (A Trip's Day Plan, FR-29.14, FR-29.15, FR-29.18) — *built* | [`M29-day-plan.md`](M29-day-plan.md) |
+| M30 — Aktivität (Activity Log, §3.32) — *built* | [`M30-activity-log.md`](M30-activity-log.md) |
+| M31 — Essen (A Trip's Meal Plan, §3.33) — *built* | [`M31-meal-plan.md`](M31-meal-plan.md) |
+| M21 — Vorlage aus Reise (Template from Trip) | [`M21-template-from-trip.md`](M21-template-from-trip.md) |
 ## 1. Screen Inventory
 
 | # | Screen | Priority | Primary FRs |

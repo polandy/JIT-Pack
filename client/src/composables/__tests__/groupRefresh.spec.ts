@@ -8,6 +8,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { proposedChangeCount } from '@/domain/refresh'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
@@ -47,6 +48,7 @@ async function localOrchestrator(today = TODAY) {
       load: () => Promise.resolve([]),
       requestDurability: () => Promise.resolve(true),
     } as never,
+    now: fixedClock,
   })
   await orch.connect()
   return orch
@@ -94,10 +96,10 @@ describe('proposeTripRefresh — the question (FR-27.4)', () => {
     const tripStore = useTripStore()
     seedWorld()
 
-    const plan = orch.proposeTripRefresh(TRIP_ID)
+    const plan = orch.groupRefresh.proposeTripRefresh(TRIP_ID)
 
     expect(plan?.add.map((a) => a.generated.name)).toEqual(['Kamera'])
-    expect(orch.refreshProposals.value[TRIP_ID]).toBe(plan)
+    expect(orch.groupRefresh.refreshProposals.value[TRIP_ID]).toBe(plan)
     // Nothing moved: not the list, not the log, not the ledger. Writing any
     // of the three here would answer the question on the user's behalf.
     expect(tripStore.getItems(TRIP_ID)).toEqual([])
@@ -109,12 +111,12 @@ describe('proposeTripRefresh — the question (FR-27.4)', () => {
     const orch = await localOrchestrator()
     const tripStore = useTripStore()
     seedWorld()
-    orch.quickAddItem(TRIP_ID, 'Kamera', { sourceItemId: ITEM_ID }, false)
+    orch.packing.quickAddItem(TRIP_ID, 'Kamera', { sourceItemId: ITEM_ID }, false)
 
-    const plan = orch.proposeTripRefresh(TRIP_ID)
+    const plan = orch.groupRefresh.proposeTripRefresh(TRIP_ID)
 
     expect(plan?.add).toEqual([])
-    expect(orch.refreshProposals.value[TRIP_ID]).toBeUndefined()
+    expect(orch.groupRefresh.refreshProposals.value[TRIP_ID]).toBeUndefined()
     // The bookkeeping half runs immediately: leaving it unwritten would
     // re-derive the same adoption on every open, forever.
     expect(tripStore.getGeneratedPositions(TRIP_ID)).toHaveLength(1)
@@ -126,23 +128,23 @@ describe('proposeTripRefresh — the question (FR-27.4)', () => {
     const orch = await localOrchestrator()
     seedWorld('active')
 
-    expect(orch.proposeTripRefresh(TRIP_ID)?.add).toHaveLength(1)
+    expect(orch.groupRefresh.proposeTripRefresh(TRIP_ID)?.add).toHaveLength(1)
   })
 
   it('asks an archived trip nothing — the freeze is the past', async () => {
     const orch = await localOrchestrator()
     seedWorld('archived')
 
-    expect(orch.proposeTripRefresh(TRIP_ID)?.add).toEqual([])
-    expect(orch.refreshProposals.value[TRIP_ID]).toBeUndefined()
+    expect(orch.groupRefresh.proposeTripRefresh(TRIP_ID)?.add).toEqual([])
+    expect(orch.groupRefresh.refreshProposals.value[TRIP_ID]).toBeUndefined()
   })
 
   it('asks a trip whose end date has passed nothing, open or not', async () => {
     const orch = await localOrchestrator('2026-02-09')
     seedWorld('active')
 
-    expect(orch.proposeTripRefresh(TRIP_ID)?.add).toEqual([])
-    expect(orch.refreshProposals.value[TRIP_ID]).toBeUndefined()
+    expect(orch.groupRefresh.proposeTripRefresh(TRIP_ID)?.add).toEqual([])
+    expect(orch.groupRefresh.refreshProposals.value[TRIP_ID]).toBeUndefined()
   })
 
   it('sweeps every trip that still follows its groups, and skips the past ones', async () => {
@@ -165,9 +167,12 @@ describe('proposeTripRefresh — the question (FR-27.4)', () => {
       change(TABLE.tripTemplateSources, 'src-3', { trip_id: 'trip-3', template_id: GROUP_ID }),
     ])
 
-    orch.proposeRefreshForLoadedTrips()
+    orch.groupRefresh.proposeRefreshForLoadedTrips()
 
-    expect(Object.keys(orch.refreshProposals.value).sort()).toEqual([TRIP_ID, 'trip-2'])
+    expect(Object.keys(orch.groupRefresh.refreshProposals.value).sort()).toEqual([
+      TRIP_ID,
+      'trip-2',
+    ])
   })
 })
 
@@ -182,7 +187,7 @@ describe('a freshly generated trip has nothing to be asked about (FR-27.4)', () 
     const tripStore = useTripStore()
     seedWorld()
 
-    const tripId = orch.createTripFromWizard({
+    const tripId = orch.tripCreation.createTripFromWizard({
       name: 'Engadin',
       year: 2026,
       startDate: null,
@@ -208,10 +213,10 @@ describe('a freshly generated trip has nothing to be asked about (FR-27.4)', () 
       sourceTemplateIds: [GROUP_ID],
     })
 
-    const plan = orch.proposeTripRefresh(tripId)
+    const plan = orch.groupRefresh.proposeTripRefresh(tripId)
 
     expect(proposedChangeCount(plan!)).toBe(0)
-    expect(orch.refreshProposals.value[tripId]).toBeUndefined()
+    expect(orch.groupRefresh.refreshProposals.value[tripId]).toBeUndefined()
     expect(tripStore.getAppliedChanges(tripId)).toEqual([])
     // Adopted, not ignored: the ledger now knows the row, which is what lets
     // the *next* group edit tell a hand edit from its own previous work.
@@ -225,9 +230,9 @@ describe('acceptTripRefresh — the answer yes (FR-27.4)', () => {
     const orch = await localOrchestrator()
     const tripStore = useTripStore()
     seedWorld()
-    orch.proposeTripRefresh(TRIP_ID)
+    orch.groupRefresh.proposeTripRefresh(TRIP_ID)
 
-    orch.acceptTripRefresh(TRIP_ID)
+    orch.groupRefresh.acceptTripRefresh(TRIP_ID)
 
     const items = tripStore.getItems(TRIP_ID)
     expect(items.map((i) => i.name)).toEqual(['Kamera'])
@@ -241,7 +246,7 @@ describe('acceptTripRefresh — the answer yes (FR-27.4)', () => {
       source_template_name: 'Makro Fotografie',
     })
     // The question is answered, so it must stop being asked.
-    expect(orch.refreshProposals.value[TRIP_ID]).toBeUndefined()
+    expect(orch.groupRefresh.refreshProposals.value[TRIP_ID]).toBeUndefined()
   })
 
   it('records what it produced, so nothing is offered a second time', async () => {
@@ -249,8 +254,8 @@ describe('acceptTripRefresh — the answer yes (FR-27.4)', () => {
     const tripStore = useTripStore()
     seedWorld()
 
-    orch.acceptTripRefresh(TRIP_ID)
-    const plan = orch.proposeTripRefresh(TRIP_ID)
+    orch.groupRefresh.acceptTripRefresh(TRIP_ID)
+    const plan = orch.groupRefresh.proposeTripRefresh(TRIP_ID)
 
     expect(plan?.add).toEqual([])
     expect(tripStore.getItems(TRIP_ID)).toHaveLength(1)
@@ -262,12 +267,12 @@ describe('acceptTripRefresh — the answer yes (FR-27.4)', () => {
     const orch = await localOrchestrator()
     const tripStore = useTripStore()
     seedWorld()
-    orch.acceptTripRefresh(TRIP_ID)
+    orch.groupRefresh.acceptTripRefresh(TRIP_ID)
 
     // The group is edited — on this device or, just as well, on another one
     // whose change arrived with the master pull.
     editGroupQuantity(3)
-    orch.acceptTripRefresh(TRIP_ID)
+    orch.groupRefresh.acceptTripRefresh(TRIP_ID)
 
     expect(tripStore.getItems(TRIP_ID)[0]?.quantity).toBe(3)
     // Found by kind, not by index: the log holds the earlier 'added' entry
@@ -280,7 +285,7 @@ describe('acceptTripRefresh — the answer yes (FR-27.4)', () => {
     expect(changed[0]).toMatchObject({ detail: { field: 'quantity', from: 1, to: 3 } })
   })
 
-  it('materialises an FR-27.7 task as a preparation todo on the row it generated', async () => {
+  it('materialises an FR-27.7 task as a preparation on the row it generated', async () => {
     const orch = await localOrchestrator()
     const tripStore = useTripStore()
     seedWorld()
@@ -291,10 +296,10 @@ describe('acceptTripRefresh — the answer yes (FR-27.4)', () => {
       }),
     ])
 
-    orch.acceptTripRefresh(TRIP_ID)
+    orch.groupRefresh.acceptTripRefresh(TRIP_ID)
 
     const item = tripStore.getItems(TRIP_ID)[0]!
-    expect(tripStore.getItemTodos(TRIP_ID, item.id).map((t) => t.body)).toEqual(['Akkus laden'])
+    expect(tripStore.getRowPrepTasks(TRIP_ID, item.id).map((t) => t.body)).toEqual(['Akkus laden'])
   })
 })
 
@@ -303,34 +308,34 @@ describe('declineTripRefresh — the answer no (FR-27.4)', () => {
     const orch = await localOrchestrator()
     const tripStore = useTripStore()
     seedWorld()
-    orch.acceptTripRefresh(TRIP_ID)
+    orch.groupRefresh.acceptTripRefresh(TRIP_ID)
     editGroupQuantity(3)
-    expect(orch.proposeTripRefresh(TRIP_ID)?.update).toHaveLength(1)
+    expect(orch.groupRefresh.proposeTripRefresh(TRIP_ID)?.update).toHaveLength(1)
 
-    orch.declineTripRefresh(TRIP_ID)
+    orch.groupRefresh.declineTripRefresh(TRIP_ID)
 
     expect(tripStore.getItems(TRIP_ID)[0]?.quantity).toBe(1)
     // M2's log is the record of what the trip *took over*; a refusal took
     // nothing over, so the only entry there is still the original add.
     expect(tripStore.getAppliedChanges(TRIP_ID)).toHaveLength(1)
-    expect(orch.refreshProposals.value[TRIP_ID]).toBeUndefined()
+    expect(orch.groupRefresh.refreshProposals.value[TRIP_ID]).toBeUndefined()
     // The snapshot advanced to the version that was refused — that gap is
     // what keeps the row the user's from here on.
     expect(tripStore.getGeneratedPositions(TRIP_ID)[0]?.quantity).toBe(3)
-    expect(orch.proposeTripRefresh(TRIP_ID)?.update).toEqual([])
+    expect(orch.groupRefresh.proposeTripRefresh(TRIP_ID)?.update).toEqual([])
   })
 
   it('does not ask again about a refused addition', async () => {
     const orch = await localOrchestrator()
     const tripStore = useTripStore()
     seedWorld()
-    orch.proposeTripRefresh(TRIP_ID)
+    orch.groupRefresh.proposeTripRefresh(TRIP_ID)
 
-    orch.declineTripRefresh(TRIP_ID)
+    orch.groupRefresh.declineTripRefresh(TRIP_ID)
 
     expect(tripStore.getItems(TRIP_ID)).toEqual([])
-    expect(orch.proposeTripRefresh(TRIP_ID)?.add).toEqual([])
-    expect(orch.refreshProposals.value[TRIP_ID]).toBeUndefined()
+    expect(orch.groupRefresh.proposeTripRefresh(TRIP_ID)?.add).toEqual([])
+    expect(orch.groupRefresh.refreshProposals.value[TRIP_ID]).toBeUndefined()
   })
 })
 
@@ -344,11 +349,12 @@ describe('the refresh refuses to run on rows it cannot see (FR-27.4)', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       local: { save: () => Promise.resolve(), load: () => Promise.resolve([]) } as never,
+      now: fixedClock,
     })
     const tripStore = useTripStore()
     seedWorld()
 
-    expect(orch.proposeTripRefresh(TRIP_ID)).toBeNull()
+    expect(orch.groupRefresh.proposeTripRefresh(TRIP_ID)).toBeNull()
     expect(tripStore.getItems(TRIP_ID)).toEqual([])
   })
 
@@ -356,11 +362,15 @@ describe('the refresh refuses to run on rows it cannot see (FR-27.4)', () => {
     // No `local`, and no drainTrip has succeeded for this trip: in Server
     // Mode a trip's rows arrive only when it is opened, and M2 shows trips
     // from the *master* partition long before that.
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     seedWorld()
 
-    orch.proposeRefreshForLoadedTrips()
+    orch.groupRefresh.proposeRefreshForLoadedTrips()
 
     expect(tripStore.getItems(TRIP_ID)).toEqual([])
     expect(tripStore.getAppliedChanges(TRIP_ID)).toEqual([])
@@ -376,7 +386,7 @@ describe('createTripFromWizard registers what the trip follows (FR-27.4)', () =>
       change(TABLE.templates, GROUP_ID, { name: 'Makro', kind: 'group', owner_id: 'u1' }),
     )
 
-    const tripId = orch.createTripFromWizard({
+    const tripId = orch.tripCreation.createTripFromWizard({
       name: 'Engadin',
       year: 2026,
       startDate: null,
@@ -416,6 +426,7 @@ describe('a master pull asks the trips it just changed something for (FR-27.4)',
       baseUrl: 'http://localhost',
       getToken: () => null,
       today: () => TODAY,
+      now: fixedClock,
     })
     const tripStore = useTripStore()
 
@@ -452,9 +463,9 @@ describe('a master pull asks the trips it just changed something for (FR-27.4)',
     ])
     await orch.drainMaster()
 
-    expect(orch.refreshProposals.value[TRIP_ID]?.add.map((a) => a.generated.name)).toEqual([
-      'Kamera',
-    ])
+    expect(
+      orch.groupRefresh.refreshProposals.value[TRIP_ID]?.add.map((a) => a.generated.name),
+    ).toEqual(['Kamera'])
     // Still only offered — arriving over the wire is not an answer either.
     expect(tripStore.getItems(TRIP_ID)).toEqual([])
   })

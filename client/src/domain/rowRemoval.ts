@@ -22,7 +22,7 @@ export interface RemovableRow extends CoSkippable {
 export interface RowRemoval<T> {
   /** Units already packed, which the removal forgets. */
   packed: number
-  /** Comments and FR-7.3 todos on the row — they cascade with it. */
+  /** Comments and FR-7.3 preparations on the row — they cascade with it. */
   notes: number
   /** FR-20.2: rows that follow the main item off the list as co-skipped. */
   companions: T[]

@@ -13,6 +13,7 @@ import { IDBFactory } from 'fake-indexeddb'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useMasterStore } from '@/stores/masterStore'
 import type { PushResponse } from '@/api/types'
@@ -35,7 +36,7 @@ function mockDrain() {
 }
 
 function newOrch() {
-  return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+  return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null, now: fixedClock })
 }
 
 function seedTemplate(id: string, name: string, kind = 'template') {
@@ -54,10 +55,10 @@ describe('template names are instance-wide (FR-1.6)', () => {
     mockDrain()
     seedTemplate('t1', 'Ferien')
 
-    expect(orch.createTemplate('Ferien', 'template')).toBeNull()
+    expect(orch.masterData.createTemplate('Ferien', 'template')).toBeNull()
     expect(useMasterStore().templateList).toHaveLength(1)
     // Positive signal beside the refusal: a free name does reach the wire.
-    expect(orch.createTemplate('Winter', 'template')).not.toBeNull()
+    expect(orch.masterData.createTemplate('Winter', 'template')).not.toBeNull()
     expect(useMasterStore().templateList).toHaveLength(2)
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
     const bodies = fetchMock.mock.calls.map((c) => String((c[1] as RequestInit).body))
@@ -69,16 +70,16 @@ describe('template names are instance-wide (FR-1.6)', () => {
     const orch = newOrch()
     mockDrain()
     seedTemplate('t1', 'Ferien')
-    expect(orch.createTemplate('ferien', 'template')).toBeNull()
+    expect(orch.masterData.createTemplate('ferien', 'template')).toBeNull()
   })
 
   it('reports the collision across scopes, so a Gruppe blocks a Vorlage', () => {
     const orch = newOrch()
     seedTemplate('g1', 'Kamera', 'group')
-    const hit = orch.templateNameCollision('Kamera')
+    const hit = orch.names.templateNameCollision('Kamera')
     expect(hit?.id).toBe('g1')
     expect(hit?.kind).toBe('group')
-    expect(orch.createTemplate('Kamera', 'template')).toBeNull()
+    expect(orch.masterData.createTemplate('Kamera', 'template')).toBeNull()
   })
 
   it('refuses a rename onto a taken name but allows the row its own name', () => {
@@ -88,13 +89,19 @@ describe('template names are instance-wide (FR-1.6)', () => {
     seedTemplate('t2', 'Kamera', 'group')
     const master = useMasterStore()
 
-    expect(orch.updateTemplate(master.getTemplate('t2')!, { name: 'Ferien' })).toBe(false)
+    expect(orch.masterData.updateTemplate(master.getTemplate('t2')!, { name: 'Ferien' })).toBe(
+      false,
+    )
     expect(master.getTemplate('t2')!.name).toBe('Kamera')
     // Positive signal: the same call with a free name does land.
-    expect(orch.updateTemplate(master.getTemplate('t2')!, { name: 'Kameras' })).toBe(true)
+    expect(orch.masterData.updateTemplate(master.getTemplate('t2')!, { name: 'Kameras' })).toBe(
+      true,
+    )
     expect(master.getTemplate('t2')!.name).toBe('Kameras')
     // And a no-op rename to its own spelling is not a collision with itself.
-    expect(orch.updateTemplate(master.getTemplate('t2')!, { name: 'Kameras' })).toBe(true)
+    expect(orch.masterData.updateTemplate(master.getTemplate('t2')!, { name: 'Kameras' })).toBe(
+      true,
+    )
   })
 
   it('leaves an edit that is not a rename alone (FR-28.8 mark)', () => {
@@ -102,7 +109,7 @@ describe('template names are instance-wide (FR-1.6)', () => {
     mockDrain()
     seedTemplate('t1', 'Ferien')
     const master = useMasterStore()
-    expect(orch.updateTemplate(master.getTemplate('t1')!, { icon: '⛺' })).toBe(true)
+    expect(orch.masterData.updateTemplate(master.getTemplate('t1')!, { icon: '⛺' })).toBe(true)
     expect(master.getTemplate('t1')!.icon).toBe('⛺')
   })
 })
@@ -122,9 +129,9 @@ describe('series names are instance-wide (FR-13.1)', () => {
     const orch = newOrch()
     mockDrain()
     seedSeries('s1', 'Engadin')
-    expect(orch.createSeries('engadin')).toBeNull()
+    expect(orch.series.createSeries('engadin')).toBeNull()
     expect(useMasterStore().seriesList).toHaveLength(1)
-    expect(orch.createSeries('Ferien')).not.toBeNull()
+    expect(orch.series.createSeries('Ferien')).not.toBeNull()
     expect(useMasterStore().seriesList).toHaveLength(2)
   })
 
@@ -134,19 +141,24 @@ describe('series names are instance-wide (FR-13.1)', () => {
     seedSeries('s1', 'Engadin')
     seedSeries('s2', 'Elba')
     const master = useMasterStore()
-    expect(orch.updateSeries(master.getSeries('s2')!, { name: 'Engadin' })).toBe(false)
+    expect(orch.series.updateSeries(master.getSeries('s2')!, { name: 'Engadin' })).toBe(false)
     expect(master.getSeries('s2')!.name).toBe('Elba')
-    expect(orch.updateSeries(master.getSeries('s2')!, { name: 'Elba 2' })).toBe(true)
+    expect(orch.series.updateSeries(master.getSeries('s2')!, { name: 'Elba 2' })).toBe(true)
   })
 })
 
 describe('Local Mode has no constraint, so the client is the only guard', () => {
   it('never writes a second template of the same name', async () => {
     const persistence = new IndexedDBPersistence()
-    const orch = useSyncOrchestrator({ baseUrl: '', getToken: () => null, local: persistence })
-    const first = orch.createTemplate('Ferien', 'template')
+    const orch = useSyncOrchestrator({
+      baseUrl: '',
+      getToken: () => null,
+      local: persistence,
+      now: fixedClock,
+    })
+    const first = orch.masterData.createTemplate('Ferien', 'template')
     expect(first).not.toBeNull()
-    expect(orch.createTemplate('Ferien', 'group')).toBeNull()
+    expect(orch.masterData.createTemplate('Ferien', 'group')).toBeNull()
 
     await vi.waitFor(async () => {
       const rows = await persistence.load()

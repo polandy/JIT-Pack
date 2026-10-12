@@ -1,7 +1,7 @@
 /**
  * FR-7.11 — when a task is due, and what that does to where it is shown.
  *
- * The day arithmetic is `domain/dueDay.ts`'s (shared with FR-30.10's
+ * The day arithmetic is `domain/shared/dueDay.ts`'s (shared with FR-30.10's
  * shopping entries); what is a task's own is which task has a day worth
  * reading — an open one. A resolved task is never overdue.
  */
@@ -11,38 +11,27 @@ import {
   DUE_SOON,
   DUE_SOON_DAYS,
   DUE_TODAY,
-  daysBetween,
-  dueState,
   dueTally,
   isPressingDay,
   pressingGroupsFirst,
   sortByDue,
   type DueState,
   type DueTally,
-} from '@/domain/dueDay'
-import type { TodoState } from '@/types/domain'
+} from '@/domain/shared/dueDay'
+import { TASK_STATE_OPEN, type TaskState } from '@/types/domain'
 
-export { DUE_LATER, DUE_OVERDUE, DUE_SOON, DUE_SOON_DAYS, DUE_TODAY, daysBetween }
+export { DUE_LATER, DUE_OVERDUE, DUE_SOON, DUE_SOON_DAYS, DUE_TODAY }
 export type { DueState }
 
 /** What the rules read off a task. */
 export interface DueFacts {
   due_date: string | null
-  task_state: TodoState
+  task_state: TaskState
 }
 
 /** The day that counts: an open task's date, and none for a finished one. */
 export function openDueDay(task: DueFacts): string | null {
-  return task.task_state === 'open' ? task.due_date : null
-}
-
-/**
- * dueStateOf reads where a task stands against today, or null where the
- * question does not arise: no date, or already done — a finished task is
- * never overdue, whatever its date says.
- */
-export function dueStateOf(task: DueFacts, today: string): DueState | null {
-  return dueState(openDueDay(task), today)
+  return task.task_state === TASK_STATE_OPEN ? task.due_date : null
 }
 
 /** Whether a task is one somebody should look at now: overdue, today or soon. */

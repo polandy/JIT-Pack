@@ -39,15 +39,15 @@ non-functional journeys and the traceability matrix. `scripts/case-id-gate.mjs` 
 | M18 — Portable Import Preview | [`M18-portable-import-preview.md`](M18-portable-import-preview.md) |
 | M19 — First-Launch Mode Selection | [`M19-first-launch-mode.md`](M19-first-launch-mode.md) |
 | M20 — User Administration | [`M20-user-administration.md`](M20-user-administration.md) |
-| M21 — Vorlage aus Reise (new screen, §3.27) | [`M21-vorlage-aus-reise.md`](M21-vorlage-aus-reise.md) |
+| M21 — Vorlage aus Reise (new screen, §3.27) | [`M21-template-from-trip.md`](M21-template-from-trip.md) |
 | M22 — Trip properties (new screen, FR-2.7) | [`M22-trip-properties.md`](M22-trip-properties.md) |
-| M25 — Aufgaben (a trip's tasks, FR-7.7) | [`M25-aufgaben.md`](M25-aufgaben.md) |
-| M26 — Notizen (a trip's notes as threads, FR-7.13) | [`M26-notizen.md`](M26-notizen.md) |
-| M27 — Ausflüge (a trip's excursions, FR-31) | [`M27-ausfluge.md`](M27-ausfluge.md) |
-| M28 — Ideen (a trip's ideas, §3.29) | [`M28-ideen.md`](M28-ideen.md) |
-| M29 — Tagesplan (a trip's day plan, FR-29.14/29.15) | [`M29-tagesplan.md`](M29-tagesplan.md) |
-| M30 — Aktivität (who changed what, §3.32) | [`M30-aktivitat.md`](M30-aktivitat.md) |
-| M31 — Essen (a trip's meal plan, §3.33) | [`M31-essen.md`](M31-essen.md) |
+| M25 — Aufgaben (a trip's tasks, FR-7.7) | [`M25-trip-tasks.md`](M25-trip-tasks.md) |
+| M26 — Notizen (a trip's notes as threads, FR-7.13) | [`M26-trip-notes.md`](M26-trip-notes.md) |
+| M27 — Ausflüge (a trip's excursions, FR-31) | [`M27-excursions.md`](M27-excursions.md) |
+| M28 — Ideen (a trip's ideas, §3.29) | [`M28-ideas.md`](M28-ideas.md) |
+| M29 — Tagesplan (a trip's day plan, FR-29.14/29.15) | [`M29-day-plan.md`](M29-day-plan.md) |
+| M30 — Aktivität (who changed what, §3.32) | [`M30-activity-log.md`](M30-activity-log.md) |
+| M31 — Essen (a trip's meal plan, §3.33) | [`M31-meal-plan.md`](M31-meal-plan.md) |
 | 6. Non-Functional Journeys | [`non-functional.md`](non-functional.md) |
 | 7. Requirement Traceability Matrix | [`traceability.md`](traceability.md) |
 ## 1.1 Layered coverage (decided)

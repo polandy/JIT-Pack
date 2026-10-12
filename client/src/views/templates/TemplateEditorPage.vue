@@ -30,7 +30,7 @@ import {
   cubeOutline,
   happyOutline,
 } from 'ionicons/icons'
-import { computed, nextTick, ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import PositionSheet from '@/components/templates/PositionSheet.vue'
@@ -42,17 +42,8 @@ import SheetModal from '@/components/global/SheetModal.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import MarkPicker from '@/components/items/MarkPicker.vue'
 import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
-import {
-  PICKER_SEARCH_MIN_GROUPS,
-  groupFoldOffer,
-  PREVIEW_ROW_NAMES,
-  tripsReachedBy,
-  previewLines,
-  resolvedLines,
-  scopeSwitchBlock,
-  searchGroups,
-} from '@/domain/templates'
-import type { GroupMatch, GroupSearchCandidate } from '@/domain/templates'
+import { groupFoldOffer, tripsReachedBy, scopeSwitchBlock } from '@/domain/templates'
+import type { GroupMatch } from '@/domain/templates'
 import { foldDismissals } from '@/composables/useFoldDismissals'
 import { t } from '@/i18n'
 import { presentToast } from '@/composables/shared/toast'
@@ -61,9 +52,16 @@ import { positionChips as chipsFor } from '@/lib/positionChips'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { TaskPhase, TemplateItem, TemplateKind, TemplateTask } from '@/types/domain'
-import { TASK_PHASE_BEFORE, TASK_PHASE_DURING } from '@/types/domain'
-import { taskPhaseOf } from '@/domain/tripTodos'
+import {
+  TASK_PHASE_BEFORE,
+  TASK_PHASE_DURING,
+  TEMPLATE_KIND_GROUP,
+  TEMPLATE_KIND_TEMPLATE,
+} from '@/types/domain'
+import { taskPhaseOf } from '@/domain/tripTasks'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
+import { useTemplateQuickAdd } from './useTemplateQuickAdd'
+import { useTemplateGroups } from './useTemplateGroups'
 
 const props = defineProps<{ templateId: string }>()
 
@@ -72,7 +70,7 @@ const tripStore = useTripStore()
 const orchestrator = useOrchestrator()
 
 const template = computed(() => masterStore.getTemplate(props.templateId))
-const isGroup = computed(() => template.value?.kind === 'group')
+const isGroup = computed(() => template.value?.kind === TEMPLATE_KIND_GROUP)
 const includes = computed(() => masterStore.getIncludes(props.templateId))
 const includedBy = computed(() => masterStore.getIncludedBy(props.templateId))
 const resolution = computed(() => masterStore.resolve(props.templateId))
@@ -109,13 +107,13 @@ async function commitName(field: HTMLIonInputElement) {
   // here rather than by a push whose rejection would arrive on another
   // screen. The field goes back to what the row is still called — leaving
   // the refused spelling in it would read as saved.
-  const taken = orchestrator.templateNameCollision(name, tpl.id)
+  const taken = orchestrator.names.templateNameCollision(name, tpl.id)
   if (taken) {
     field.value = tpl.name
     await toast(t('templates.renameTaken', { name: taken.name }))
     return
   }
-  orchestrator.updateTemplate(tpl, { name })
+  orchestrator.masterData.updateTemplate(tpl, { name })
 }
 
 /** FR-28.8: a group's own mark, for the rows that offer it. */
@@ -132,7 +130,7 @@ const markPickerOpen = ref(false)
 
 function setMark(next: string | null) {
   const tpl = template.value
-  if (tpl) orchestrator.updateTemplate(tpl, { icon: next })
+  if (tpl) orchestrator.masterData.updateTemplate(tpl, { icon: next })
 }
 
 // --- Scope switch, guarded (FR-27.6) ---------------------------------------
@@ -149,7 +147,7 @@ async function switchScope(target: TemplateKind) {
     await toast(t('templates.includedBlocked', { name: includedBy.value[0]!.name }))
     return
   }
-  orchestrator.updateTemplate(tpl, { kind: target })
+  orchestrator.masterData.updateTemplate(tpl, { kind: target })
 }
 
 const includedInLine = computed(() =>
@@ -183,144 +181,28 @@ const blastNote = computed(() =>
 
 // --- Gruppen section (Ferien-Vorlage only, FR-27.1) -------------------------
 
-/** FR-27.12: which included group the peek sheet is showing, if any. */
-const peekTemplateId = ref<string | null>(null)
-
-/** The first few items of an included group, so the row says what it brought. */
-function groupPreview(templateId: string): string {
-  const lines = resolvedLines(masterStore.resolve(templateId), masterStore.itemList)
-  const preview = previewLines(lines, PREVIEW_ROW_NAMES)
-  const names = preview.names.join(' · ')
-  return preview.rest > 0 ? `${names} ${t('templates.previewMore', { n: preview.rest })}` : names
-}
-
-const pickerOpen = ref(false)
-const newGroupOpen = ref(false)
-const newGroupName = ref('')
-const newGroupInput = ref<InstanceType<typeof IonInput> | null>(null)
-
-/**
- * The Gruppen this Vorlage could point at: every active one but itself. All
- * three group surfaces start here — the picker, its FR-27.13 search and
- * FR-27.15's fold offer — and each had written the pair of conditions out.
- */
-const otherGroups = computed(() =>
-  masterStore.activeTemplateList.filter(
-    (tpl) => tpl.kind === 'group' && tpl.id !== props.templateId,
-  ),
-)
-
-/** The Gruppen already included, which three of those surfaces ask about. */
-const includedGroupIds = computed(
-  () => new Set(includes.value.map((inc) => inc.included_template_id)),
-)
-
-/** Groups only, never already-included ones — the two-level rule's picker. */
-const availableGroups = computed(() =>
-  otherGroups.value
-    .filter((tpl) => !includedGroupIds.value.has(tpl.id))
-    .sort((a, b) => a.name.localeCompare(b.name)),
-)
-
-function groupName(includedTemplateId: string): string {
-  return masterStore.getTemplate(includedTemplateId)?.name ?? t('templates.notFound')
-}
-
-function groupCount(includedTemplateId: string): number {
-  return masterStore.resolve(includedTemplateId).positions.length
-}
-
-// --- FR-27.13: searching the picker ----------------------------------------
-
-const pickerQuery = ref('')
-
-/**
- * Every group the search can look at — the included ones too, flagged: they
- * are hidden while browsing and shown while searching, because a search that
- * silently drops them implies the group does not exist (FR-27.13).
- */
-const searchCandidates = computed<GroupSearchCandidate[]>(() =>
-  otherGroups.value.map((tpl) => ({
-    id: tpl.id,
-    name: tpl.name,
-    itemNames: resolvedLines(masterStore.resolve(tpl.id), masterStore.itemList).map(
-      (line) => line.name,
-    ),
-    included: includedGroupIds.value.has(tpl.id),
-  })),
-)
-
-/** The field appears only above six groups — below, scanning the chips wins. */
-const pickerSearchable = computed(() => searchCandidates.value.length > PICKER_SEARCH_MIN_GROUPS)
-
-const pickerSearching = computed(() => pickerSearchable.value && pickerQuery.value.trim() !== '')
-
-/** Results as rows: the hit plus what the FR-27.12 summary line needs. */
-const pickerHits = computed(() =>
-  searchGroups(pickerQuery.value, searchCandidates.value).map((hit) => ({
-    ...hit,
-    name: groupName(hit.id),
-    count: groupCount(hit.id),
-    preview: groupPreview(hit.id),
-  })),
-)
-
-function closePicker() {
-  pickerOpen.value = false
-  newGroupOpen.value = false
-  newGroupName.value = ''
-  pickerQuery.value = ''
-}
-
-function includeGroup(groupId: string) {
-  orchestrator.addTemplateInclude(props.templateId, groupId)
-  closePicker()
-}
-
-function removeInclude(includeId: string) {
-  orchestrator.removeTemplateInclude(includeId)
-}
-
-/**
- * "Neue Gruppe anlegen…" — inline, so a missing block never detours via M7.
- * While searching, the field is prefilled with the query: a no-match search
- * ends in creation with the typed name (FR-27.13, keeping the M7 rule that no
- * row exists until a name does).
- */
-function openNewGroup() {
-  newGroupName.value = pickerQuery.value.trim()
-  newGroupOpen.value = true
-  // The field is v-if-gated, so it exists only after this tick.
-  void nextTick(() => newGroupInput.value?.$el.setFocus())
-}
-
-async function commitNewGroup() {
-  const name = newGroupName.value.trim()
-  if (!name) return
-  // Groups and Vorlagen share one name space (FR-1.6), so the answer depends
-  // on which scope holds it. A group of that name is what this picker exists
-  // to reference — include it instead of refusing the user their own words.
-  // A Vorlage cannot stand in for it, and saying so is the only way the
-  // refusal does not read as a bug.
-  const taken = orchestrator.templateNameCollision(name)
-  if (taken?.kind === 'template') {
-    await toast(t('templates.groupNameIsTemplate'))
-    return
-  }
-  if (taken) {
-    if (!includes.value.some((i) => i.included_template_id === taken.id)) {
-      orchestrator.addTemplateInclude(props.templateId, taken.id)
-    }
-    closePicker()
-    await toast(t('templates.groupExists', { name: taken.name }))
-    return
-  }
-  const groupId = orchestrator.createTemplate(name, 'group')
-  if (groupId === null) return
-  orchestrator.addTemplateInclude(props.templateId, groupId)
-  closePicker()
-  await toast(t('templates.groupCreated', { name }))
-}
+const {
+  peekTemplateId,
+  groupPreview,
+  pickerOpen,
+  newGroupOpen,
+  newGroupName,
+  newGroupInput,
+  otherGroups,
+  includedGroupIds,
+  availableGroups,
+  groupName,
+  groupCount,
+  pickerQuery,
+  pickerSearchable,
+  pickerSearching,
+  pickerHits,
+  closePicker,
+  includeGroup,
+  removeInclude,
+  openNewGroup,
+  commitNewGroup,
+} = useTemplateGroups(props.templateId, includes, toast)
 
 // --- Positions --------------------------------------------------------------
 
@@ -333,24 +215,10 @@ function openQuickAdd() {
   void quickAdd.value?.open()
 }
 
-/**
- * FR-25.13 in M8: a picked or just-created inventory item lands as a position
- * with the FR-25.7 defaults (qty 1, trip-global, Packen, dedup max). A name the
- * inventory does not know is created by the composer's FR-24.11 sheet before it
- * arrives here; a name the template already carries is reported, never added
- * twice.
- */
-async function onQuickAdd(entry: { name: string; sourceItemId: string }) {
-  if (positions.value.some((pos) => pos.item_id === entry.sourceItemId)) {
-    await toast(t('templates.duplicate', { name: entry.name }))
-    return
-  }
-  orchestrator.addTemplateItem(props.templateId, entry.sourceItemId, { assignment: 'trip_global' })
-  await toast(t('templates.added', { name: entry.name }))
-}
+const quickAdds = useTemplateQuickAdd(props.templateId, positions, toast)
 
 function removePosition(templateItemId: string) {
-  orchestrator.deleteTemplateItem(templateItemId)
+  orchestrator.masterData.deleteTemplateItem(templateItemId)
 }
 
 // --- Trip tasks (FR-7.4) ---
@@ -369,7 +237,7 @@ const tripTaskPhase = ref<TaskPhase>(TASK_PHASE_BEFORE)
 function addTripTask() {
   const task = tripTaskDraft.value.trim()
   if (!task) return
-  orchestrator.addTemplateTask(props.templateId, task, tripTaskPhase.value)
+  orchestrator.masterData.addTemplateTask(props.templateId, task, tripTaskPhase.value)
   tripTaskDraft.value = ''
 }
 
@@ -380,7 +248,7 @@ function phaseOf(task: TemplateTask): TaskPhase {
 
 /** The chip on a task line, tapped: the same task, due at the other end. */
 function flipPhase(task: TemplateTask) {
-  orchestrator.setTemplateTaskPhase(
+  orchestrator.masterData.setTemplateTaskPhase(
     task,
     phaseOf(task) === TASK_PHASE_BEFORE ? TASK_PHASE_DURING : TASK_PHASE_BEFORE,
   )
@@ -431,15 +299,15 @@ async function foldGroup(match: GroupMatch) {
       pos,
       tasks: masterStore.getTemplateItemTasks(pos.id).map((task) => task.task),
     }))
-  for (const entry of removed) orchestrator.deleteTemplateItem(entry.pos.id)
-  const includeId = orchestrator.addTemplateInclude(props.templateId, match.templateId)
+  for (const entry of removed) orchestrator.masterData.deleteTemplateItem(entry.pos.id)
+  const includeId = orchestrator.masterData.addTemplateInclude(props.templateId, match.templateId)
 
   await toast(t('templates.foldDone', { name: match.name, n: removed.length }), {
     text: t('templates.foldUndo'),
     handler: () => {
-      orchestrator.removeTemplateInclude(includeId)
+      orchestrator.masterData.removeTemplateInclude(includeId)
       for (const entry of removed) {
-        const id = orchestrator.addTemplateItem(props.templateId, entry.pos.item_id, {
+        const id = orchestrator.masterData.addTemplateItem(props.templateId, entry.pos.item_id, {
           quantity: entry.pos.quantity,
           assignment: entry.pos.assignment,
           dedup: entry.pos.dedup,
@@ -447,7 +315,7 @@ async function foldGroup(match: GroupMatch) {
           latePacker: entry.pos.late_packer,
           conditions: entry.pos.conditions,
         })
-        for (const task of entry.tasks) orchestrator.addTemplateItemTask(id, task)
+        for (const task of entry.tasks) orchestrator.masterData.addTemplateItemTask(id, task)
       }
       void toast(t('templates.foldUndone', { n: removed.length }))
     },
@@ -521,7 +389,7 @@ const mergeLines = computed(() =>
               :class="{ sel: isGroup }"
               :aria-pressed="isGroup"
               data-testid="m8-scope-group"
-              @click="switchScope('group')"
+              @click="switchScope(TEMPLATE_KIND_GROUP)"
             >
               {{ t('templates.sectionGroup') }}
             </button>
@@ -529,7 +397,7 @@ const mergeLines = computed(() =>
               :class="{ sel: !isGroup }"
               :aria-pressed="!isGroup"
               data-testid="m8-scope-template"
-              @click="switchScope('template')"
+              @click="switchScope(TEMPLATE_KIND_TEMPLATE)"
             >
               {{ t('templates.sectionTemplate') }}
             </button>
@@ -821,12 +689,13 @@ const mergeLines = computed(() =>
           ref="quickAdd"
           :show-trigger="false"
           :confirm-label="isGroup ? t('templates.addToGroup') : t('templates.addToTemplate')"
-          :exclude-item-ids="positions.map((pos) => pos.item_id)"
-          @add="onQuickAdd"
+          :scope="quickAdds.scope.value"
+          @add="quickAdds.onQuickAdd"
+          @browse="quickAdds.onBrowse"
         />
 
         <!-- FR-7.4: tasks for the trip itself — every generated trip starts
-             with them as open trip todos, on no row, so they hold up no
+             with them as open tasks of its own, on no row, so they hold up no
              packing list. Below the positions, which they are not. -->
         <SectionHead
           :title="t('templates.tripTasks')"
@@ -857,7 +726,7 @@ const mergeLines = computed(() =>
               class="rm-gap"
               :label="t('templates.removeTask')"
               :data-testid="`m8-trip-task-remove-${task.task}`"
-              @click="orchestrator.deleteTemplateTask(task.id)"
+              @click="orchestrator.masterData.deleteTemplateTask(task.id)"
             />
           </div>
           <div class="trip-task-composer">

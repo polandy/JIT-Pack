@@ -5,7 +5,7 @@
  */
 
 import type { TrackKind } from '@/api/types'
-import { COLUMN_ENUMS, type ColumnEnum } from '@/api/tables'
+import type { ColumnEnum } from '@/api/tables'
 
 /** `repack` stays in the schema only so old rows remain readable; no client writes it. */
 export type TripStatus = Exclude<ColumnEnum<'trips', 'status'>, 'repack'>
@@ -60,7 +60,7 @@ export interface TripMember {
   role: TripRole
 }
 
-export interface TripParticipant {
+export interface TripMemberProfile {
   user_id: string
   display_name: string
   avatar_url: string | null
@@ -91,6 +91,9 @@ export const STATE_PACKED = 'packed' as const satisfies ItemState
  * separately), so „quantity is 0" is not the same question.
  */
 export const STATE_SKIPPED = 'skipped' as const satisfies ItemState
+
+/** The row's starting state — not yet packed, not yet decided against (FR-5.2). */
+export const STATE_OPEN = 'open' as const satisfies ItemState
 export type ItemMode = ColumnEnum<'trip_items', 'mode'>
 
 /**
@@ -235,8 +238,8 @@ export interface TripKPIs {
   packedWeight: number
   totalValue: number
   packedValue: number
-  totalTodos: number
-  resolvedTodos: number
+  totalPrepTasks: number
+  resolvedPrepTasks: number
 }
 
 export interface DashboardTrip {
@@ -291,20 +294,20 @@ export interface ExcursionTraveler {
 }
 
 /** An excursion line's states: M4's minus the packing-now claim (FR-31.6). */
-export type ExcursionItemState = Exclude<ItemState, 'packing_now'>
+export type ExcursionLineState = Exclude<ItemState, 'packing_now'>
 
 /**
  * An excursion line is packed or bought on the spot (FR-31.8); a purchase
  * before departure is the trip list's business, never the excursion's.
  */
-export type ExcursionItemMode = Exclude<ItemMode, 'buy_before'>
+export type ExcursionLineMode = Exclude<ItemMode, 'buy_before'>
 
 /**
  * FR-31.4: one line of an excursion's list, with its **own** packed state.
  * `trip_item_id` says the thing comes out of the suitcase and shares no tick
  * with that row; a link to a row this device does not hold is no link.
  */
-export interface ExcursionItem {
+export interface ExcursionLine {
   id: string
   trip_id: string
   excursion_id: string
@@ -315,8 +318,8 @@ export interface ExcursionItem {
   assigned_traveler_id: string | null
   quantity: number
   packed_count: number
-  state: ExcursionItemState
-  mode: ExcursionItemMode
+  state: ExcursionLineState
+  mode: ExcursionLineMode
   /** FR-31.8: when a vor-Ort line was bought, or null while still to buy. */
   bought_at: string | null
   /** FR-31.7: the suitcase was already closed when the excursion asked for it. */
@@ -341,7 +344,7 @@ export interface Container {
 
 /**
  * A plain comment (comments row with is_task = 0). Flagging it as task
- * (FR-7.2) turns the same row into an ItemTodo. trip_item_id null means
+ * (FR-7.2) turns the same row into a PrepTask. trip_item_id null means
  * the comment anchors to the trip itself.
  */
 export interface ItemComment {
@@ -389,9 +392,16 @@ export interface NoteAck {
   seen_through: string | null
 }
 
-// --- Preparation Todos (FR-7.3) ---
+// --- Preparation tasks (FR-7.3) ---
 
-export type TodoState = ColumnEnum<'comments', 'task_state'>
+export type TaskState = ColumnEnum<'comments', 'task_state'>
+
+/**
+ * The two task states (FR-7.x), as values for the reason {@link STATE_PACKING_NOW}
+ * is one: a misspelling of either compiles cleanly while silently never matching.
+ */
+export const TASK_STATE_OPEN = 'open' as const satisfies TaskState
+export const TASK_STATE_RESOLVED = 'resolved' as const satisfies TaskState
 
 /**
  * FR-7.7: when a task is meant to be done — before the trip or during it.
@@ -409,8 +419,8 @@ export type TaskPhase = (typeof TASK_PHASES)[number]
  * FR-7.7: the facts every task carries beside its words — when it is due, who
  * wrote it and when, and the record of it being ticked off.
  *
- * One interface for both kinds of task (FR-7.3's preparation and FR-7.4's trip
- * todo), because they are one table and both carry the same four facts.
+ * One interface for both kinds of task (FR-7.3's preparation and FR-7.4's
+ * own task), because they are one table and both carry the same four facts.
  * `phase` is null on a task written before FR-7.7 and reads as *before*
  * (`taskPhaseOf`); the resolution pair is null while the task is open.
  */
@@ -442,283 +452,31 @@ export interface TaskFacts {
   position?: number | null
 }
 
-export interface ItemTodo extends TaskFacts {
+export interface PrepTask extends TaskFacts {
   id: string
   trip_id: string
   trip_item_id: string
   author_id: string
   body: string
-  task_state: TodoState
+  task_state: TaskState
 }
 
 /**
  * FR-7.4: a task on the trip itself — a task comment with no `trip_item_id`.
- * Kept apart from `ItemTodo` because nothing the packing list measures may
- * count it: a row's doneness, the ring and the prep KPI read `ItemTodo` only.
+ * Kept apart from `PrepTask` because nothing the packing list measures may
+ * count it: a row's doneness, the ring and the prep KPI read `PrepTask` only.
  */
-export interface TripTodo extends TaskFacts {
+export interface OwnTask extends TaskFacts {
   id: string
   trip_id: string
   author_id: string
   body: string
-  task_state: TodoState
+  task_state: TaskState
   /** FR-29.13: the idea it was made from; null or absent for none, or one since deleted. */
   idea_id?: string | null
 }
 
-/**
- * FR-30.1: something a trip's people mean to buy that nobody packs — the
- * groceries of a holiday flat. Its own row rather than a trip item in a buy
- * mode, so no packing figure can count it (ADR-066). `list` is one of FR-3.2's
- * two lists; `pack` is not a shopping list.
- */
-export interface ShoppingEntry {
-  id: string
-  trip_id: string
-  name: string
-  list: ShoppingMode
-  bought: boolean
-  /** FR-30.9: the one tag the entry carries, free text; null for none. */
-  tag: string | null
-  /** FR-30.4: when it was bought — the tap's time; null while it is not. */
-  bought_at: string | null
-  /** FR-30.4: who bought it, stamped by the server (invariant 3); null in Local Mode. */
-  bought_by_user_id: string | null
-  /** FR-30.10: the day it is due (`YYYY-MM-DD`), FR-7.11's shape; null for none. */
-  due_date: string | null
-  /** FR-30.12: who is to buy it, a task's assignee's shape (FR-7.5); null for nobody in particular. */
-  assignee_user_id: string | null
-  /** FR-7.16: when closing the packing carried it to *at the destination*; null or absent for never. */
-  carried_over_at?: string | null
-  /** FR-30.13: where it stands inside its heading, by hand; null or absent for never placed (ADR-083). */
-  position?: number | null
-  /** FR-29.13: the idea it was made from; null or absent for none, or one since deleted. */
-  idea_id?: string | null
-}
-
-// --- The meal plan (§3.33) ---
-
-/** FR-33.1: the four places of a day a meal stands at, in the day's order. */
-export const MEAL_SLOTS = COLUMN_ENUMS.meals.slot
-export type MealSlot = (typeof MEAL_SLOTS)[number]
-export const MEAL_SLOT_BREAKFAST = 'breakfast' as const satisfies MealSlot
-export const MEAL_SLOT_LUNCH = 'lunch' as const satisfies MealSlot
-export const MEAL_SLOT_SNACK = 'snack' as const satisfies MealSlot
-export const MEAL_SLOT_DINNER = 'dinner' as const satisfies MealSlot
-
-/** FR-33.1: cooked by the travellers, with ingredients, or eaten out. */
-export type MealKind = ColumnEnum<'meals', 'kind'>
-export const MEAL_KIND_COOK = 'cook' as const satisfies MealKind
-export const MEAL_KIND_OUT = 'out' as const satisfies MealKind
-
-/** FR-33.1: a meal of the trip's meal plan. */
-export interface Meal {
-  id: string
-  trip_id: string
-  /** `YYYY-MM-DD`. */
-  on_date: string
-  slot: MealSlot
-  /** The dish. */
-  title: string
-  kind: MealKind
-  /** `HH:MM`, or null for one that stands at its slot's place. */
-  at_time: string | null
-  note: string | null
-  /** Eaten out: where; null otherwise. */
-  place: string | null
-  /** FR-33.8: who cooks it, a member's user id; null for nobody named. */
-  cook_user_id: string | null
-  /** FR-33.6: the excursion a picnic is taken on; null for none. */
-  excursion_id: string | null
-  /** FR-33.6: when it went into that excursion's rucksack; null while it is not. */
-  excursion_packed_at: string | null
-}
-
-/** FR-33.2: an ingredient of a meal — and a line of the shopping list (FR-33.3). */
-export interface MealIngredient {
-  id: string
-  trip_id: string
-  meal_id: string
-  name: string
-  /** Free text as typed — „500 g", „1 Glas" — summed on M6 only (FR-33.14); null for none. */
-  amount: string | null
-  list: ShoppingMode
-  /** Its order in the meal. */
-  position: number | null
-  bought: boolean
-  /** FR-30.4: the tap's time; null while it is not bought. */
-  bought_at: string | null
-  /** FR-30.4: stamped by the server (invariant 3); null in Local Mode. */
-  bought_by_user_id: string | null
-  /** FR-30.13: its place on M6, by hand; null for never placed (ADR-083). */
-  shopping_position: number | null
-  /**
-   * FR-33.13: fresh or durable, as somebody set it; null for never set, when
-   * `isFresh` asks the name's last setting and the built-in list.
-   */
-  fresh: boolean | null
-}
-
-// --- The planner (§3.29) ---
-
-/**
- * FR-29.2: where an idea stands, set by hand — never by its votes. The order
- * is the board's segments'.
- */
-export const IDEA_STATES = COLUMN_ENUMS.ideas.state
-export type IdeaState = (typeof IDEA_STATES)[number]
-export const IDEA_STATE_IDEA = 'idea' as const satisfies IdeaState
-export const IDEA_STATE_SHORTLISTED = 'shortlisted' as const satisfies IdeaState
-export const IDEA_STATE_DONE = 'done' as const satisfies IdeaState
-export const IDEA_STATE_DROPPED = 'dropped' as const satisfies IdeaState
-
-/**
- * FR-29.10: the closed set of tags an idea may carry, as stable keys —
- * labelled by the catalogue, held by schema.sql's CHECK.
- */
-export const IDEA_TAGS = COLUMN_ENUMS.ideas.tag
-export type IdeaTag = (typeof IDEA_TAGS)[number]
-
-/** toIdeaTag narrows a wire value; anything outside the set is no tag. */
-export function toIdeaTag(value: unknown): IdeaTag | null {
-  return IDEA_TAGS.includes(value as IdeaTag) ? (value as IdeaTag) : null
-}
-
-/** FR-29.3: one person's vote — 👍 or 👎; a withdrawn vote is null. */
-export type IdeaVoteValue = ColumnEnum<'idea_votes', 'vote'>
-export const IDEA_VOTE_UP = 'up' as const satisfies IdeaVoteValue
-export const IDEA_VOTE_DOWN = 'down' as const satisfies IdeaVoteValue
-
-/** FR-29.1: something the travellers might do on the trip. */
-export interface Idea {
-  id: string
-  trip_id: string
-  /** Stamped by the server on the insert (invariant 3). */
-  author_id: string
-  title: string
-  note: string | null
-  /** http(s) only — client and server both refuse anything else. */
-  link: string | null
-  tag: IdeaTag | null
-  /** FR-29.12: „Geht auch bei Regen". */
-  rain_proof: boolean
-  state: IdeaState
-  /** When it was written — the client names it, like a comment's. */
-  created_at: string | null
-  /**
-   * FR-29.14: the day it is planned on, `YYYY-MM-DD`, and when on it, `HH:MM`;
-   * null for none. A time without a day reads as no time.
-   */
-  planned_on: string | null
-  planned_at: string | null
-}
-
-/** FR-29.15/29.18: a day entry is a free one or a journey by public transport. */
-export const DAY_ENTRY_KINDS = COLUMN_ENUMS.day_entries.kind
-export type DayEntryKind = (typeof DAY_ENTRY_KINDS)[number]
-export const DAY_ENTRY_NOTE = 'note' as const satisfies DayEntryKind
-export const DAY_ENTRY_CONNECTION = 'connection' as const satisfies DayEntryKind
-
-/** FR-29.18: what a ridden leg travels by, as its map draws it; a walk has none. */
-export const LEG_MODES = ['train', 'bus', 'boat'] as const
-export type LegMode = (typeof LEG_MODES)[number]
-export const LEG_MODE_TRAIN = 'train' as const satisfies LegMode
-export const LEG_MODE_BUS = 'bus' as const satisfies LegMode
-export const LEG_MODE_BOAT = 'boat' as const satisfies LegMode
-
-/** A place on the map, `[lat, lon]`. */
-export type LatLon = [number, number]
-
-/**
- * FR-29.18: one leg of a connection. Times are local `YYYY-MM-DDTHH:MM`, so a
- * night train arrives on its own day; a walk has an empty line. Where the
- * timetable search or a link knew them, the leg also says what it travels by
- * and where its stops lie — the stops passed on the way included — so the
- * connection can be drawn; a leg entered by hand has none of them.
- */
-export interface ConnectionLeg {
-  from: string
-  to: string
-  dep: string
-  arr: string
-  line: string
-  mode?: LegMode
-  fromAt?: LatLon
-  toAt?: LatLon
-  /** The stops passed between the two ends, in order. */
-  via?: LatLon[]
-}
-
-/**
- * FR-29.15: an entry of the day plan's own — what stands on a day that is
- * neither an idea, an excursion nor a task (a table booking) — and the
- * connection it may carry (FR-29.18): an entry is a connection while it has
- * legs, and its `kind` follows them.
- */
-/**
- * FR-29.15: one traveller a day-plan entry is for. No rows for an entry means
- * every traveller of the trip.
- */
-export interface DayEntryTraveler {
-  id: string
-  trip_id: string
-  day_entry_id: string
-  traveler_id: string
-}
-
-export interface DayEntry {
-  id: string
-  trip_id: string
-  /** Stamped by the server on the insert (invariant 3). */
-  author_id: string
-  kind: DayEntryKind
-  /** `YYYY-MM-DD`. */
-  on_date: string
-  /** `HH:MM`, or null for a day without a time; given a connection and no time, its first departure. */
-  at_time: string | null
-  title: string
-  note: string | null
-  /** The provider's address a connection was read from, kept for its app; null for none. */
-  link: string | null
-  /** The legs of the connection it carries, in order; null for none. */
-  legs: ConnectionLeg[] | null
-  /** The excursion a connection belongs to (FR-29.18), or null/absent for none. */
-  excursion_id?: string | null
-  /** Which way it is on that excursion — there or back (FR-29.18); null for neither. */
-  excursion_role?: ExcursionRole | null
-}
-
-/** FR-29.18: a connection of an excursion is its way there or its way back. */
-export const EXCURSION_ROLES = COLUMN_ENUMS.day_entries.excursion_role
-export type ExcursionRole = (typeof EXCURSION_ROLES)[number]
-export const EXCURSION_ROLE_OUT = 'out' as const satisfies ExcursionRole
-export const EXCURSION_ROLE_BACK = 'back' as const satisfies ExcursionRole
-
-/**
- * FR-29.3: one person's vote on one idea, a row per (idea, person) so two
- * people voting at once both count (ADR-073's reason for note acks).
- */
-export interface IdeaVote {
-  id: string
-  trip_id: string
-  idea_id: string
-  /** Stamped by the server on the insert. */
-  user_id: string
-  vote: IdeaVoteValue | null
-}
-
-/** FR-29.4: one entry of an idea's discussion. */
-export interface IdeaComment {
-  id: string
-  trip_id: string
-  idea_id: string
-  /** Stamped by the server on the insert. */
-  author_id: string
-  body: string
-  created_at: string | null
-  /** When its words were last changed — the client's clock; null is never edited. */
-  edited_at: string | null
-}
+// --- What the kernel serves a feature module: picture and track files (ADR-002, ADR-085) ---
 
 /**
  * FR-29.5: one picture on an idea. Only which it is travels the feed — the
@@ -869,6 +627,13 @@ export interface MasterItem {
  */
 export type TemplateKind = ColumnEnum<'templates', 'kind'>
 
+/**
+ * The two template kinds (FR-27.1/27.6), as values for the reason
+ * {@link STATE_PACKING_NOW} is one.
+ */
+export const TEMPLATE_KIND_GROUP = 'group' as const satisfies TemplateKind
+export const TEMPLATE_KIND_TEMPLATE = 'template' as const satisfies TemplateKind
+
 export interface Template {
   id: string
   /** FR-1.6 MVP: creator metadata only — every account may edit every
@@ -893,7 +658,7 @@ export interface TemplateInclude {
 
 /**
  * FR-27.7: one free-text preparation task on a template position. At trip
- * generation each task becomes an ordinary FR-7.3 prep todo on the generated
+ * generation each task becomes an ordinary FR-7.3 preparation on the generated
  * trip item, so the "open prep blocks done" rule applies without a new flag.
  */
 export interface TemplateItemTask {
@@ -904,7 +669,7 @@ export interface TemplateItemTask {
 
 /**
  * FR-7.4: one free-text trip task on a template. At trip generation it
- * becomes a trip todo — a task on the trip itself, not on any generated row —
+ * becomes a trip's own task — a task on the trip itself, not on any generated row —
  * so it holds back no item from counting as done.
  */
 export interface TemplateTask {
@@ -1048,56 +813,4 @@ export interface AppliedChange {
   created_at: string
 }
 
-/*
- * The options a creating write is built from. They are named here, below both
- * the mutation factory that takes them and the portable import that hands
- * them over, so the import's port (`ImportMutations`) and the builders read
- * one declaration (ADR-096).
- */
-
-/** A master item's optional fields at creation. */
-export interface MasterItemOptions {
-  weightGrams?: number | null
-  valueCents?: number | null
-  /** FR-28.1: the optional mark, absent as often as not. */
-  icon?: string | null
-  /** FR-1.9: the account the item is normally assigned to. */
-  defaultAssigneeId?: string | null
-}
-
-/** A template position's optional fields at creation. */
-export interface TemplateItemOptions {
-  quantity?: number
-  assignment?: string
-  dedup?: string
-  defaultMode?: ItemMode
-  latePacker?: boolean
-  conditions?: Record<string, unknown> | null
-}
-
-/** A trip's optional fields at creation. */
-export interface TripOptions {
-  seriesId?: string | null
-  attributes?: Record<string, unknown> | null
-  /** FR-2.2: a restore gives back the status it saved (ADR-024). */
-  status?: TripStatus
-}
-
-/** A container's optional fields at creation. */
-export interface ContainerOptions {
-  carrierTravelerId?: string | null
-  maxWeightGrams?: number | null
-}
-
-/** A trip row as a portable document carries it (FR-18.4), every field decided. */
-export interface PortableTripItemFields {
-  name: string
-  sourceItemId: string | null
-  categoryName: string | null
-  quantity: number
-  packedCount: number
-  mode: ItemMode
-  latePacker: boolean
-  /** FR-25.11j: the shopping list the row was bought from, if any. */
-  boughtFrom: ShoppingMode | null
-}
+/** The options a creating write is built from live in `types/creationOptions.ts` (ADR-096). */

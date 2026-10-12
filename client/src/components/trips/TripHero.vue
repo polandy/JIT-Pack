@@ -109,7 +109,7 @@ withDefaults(
     <p v-if="meta" class="meta jp-meta" data-testid="hero-meta">{{ meta }}</p>
 
     <!-- FR-7.4: a second answer may stand beside the share — M1 puts the
-         trip's own todos there, which no packing figure counts. -->
+         trip's own tasks there, which no packing figure counts. -->
     <div class="figures">
       <ProgressFigure
         class="hero-figure"

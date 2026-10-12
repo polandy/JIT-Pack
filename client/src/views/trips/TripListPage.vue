@@ -46,8 +46,6 @@ import type { ChangeSummary } from '@/lib/refreshWording'
 import TripHero from '@/components/trips/TripHero.vue'
 import { useTripHero } from '@/composables/useTripHero'
 import { hasCollaborativeSession } from '@/mode'
-import { serializeTrip } from '@/domain/portable'
-import { safeFilename, saveText } from '@/lib/download'
 import {
   countTripsByFilter,
   openingFilter,
@@ -59,7 +57,7 @@ import {
 import { useOnFirstVisible } from '@/composables/useOnFirstVisible'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import { isPackingClosed } from '@/lib/tripPhase'
+import { isPackingClosed } from '@/domain/shared/tripPhase'
 import type { AppliedChange, Trip } from '@/types/domain'
 import { TRIP_STATUS_ARCHIVED, TRIP_STATUS_PLANNING } from '@/types/domain'
 import { useIdentity } from '@/composables/shared/useTripIdentity'
@@ -78,6 +76,7 @@ import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { formatTripPeriod } from '@/lib/format'
 import { presentToast } from '@/composables/shared/toast'
 import { useContextSearch } from '@/composables/useContextSearch'
+import { useTripExport } from '@/composables/useTripExport'
 import { setHeaderActions } from '@/composables/shared/useHeaderActions'
 import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
 import {
@@ -95,8 +94,9 @@ import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 
 const tripStore = useTripStore()
 const masterStore = useMasterStore()
+const { exportTripYaml } = useTripExport()
 const orchestrator = useOrchestrator()
-const { myUserId, load } = useIdentity(orchestrator)
+const { myUserId, load } = useIdentity(orchestrator.identity)
 const route = useRoute()
 
 // Map DB 'planning' to display filter 'planned' for UI clarity
@@ -513,7 +513,7 @@ function proposedCount(trip: Trip): number {
 
 /** What the sheet names as open: the waiting plan's own log, worded as M4 words it. */
 function proposedChanges(trip: Trip): ChangeSummary[] {
-  return orchestrator.refreshProposals.value[trip.id]?.log ?? []
+  return orchestrator.groupRefresh.refreshProposals.value[trip.id]?.log ?? []
 }
 
 onMounted(async () => {
@@ -537,7 +537,7 @@ async function deleteTrip(trip: Trip) {
     message: t('trips.deleteMessage'),
     confirmLabel: t('common.delete'),
   })
-  if (confirmed) orchestrator.deleteTrip(trip.id)
+  if (confirmed) orchestrator.tripLifecycle.deleteTrip(trip.id)
 }
 
 /**
@@ -551,7 +551,7 @@ async function startTrip(tripId: string) {
     void router.push(tripStartingPath(tripId))
     return
   }
-  orchestrator.activateTrip(tripId)
+  orchestrator.tripLifecycle.activateTrip(tripId)
   // What starting changes is invisible on this screen — the list's later
   // additions count as forgotten (FR-9.1) — so it is said once, here.
   await presentToast({ message: t('packing.startedToast'), positionAnchor: FAB_ANCHOR.m2 })
@@ -581,15 +581,7 @@ async function exportTrip(trip: Trip) {
   await sheet.present()
   const { data, role } = await sheet.onDidDismiss()
   if (role === 'cancel' || typeof data !== 'boolean') return
-  const yaml = serializeTrip({
-    trip,
-    items: tripStore.getItems(trip.id),
-    travelers: tripStore.getTravelers(trip.id),
-    containers: tripStore.getContainers(trip.id),
-    includeProgress: data,
-    ...masterStore.portableResolvers(),
-  })
-  saveText(yaml, `${safeFilename(trip.name)}.yaml`)
+  exportTripYaml(trip.id, { includeProgress: data })
 }
 
 /** How one of M2's per-trip actions looks and what it does. */

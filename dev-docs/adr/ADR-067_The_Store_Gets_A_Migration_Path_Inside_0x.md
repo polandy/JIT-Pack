@@ -2,7 +2,7 @@
 
 **Status:** Accepted (2026-09-20), **built 2026-09-21** with the amendment below
 **Related:** ADR-018 (whose revisit trigger this fires), CLAUDE.md invariant 2, `internal/store/schema.sql`,
-`internal/store/store.go` (`ensureSchema`, `schemaFingerprint`, `ErrSchemaStale`), `docs/upgrades.md`, NFR-4.11
+`internal/store/migrate.go` (`ensureSchema`, `schemaFingerprint`, `ErrSchemaStale`), `docs/upgrades.md`, NFR-4.11
 
 **Decision Drivers (in priority order):**
 1. **Nothing an instance holds may be lost to an upgrade.** The family instance now carries 213 items, 34 trips and

@@ -276,7 +276,7 @@ const summaryLine = computed(() =>
 )
 
 function commit() {
-  orchestrator.commitImport(plan.value)
+  orchestrator.tripCreation.commitImport(plan.value)
   // Land where the result is. FR-16.2 creates archived trips and M2 opens on
   // Active, so without naming the segment a migration of a decade of history
   // ended on the words "No active trips" (the miss ADR-024 fixed on the

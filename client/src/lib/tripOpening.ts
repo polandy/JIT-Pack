@@ -13,7 +13,7 @@
  * throws or is absent remembers nothing, and the trip opens as on a first
  * visit.
  */
-import { hasDeparted } from '@/lib/tripPhase'
+import { hasDeparted } from '@/domain/shared/tripPhase'
 import { PACKING_VIEWS, TRIP_VIEW_PILLS, absentViews, type TripViewId } from '@/lib/tripViews'
 import { TRIP_STATUS_ACTIVE, TRIP_STATUS_ARCHIVED } from '@/types/domain'
 

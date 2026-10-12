@@ -10,7 +10,7 @@ This file is loaded in full by every session and every subagent, so it holds the
 - **Verify before finishing any change: `make ci`** — mirrors the CI jobs 1:1, one line per target, a failing target's output in full. **Not `go test ./...`** (`client/node_modules` ships Go source; `GO_PKGS` in the Makefile decides the scope).
 - **Slow jobs run on GitHub, not here** (owner's rule): `make ci-remote`; `make e2e-module M=planner` runs one module's cases.
 - **A red CI run: `node scripts/ci-failures.mjs [<run-id> | --pr <n>]`.**
-- **After changing `internal/api/wire.go`, `internal/store/tables.go` or `schema.sql`: `make wire`** — regenerates `client/src/api/types.ts`, `routes.ts` and `tables.ts`, never hand-edited (ADR-026/027).
+- **After changing `internal/api/wire*.go`, `internal/store/tables.go` or `schema.sql`: `make wire`** — regenerates `client/src/api/types.ts`, `routes.ts` and `tables.ts`, never hand-edited (ADR-026/027).
 - Client only: `cd client && npm run dev`, `npx vitest run`, `npm run build`.
 - Timings, the skipped jobs, the e2e legs, the workflows and `main`'s protection: **`dev-docs/ci.md`**.
 
@@ -53,7 +53,7 @@ Sources of open work, in order: what the owner just asked for (the family's inst
 
 The full text of 2, 3 and 6 is in `internal/CLAUDE.md`, of 4, 9 and 9b in `client/CLAUDE.md`, of 8 in `CODING_PRINCIPLES.md` §5.
 
-1. **Dependency direction** (`cmd/jitpackd/dependencies_test.go`): `api → store, sync, linkpreview`; `store → sync`; **`sync`, `wiregen` and `linkpreview` import nothing internal, ever**; `webui` does not import `api`.
+1. **Dependency direction** (`cmd/jitpackd/dependencies_test.go`): `api → notify, store, sync, linkpreview`; `notify → store, sync`; `store → sync`; **`sync`, `wiregen` and `linkpreview` import nothing internal, ever**; `webui` does not import `api`.
 2. **A schema change carries a migration** (ADR-067): `schema.sql` *and* an additive `migrations/NNN_*.sql`. Nothing is recreated or deleted on start-up; an unknown database is refused with `ErrSchemaStale`.
 3. **The client's identity claims are never trusted.** The server stamps actor columns (`tableSpec.serverOwned`); clients can never grant `owner`; the trip creator's membership row is immutable.
 4. **Generation runs client-side, once** (ADR-008, ADR-025): template instantiation, dependencies, quantities, analytics, review, clone and import live in `client/src/domain` because Local Mode has no server. A rule is never reachable only through a Vue composable, and `domain` never imports Vue, router, pinia or Ionic (`scripts/domain-purity-gate.mjs`). The kernel and its feature modules (`shopping`, `planner`, `meals`) never import each other (`scripts/module-boundary-gate.mjs`).
@@ -80,7 +80,7 @@ Test-first: every behaviour starts as a failing test that reads as its specifica
 - **A feature PR is complete**: backend + the client UI that exposes it + the spec update in `dev-docs/` + an ADR when a real tradeoff was decided + the `docs/` page when visible to whoever runs the instance. Never "UI in a follow-up", never "docs later".
 - **A UI change ships a *running* Playwright case** (owner's rule; details in `client/CLAUDE.md`). Render a UI change and let the maintainer eyeball it before the case is finalized — never judge it from the stylesheet.
 - **An ADR is owed only for a real tradeoff** — options weighed, one chosen at a cost.
-- **English throughout — including quoting the owner** (translated, never a pasted „…" quote). Exception: German that is **content** (UI copy, seed data, mark keywords, the `de` catalogue). Comments justify *why*, never *what*; godoc on exported symbols is mandatory.
+- **English throughout — including quoting the owner** (translated, never a pasted „…" quote). Exception: German that is **content** (UI copy, seed data, mark keywords, the `de` catalogue). A type, file, i18n prefix or spec file takes its word from `dev-docs/glossary.md` (a *task*, never a todo; a *row* is the trip's, an *item* the inventory's). Comments justify *why*, never *what*; godoc on exported symbols is mandatory.
 - **No magic strings or numbers** (CODING_PRINCIPLES §4a): `store.Table*`/`RoleOwner` in Go, `TABLE` in `client/src/api/tables.ts` (generated).
 - Standard library first — a new dependency needs a one-line justification (NFR-4.3).
 - Conventional Commits: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci` (`build:` only from Dependabot). Reference spec ids.

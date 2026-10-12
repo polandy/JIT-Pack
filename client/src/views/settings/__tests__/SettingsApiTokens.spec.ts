@@ -38,17 +38,21 @@ const session = vi.hoisted(() => ({
 vi.mock('@/auth/tokens', () => ({ loadTokens: () => session.value }))
 
 const orchestratorFake = {
-  ...identityStub(),
+  identity: {
+    ...identityStub(),
+    fetchMe: vi.fn(() => Promise.resolve({ user_id: 'u1', display_name: 'Andy' })),
+    downloadExport: vi.fn(),
+    createAPIToken: vi.fn(),
+  },
   // The NFR-4.11 reminder reads this, never the real clock.
   now: () => new Date('2026-07-08T12:00:00').getTime(),
-  fetchMe: vi.fn(() => Promise.resolve({ user_id: 'u1', display_name: 'Andy' })),
-  fetchNotificationPrefs: vi.fn(() =>
-    Promise.resolve({ delegation: true, mention: true, task: false, lock_taken: true }),
-  ),
-  saveNotificationPrefs: vi.fn(),
+  notifications: {
+    fetchNotificationPrefs: vi.fn(() =>
+      Promise.resolve({ delegation: true, mention: true, task: false, lock_taken: true }),
+    ),
+    saveNotificationPrefs: vi.fn(),
+  },
   drainAll: vi.fn(() => Promise.resolve()),
-  downloadExport: vi.fn(),
-  createAPIToken: vi.fn(),
 }
 
 function mountSettings() {
@@ -67,7 +71,7 @@ describe('M17 API tokens', () => {
     setActivePinia(createPinia())
     session.value = { access_token: 'a' }
     localStorage.setItem('jitpack_mode', 'server')
-    orchestratorFake.createAPIToken.mockReset()
+    orchestratorFake.identity.createAPIToken.mockReset()
   })
 
   afterEach(() => {
@@ -89,7 +93,7 @@ describe('M17 API tokens', () => {
   // the select's `value` attribute, which Ionic does not reflect to the DOM —
   // that assertion would pass on a screen where the default had been lost.
   it('mints for ninety days when the expiry is left alone', async () => {
-    orchestratorFake.createAPIToken.mockResolvedValue({ token: 'a.b.c', expires_at: '' })
+    orchestratorFake.identity.createAPIToken.mockResolvedValue({ token: 'a.b.c', expires_at: '' })
     const w = mountSettings()
     await flushPromises()
 
@@ -97,11 +101,11 @@ describe('M17 API tokens', () => {
     await w.find('[data-testid="token-create"]').trigger('click')
     await flushPromises()
 
-    expect(orchestratorFake.createAPIToken).toHaveBeenCalledWith('cleanup', '90d')
+    expect(orchestratorFake.identity.createAPIToken).toHaveBeenCalledWith('cleanup', '90d')
   })
 
   it('reveals the minted token once and hands it to nothing else', async () => {
-    orchestratorFake.createAPIToken.mockResolvedValue({
+    orchestratorFake.identity.createAPIToken.mockResolvedValue({
       token: 'header.payload.signature',
       expires_at: '2026-11-28T12:00:00Z',
     })
@@ -120,7 +124,7 @@ describe('M17 API tokens', () => {
   })
 
   it('drops the token from component state when the reveal closes', async () => {
-    orchestratorFake.createAPIToken.mockResolvedValue({
+    orchestratorFake.identity.createAPIToken.mockResolvedValue({
       token: 'header.payload.signature',
       expires_at: '',
     })
@@ -139,7 +143,7 @@ describe('M17 API tokens', () => {
   })
 
   it('says so when the mint failed rather than opening an empty reveal', async () => {
-    orchestratorFake.createAPIToken.mockRejectedValue(new Error('offline'))
+    orchestratorFake.identity.createAPIToken.mockRejectedValue(new Error('offline'))
     const w = mountSettings()
     await flushPromises()
 

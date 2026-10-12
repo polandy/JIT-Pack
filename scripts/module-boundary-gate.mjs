@@ -9,13 +9,15 @@
  *
  * 1. **A module reaches only the shared kernel** — `api/`, `sync/`, `types/`,
  *    `lib/`, `kernel/`, `theme/`, `i18n/`, the shared components in
- *    `components/global/`, and the composables in `composables/shared/` every
- *    screen is built on (the page head, the header's action cluster, the
- *    press-and-hold primitive, the orchestrator's injection key, the
- *    trip-screen load, the trip's identity). Never packing's
- *    views, stores, domain rules or composables, and never another module.
- * 2. **Nothing reaches into a module** except the composition root: `App.vue`
- *    through the module's public face (its `index.ts`), the router through a
+ *    `components/global/` (its `track/` subsystem included), and the
+ *    composables in `composables/shared/` every screen is built on (the page
+ *    head, the header's action cluster, the press-and-hold primitive, the
+ *    orchestrator's injection key, the trip-screen load, the trip's
+ *    identity). Never packing's views, stores, domain rules or composables,
+ *    and never another module. `components/shell/` is the frame's own —
+ *    `App.vue` and the shell itself, not a module — and is not kernel.
+ * 2. **Nothing reaches into a module** except the composition root:
+ *    `featureModules.ts` through the module's public face (its `index.ts`), the router through a
  *    lazily imported page, the dev seed through the public face, and the
  *    kernel's catalogue through the module's own (`<module>/i18n/`). Packing
  *    code learns about a module's data only through kernel contracts such as
@@ -76,40 +78,25 @@ const KERNEL_PATHS = [
   // The URL vocabulary — pure path builders, no views — so a module can link
   // to a screen, its own included, without reaching the route table.
   'router/paths',
-  // A GPX track's rules (FR-29.17): a file, its figures and its time — no
-  // idea and no excursion in sight, since both carry tracks (ADR-085).
-  'domain/track',
-  // Editing a track's route (FR-29.20): handles, legs and the GPX written
-  // from them — a route, nothing it hangs on (ADR-088).
-  'domain/route',
-  // The app's one search fold (FR-24.7): umlauts either way. A module that
-  // matches typed text matches it as the inventory does (FR-33.12).
-  'domain/search',
-  // What an activity entry's reader is (FR-32.2): a kind, an area and the
-  // before/after of a field — each module brings its own reader of its rows.
-  'domain/activityReader',
-  // The shapes of the ports a module is handed (FR-29.13, FR-29.15, §3.33):
-  // they sit below the module's own rules, the keys stay in `kernel/`.
-  'domain/dayPlanLine',
-  'domain/ideaBridge',
-  'domain/mealContext',
-  // A day's due state (FR-30.10) and a hand order's renumbering (ADR-083):
-  // the shopping list and the meal plan count and order as the tasks do.
-  'domain/dueDay',
-  'domain/handOrder',
+  // The kernel's rules both sides of the boundary read — the calendar, a
+  // due day, a track, a hand order, the shapes of the ports a module is
+  // handed. The purity gate keeps the folder from leading on into the rest
+  // of `domain/` (ADR-097).
+  'domain/shared/',
 ]
 
 /** A module's public face: the directory itself, i.e. its `index.ts`. */
 const publicFace = (rest) => rest === '' || rest === 'index' || rest === 'index.ts'
 
 /**
- * The composition root, and what of a module it may name: `App.vue` the
- * module's public face, the router a page it loads lazily. The dev seed
+ * The composition root, and what of a module it may name: `featureModules.ts`
+ * the module's public face — the one list `App.vue` folds (ADR-066 amendment
+ * 3) — the router a page it loads lazily. The dev seed
  * (`dev/`, stripped from production by `dev-code-gate.mjs`) writes sample
  * data through a module's own actions, so it may name the public face too.
  */
 const ROOT_IMPORTS = {
-  'App.vue': publicFace,
+  'featureModules.ts': publicFace,
   'router/index.ts': (rest) => rest.endsWith('Page.vue'),
   'i18n/index.ts': (rest) => /^i18n\/(en|de)(\.ts)?$/.test(rest),
 }
@@ -184,7 +171,7 @@ for (const file of walk(SRC)) {
       const allowed = ROOT_IMPORTS[from] ?? (from.startsWith(DEV_DIR) ? publicFace : undefined)
       if (allowed && allowed(rest)) continue
       problems.push(
-        `client/src/${from}: imports \`${spec}\` — only the composition root (App.vue via ` +
+        `client/src/${from}: imports \`${spec}\` — only the composition root (featureModules.ts via ` +
           `the module's index, the router via a lazy page, i18n/index.ts via its catalogue) ` +
           `may reach into \`${into}/\``,
       )
@@ -337,8 +324,8 @@ if (problems.length > 0) {
   for (const line of [...new Set(problems)].sort()) console.error(`  ${line}`)
   console.error(
     '\nFR-30.3 / ADR-066: a module and the packing code meet only through kernel contracts ' +
-      '(e.g. kernel/shoppingSources.ts) that App.vue binds. Move the shared shape into the kernel, ' +
-      'or pass it in from the composition root.',
+      '(e.g. kernel/shoppingSources.ts), filled by the module\'s contribute() and folded by App.vue. ' +
+      'Move the shared shape into the kernel and add it to ModuleContribution.',
   )
   process.exit(1)
 }

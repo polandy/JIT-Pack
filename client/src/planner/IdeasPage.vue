@@ -26,21 +26,22 @@ import {
   onIonViewWillLeave,
 } from '@ionic/vue'
 import { addOutline, bulbOutline, swapVerticalOutline, umbrellaOutline } from 'ionicons/icons'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import ChoiceChip from '@/components/global/ChoiceChip.vue'
 import EmptyState from '@/components/global/EmptyState.vue'
 import InlineHint from '@/components/global/InlineHint.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
-import TrackEditor from '@/components/global/TrackEditor.vue'
+import TrackEditor from '@/components/global/track/TrackEditor.vue'
 import { setHeaderActions } from '@/composables/shared/useHeaderActions'
 import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
+import { useDesktopLayout } from '@/composables/shared/useDesktopLayout'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { useTripIdentity } from '@/composables/shared/useTripIdentity'
 import { useTrackOwner } from '@/composables/shared/useTrackOwner'
 import { useTripScreen } from '@/composables/shared/useTripScreen'
-import { orderTracks } from '@/domain/track'
+import { orderTracks } from '@/domain/shared/track'
 import { t } from '@/i18n'
 import { confirmDestructive } from '@/composables/shared/confirm'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
@@ -48,16 +49,9 @@ import { PANEL_HOST_SELECTOR } from '@/lib/frameSlots'
 import { presentToast } from '@/composables/shared/toast'
 import { closeOverlayRoute } from '@/composables/shared/closeOverlay'
 import { IDEA_QUERY_PARAM, tripIdeasPath } from '@/router/paths'
-import type {
-  Idea,
-  IdeaComment,
-  IdeaImage,
-  IdeaState,
-  IdeaTag,
-  IdeaTrack,
-  IdeaVoteValue,
-} from '@/types/domain'
-import { IDEA_STATE_IDEA, IDEA_STATE_SHORTLISTED, IDEA_STATES } from '@/types/domain'
+import type { IdeaImage, IdeaTrack } from '@/types/domain'
+import type { Idea, IdeaComment, IdeaState, IdeaTag, IdeaVoteValue } from './types'
+import { IDEA_STATE_IDEA, IDEA_STATE_SHORTLISTED, IDEA_STATES } from './types'
 import { createPlannerActions, type IdeaFields } from './actions'
 import {
   IDEA_ORDER_NEWEST,
@@ -90,7 +84,7 @@ const {
   nameOf,
   assignees,
   load: loadIdentity,
-} = useTripIdentity(props.tripId, orchestrator)
+} = useTripIdentity(props.tripId, orchestrator.identity)
 
 onMounted(async () => {
   await ensure()
@@ -204,13 +198,7 @@ function onSave(fields: IdeaFields, picture: Promise<Blob | null> | null) {
 
 // --- one idea: the sheet on a phone, the side panel on a desktop (ADR-064) ---
 
-/** M4's breakpoint for the detail as a side panel. */
-const DESKTOP_QUERY = '(min-width: 900px)'
-const isDesktop = ref(window.matchMedia(DESKTOP_QUERY).matches)
-const breakpoint = window.matchMedia(DESKTOP_QUERY)
-const onBreakpoint = (event: MediaQueryListEvent) => (isDesktop.value = event.matches)
-breakpoint.addEventListener('change', onBreakpoint)
-onUnmounted(() => breakpoint.removeEventListener('change', onBreakpoint))
+const isDesktop = useDesktopLayout()
 /*
  * The idea opens once the board has entered, never during the transition
  * into it. A link from another screen lands here with `?idea=` already set

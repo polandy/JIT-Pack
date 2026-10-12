@@ -7,7 +7,7 @@
  * it shows is derived here — the segment an idea stands in, its tallies,
  * the order, the filters — and nothing of it is stored.
  */
-import type { Idea, IdeaComment, IdeaState, IdeaTag, IdeaVote, IdeaVoteValue } from '@/types/domain'
+import type { Idea, IdeaComment, IdeaState, IdeaTag, IdeaVote, IdeaVoteValue } from '../types'
 import {
   IDEA_STATE_DONE,
   IDEA_STATE_DROPPED,
@@ -17,7 +17,7 @@ import {
   IDEA_TAGS,
   IDEA_VOTE_DOWN,
   IDEA_VOTE_UP,
-} from '@/types/domain'
+} from '../types'
 
 // --- the link (FR-29.1) ---
 

@@ -13,10 +13,10 @@ import { computed, type ComputedRef, type Ref } from 'vue'
 
 import type { HeadMetaPart } from '@/composables/shared/useHeaderTitle'
 import { taskDueTally } from '@/domain/taskDue'
-import type { TripTask } from '@/domain/tripTodos'
+import type { TripTask } from '@/domain/tripTasks'
 import { t } from '@/i18n'
 import type { MessageKey } from '@/i18n'
-import { addTallies, NO_DUE, type DueTally } from '@/domain/dueDay'
+import { addTallies, NO_DUE, type DueTally } from '@/domain/shared/dueDay'
 import {
   DUE_BLOCK_SHOPPING,
   DUE_BLOCK_TASKS,

@@ -1,4 +1,4 @@
-// Package api — masterdelete.go serves the direct delete of a single master
+// masterdelete.go serves the direct delete of a single master
 // row (ADR-038): the door for everything that is not the app itself.
 //
 // The app writes through the sync push instead, because its writes have to
@@ -6,6 +6,7 @@
 // Both doors reach the same rule: this handler mints the mutation the caller
 // would otherwise compose and hands it to the same store pipeline, so
 // FR-24.3's retire-or-remove decision has exactly one implementation.
+
 package api
 
 import (
@@ -21,7 +22,7 @@ import (
 // mapping to drift.
 func (s *Server) deleteMasterRow(table, pathParam string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, _ := r.Context().Value(userIDKey).(string)
+		userID := callerID(r.Context())
 
 		res, err := s.store.DeleteMasterRow(r.Context(), userID, table, r.PathValue(pathParam))
 		if err != nil {
@@ -71,7 +72,7 @@ func writeMasterDeleteRefusal(w http.ResponseWriter, reason store.RejectReason) 
 // write that cannot go through the push, because the push's delete answers a
 // use by retiring, and only the server can see every use.
 func (s *Server) handlePruneMasterItem(w http.ResponseWriter, r *http.Request) {
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 
 	res, err := s.store.PruneMasterItem(r.Context(), userID, r.PathValue(PathItemID))
 	if err != nil {

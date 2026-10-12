@@ -6,30 +6,49 @@
 import { computed } from 'vue'
 
 import type { PackingRowNotes, RowEdgeAvatar } from '@/components/trips/PackingRow.vue'
-import { borrowersByTripItem } from '@/domain/excursions'
-import { rowEdgeAvatar, type PackingCluster } from '@/domain/packingView'
+import { borrowersByTripItem } from '@/domain/excursionSuitcase'
+import { rowEdgeAvatar, type PackableRow, type PackingCluster } from '@/domain/packingView'
 import { avatarAssignable } from '@/domain/rowMenu'
 import { lockNoteText, packedStampText, responsibleNote, skippedNote } from '@/lib/rowFacts'
 import { t } from '@/i18n'
+import { TASK_STATE_OPEN } from '@/types/domain'
 import type { MasterItem, TripItem } from '@/types/domain'
 
 import type { PackingCore } from './usePackingCore'
 
-/** The row resolvers `PackingGroupList` renders through. */
-export type RowFacts = ReturnType<typeof useRowFacts>
+/**
+ * The row resolvers `PackingGroupList` renders through — the port M4 answers
+ * from its trip and M27 with a line's inert answers (FR-31.6).
+ */
+export interface ListFacts<R extends PackableRow = PackableRow> {
+  locked(item: R): boolean
+  rowNotes(item: R): PackingRowNotes
+  edgeAvatarFor(item: R): RowEdgeAvatar | null
+  assignableRow(item: R): boolean
+  masterOf(item: R): MasterItem | null
+  clusterMaster(cluster: PackingCluster<R>): MasterItem | null
+  openPrepTaskCount(itemId: string): number
+  borrowedBy(itemId: string): readonly string[]
+}
+
+/** M4's {@link ListFacts}, with the lock's wording the browse sheet reads too. */
+export interface RowFacts extends ListFacts<TripItem> {
+  lockNote(item: TripItem): string | null
+}
 
 /** Builds {@link RowFacts} over the page's core. */
-export function useRowFacts(core: PackingCore) {
+export function useRowFacts(core: PackingCore): RowFacts {
   const { tripId, tripStore, masterStore, orchestrator, nameOf, locked } = core
 
-  function openTodoCount(itemId: string): number {
-    return tripStore.getItemTodos(tripId, itemId).filter((todo) => todo.task_state === 'open')
-      .length
+  function openPrepTaskCount(itemId: string): number {
+    return tripStore
+      .getRowPrepTasks(tripId, itemId)
+      .filter((task) => task.task_state === TASK_STATE_OPEN).length
   }
 
   /** G-3's "in progress by Andy", worded in `lib/rowFacts.ts` (U-2). */
   function lockNote(item: TripItem): string | null {
-    return lockNoteText(orchestrator.lockHolder(tripId, item), nameOf)
+    return lockNoteText(orchestrator.claims.lockHolder(tripId, item), nameOf)
   }
 
   /**
@@ -38,7 +57,7 @@ export function useRowFacts(core: PackingCore) {
    * everyone else.
    */
   function ownClaimNote(item: TripItem): string | null {
-    return orchestrator.holdsClaim(tripId, item) ? t('packing.claimedByMe') : null
+    return orchestrator.claims.holdsClaim(tripId, item) ? t('packing.claimedByMe') : null
   }
 
   /** FR-25.17: "gepackt von Andy · heute 14:32", on revealed rows only. */
@@ -130,7 +149,7 @@ export function useRowFacts(core: PackingCore) {
     assignableRow,
     masterOf,
     clusterMaster,
-    openTodoCount,
+    openPrepTaskCount,
     borrowedBy,
   }
 }

@@ -109,18 +109,18 @@ const withSuggestion = computed(() => report.value.untagged.filter((f) => f.sugg
 async function takeSuggestion(finding: UntaggedFinding) {
   if (!finding.suggestion) return
   const tagId = finding.suggestion.tagId
-  const assignment = orchestrator.assignTag(finding.item.id, tagId)
+  const assignment = orchestrator.masterData.assignTag(finding.item.id, tagId)
   await announce(t('cleanup.tagged', { name: finding.item.name, tag: tagName(tagId) }), () =>
-    orchestrator.unassignTag(assignment),
+    orchestrator.masterData.unassignTag(assignment),
   )
 }
 
 async function takeAllSuggestions() {
   const created = withSuggestion.value.map((f) =>
-    orchestrator.assignTag(f.item.id, f.suggestion!.tagId),
+    orchestrator.masterData.assignTag(f.item.id, f.suggestion!.tagId),
   )
   await announce(t('cleanup.taggedAll', { n: created.length }), () => {
-    for (const id of created) orchestrator.unassignTag(id)
+    for (const id of created) orchestrator.masterData.unassignTag(id)
   })
 }
 
@@ -131,11 +131,11 @@ async function give(tagId: string, freshTag: boolean) {
   const finding = picking.value
   picking.value = null
   if (!finding) return
-  const assignment = orchestrator.assignTag(finding.item.id, tagId)
+  const assignment = orchestrator.masterData.assignTag(finding.item.id, tagId)
   await announce(t('cleanup.tagged', { name: finding.item.name, tag: tagName(tagId) }), () => {
-    orchestrator.unassignTag(assignment)
+    orchestrator.masterData.unassignTag(assignment)
     // A tag created for this one item goes with the undo, as FR-24.9's does.
-    if (freshTag) orchestrator.deleteTag(tagId)
+    if (freshTag) orchestrator.masterData.deleteTag(tagId)
   })
 }
 
@@ -150,10 +150,12 @@ function primaryTagName(itemId: string): string {
 }
 
 async function retire(itemId: string, name: string) {
-  orchestrator.deleteMasterItem(itemId)
+  orchestrator.masterData.deleteMasterItem(itemId)
   // The undo is M23's restore — the row was retired, not removed: it was on
   // a trip, which is what the rule found it by.
-  await announce(t('cleanup.retired', { name }), () => orchestrator.restoreMasterItem(itemId))
+  await announce(t('cleanup.retired', { name }), () =>
+    orchestrator.masterData.restoreMasterItem(itemId),
+  )
 }
 
 async function keepItem(itemId: string, name: string) {
@@ -167,7 +169,7 @@ async function mergeTag(tag: Tag) {
   await promptTagMerge(tag, {
     tags: masterStore.tagList,
     usage: tagDeletion(tag.id, masterStore.itemTagList).references,
-    merge: orchestrator.mergeTags,
+    merge: orchestrator.masterData.mergeTags,
   })
 }
 
@@ -389,7 +391,7 @@ const enabledRules = computed(() => HYGIENE_RULES.filter((rule) => settings.valu
         :refile="false"
         @dismiss="picking = null"
         @pick="({ tagId }) => give(tagId, false)"
-        @create="({ name }) => give(orchestrator.createTag(name), true)"
+        @create="({ name }) => give(orchestrator.masterData.createTag(name), true)"
       />
 
       <!-- The rules this device runs (FR-24.12) — device-local, no save button. -->

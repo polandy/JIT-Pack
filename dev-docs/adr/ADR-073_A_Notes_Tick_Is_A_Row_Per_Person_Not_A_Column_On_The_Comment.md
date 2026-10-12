@@ -100,7 +100,7 @@ later re-tick came first — the row's own history stays legible instead of disa
 * **Two schema edits, no reseed.** `note_acks` is in `schema.sql` and in `migrations/004_note_acks.sql`;
   `TestSchemaChain_EndsWhereSchemaSQLDoes` holds the two together (ADR-067).
 * **`trip_id` is carried directly on `note_acks`**, not only reachable through `comment_id` — the trip partition's
-  own scoping (`internal/store/store.go`'s `belongsToTrip`, `internal/store/partition.go`'s `feed.where()`) reads a
+  own scoping (`internal/store/pipeline.go`'s `belongsToTrip`, `internal/store/partition.go`'s `feed.where()`) reads a
   row's `trip_id` column, the same as every other trip-partition table (`containers`, `comments` themselves). A row
   that only named its comment would need a join the sync layer does not do.
 * **`stampActor`'s `TableNoteAcks` case mirrors `TableComments`'s `author_id` exactly**: `delete(m.Fields,

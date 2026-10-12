@@ -16,21 +16,28 @@ import type { PortableDocument, PortableItem } from '@/domain/portable'
 import { ledgerId, positionKey, propagatedItemId } from '@/domain/refresh'
 import type { Mutation } from '@/api/types'
 import type {
-  AppliedChange,
   ContainerOptions,
-  GeneratedPosition,
-  MasterItem,
   MasterItemOptions,
   PortableTripItemFields,
+  TemplateItemOptions,
+  TripOptions,
+} from '@/types/creationOptions'
+import type {
+  AppliedChange,
+  GeneratedPosition,
+  MasterItem,
   Tag,
   TaskPhase,
   Template,
-  TemplateItemOptions,
   TemplateKind,
   Trip,
-  TripOptions,
 } from '@/types/domain'
-import { ITEM_MODE_PACK, TASK_PHASE_BEFORE } from '@/types/domain'
+import {
+  ITEM_MODE_PACK,
+  TASK_PHASE_BEFORE,
+  TEMPLATE_KIND_GROUP,
+  TEMPLATE_KIND_TEMPLATE,
+} from '@/types/domain'
 
 /** A creating write: the mutation, and the id of the row it creates. */
 interface CreatedRow {
@@ -154,7 +161,8 @@ export function findExistingSubject(
     const trip = findTripByIdentity(master.tripList, doc.name, portableYear(doc))
     return trip ? { kind: 'trip', id: trip.id, outcome: 'duplicate' } : undefined
   }
-  const kind: TemplateKind = doc.scope === 'group' ? 'group' : 'template'
+  const kind: TemplateKind =
+    doc.scope === TEMPLATE_KIND_GROUP ? TEMPLATE_KIND_GROUP : TEMPLATE_KIND_TEMPLATE
   const template = master.templateList.find((t) => t.kind === kind && sameName(t.name, doc.name))
   return template ? { kind: 'template', id: template.id, outcome: 'duplicate' } : undefined
 }
@@ -239,10 +247,12 @@ function ensureGroup(
   icon: string | null = null,
   tripTasks: string[] = [],
 ): string {
-  const existing = env.master.templateList.find((t) => t.kind === 'group' && sameName(t.name, name))
+  const existing = env.master.templateList.find(
+    (t) => t.kind === TEMPLATE_KIND_GROUP && sameName(t.name, name),
+  )
   if (existing) return existing.id
 
-  const created = env.mutations.createTemplate(name, '', 'group', icon)
+  const created = env.mutations.createTemplate(name, '', TEMPLATE_KIND_GROUP, icon)
   env.emit('master', null, created.mutation)
   importPositions(env, created.id, items, resolveItem)
   importTripTasks(env, created.id, tripTasks)
@@ -415,7 +425,7 @@ export function importPortableDocument(
     return id
   }
 
-  if (doc.kind === 'template' && doc.scope === 'group') {
+  if (doc.kind === 'template' && doc.scope === TEMPLATE_KIND_GROUP) {
     // A group document is the same group the Vorlagen carry nested, so it
     // obeys the same identity rule rather than arriving as a copy.
     const groupId = ensureGroup(env, doc.name, doc.items, resolveItem, doc.icon, doc.trip_tasks)
@@ -426,7 +436,7 @@ export function importPortableDocument(
     const { mutation, id: templateId } = env.mutations.createTemplate(
       doc.name,
       '',
-      'template',
+      TEMPLATE_KIND_TEMPLATE,
       doc.icon,
     )
     env.emit('master', null, mutation)

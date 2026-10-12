@@ -17,7 +17,7 @@
 import { newId } from '@/lib/ids'
 import type { Mutation, MutationOp } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
-import { defaultNowIso, type NowIso } from '@/lib/clock'
+import type { NowIso } from '@/lib/clock'
 import type { SyncTable } from '@/api/tables'
 import type { MutationContext, MutationFields } from './mutations/context'
 import { createPackStateMutations } from './mutations/packState'
@@ -55,7 +55,7 @@ export type {
 export type { MasterItemEdit, ItemDependencyEdit } from './mutations/masterData'
 export type { TemplateEdit, TemplateItemEdit } from './mutations/templates'
 
-export function createMutations(hlc: HLCGenerator, nowIso: NowIso = defaultNowIso) {
+export function createMutations(hlc: HLCGenerator, nowIso: NowIso) {
   function make<T extends SyncTable>(
     op: MutationOp,
     table: T,

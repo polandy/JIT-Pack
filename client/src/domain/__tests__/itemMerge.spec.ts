@@ -1,11 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import {
-  mergedIdsOf,
-  planItemMerge,
-  resolveMergedItem,
-  type ItemMergeSources,
-} from '@/domain/itemMerge'
+import { aliasOf, mergedIdsOf, planItemMerge, type ItemMergeSources } from '@/domain/itemMerge'
 import type { ItemDependency, ItemTag, MasterItem, TemplateItem } from '@/types/domain'
 
 /**
@@ -348,21 +343,73 @@ describe('reading through the alias (FR-24.15, ADR-069)', () => {
   it('gives a plain item only itself', () => {
     expect(mergedIdsOf('i-zelt', [survivor, loser, other])).toEqual(['i-zelt'])
   })
+})
 
-  it('resolves a trip row’s item to the survivor, one hop', () => {
-    expect(resolveMergedItem(LOSER, [survivor, loser, other])).toBe(SURVIVOR)
-    expect(resolveMergedItem(SURVIVOR, [survivor, loser, other])).toBe(SURVIVOR)
-  })
+/*
+ * ADR-069's one-hop rule: an alias whose target is itself aliased is no
+ * alias. A chain only exists where two devices merged across each other, and
+ * then each row reads its own past rather than a joined one.
+ */
+describe('the one-hop rule (FR-24.15, ADR-069)', () => {
+  const retired = '2026-09-20T00:00:00Z'
+  const cases: {
+    name: string
+    items: MasterItem[]
+    mergedIds: Record<string, string[]>
+    aliases: Record<string, string | null>
+  }[] = [
+    {
+      name: 'no alias: every row reads only itself',
+      items: [item('a', 'A'), item('b', 'B')],
+      mergedIds: { a: ['a'], b: ['b'] },
+      aliases: { a: null, b: null },
+    },
+    {
+      name: 'a plain one-hop alias joins the loser to the survivor',
+      items: [item('a', 'A', { retired_at: retired, merged_into_id: 'b' }), item('b', 'B')],
+      mergedIds: { a: ['a'], b: ['b', 'a'] },
+      aliases: { a: 'b', b: null },
+    },
+    {
+      name: 'a chain A→B→C: A’s target is aliased, so A is no alias',
+      items: [
+        item('a', 'A', { retired_at: retired, merged_into_id: 'b' }),
+        item('b', 'B', { retired_at: retired, merged_into_id: 'c' }),
+        item('c', 'C'),
+      ],
+      mergedIds: { a: ['a'], b: ['b'], c: ['c', 'b'] },
+      aliases: { a: null, b: 'c', c: null },
+    },
+    {
+      name: 'mutual A↔B (opposite merges on two devices): neither is an alias',
+      items: [
+        item('a', 'A', { retired_at: retired, merged_into_id: 'b' }),
+        item('b', 'B', { retired_at: retired, merged_into_id: 'a' }),
+      ],
+      mergedIds: { a: ['a'], b: ['b'] },
+      aliases: { a: null, b: null },
+    },
+    {
+      name: 'an alias at a row this device does not hold is no alias',
+      items: [item('a', 'A', { retired_at: retired, merged_into_id: 'gone' })],
+      mergedIds: { a: ['a'] },
+      aliases: { a: null },
+    },
+  ]
 
-  it('treats a chain as no alias rather than walking it', () => {
-    // Two devices merging the same pair in opposite directions converge on a
-    // pair of rows naming each other (field-level LWW). A reader that walked
-    // would loop; one that stops reports the two pasts separately, which is
-    // where the product was before the merge existed.
-    const a = item('i-a', 'A', { merged_into_id: 'i-b' })
-    const b = item('i-b', 'B', { merged_into_id: 'i-a' })
-
-    expect(resolveMergedItem('i-a', [a, b])).toBe('i-a')
-    expect(resolveMergedItem('i-b', [a, b])).toBe('i-b')
-  })
+  for (const c of cases) {
+    const byId = new Map(c.items.map((row) => [row.id, row]))
+    it(`mergedIdsOf — ${c.name}`, () => {
+      const actual = Object.fromEntries(
+        c.items.map((row) => [row.id, mergedIdsOf(row.id, c.items)]),
+      )
+      expect(actual).toEqual(c.mergedIds)
+    })
+    it(`aliasOf — ${c.name}`, () => {
+      const actual = Object.fromEntries(
+        c.items.map((row) => [row.id, aliasOf(row, (key) => byId.get(key))?.id ?? null]),
+      )
+      expect(actual).toEqual(c.aliases)
+    })
+  }
 })

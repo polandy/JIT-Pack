@@ -1,6 +1,6 @@
 /**
- * The table registry — one spec per syncable table: its codec, its feed, its
- * store and the rows whose delete takes it along.
+ * The table registry — one spec per syncable table: its codec, its store and
+ * the rows whose delete takes it along.
  *
  * A row crosses this boundary twice: a pull hands the store a
  * `Record<string, unknown>` to turn into a domain object (`parse`), and an
@@ -10,11 +10,14 @@
  * and nothing compared them, which is how `trips.series_name` came to be
  * read by a parser that no writer, client or server, has ever filled.
  *
- * `TABLE_SPECS` is `satisfies Record<SyncTable, TableSpec>`, so a new
- * syncable table is a compile error until it has a parser, a feed and a
- * store, and `__tests__/tableRegistry.spec.ts` holds the halves against each
- * other. Pull routing is derived from it (`routing.ts`), and so is the
- * client's whole delete cascade (`cascade.ts`).
+ * `KERNEL_TABLE_SPECS` holds the kernel's tables; a feature module's live in
+ * its own `<m>/rows.ts` (FR-30.3, ADR-066 amendment 2). Each store hands its
+ * sinks over with their specs (`specifiedSinks`, `sinks.ts`), so a pulled row
+ * is parsed, and a delete cascaded, by whatever the stores the orchestrator
+ * holds declare — and a module's table never has to be named here.
+ * Completeness — every `TABLE.*` specified exactly once, kernel and modules
+ * composed — is `src/__tests__/moduleRows.spec.ts`'s, and
+ * `__tests__/tableRegistry.spec.ts` holds the halves against each other.
  *
  * The encoders stay in `sync/rows.ts` and are referenced from
  * here: eight action modules import them by name, and `rowBuilders.spec.ts`
@@ -23,10 +26,7 @@
  */
 import { TRACK_KIND } from '@/api/types'
 import type {
-  Meal,
-  MealIngredient,
   AppliedChange,
-  ConnectionLeg,
   Container,
   DestinationChecklistItem,
   DestinationProfile,
@@ -34,26 +34,19 @@ import type {
   ItemComment,
   ItemDependency,
   ItemTag,
-  ItemTodo,
+  PrepTask,
   NoteAck,
   Excursion,
-  ExcursionItem,
+  ExcursionLine,
   ExcursionTraveler,
-  DayEntryTraveler,
-  DayEntry,
-  ExcursionRole,
-  Idea,
-  IdeaComment,
   IdeaImage,
   IdeaTrack,
   ExcursionTrack,
   TrackFields,
-  IdeaVote,
-  ShoppingEntry,
   TaskFacts,
   TaskTag,
   TaskPhase,
-  TripTodo,
+  OwnTask,
   MasterItem,
   Tag,
   Template,
@@ -70,25 +63,20 @@ import type {
   TripTemplateSource,
 } from '@/types/domain'
 import {
-  DAY_ENTRY_CONNECTION,
-  DAY_ENTRY_NOTE,
-  IDEA_STATE_IDEA,
   ITEM_MODE_BUY_LOCAL,
   ITEM_MODE_PACK,
-  MEAL_KIND_COOK,
-  MEAL_KIND_OUT,
-  MEAL_SLOT_DINNER,
-  MEAL_SLOTS,
-  toIdeaTag,
+  STATE_OPEN,
+  TASK_STATE_OPEN,
+  TEMPLATE_KIND_TEMPLATE,
 } from '@/types/domain'
 import { TABLE, type SyncTable } from '@/api/tables'
 import { durationDays } from '@/domain/instantiate'
+import { DEPENDENCY_MODE_REQUIRED } from '@/domain/dependencies'
 import { parseJsonColumn } from './columns'
 import {
   checklistItemRow,
   commentRow,
   containerRow,
-  shoppingEntryRow,
   dependencyRow,
   masterItemRow,
   memberRow,
@@ -96,22 +84,13 @@ import {
   excursionRow,
   excursionTravelerRow,
   excursionItemRow,
-  dayEntryRow,
-  dayEntryTravelerRow,
-  mealRow,
-  mealIngredientRow,
-  ideaCommentRow,
-  ideaImageRow,
-  ideaTrackRow,
   excursionTrackRow,
-  ideaRow,
-  ideaVoteRow,
   profileRow,
   seriesRow,
   templateItemRow,
   templateRow,
-  todoRow,
-  tripTodoRow,
+  prepTaskRow,
+  ownTaskRow,
   travelerRow,
   tripRow,
   itemRow,
@@ -140,18 +119,12 @@ export interface TableCodec<T = unknown> {
 export type StoreOwner = 'trip' | 'master' | 'feature'
 
 /**
- * Everything the client knows about one table, in one entry: how its rows
- * cross the wire, which store holds them, and which rows take them along.
- * The Go side keeps the same facts in `tableSpecs`
- * (`internal/store/tables.go`); the feed is one of them, and reaches this side
- * generated (`TABLE_PARTITION` in `api/tables.ts`), so it is not restated here.
- *
- * Owner and feed are two facts, not one: the master feed carries the trips
- * themselves and three per-trip tables (Sync-API P-3), and every feature
- * table travels its trip's feed.
+ * What a store knows about one table it holds: how its rows cross the wire,
+ * and which rows take them along. A kernel store and a module's declare the
+ * same shape; the module's live in its own `<m>/rows.ts` and reach the kernel
+ * on the store's sinks (`specifiedSinks`), never through this file.
  */
-export interface TableSpec<T = unknown> extends TableCodec<T> {
-  owner: StoreOwner
+export interface RowSpec<T = unknown> extends TableCodec<T> {
   /**
    * The rows whose delete takes this table's rows along — each a column of
    * this table declared `REFERENCES parent(id) ON DELETE CASCADE` in
@@ -162,6 +135,23 @@ export interface TableSpec<T = unknown> extends TableCodec<T> {
   cascadeParents?: readonly CascadeParent[]
 }
 
+/** Specs by table — a store's, a module's, or the kernel's. */
+export type RowSpecs = Partial<Record<SyncTable, RowSpec>>
+
+/**
+ * A kernel table's spec: its row spec and which of the kernel's two stores
+ * holds it. The Go side keeps the same facts in `tableSpecs`
+ * (`internal/store/tables.go`); the feed is one of them, and reaches this side
+ * generated (`TABLE_PARTITION` in `api/tables.ts`), so it is not restated here.
+ *
+ * Owner and feed are two facts, not one: the master feed carries the trips
+ * themselves and three per-trip tables (Sync-API P-3), and every feature
+ * table travels its trip's feed.
+ */
+export interface TableSpec<T = unknown> extends RowSpec<T> {
+  owner: Exclude<StoreOwner, 'feature'>
+}
+
 /** One `ON DELETE CASCADE` reference: this table's `column` names a `table` row. */
 export interface CascadeParent {
   column: string
@@ -169,22 +159,22 @@ export interface CascadeParent {
 }
 
 /** `column` names a row of `table`, and the row goes with it. */
-function goesWith(column: string, table: SyncTable): CascadeParent {
+export function goesWith(column: string, table: SyncTable): CascadeParent {
   return { column, table }
 }
 
 /** Every per-trip row goes with its trip. */
-const OF_TRIP = goesWith('trip_id', TABLE.trips)
+export const OF_TRIP = goesWith('trip_id', TABLE.trips)
 
 /** Instance-wide master data. */
 const MASTER_DATA = { owner: 'master' } as const
 /** A trip's own rows, on whichever feed carries them. */
 const TRIP_ROWS = { owner: 'trip', cascadeParents: [OF_TRIP] } as const
-/** A feature module's rows. */
-const FEATURE_ROWS = { owner: 'feature', cascadeParents: [OF_TRIP] } as const
+/** A feature module's rows: each goes with its trip, whose feed it travels. */
+export const MODULE_ROWS = { cascadeParents: [OF_TRIP] } as const
 
 /** A trip's row that also goes with another row of the trip. */
-function alsoWith(...parents: CascadeParent[]): readonly CascadeParent[] {
+export function alsoWith(...parents: CascadeParent[]): readonly CascadeParent[] {
   return [OF_TRIP, ...parents]
 }
 
@@ -237,7 +227,7 @@ function rowToTemplate(id: string, row: Record<string, unknown>): Template {
     name: row['name'] as string,
     // Migration 016 defaults pre-scope rows to 'template', which is what they
     // were used as; a row from an older client is read the same way.
-    kind: (row['kind'] as TemplateKind) ?? 'template',
+    kind: (row['kind'] as TemplateKind) ?? TEMPLATE_KIND_TEMPLATE,
     icon: (row['icon'] as string) ?? null,
     retired_at: (row['retired_at'] as string) ?? null,
   }
@@ -302,7 +292,7 @@ function rowToDependency(id: string, row: Record<string, unknown>): ItemDependen
     id,
     item_id: row['item_id'] as string,
     depends_on_item_id: row['depends_on_item_id'] as string,
-    mode: (row['mode'] as ItemDependency['mode']) ?? 'required',
+    mode: (row['mode'] as ItemDependency['mode']) ?? DEPENDENCY_MODE_REQUIRED,
     quantity: (row['quantity'] as number) ?? null,
   }
 }
@@ -398,7 +388,7 @@ function rowToTripItem(id: string, row: Record<string, unknown>): TripItem {
     category_name: (row['category_name'] as string) ?? null,
     quantity: (row['quantity'] as number) ?? 1,
     packed_count: (row['packed_count'] as number) ?? 0,
-    state: (row['state'] as TripItem['state']) ?? 'open',
+    state: (row['state'] as TripItem['state']) ?? STATE_OPEN,
     mode: (row['mode'] as TripItem['mode']) ?? ITEM_MODE_PACK,
     late_packer: Boolean(row['late_packer']),
     assigned_traveler_id: (row['assigned_traveler_id'] as string) ?? null,
@@ -448,135 +438,7 @@ function rowToContainer(id: string, row: Record<string, unknown>): Container {
   }
 }
 
-function rowToShoppingEntry(id: string, row: Record<string, unknown>): ShoppingEntry {
-  return {
-    id,
-    trip_id: row['trip_id'] as string,
-    name: row['name'] as string,
-    list: (row['list'] as ShoppingEntry['list']) ?? ITEM_MODE_BUY_LOCAL,
-    bought: Boolean(row['bought']),
-    tag: (row['tag'] as string) ?? null,
-    bought_at: (row['bought_at'] as string) ?? null,
-    bought_by_user_id: (row['bought_by_user_id'] as string) ?? null,
-    due_date: (row['due_date'] as string | null | undefined) ?? null,
-    assignee_user_id: (row['assignee_user_id'] as string | null | undefined) ?? null,
-    carried_over_at: (row['carried_over_at'] as string | null | undefined) ?? null,
-    position: (row['position'] as number | null | undefined) ?? null,
-    idea_id: (row['idea_id'] as string | null | undefined) ?? null,
-  }
-}
-
-function rowToIdea(id: string, row: Record<string, unknown>): Idea {
-  return {
-    id,
-    trip_id: row['trip_id'] as string,
-    author_id: row['author_id'] as string,
-    title: row['title'] as string,
-    note: (row['note'] as string) ?? null,
-    link: (row['link'] as string) ?? null,
-    tag: toIdeaTag(row['tag']),
-    rain_proof: Boolean(row['rain_proof']),
-    state: (row['state'] as Idea['state']) ?? IDEA_STATE_IDEA,
-    created_at: (row['created_at'] as string) ?? null,
-    planned_on: (row['planned_on'] as string) ?? null,
-    planned_at: (row['planned_at'] as string) ?? null,
-  }
-}
-
-function rowToMeal(id: string, row: Record<string, unknown>): Meal {
-  const slot = row['slot'] as Meal['slot']
-  return {
-    id,
-    trip_id: row['trip_id'] as string,
-    on_date: row['on_date'] as string,
-    slot: MEAL_SLOTS.includes(slot) ? slot : MEAL_SLOT_DINNER,
-    title: row['title'] as string,
-    kind: row['kind'] === MEAL_KIND_OUT ? MEAL_KIND_OUT : MEAL_KIND_COOK,
-    at_time: (row['at_time'] as string) ?? null,
-    note: (row['note'] as string) ?? null,
-    place: (row['place'] as string) ?? null,
-    cook_user_id: (row['cook_user_id'] as string) ?? null,
-    excursion_id: (row['excursion_id'] as string) ?? null,
-    excursion_packed_at: (row['excursion_packed_at'] as string) ?? null,
-  }
-}
-
-function rowToMealIngredient(id: string, row: Record<string, unknown>): MealIngredient {
-  return {
-    id,
-    trip_id: row['trip_id'] as string,
-    meal_id: row['meal_id'] as string,
-    name: row['name'] as string,
-    amount: (row['amount'] as string) ?? null,
-    list: (row['list'] as MealIngredient['list']) ?? ITEM_MODE_BUY_LOCAL,
-    position: (row['position'] as number | null | undefined) ?? null,
-    bought: Boolean(row['bought']),
-    bought_at: (row['bought_at'] as string) ?? null,
-    bought_by_user_id: (row['bought_by_user_id'] as string) ?? null,
-    shopping_position: (row['shopping_position'] as number | null | undefined) ?? null,
-    fresh: row['fresh'] === null || row['fresh'] === undefined ? null : Boolean(row['fresh']),
-  }
-}
-
-function rowToDayEntry(id: string, row: Record<string, unknown>): DayEntry {
-  return {
-    id,
-    trip_id: row['trip_id'] as string,
-    author_id: row['author_id'] as string,
-    kind: row['kind'] === DAY_ENTRY_CONNECTION ? DAY_ENTRY_CONNECTION : DAY_ENTRY_NOTE,
-    on_date: row['on_date'] as string,
-    at_time: (row['at_time'] as string) ?? null,
-    title: row['title'] as string,
-    note: (row['note'] as string) ?? null,
-    link: (row['link'] as string) ?? null,
-    legs: parseLegs(row['legs']),
-    excursion_id: (row['excursion_id'] as string) ?? null,
-    excursion_role: (row['excursion_role'] as ExcursionRole | null) ?? null,
-  }
-}
-
-/**
- * FR-29.18: a connection's legs from their JSON column. Anything that is not
- * a list of legs reads as none, so a malformed row is an entry without legs
- * rather than a screen that cannot render.
- */
-function parseLegs(raw: unknown): ConnectionLeg[] | null {
-  const parsed = parseJsonColumn<unknown>(raw, null)
-  if (!Array.isArray(parsed) || parsed.length === 0 || !parsed.every(isLeg)) return null
-  return parsed
-}
-
-function isLeg(value: unknown): value is ConnectionLeg {
-  if (typeof value !== 'object' || value === null) return false
-  const leg = value as Record<string, unknown>
-  return (['from', 'to', 'dep', 'arr', 'line'] as const).every(
-    (key) => typeof leg[key] === 'string',
-  )
-}
-
-function rowToIdeaVote(id: string, row: Record<string, unknown>): IdeaVote {
-  return {
-    id,
-    trip_id: row['trip_id'] as string,
-    idea_id: row['idea_id'] as string,
-    user_id: row['user_id'] as string,
-    vote: (row['vote'] as IdeaVote['vote']) ?? null,
-  }
-}
-
-function rowToIdeaComment(id: string, row: Record<string, unknown>): IdeaComment {
-  return {
-    id,
-    trip_id: row['trip_id'] as string,
-    idea_id: row['idea_id'] as string,
-    author_id: row['author_id'] as string,
-    body: row['body'] as string,
-    created_at: (row['created_at'] as string) ?? null,
-    edited_at: (row['edited_at'] as string) ?? null,
-  }
-}
-
-function rowToIdeaImage(id: string, row: Record<string, unknown>): IdeaImage {
+export function rowToIdeaImage(id: string, row: Record<string, unknown>): IdeaImage {
   return {
     id,
     trip_id: row['trip_id'] as string,
@@ -610,7 +472,7 @@ function rowToTrackFields(id: string, row: Record<string, unknown>): TrackFields
   }
 }
 
-function rowToIdeaTrack(id: string, row: Record<string, unknown>): IdeaTrack {
+export function rowToIdeaTrack(id: string, row: Record<string, unknown>): IdeaTrack {
   return {
     ...rowToTrackFields(id, row),
     trip_id: row['trip_id'] as string,
@@ -673,16 +535,7 @@ function rowToExcursionTraveler(id: string, row: Record<string, unknown>): Excur
   }
 }
 
-function rowToDayEntryTraveler(id: string, row: Record<string, unknown>): DayEntryTraveler {
-  return {
-    id,
-    trip_id: row['trip_id'] as string,
-    day_entry_id: row['day_entry_id'] as string,
-    traveler_id: row['traveler_id'] as string,
-  }
-}
-
-function rowToExcursionItem(id: string, row: Record<string, unknown>): ExcursionItem {
+function rowToExcursionLine(id: string, row: Record<string, unknown>): ExcursionLine {
   return {
     id,
     trip_id: row['trip_id'] as string,
@@ -694,8 +547,8 @@ function rowToExcursionItem(id: string, row: Record<string, unknown>): Excursion
     assigned_traveler_id: (row['assigned_traveler_id'] as string | null | undefined) ?? null,
     quantity: Number(row['quantity'] ?? 1),
     packed_count: Number(row['packed_count'] ?? 0),
-    state: (row['state'] as ExcursionItem['state'] | undefined) ?? 'open',
-    mode: (row['mode'] as ExcursionItem['mode'] | undefined) ?? ITEM_MODE_PACK,
+    state: (row['state'] as ExcursionLine['state'] | undefined) ?? STATE_OPEN,
+    mode: (row['mode'] as ExcursionLine['mode'] | undefined) ?? ITEM_MODE_PACK,
     bought_at: (row['bought_at'] as string | null | undefined) ?? null,
     not_in_luggage: Boolean(row['not_in_luggage']),
     for_all_participants: Boolean(row['for_all_participants']),
@@ -703,14 +556,14 @@ function rowToExcursionItem(id: string, row: Record<string, unknown>): Excursion
   }
 }
 
-function rowToTodo(id: string, row: Record<string, unknown>): ItemTodo {
+function rowToPrepTask(id: string, row: Record<string, unknown>): PrepTask {
   return {
     id,
     trip_id: row['trip_id'] as string,
     trip_item_id: row['trip_item_id'] as string,
     author_id: row['author_id'] as string,
     body: row['body'] as string,
-    task_state: (row['task_state'] as ItemTodo['task_state']) ?? 'open',
+    task_state: (row['task_state'] as PrepTask['task_state']) ?? TASK_STATE_OPEN,
     ...taskFacts(row),
   }
 }
@@ -733,11 +586,11 @@ function taskFacts(row: Record<string, unknown>): TaskFacts {
 }
 
 /**
- * Every syncable table, specified. The `satisfies` is the point: adding a
- * `TABLE.*` constant without a spec fails the build rather than falling
- * through a switch that silently drops the row.
+ * Every kernel table, specified. A table no spec here or in a module's
+ * `<m>/rows.ts` names is dropped on pull; `src/__tests__/moduleRows.spec.ts`
+ * fails the build first, by composing both against `TABLE`.
  */
-export const TABLE_SPECS = {
+export const KERNEL_TABLE_SPECS = {
   [TABLE.tags]: { ...MASTER_DATA, parse: rowToTag },
   [TABLE.taskTags]: { ...MASTER_DATA, parse: rowToTaskTag },
   [TABLE.itemTags]: {
@@ -804,50 +657,6 @@ export const TABLE_SPECS = {
   [TABLE.travelers]: { ...TRIP_ROWS, parse: rowToTraveler, encode: travelerRow },
   [TABLE.containers]: { ...TRIP_ROWS, parse: rowToContainer, encode: containerRow },
   [TABLE.tripGeneratedPositions]: { ...TRIP_ROWS, parse: rowToGeneratedPosition },
-  [TABLE.shoppingEntries]: { ...FEATURE_ROWS, parse: rowToShoppingEntry, encode: shoppingEntryRow },
-  [TABLE.ideas]: { ...FEATURE_ROWS, parse: rowToIdea, encode: ideaRow },
-  [TABLE.ideaVotes]: {
-    ...FEATURE_ROWS,
-    parse: rowToIdeaVote,
-    encode: ideaVoteRow,
-    cascadeParents: alsoWith(goesWith('idea_id', TABLE.ideas)),
-  },
-  [TABLE.ideaComments]: {
-    ...FEATURE_ROWS,
-    parse: rowToIdeaComment,
-    encode: ideaCommentRow,
-    cascadeParents: alsoWith(goesWith('idea_id', TABLE.ideas)),
-  },
-  [TABLE.ideaImages]: {
-    ...FEATURE_ROWS,
-    parse: rowToIdeaImage,
-    encode: ideaImageRow,
-    cascadeParents: alsoWith(goesWith('idea_id', TABLE.ideas)),
-  },
-  [TABLE.dayEntries]: { ...FEATURE_ROWS, parse: rowToDayEntry, encode: dayEntryRow },
-  [TABLE.dayEntryTravelers]: {
-    ...FEATURE_ROWS,
-    parse: rowToDayEntryTraveler,
-    encode: dayEntryTravelerRow,
-    // FR-29.15: a traveller taken off the trip is off the day plan's entries.
-    cascadeParents: alsoWith(
-      goesWith('day_entry_id', TABLE.dayEntries),
-      goesWith('traveler_id', TABLE.travelers),
-    ),
-  },
-  [TABLE.meals]: { ...FEATURE_ROWS, parse: rowToMeal, encode: mealRow },
-  [TABLE.mealIngredients]: {
-    ...FEATURE_ROWS,
-    parse: rowToMealIngredient,
-    encode: mealIngredientRow,
-    cascadeParents: alsoWith(goesWith('meal_id', TABLE.meals)),
-  },
-  [TABLE.ideaTracks]: {
-    ...FEATURE_ROWS,
-    parse: rowToIdeaTrack,
-    encode: ideaTrackRow,
-    cascadeParents: alsoWith(goesWith('idea_id', TABLE.ideas)),
-  },
   [TABLE.excursionTracks]: {
     ...TRIP_ROWS,
     parse: rowToExcursionTrack,
@@ -856,12 +665,12 @@ export const TABLE_SPECS = {
   },
   // FR-7.2: one table, two domain types. `is_task` decides which, and the
   // store routes on it — the codec named here is the plain comment, with the
-  // todo's beside it because a registry keyed by table cannot hold two.
+  // preparation's beside it because a registry keyed by table cannot hold two.
   [TABLE.comments]: {
     ...TRIP_ROWS,
     parse: rowToComment,
     encode: commentRow,
-    // A row's notes and FR-7.3 todos go with it — a trip-level one carries a
+    // A row's notes and FR-7.3 preparations go with it — a trip-level one carries a
     // null trip_item_id — and a first note takes its replies (FR-7.13).
     cascadeParents: alsoWith(
       goesWith('trip_item_id', TABLE.tripItems),
@@ -888,7 +697,7 @@ export const TABLE_SPECS = {
   },
   [TABLE.excursionItems]: {
     ...TRIP_ROWS,
-    parse: rowToExcursionItem,
+    parse: rowToExcursionLine,
     encode: excursionItemRow,
     // A line goes with its excursion and with the traveller it is for; the
     // packing row it came from is SET NULL, not a parent.
@@ -897,52 +706,41 @@ export const TABLE_SPECS = {
       goesWith('assigned_traveler_id', TABLE.travelers),
     ),
   },
-} satisfies Record<SyncTable, TableSpec>
+} satisfies Partial<Record<SyncTable, TableSpec>>
 
 /**
- * The todo half of `comments` (FR-7.2). It is not in `TABLE_SPECS` because
+ * The preparation half of `comments` (FR-7.2). It is not in `KERNEL_TABLE_SPECS` because
  * that map is keyed by table and this is the same table read as the other
  * type; `tripStore` picks between them on `is_task`. Being outside the map,
  * it is named by hand in `tableRegistry.spec.ts`'s pairs, as is
- * `tripTodoCodec`.
+ * `ownTaskCodec`.
  */
-export const todoCodec: TableCodec<ItemTodo> = { parse: rowToTodo, encode: todoRow }
+export const prepTaskCodec: TableCodec<PrepTask> = { parse: rowToPrepTask, encode: prepTaskRow }
 
-function rowToTripTodo(id: string, row: Record<string, unknown>): TripTodo {
+function rowToOwnTask(id: string, row: Record<string, unknown>): OwnTask {
   return {
     id,
     trip_id: row['trip_id'] as string,
     author_id: row['author_id'] as string,
     body: row['body'] as string,
-    task_state: (row['task_state'] as TripTodo['task_state']) ?? 'open',
+    task_state: (row['task_state'] as OwnTask['task_state']) ?? TASK_STATE_OPEN,
     ...taskFacts(row),
     idea_id: (row['idea_id'] as string | null | undefined) ?? null,
   }
 }
 
 /**
- * The FR-7.4 trip todo's codec — the third reading of a `comments` row,
+ * The FR-7.4 own task's codec — the third reading of a `comments` row,
  * chosen by `tripStore` when `is_task` is set and no row anchors it.
  */
-export const tripTodoCodec: TableCodec<TripTodo> = { parse: rowToTripTodo, encode: tripTodoRow }
+export const ownTaskCodec: TableCodec<OwnTask> = { parse: rowToOwnTask, encode: ownTaskRow }
 
 /**
- * codecFor narrows a wire table name — `PullChange.table` is a plain string,
- * because the generated wire types describe what the server may send rather
- * than what this client knows. A name with no codec is a table this build
- * does not carry, and the caller drops the change.
+ * encodedRow turns a stored row back into the row it travels as, by its
+ * table's codec. A table without an encoder is one whose domain type *is* its
+ * row (C-2), so a copy is the encoding.
  */
-export function codecFor(table: string): { table: SyncTable; codec: TableCodec } | null {
-  const codec = (TABLE_SPECS as Record<string, TableCodec | undefined>)[table]
-  return codec ? { table: table as SyncTable, codec } : null
-}
-
-/**
- * encodedRow turns a stored row back into the row it travels as. A table
- * without an encoder is one whose domain type *is* its row (C-2), so a copy
- * is the encoding.
- */
-export function encodedRow(table: SyncTable, value: unknown): SyncRow {
-  const encode = (TABLE_SPECS[table] as TableCodec).encode as ((v: unknown) => SyncRow) | undefined
+export function encodedRow(codec: TableCodec, value: unknown): SyncRow {
+  const encode = codec.encode as ((v: unknown) => SyncRow) | undefined
   return encode ? encode(value) : { ...(value as SyncRow) }
 }

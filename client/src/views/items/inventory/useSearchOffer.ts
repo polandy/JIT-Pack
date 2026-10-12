@@ -73,7 +73,7 @@ export function useSearchOffer(core: InventoryCore) {
       createOpen.value = true
       return
     }
-    if (!orchestrator.restoreMasterItem(current.id)) return
+    if (!orchestrator.masterData.restoreMasterItem(current.id)) return
     freshId.value = current.id
     await presentToast({
       message: t('retired.restored', { name: current.name }),

@@ -34,15 +34,19 @@ vi.mock('@/notifications/push', () => ({
 }))
 
 const orchestratorFake = {
-  ...identityStub(),
+  identity: {
+    ...identityStub(),
+    downloadExport: vi.fn(),
+  },
   // The NFR-4.11 reminder reads this, never the real clock.
   now: () => new Date('2026-07-08T12:00:00').getTime(),
-  fetchNotificationPrefs: vi.fn(() =>
-    Promise.resolve({ delegation: true, mention: true, task: true, lock_taken: true }),
-  ),
-  saveNotificationPrefs: vi.fn(),
+  notifications: {
+    fetchNotificationPrefs: vi.fn(() =>
+      Promise.resolve({ delegation: true, mention: true, task: true, lock_taken: true }),
+    ),
+    saveNotificationPrefs: vi.fn(),
+  },
   drainAll: vi.fn(() => Promise.resolve()),
-  downloadExport: vi.fn(),
 }
 
 /** The shape the server sends, with only the state's own fields filled in. */

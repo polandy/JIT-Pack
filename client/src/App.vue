@@ -16,14 +16,14 @@ import { setMapTiles } from '@/composables/shared/mapTiles'
 import { setTimetable } from '@/composables/shared/timetable'
 import { DEFAULT_ROUTER_URL, setRouting } from '@/composables/routing'
 import { IonApp, IonRouterOutlet, toastController } from '@ionic/vue'
-import AppHeader from '@/components/global/AppHeader.vue'
-import PageHead from '@/components/global/PageHead.vue'
+import AppHeader from '@/components/shell/AppHeader.vue'
+import PageHead from '@/components/shell/PageHead.vue'
 import TripViewNav from '@/components/trips/TripViewNav.vue'
-import NavRail from '@/components/global/NavRail.vue'
-import TabBar from '@/components/global/TabBar.vue'
-import MigrationBanner from '@/components/global/MigrationBanner.vue'
-import UpdateBanner from '@/components/global/UpdateBanner.vue'
-import SplashScreen from '@/components/global/SplashScreen.vue'
+import NavRail from '@/components/shell/NavRail.vue'
+import TabBar from '@/components/shell/TabBar.vue'
+import MigrationBanner from '@/components/shell/MigrationBanner.vue'
+import UpdateBanner from '@/components/shell/UpdateBanner.vue'
+import SplashScreen from '@/components/shell/SplashScreen.vue'
 import { claimGreeting } from '@/lib/splash'
 import { PANEL_HOST_ID } from '@/lib/frameSlots'
 import ModeSelectionPage from '@/views/ModeSelectionPage.vue'
@@ -45,7 +45,7 @@ import type { ConflictReport, RejectionReport } from '@/sync/outbox'
 import { serverBaseUrl } from '@/config'
 import { IndexedDBPersistence } from '@/local/persistence'
 import SheetModal from '@/components/global/SheetModal.vue'
-import SyncDetailSheet from '@/components/global/SyncDetailSheet.vue'
+import SyncDetailSheet from '@/components/shell/SyncDetailSheet.vue'
 import { useDeviceBackup } from '@/composables/useDeviceBackup'
 import { lastExportAt } from '@/local/exportReminder'
 import { readStorageStatus, type StorageStatus } from '@/local/storageStatus'
@@ -66,66 +66,14 @@ import { PATH, tripOpenPath, tripSubPath } from '@/router/paths'
 import { installTripOpening } from '@/router/tripOpening'
 import { confirmAction } from '@/composables/shared/confirm'
 import { resolveHead } from '@/composables/shared/useHeaderTitle'
-import { createPackingShoppingSource } from '@/kernel/packingShoppingSource'
-import { createExcursionShoppingSource } from '@/kernel/excursionShoppingSource'
-import { pendingExcursionCount } from '@/domain/excursions'
-import { localIsoDate } from '@/domain/trips'
+import { composeModules, provideComposition } from '@/kernel/moduleContribution'
+import { kernelPorts } from '@/kernel/kernelPorts'
+import { FEATURE_MODULES } from '@/featureModules'
 import { defaultNowMs } from '@/lib/clock'
-import { SHOPPING_SOURCES } from '@/kernel/shoppingSources'
-import { DAY_PLAN_SOURCES, DAY_PLAN_TRAVELERS } from '@/kernel/dayPlanSources'
-import { EXCURSION_CONNECTIONS, EXCURSION_JOURNEY_LINE } from '@/kernel/excursionConnections'
-import { createDayPlanSource, toggleTask } from '@/kernel/dayPlanSource'
-import { createIdeaResultSource } from '@/kernel/ideaResultSource'
-import { IDEA_LOOKUP, IDEA_RESULT_SOURCES } from '@/kernel/ideaBridge'
+import { tripTaskProgress } from '@/domain/tripTasks'
 import { useTripTasks } from '@/composables/useTripTasks'
 import { LIVE_LOCATION, browserGeo, createLiveLocation } from '@/composables/shared/useLiveLocation'
-import { TRIP_VIEW_COUNTS } from '@/kernel/tripViewCounts'
-import { newNoteCount } from '@/domain/tripNotes'
-import { tripTodoProgress } from '@/domain/tripTodos'
-import { DUE_PURCHASES, TRIP_CARDS } from '@/kernel/tripCards'
 import { useTripStore } from '@/stores/tripStore'
-import {
-  createShoppingActions,
-  duePurchases,
-  ShoppingDashboardCard,
-  shoppingCloseCrossing,
-  shoppingCount,
-  shoppingActivityReaders,
-  shoppingFeatureStore,
-  shoppingIdeaResults,
-  useShoppingStore,
-} from '@/shopping'
-import { PACKING_CLOSE_CROSSINGS } from '@/kernel/packingClose'
-import {
-  dayPlanEmpty,
-  ideaLookup,
-  ideasCount,
-  plannerActivityReaders,
-  plannerFeatureStore,
-  ExcursionConnections,
-  excursionJourneyLine,
-  PlannerTodayCard,
-  usePlannerStore,
-} from '@/planner'
-import {
-  MealSheet,
-  MealsTodayCard,
-  createMealActions,
-  createMealDayPlanSource,
-  createMealExcursionSource,
-  createMealShoppingSource,
-  mealActivityReaders,
-  mealFeatureStore,
-  useMealSheet,
-  useMealStore,
-  type MealSourceDeps,
-} from '@/meals'
-import { EXCURSION_EXTRA_LINES } from '@/kernel/excursionExtraLines'
-import type { MealContext } from '@/domain/mealContext'
-import { MEAL_CONTEXT } from '@/kernel/mealContext'
-import { spanOf } from '@/domain/excursions'
-import { IDEA_STATE_SHORTLISTED } from '@/types/domain'
-import { ACTIVITY_READERS } from '@/kernel/activityReaders'
 
 const mode = ref(readMode())
 // FR-21.29: once per app start — not again on the reloads the app makes of itself.
@@ -157,10 +105,14 @@ function chooseMode(selected: ClientMode, serverUrl: string | null) {
   window.location.reload()
 }
 
+// The device's clock for the shell, the token refresher and the orchestrator
+// alike, so a test that sets it reaches every screen.
+const clock = defaultNowMs
+
 // OIDC token lifecycle (Sync-API §2): the refresher renews the access
 // token shortly before expiry and after a 401; without stored tokens
 // (Single-User servers, Local Mode) it stays inert and hands out null.
-const refresher = mode.value === 'server' ? createAuthRefresher(serverBaseUrl()) : null
+const refresher = mode.value === 'server' ? createAuthRefresher(serverBaseUrl(), clock) : null
 
 const orchestrator = mode.value
   ? useSyncOrchestrator({
@@ -173,13 +125,10 @@ const orchestrator = mode.value
       onRejections: showRejectionToast,
       // FR-30.3 (ADR-066): the modules' stores, so the orchestrator routes
       // their rows without importing a module.
-      features: [shoppingFeatureStore(), plannerFeatureStore(), mealFeatureStore()],
+      features: FEATURE_MODULES.map((module) => module.featureStore()),
+      now: clock,
     })
   : null
-
-// The device's clock for the shell, one with the orchestrator's so a test that
-// sets it reaches every screen; real time only before a mode is chosen.
-const clock = orchestrator?.now ?? defaultNowMs
 
 /**
  * NFR-4.2a: a push that came back `merged` dropped fields of this device's
@@ -247,7 +196,7 @@ async function showNotificationToast(n: ServerNotification) {
         ]
       : [{ text: notificationActionLabel(null), role: 'cancel' }],
   })
-  toast.onDidDismiss().then(() => orchestrator?.markNotificationRead(n.id))
+  toast.onDidDismiss().then(() => orchestrator?.notifications.markNotificationRead(n.id))
   await toast.present()
 }
 
@@ -257,7 +206,7 @@ provide(ORCHESTRATOR, orchestrator)
 // shared when the app was last open is shared again from the start.
 const liveLocation = orchestrator
   ? createLiveLocation({
-      host: orchestrator,
+      host: orchestrator.presence,
       geo: browserGeo(),
       storage: localStorage,
       now: clock,
@@ -269,164 +218,46 @@ if (liveLocation) {
 }
 
 /*
- * FR-30.2/30.3 (ADR-066): the composition root is the one place that knows
- * both the packing list and the shopping module. It binds the packing list's
- * buy-mode rows into the shopping list as a source, and hands the switcher
- * the module's count — so neither side imports the other.
+ * FR-30.3 (ADR-066 amendment 3): the composition root folds the kernel's
+ * ports and every module's contribution into one composition and provides
+ * it, so neither the packing side nor a module imports the other — and the
+ * root names no module.
  */
-/*
- * §3.33: what the meal plan reads of the trip — its trips, excursions and
- * shortlisted ideas — answered here, so the module imports neither side.
- */
-const mealContext: MealContext = {
-  trips: () =>
-    useTripStore().tripList.map((trip) => ({
-      id: trip.id,
-      name: trip.name,
-      start_date: trip.start_date,
-      end_date: trip.end_date,
-    })),
-  excursions: (tripId) =>
-    useTripStore()
-      .getExcursions(tripId)
-      .flatMap((excursion) => {
-        const span = spanOf(excursion)
-        return span
-          ? [{ id: excursion.id, name: excursion.name, from: span.from, to: span.to }]
-          : []
-      }),
-  shortlist: (tripId) =>
-    usePlannerStore()
-      .getIdeas(tripId)
-      .filter((idea) => idea.state === IDEA_STATE_SHORTLISTED)
-      .map((idea) => ({ id: idea.id, title: idea.title })),
-}
-provide(MEAL_CONTEXT, mealContext)
-const mealSources: MealSourceDeps | null = orchestrator
-  ? {
-      store: useMealStore(),
-      actions: createMealActions(orchestrator.moduleHost, useMealStore()),
-      sheet: useMealSheet(),
-      context: mealContext,
+const composition = orchestrator
+  ? composeModules(FEATURE_MODULES, {
+      module: orchestrator.moduleHost,
       today: orchestrator.today,
-    }
+      kernel: (sources) =>
+        kernelPorts(
+          {
+            trips: useTripStore(),
+            tasksOf: (tripId) => useTripTasks().tasksOf(tripId),
+            myUserId: () => useIdentityStore().myUserId,
+            now: clock,
+            packing: orchestrator.packing,
+            excursions: orchestrator.excursions,
+            comments: orchestrator.comments,
+          },
+          sources,
+        ),
+    })
   : null
-const mealExcursionSources = mealSources ? [createMealExcursionSource(mealSources)] : []
-// FR-33.6: a picnic on its excursion's list, counted in the rucksack's share.
-provide(EXCURSION_EXTRA_LINES, mealExcursionSources)
-
-const shoppingSources = orchestrator
-  ? [
-      createPackingShoppingSource(useTripStore(), orchestrator),
-      // FR-31.8: an excursion's vor-Ort lines, bought at the kiosk on the way.
-      createExcursionShoppingSource(useTripStore(), orchestrator),
-      // FR-33.3: a meal's ingredients, under the meal plan's heading.
-      ...(mealSources ? [createMealShoppingSource(mealSources)] : []),
-    ]
-  : []
-provide(SHOPPING_SOURCES, shoppingSources)
-/*
- * FR-29.15: the day plan shows the packing side's excursions and dated tasks;
- * bound here, like the shopping sources, so the planner never imports them.
- */
-const dayPlanSources = orchestrator
-  ? [
-      createDayPlanSource(
-        {
-          getExcursions: (tripId) => useTripStore().getExcursions(tripId),
-          getExcursionItems: (tripId) => useTripStore().getExcursionItems(tripId),
-          getExcursionTravelers: (tripId) => useTripStore().getExcursionTravelers(tripId),
-          tasksOf: (tripId) => useTripTasks().tasksOf(tripId),
-          extraLines: (tripId, excursionId) =>
-            mealExcursionSources.flatMap((source) => source.lines(tripId, excursionId)),
-        },
-        { toggleTask: (tripId, task) => toggleTask(orchestrator, useTripStore(), tripId, task) },
-      ),
-      // FR-33.5: the meals, each at its time or its slot's place.
-      ...(mealSources ? [createMealDayPlanSource(mealSources)] : []),
-    ]
-  : []
-provide(DAY_PLAN_SOURCES, dayPlanSources)
-provide(DAY_PLAN_TRAVELERS, (tripId: string) => useTripStore().getTravelers(tripId))
-/*
- * FR-29.13: the bridge from an idea — the planner names an idea to the
- * packing side and the shopping module, and both name what came of it back.
- */
-provide(IDEA_LOOKUP, ideaLookup())
-provide(
-  IDEA_RESULT_SOURCES,
-  orchestrator
-    ? [
-        createIdeaResultSource({
-          getExcursions: (tripId) => useTripStore().getExcursions(tripId),
-          getTripTodos: (tripId) => useTripStore().getTripTodos(tripId),
-        }),
-        shoppingIdeaResults(),
-      ]
-    : [],
-)
-provide(TRIP_VIEW_COUNTS, {
-  // §3.29: the ideas nobody has decided on yet.
-  ideas: ideasCount(),
-  shopping: shoppingCount(shoppingSources),
-  // FR-31.10: excursions ahead that still have something to pack or buy.
-  excursions: (tripId) => {
-    const trips = useTripStore()
-    return pendingExcursionCount(
-      trips.getExcursions(tripId),
-      trips.getExcursionItems(tripId),
-      localIsoDate(clock()),
-    )
-  },
-  // FR-7.13: what is new for me in the trip's notes, never their total.
-  notes: (tripId) => {
-    const trips = useTripStore()
-    return newNoteCount(
-      trips.getTripComments(tripId),
-      trips.getNoteAcks(tripId),
-      useIdentityStore().myUserId,
-    )
-  },
-})
+if (composition) provideComposition(composition)
 // FR-29.7: a trip opens on the view its dates decide.
-if (orchestrator) {
+if (orchestrator && composition) {
   installTripOpening(useRouter(), {
     getTrip: (tripId) => useTripStore().getTrip(tripId),
     itemCount: (tripId) => useTripStore().getItems(tripId).length,
     tripDataLoaded: orchestrator.tripDataLoaded,
     today: orchestrator.today,
-    dayPlanEmpty: dayPlanEmpty(dayPlanSources),
-    shoppingOpen: shoppingCount(shoppingSources),
-    tasksOpen: (tripId) => tripTodoProgress(useTripTasks().tasksOf(tripId)).open,
+    // Without a planner there is no plan to open on.
+    dayPlanEmpty: composition.dayPlanEmpty ?? (() => true),
+    shoppingOpen: composition.viewCounts.shopping ?? (() => 0),
+    tasksOpen: (tripId) => tripTaskProgress(useTripTasks().tasksOf(tripId)).open,
   })
 }
-// FR-30.7 and FR-29.7: the dashboard's cards under each trip — today's plan
-// during the trip, and the shopping list, workable there.
-provide(EXCURSION_CONNECTIONS, orchestrator ? ExcursionConnections : null)
-provide(EXCURSION_JOURNEY_LINE, orchestrator ? excursionJourneyLine() : null)
-// FR-33.7: today's meals, a block of their own beside today's plan.
-provide(TRIP_CARDS, orchestrator ? [PlannerTodayCard, MealsTodayCard, ShoppingDashboardCard] : [])
-// FR-30.10: M1's due line names the due purchases beside the tasks.
-if (orchestrator) provide(DUE_PURCHASES, duePurchases(shoppingSources))
-// FR-7.12: closing the packing ends *before departure* on the shopping list too.
-provide(
-  PACKING_CLOSE_CROSSINGS,
-  orchestrator
-    ? [
-        shoppingCloseCrossing(
-          useShoppingStore(),
-          createShoppingActions(orchestrator.moduleHost, useShoppingStore()),
-        ),
-      ]
-    : [],
-)
-
-// FR-32.2: each module reads the activity log's entries about its own rows.
-provide(ACTIVITY_READERS, {
-  ...shoppingActivityReaders,
-  ...plannerActivityReaders,
-  ...mealActivityReaders,
-})
+/** Components the modules mount once, beside the outlet. */
+const shellComponents = composition?.shell ?? []
 
 const syncStatus = orchestrator?.syncStatus ?? null
 
@@ -486,7 +317,7 @@ onMounted(async () => {
   // FR-27.4: a group edited on another device arrives with that pull. The
   // trips that follow it work out what it would mean for them here, so M2
   // can say which ones have a question waiting — nothing is applied.
-  orchestrator?.proposeRefreshForLoadedTrips()
+  orchestrator?.groupRefresh.proposeRefreshForLoadedTrips()
 })
 
 onUnmounted(() => {
@@ -546,7 +377,7 @@ const tripStore = useTripStore()
  */
 const online = computed(() =>
   mode.value === 'server' && identity.myUserId !== null && orchestrator
-    ? onlineRows(orchestrator.getRoster(), identity.directory, tripStore.getTrip)
+    ? onlineRows(orchestrator.presence.getRoster(), identity.directory, tripStore.getTrip)
     : null,
 )
 
@@ -571,7 +402,7 @@ async function onSyncTap() {
   detailNow.value = clock()
   // The names in the roster come from the directory; a device that has not
   // opened a screen needing it yet has none.
-  if (orchestrator && mode.value === 'server') void identity.load(orchestrator)
+  if (orchestrator && mode.value === 'server') void identity.load(orchestrator.identity)
   lastExport.value = lastExportAt()
   storage.value = mode.value === 'local' ? await readStorageStatus() : null
   syncDetailOpen.value = true
@@ -702,8 +533,7 @@ async function saveBackup() {
           @open-trip="openOnlineTrip"
         />
       </SheetModal>
-      <!-- §3.33: the one meal sheet, opened from M31, the day plan, an excursion and M1. -->
-      <MealSheet v-if="orchestrator" />
+      <component :is="component" v-for="(component, i) in shellComponents" :key="i" />
     </template>
 
     <!-- FR-21.29 / G-22: the greeting, over whichever branch boots underneath. -->

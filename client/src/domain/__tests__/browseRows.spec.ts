@@ -1,10 +1,19 @@
 /**
  * FR-25.13f — the browse sheet lists master items, the trip carries rows.
- * This is the summary that decides which verb a line may offer.
+ * The summary decides which verb a line may offer; `browseRowView` turns it,
+ * and the sheet's own run, into what the line renders.
  */
 import { describe, expect, it } from 'vitest'
 
-import { browseRowStates } from '../browseRows'
+import {
+  browseOffer,
+  browseRowStates,
+  browseRowView,
+  plainBrowseScope,
+  type BrowseRowSummary,
+  type BrowseRunState,
+  type BrowseScope,
+} from '../browseRows'
 import type { Traveler, TripItem } from '@/types/domain'
 
 const TRIP = 'trip-1'
@@ -180,5 +189,148 @@ describe('browseRowStates', () => {
 
       expect(states.get(SHORTS)?.travelersReached).toBe(1)
     })
+  })
+})
+
+describe('browseOffer', () => {
+  it('offers the decision verbs exactly where the scope reports packing states (G-8)', () => {
+    expect(browseOffer(plainBrowseScope()).decide).toBe(false)
+    expect(browseOffer({ ...plainBrowseScope(), rowStates: new Map() }).decide).toBe(true)
+  })
+
+  it('offers „für alle" from two travelers on — one has no membership to distribute', () => {
+    const forAll = (travelers: Traveler[]) =>
+      browseOffer({ ...plainBrowseScope(), travelers }).forAll
+
+    expect([forAll([]), forAll(ROSTER.slice(0, 1)), forAll(ROSTER.slice(0, 2))]).toEqual([
+      false,
+      false,
+      true,
+    ])
+  })
+})
+
+describe('browseRowView', () => {
+  const OPEN: BrowseRowSummary = {
+    state: 'open',
+    itemIds: ['r1'],
+    travelersReached: 0,
+    lockNote: null,
+  }
+
+  /** M4's scope: it carries the shorts, reports their state and has three travelers. */
+  function m4Scope(summary: BrowseRowSummary = OPEN): BrowseScope {
+    return {
+      carriedItemIds: [SHORTS],
+      rowStates: new Map([[SHORTS, summary]]),
+      travelers: ROSTER,
+    }
+  }
+
+  function runOf(scope: BrowseScope, extra: Partial<BrowseRunState> = {}): BrowseRunState {
+    return {
+      scope,
+      offer: browseOffer(scope),
+      carried: new Set(scope.carriedItemIds),
+      acted: new Map(),
+      assigned: new Map(),
+      hiddenAtSwitch: null,
+      ...extra,
+    }
+  }
+
+  it('renders an item the scope does not carry as free', () => {
+    expect(browseRowView('item-towel', runOf(m4Scope()))).toEqual({ kind: 'free' })
+  })
+
+  it('renders a carried line with the spread while somebody is still without a row', () => {
+    const cases = [0, 2, 3].map((reached) => ({
+      reached,
+      view: browseRowView(SHORTS, runOf(m4Scope({ ...OPEN, travelersReached: reached }))),
+    }))
+
+    expect(cases).toEqual([
+      { reached: 0, view: { kind: 'carried', spread: true } },
+      { reached: 2, view: { kind: 'carried', spread: true } },
+      { reached: 3, view: { kind: 'carried', spread: false } },
+    ])
+  })
+
+  it('offers no spread in a scope without travelers to reach', () => {
+    const view = browseRowView(SHORTS, runOf(plainBrowseScope([SHORTS])))
+
+    expect(view).toEqual({ kind: 'carried', spread: false })
+  })
+
+  it('states a settled line, with the reset wherever the scope reports states (FR-25.13i)', () => {
+    const packed = browseRowView(SHORTS, runOf(m4Scope({ ...OPEN, state: 'packed' })))
+    const skipped = browseRowView(SHORTS, runOf(m4Scope({ ...OPEN, state: 'skipped' })))
+
+    expect([packed, skipped]).toEqual([
+      { kind: 'settled', state: 'packed', reopen: true },
+      { kind: 'settled', state: 'skipped', reopen: true },
+    ])
+  })
+
+  it('lets the lock outrank everything the scope says, and names the holder (G-3)', () => {
+    const view = browseRowView(
+      SHORTS,
+      runOf(m4Scope({ ...OPEN, state: 'locked', lockNote: HELD_BY_SIA })),
+    )
+
+    expect(view).toEqual({ kind: 'locked', lockNote: HELD_BY_SIA })
+  })
+
+  it("lets this run's own verb outrank the scope, with the way back out", () => {
+    const run = runOf(m4Scope({ ...OPEN, state: 'locked', lockNote: HELD_BY_SIA }), {
+      acted: new Map([[SHORTS, { verb: 'skipped', rows: 1 }]]),
+    })
+
+    expect(browseRowView(SHORTS, run)).toEqual({
+      kind: 'acted',
+      act: { verb: 'skipped', rows: 1 },
+      done: false,
+      undoable: true,
+    })
+  })
+
+  it('keeps an assigned line open for more taps, with who it already has (FR-25.13h)', () => {
+    const run = runOf(m4Scope(), {
+      acted: new Map([[SHORTS, { verb: 'assigned', rows: 1, travelerName: 'Nina' }]]),
+      assigned: new Map([[SHORTS, new Set(['tr-b'])]]),
+    })
+
+    expect(browseRowView(SHORTS, run)).toEqual({
+      kind: 'assigning',
+      act: { verb: 'assigned', rows: 1, travelerName: 'Nina' },
+      selected: new Set(['tr-b']),
+    })
+  })
+
+  it('keeps the ledger silent where the scope has no decision verbs (M8)', () => {
+    // M8 has one add and no way back, so its tapped line keeps saying
+    // *„schon drin"* as FR-25.13d wrote it.
+    const run = runOf(plainBrowseScope([SHORTS]), {
+      acted: new Map([[SHORTS, { verb: 'added', rows: 1 }]]),
+    })
+
+    expect(browseRowView(SHORTS, run)).toEqual({ kind: 'carried', spread: false })
+  })
+
+  it('marks a line added since the hide switch went on, from anywhere, without an undo (FR-25.13e)', () => {
+    const view = browseRowView(SHORTS, runOf(m4Scope(), { hiddenAtSwitch: new Set() }))
+
+    expect(view).toEqual({
+      kind: 'acted',
+      act: { verb: 'added', rows: 1 },
+      done: true,
+      undoable: false,
+    })
+  })
+
+  it('leaves a line the snapshot already held as carried', () => {
+    const view = browseRowView(SHORTS, runOf(m4Scope(), { hiddenAtSwitch: new Set([SHORTS]) }))
+
+    expect(view.kind).toBe('carried')
   })
 })

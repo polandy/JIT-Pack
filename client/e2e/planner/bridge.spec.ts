@@ -9,6 +9,7 @@ import {
   openIdea,
   openIdeas,
   planIdea,
+  showSegment,
 } from '../helpers/m28'
 import {
   chooseDay,
@@ -20,6 +21,7 @@ import {
 } from '../helpers/m29'
 import { openTripView } from '../helpers/trips'
 import { openListComposer } from '../helpers/composer'
+import { excursionMenu } from '../helpers/m27'
 import type { Locator, Page } from '@playwright/test'
 
 /**
@@ -102,10 +104,10 @@ test.describe('M28 the bridge to the packing side @local @planner', () => {
     await detail.getByTestId('idea-make-task').click()
     const composer = await openListComposer(page, 'm25')
     const body = `Book ${IDEA}`
-    await expect(composer.getByTestId('trip-todo-input').locator('input')).toHaveValue(body)
-    await composer.getByTestId('trip-todo-add').click()
-    await expect(visiblePage(page).getByTestId(`trip-todo-due-${body}`)).toBeVisible()
-    await expect(visiblePage(page).getByTestId(`trip-todo-idea-${body}`)).toHaveText(IDEA)
+    await expect(composer.getByTestId('trip-task-input').locator('input')).toHaveValue(body)
+    await composer.getByTestId('trip-task-add').click()
+    await expect(visiblePage(page).getByTestId(`trip-task-due-${body}`)).toBeVisible()
+    await expect(visiblePage(page).getByTestId(`trip-task-idea-${body}`)).toHaveText(IDEA)
     await writesLanded(page)
     detail = await backToIdea(page)
     await expect(detail.locator('[data-testid^="idea-result-task:"]')).toHaveText(body)
@@ -192,9 +194,9 @@ test.describe('M28 the bridge to the packing side @local @planner', () => {
     await detail.getByTestId('idea-make-task').click()
     const body = `Book ${IDEA}`
     const composer = await openListComposer(page, 'm25')
-    await expect(composer.getByTestId('trip-todo-input').locator('input')).toHaveValue(body)
-    await composer.getByTestId('trip-todo-add').click()
-    await expect(visiblePage(page).getByTestId(`trip-todo-idea-${body}`)).toBeVisible()
+    await expect(composer.getByTestId('trip-task-input').locator('input')).toHaveValue(body)
+    await composer.getByTestId('trip-task-add').click()
+    await expect(visiblePage(page).getByTestId(`trip-task-idea-${body}`)).toBeVisible()
     await writesLanded(page)
 
     const again = await backToIdea(page)
@@ -211,8 +213,8 @@ test.describe('M28 the bridge to the packing side @local @planner', () => {
 
     await openTripView(page, 'tasks')
     const tasks = visiblePage(page)
-    await expect(tasks.getByTestId(`trip-todo-${body}`)).toBeVisible()
-    await expect(tasks.getByTestId(`trip-todo-idea-${body}`)).toHaveCount(0)
+    await expect(tasks.getByTestId(`trip-task-${body}`)).toBeVisible()
+    await expect(tasks.getByTestId(`trip-task-idea-${body}`)).toHaveCount(0)
   })
 
   /**
@@ -243,7 +245,7 @@ test.describe('M28 the bridge to the packing side @local @planner', () => {
       const tasks = visiblePage(page)
       await openListComposer(page, 'm25')
       await expect(page.getByTestId('m28-idea-modal')).toBeHidden()
-      await expect(tasks.getByTestId('trip-todo-input').locator('input')).toHaveValue(
+      await expect(tasks.getByTestId('trip-task-input').locator('input')).toHaveValue(
         `Book ${IDEA}`,
       )
       await expect(page).toHaveURL(/\/tasks\?/)
@@ -292,5 +294,49 @@ test.describe('M29 an idea and its excursion on the day plan @local @planner', (
     const connection = lines.filter({ hasText: 'Dorgali → Olbia' })
     await expect(connection).toHaveAttribute('data-kind', 'connection')
     await expect(connection).toContainText(`Way there · ${IDEA}`)
+  })
+  /**
+   * E2E-M29-23: deleting an excursion made from an idea takes its line off
+   * the day plan — the idea, which had none of its own, does not take its
+   * place there. It stays under the ideas, shortlisted, without its day.
+   */
+  test('E2E-M29-23: an excursion made from an idea is deleted, and the day plan holds neither', async ({
+    page,
+  }) => {
+    const detail = await shortlistedIdea(page)
+    await detail.getByTestId('idea-make-excursion').click()
+    await page.getByTestId('m27-sheet').getByTestId('m27-save').click()
+    await expect(visiblePage(page).getByTestId('m27-excursion-page')).toBeVisible()
+    await writesLanded(page)
+
+    await openDayPlan(page)
+    await chooseDay(page, THIRD)
+    await expect(timelineLines(page).filter({ hasText: IDEA })).toHaveAttribute(
+      'data-kind',
+      'excursion',
+    )
+    await expect(dayPlan(page).getByTestId('m29-pool')).toHaveCount(0)
+
+    await timelineLines(page).filter({ hasText: IDEA }).click()
+    await expect(visiblePage(page).getByTestId('m27-excursion-page')).toBeVisible()
+    await excursionMenu(page, 'm27-delete')
+    await page
+      .getByTestId('m27-delete-confirm')
+      .locator('button')
+      .filter({ hasText: 'Delete' })
+      .click()
+    await expect(visiblePage(page).getByTestId('m27-empty')).toBeVisible()
+    await writesLanded(page)
+
+    await openDayPlan(page)
+    await chooseDay(page, THIRD)
+    // The pool bar is the positive signal the plan has read the idea again.
+    await expect(dayPlan(page).getByTestId('m29-pool')).toBeVisible()
+    await expect(timelineLines(page).filter({ hasText: IDEA })).toHaveCount(0)
+
+    await openIdeas(page)
+    await showSegment(page, 'shortlisted')
+    const kept = await openIdea(page, IDEA)
+    await expect(kept.getByTestId('idea-act-plan')).toHaveAttribute('data-planned', '')
   })
 })

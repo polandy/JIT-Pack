@@ -20,6 +20,7 @@ import { nextTick, ref, useTemplateRef, watch } from 'vue'
 import { t } from '@/i18n'
 import { onBlockCall } from '@/composables/blockCall'
 import { useBlockFold } from '@/composables/blockFold'
+import { prefersReducedMotion } from '@/lib/motion'
 
 const props = defineProps<{
   /** The block's name, in the label role. */
@@ -72,7 +73,7 @@ onBlockCall(
     open.value = true
     called.value = false
     await nextTick()
-    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    const still = prefersReducedMotion()
     root.value?.scrollIntoView({ block: 'start', behavior: still ? 'auto' : 'smooth' })
     called.value = true
   },

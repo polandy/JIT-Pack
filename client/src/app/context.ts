@@ -18,13 +18,13 @@ import type {
   Container,
   DestinationProfile,
   Excursion,
-  ExcursionItem,
+  ExcursionLine,
   ExcursionTrack,
   ExcursionTraveler,
   GeneratedPosition,
   ItemDependency,
-  ItemTodo,
-  TripTodo,
+  PrepTask,
+  OwnTask,
   CategorisedMasterItem,
   ItemTag,
   TaskTag,
@@ -64,9 +64,9 @@ export interface TripReads {
   /** The trip's synced membership roster (FR-4.5) — who linked_user_id may name (FR-2.5, ADR-058). */
   getMembers(tripId: string): TripMember[]
   getContainers(tripId: string): Container[]
-  getTodos(tripId: string): ItemTodo[]
+  getPrepTasks(tripId: string): PrepTask[]
   /** FR-7.4's trip-level tasks — read since FR-7.7's crossing writes them. */
-  getTripTodos(tripId: string): TripTodo[]
+  getOwnTasks(tripId: string): OwnTask[]
   getTemplateSources(tripId: string): TripTemplateSource[]
   getGeneratedPositions(tripId: string): GeneratedPosition[]
   /** What `cascade.ts` reads a delete's children out of, since a group hands it this store. */
@@ -74,7 +74,7 @@ export interface TripReads {
   /** FR-31: a trip's excursions, their participant rows, their lines and their tracks. */
   getExcursions(tripId: string): Excursion[]
   getExcursionTravelers(tripId: string): ExcursionTraveler[]
-  getExcursionItems(tripId: string, excursionId?: string): ExcursionItem[]
+  getExcursionItems(tripId: string, excursionId?: string): ExcursionLine[]
   getExcursionTracks(tripId: string, excursionId?: string): ExcursionTrack[]
 }
 

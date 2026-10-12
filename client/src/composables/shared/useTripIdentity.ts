@@ -1,11 +1,11 @@
 import { computed, toRef, type ComputedRef, type Ref } from 'vue'
 
 import type { DirectoryUser, MeResponse } from '@/api/types'
-import { tripParticipants } from '@/domain/members'
+import { tripMemberProfiles } from '@/domain/members'
 import { nameFrom, type NameOf } from '@/lib/rowFacts'
 import { useIdentityStore, type IdentitySource } from '@/stores/identityStore'
 import { useTripStore } from '@/stores/tripStore'
-import type { TripParticipant } from '@/types/domain'
+import type { TripMemberProfile } from '@/types/domain'
 
 export type { IdentitySource }
 
@@ -38,14 +38,14 @@ export interface Identity {
 
 /** Identity, plus the people one trip's rows can name. */
 export interface TripIdentity extends Identity {
-  /** Directory and member rows merged — see `tripParticipants`. */
-  participants: ComputedRef<TripParticipant[]>
+  /** Directory and member rows merged — see `tripMemberProfiles`. */
+  memberProfiles: ComputedRef<TripMemberProfile[]>
   /**
-   * The participants the trip actually carries — who a task (FR-7.5) or a
+   * The member profiles the trip actually carries — who a task (FR-7.5) or a
    * purchase (FR-30.12) may be handed to. Empty in Local and Single-User
    * Mode, which have no member rows, so a screen offers no seat there (G-8).
    */
-  assignees: ComputedRef<TripParticipant[]>
+  assignees: ComputedRef<TripMemberProfile[]>
   /** `null` where nobody is named; a stamp then states the act without a who. */
   nameOf: NameOf
 }
@@ -71,7 +71,7 @@ export function useIdentity(source: IdentitySource): Identity {
  * Identity for a screen that shows one trip: who exists, who I am, and who
  * this trip's rows may name (FR-25.19/25.20).
  *
- * The merge rule itself is `domain/members.tripParticipants` — pure, and
+ * The merge rule itself is `domain/members.tripMemberProfiles` — pure, and
  * table-driven from there. What this adds is the store read that keeps it
  * reactive as the trip's member rows arrive.
  */
@@ -79,19 +79,19 @@ export function useTripIdentity(tripId: string, source: IdentitySource): TripIde
   const identity = useIdentity(source)
   const tripStore = useTripStore()
 
-  const participants = computed(() =>
-    tripParticipants(identity.directory.value, tripStore.getMembers(tripId)),
+  const memberProfiles = computed(() =>
+    tripMemberProfiles(identity.directory.value, tripStore.getMembers(tripId)),
   )
 
   const assignees = computed(() => {
     const members = new Set(tripStore.getMembers(tripId).map((m) => m.user_id))
-    return participants.value.filter((person) => members.has(person.user_id))
+    return memberProfiles.value.filter((person) => members.has(person.user_id))
   })
 
   return {
     ...identity,
-    participants,
+    memberProfiles,
     assignees,
-    nameOf: (userId) => nameFrom(participants.value, userId),
+    nameOf: (userId) => nameFrom(memberProfiles.value, userId),
   }
 }

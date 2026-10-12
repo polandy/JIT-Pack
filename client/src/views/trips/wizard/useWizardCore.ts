@@ -74,7 +74,7 @@ export function useWizardCore() {
   function createTrip() {
     const { seriesChoice, newSeriesName } = metadata
     creation.submit(() => {
-      const tripId = orchestrator.createTripFromWizard({
+      const tripId = orchestrator.tripCreation.createTripFromWizard({
         name: metadata.name.value.trim(),
         year: metadata.year.value,
         startDate: metadata.startDate.value || null,

@@ -1,4 +1,4 @@
-import { test, expect, visiblePage } from './fixtures'
+import { test, expect, visiblePage, writesLanded } from './fixtures'
 import { fillIonic } from './helpers/ionic'
 import { backToInventory, commitNewItem, createItem, groupHeadings } from './helpers/m9'
 import { PATH } from './routes'
@@ -149,5 +149,41 @@ test.describe('M10 — no default assignee where there are no accounts (FR-1.9)'
     await expect(visiblePage(page).getByTestId('m10-name')).toBeVisible()
     await expect(visiblePage(page).getByTestId('m10-more')).toBeVisible()
     await expect(visiblePage(page).getByTestId('m10-assignee')).toHaveCount(0)
+  })
+})
+
+/**
+ * The typed numbers across both modes (FR-24.1, FR-24.5, G-5): staged while
+ * creating and committed with the item, then written when the field is left.
+ * Leaving and reopening the item is what says the row holds them — the input
+ * alone would show what was typed whether or not it was stored.
+ */
+test.describe('M10 — weight and price are kept in both modes', () => {
+  test.beforeEach(async ({ seedMode, page }) => {
+    await seedMode({ mode: 'local' })
+    await page.goto(PATH.items)
+  })
+
+  test('E2E-M10-32: weight and price survive the create, an edit and a reopen', async ({
+    page,
+  }) => {
+    const editor = () => visiblePage(page)
+    const value = (testId: string) => editor().getByTestId(testId).locator('input')
+
+    await createItem(page, 'Stirnlampe', { weight: '85', price: '24.5' })
+    await expect(value('m10-weight')).toHaveValue('85')
+    await expect(value('m10-price')).toHaveValue('24.50')
+
+    await fillIonic(editor().getByTestId('m10-weight'), '90')
+    await value('m10-weight').blur()
+    await fillIonic(editor().getByTestId('m10-price'), '19.9')
+    await value('m10-price').blur()
+    await writesLanded(page)
+
+    await backToInventory(page)
+    await editor().getByTestId('m9-row').filter({ hasText: 'Stirnlampe' }).click()
+    await expect(page.getByTestId('header-title')).toHaveText('Stirnlampe')
+    await expect(value('m10-weight')).toHaveValue('90')
+    await expect(value('m10-price')).toHaveValue('19.90')
   })
 })

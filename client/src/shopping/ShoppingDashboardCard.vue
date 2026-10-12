@@ -30,7 +30,7 @@ import InlineHint from '@/components/global/InlineHint.vue'
 
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { t } from '@/i18n'
-import { sortByDue } from '@/domain/dueDay'
+import { sortByDue } from '@/domain/shared/dueDay'
 import { SHOPPING_SOURCES, type ShoppingLine } from '@/kernel/shoppingSources'
 import { presentToast } from '@/composables/shared/toast'
 import { DUE_BLOCK_SHOPPING, dueBlockAnchor, type TripCardProps } from '@/kernel/tripCards'

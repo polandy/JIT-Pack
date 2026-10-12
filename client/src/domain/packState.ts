@@ -14,10 +14,13 @@
  * `packing_now` is not derived: it is a claim somebody holds (G-3/FR-5.7),
  * and the numbers say nothing about it.
  */
-import type { ItemState } from '@/types/domain'
+import { STATE_OPEN, STATE_PACKED, STATE_SKIPPED, type ItemState } from '@/types/domain'
 
 /** A state the numbers can say — every `ItemState` except the claim. */
 export type DerivedPackState = Exclude<ItemState, 'packing_now'>
+
+/** The one `DerivedPackState` with no §4a constant of its own — half of the amount is in. */
+const STATE_PARTIAL = 'partial' as const satisfies DerivedPackState
 
 /**
  * stateFor reads the state off the numbers. The count is clamped to the
@@ -25,21 +28,21 @@ export type DerivedPackState = Exclude<ItemState, 'packing_now'>
  * reads as packed rather than as an impossible surplus.
  */
 export function stateFor(packedCount: number, quantity: number): DerivedPackState {
-  if (quantity <= 0) return 'skipped'
+  if (quantity <= 0) return STATE_SKIPPED
   const packed = Math.min(Math.max(packedCount, 0), quantity)
-  if (packed === 0) return 'open'
-  if (packed >= quantity) return 'packed'
-  return 'partial'
+  if (packed === 0) return STATE_OPEN
+  if (packed >= quantity) return STATE_PACKED
+  return STATE_PARTIAL
 }
 
 /** Every instance is packed — a skipped row is done, but it is not this. */
 export function isFullyPacked(row: { packed_count: number; quantity: number }): boolean {
-  return stateFor(row.packed_count, row.quantity) === 'packed'
+  return stateFor(row.packed_count, row.quantity) === STATE_PACKED
 }
 
 /** Some, not all, instances are packed — the checkbox's indeterminate state. */
 export function isPartlyPacked(row: { packed_count: number; quantity: number }): boolean {
-  return stateFor(row.packed_count, row.quantity) === 'partial'
+  return stateFor(row.packed_count, row.quantity) === STATE_PARTIAL
 }
 
 /** What a row contributes to every fraction drawn above it (FR-25.22). */

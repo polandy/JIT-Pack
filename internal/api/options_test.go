@@ -1,6 +1,8 @@
 package api
 
 import (
+	"bytes"
+	"log/slog"
 	"reflect"
 	"testing"
 	"time"
@@ -17,6 +19,10 @@ var testPreviewer = linkpreview.NewFetcher()
 // not "now": the assertion has to be able to tell an injected clock from
 // the ambient one, which a value near real time cannot.
 var fixedNow = time.Date(2026, 9, 4, 12, 0, 0, 0, time.UTC)
+
+// testLogger is a logger an options-check assertion can tell apart from
+// slog.Default() by identity — construction writes nowhere the check reads.
+var testLogger = slog.New(slog.NewTextHandler(&bytes.Buffer{}, nil))
 
 // fullOptions names every knob at once, so a Server built from it has
 // nothing left at its default.
@@ -36,6 +42,7 @@ func fullOptions() Options {
 		NoMapTiles:    true,
 		NoTimetable:   true,
 		RoutingURL:    "https://router.example/brouter",
+		Logger:        testLogger,
 		OIDC: &OIDCConfig{
 			Discovery: Discovery{
 				Issuer:       "https://idp.example",
@@ -57,7 +64,7 @@ var applied = map[string]func(*Server) bool{
 	"NoMapTiles":  func(s *Server) bool { return !s.instance.MapTiles },
 	"NoTimetable": func(s *Server) bool { return !s.instance.Timetable },
 	"RoutingURL":  func(s *Server) bool { return s.instance.RoutingURL == "https://router.example/brouter" },
-	"PushContact": func(s *Server) bool { return s.pushContact == "mailto:ops@example.com" },
+	"PushContact": func(s *Server) bool { return s.notifier.Contact() == "mailto:ops@example.com" },
 	"WSIdle":      func(s *Server) bool { return s.wsIdle() == 42*time.Millisecond },
 	// Lowercased on the way in, which is what the FR-23.1 match relies on.
 	"AdminEmails": func(s *Server) bool { return s.adminEmails["andy@example.com"] },
@@ -70,6 +77,7 @@ var applied = map[string]func(*Server) bool{
 		return s.update != nil && s.update.feedURL == "https://feed.example/releases/latest"
 	},
 	"LinkPreviews": func(s *Server) bool { return s.previews == testPreviewer },
+	"Logger":       func(s *Server) bool { return s.logger == testLogger },
 	"OIDC": func(s *Server) bool {
 		return s.oidc != nil && s.oidc.issuer == "https://idp.example" &&
 			s.oidc.clientID == "jitpack" && s.oidc.clientSecret == "s3cret" &&

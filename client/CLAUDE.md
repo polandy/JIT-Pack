@@ -30,7 +30,8 @@ colour of the page behind it — only a rendered pixel can tell you (G-14, FR-21
 ## The kernel's catalogue is split by area
 
 `client/src/i18n/messages/<area>/en.ts` and `de.ts` — `shared`, `inventory`, `templates`, `packing`, `trips`,
-`excursions`, `settings` — assembled by `messages/en.ts`/`de.ts`, which change only when an area is added. A key goes
+`tasks`, `dashboard`, `excursions`, `tracks`, `settings`, `sync` — assembled by `messages/en.ts`/`de.ts`, which change
+only when an area is added. A key goes
 into the area its prefix belongs to; a copy change reads that one pair, not the whole catalogue. Each `de.ts` is typed
 against its `en.ts`, so a key missing in German fails the type check in the file it is missing from.
 
@@ -42,6 +43,10 @@ against its `en.ts`, so a key missing in German fails the type check in the file
 - **The globals come from one harness**, `client/src/__tests__/harness.ts` (`installHarness()` in `beforeEach`):
   pinia, `fetch`, `WebSocket`, response builders. It stubs `localStorage` only under `node`. A spec owns anything
   bespoke and stubs after the call.
+- **`public/sw.js` cannot import the app**: `notifications/__tests__/workerBody.spec.ts` holds its sentence choice to
+  `messages.ts`, `workerWire.spec.ts` its push-body names to the generated `WebPushMessage` and notification words.
+- **Every export and every i18n key has a reader outside specs and e2e**, or is named with a reason —
+  `client/src/__tests__/surface.spec.ts` (ARCH-31), the client's equivalent of `internal/store/surface_test.go`.
 
 ## Playwright — a UI change ships a *running* case (owner's rule)
 
@@ -65,17 +70,31 @@ Demo Mode** (removed). The guard is `import.meta.env.DEV` **around the dynamic i
 
 `domain → lib → auth → sync → local → edges → kernel → stores → app → composables → components → views`, each
 importing only leftwards, with no exception (ADR-096; the table with each layer's role is `CODING_PRINCIPLES.md` §3).
-`scripts/layer-gate.mjs` holds the order and refuses a file in no layer. Decide by what the file imports:
+`scripts/layer-gate.mjs` holds the order, refuses a file in no layer and the packages a layer avoids (`vue`, router,
+pinia and Ionic in `lib/` and `sync/`, Ionic in `app/`). Decide by what the file imports:
 
-- a rule with no I/O → `domain/`; a pure helper that words or formats → `lib/` (no `vue`, Ionic or router there);
-- a use case the orchestrator and the CLI share → `app/` (an action group in `app/actions/`);
-- a contract between the kernel and a module, or the adapter that fills one → `kernel/` — its shape in `domain/` when a
-  module's rules read it (`domain/dayPlanLine.ts` beside `kernel/dayPlanSources.ts`), only the `InjectionKey` here;
+- a rule with no I/O → `domain/`, into `domain/shared/` if a module reads it too (the calendar, a due day, a track) —
+  that subtree reads only itself and the vocabulary (ADR-097); a pure helper that words or formats → `lib/` (no `vue`,
+  Ionic or router there);
+- a use case the orchestrator and the CLI share → `app/` (an action group in `app/actions/`, which the orchestrator
+  hands out whole under a namespace named after the file — ADR-098);
+- a contract between the kernel and a module, or the adapter that fills one → `kernel/` — its shape in `domain/shared/`
+  when a module's rules read it (`dayPlanLine.ts` beside `kernel/dayPlanSources.ts`), only the `InjectionKey` here;
 - anything reactive or an Ionic controller → `composables/`, into `composables/shared/` if a module mounts it;
 - a rule handed a collaborator declares the port it consumes (`ImportMutations` in `domain/portableImport.ts`), its
-  option shapes in `types/`, and the caller satisfies it structurally — never `ReturnType<typeof …>` from above.
+  option shapes in `types/`, and the caller satisfies it structurally — never `ReturnType<typeof …>` from above;
+- the frame's own parts (app bar, rail, tab bar, page head, banners, sync indicator) → `components/shell/`, which only
+  `App.vue` and the shell itself import; shared UI a module may mount → `components/global/` (a subsystem in its own
+  subfolder, like `track/`); a component that picks one value is a `…Picker`, one that picks a set a `…Chooser`.
 
 ## The kernel and its feature modules
+
+**Kernel area or feature module?** A kernel area shares rows with packing — it writes or reads `trip_items`, renders
+as M4's row or feeds M4's view model; a feature module owns tables only it writes and meets the kernel only through
+contracts in `kernel/` and the rules in `domain/shared/` (ADR-097, after ADR-071). Tasks and excursions are kernel
+areas; an excursion's parts live in `views/trips/excursion/` beside its pages, its rules in
+`domain/excursion{Lines,Suitcase,Schedule}.ts`; a task's parts in `views/trips/tasks/` beside M25, its rules in
+`domain/task*.ts` and `domain/tripTasks.ts`.
 
 - `client/src/domain` — the pure client-side rules: quantities, template instantiation, dependencies, containers,
   analytics, review, clone, spreadsheet import, the portable format (`portable.ts`, `portableImport.ts`), members. No
@@ -83,7 +102,7 @@ importing only leftwards, with no exception (ADR-096; the table with each layer'
 - `client/src/shopping` — the first **feature module** (FR-30.3, ADR-066): its own store, actions and M6, its e2e cases
   in `client/e2e/shopping/`. It and the packing code never import each other; they meet through kernel contracts
   (`kernel/shoppingSources.ts`, `sync/featureModule.ts`, `kernel/tripCards.ts`, `kernel/activityReaders.ts`,
-  `kernel/dayPlanSources.ts`) that `App.vue` binds. `scripts/module-boundary-gate.mjs` holds both directions.
+  `kernel/dayPlanSources.ts`). `scripts/module-boundary-gate.mjs` holds both directions.
 - `client/src/planner` — the second feature module (§3.29, ADR-078): ideas, votes, their discussion, pictures and GPX
   tracks and the day plan's entries in tables of its own, M28 and M29, its pure rules in `planner/domain/` (held by
   `domain-purity-gate.mjs` too), its e2e cases in `client/e2e/planner/`.
@@ -91,6 +110,14 @@ importing only leftwards, with no exception (ADR-096; the table with each layer'
   mounts, its rules in `meals/domain/`. It reads the trip through `kernel/mealContext.ts` and reaches M6, M29, M27
   and M1 through `kernel/shoppingSources.ts`, `kernel/dayPlanSources.ts`, `kernel/excursionExtraLines.ts` and
   `kernel/tripCards.ts`.
+- **A module's rows live in the module** — its entity types in `<m>/types.ts` (vocabulary, so its rules read them),
+  its codecs and `RowSpec`s in `<m>/rows.ts`, handed to the kernel on its store's sinks (`specifiedSinks`). The
+  kernel's `KERNEL_TABLE_SPECS` names none of a module's tables; `src/__tests__/moduleRows.spec.ts` holds every
+  `TABLE.*` specified exactly once across both (ADR-066 amendment 2).
+- **A module registers in one shape** — `<m>/index.ts` exports a `FeatureModule`: its `featureStore` and a
+  `contribute(host)` naming its share of every kernel contract (`kernel/moduleContribution.ts`). `featureModules.ts`
+  lists the modules; `App.vue` folds them with the kernel's own adapters (`kernel/kernelPorts.ts`) and names no module.
+  A list every contributor adds to is read from the host lazily, never from another module (ADR-066 amendment 3).
 - **A module's words live in the module** — `client/src/<m>/i18n/en.ts`/`de.ts`, read by `t()` through
   `i18n/index.ts`, so a copy change stays a module-only diff (ADR-079 amendment). A key only the module reads goes
   there; one the kernel reads too stays in `i18n/messages/`. The boundary gate holds it.

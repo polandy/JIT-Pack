@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 
 import TravelerProgressStrip from '../TravelerProgressStrip.vue'
-import { NO_VALUE } from '@/domain/packingView'
+import { NO_VALUE } from '@/domain/packingFacets'
 import { TRAVELER_FOLD_CAP, type TravelerProgress } from '@/domain/travelerProgress'
 import type { Traveler } from '@/types/domain'
 

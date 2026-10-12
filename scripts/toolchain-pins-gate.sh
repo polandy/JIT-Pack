@@ -23,10 +23,10 @@ fail() {
 	exit 1
 }
 
-# Reads the version out of `FROM <image>:<version>-alpine@sha256:…`.
+# Reads the version out of `FROM [<registry path>/]<image>:<version>-alpine@sha256:…`.
 image_version() {
 	local file="$1" image="$2"
-	sed -n "s|^FROM ${image}:\([0-9.]*\)-alpine@sha256:.*|\1|p" "$file" | head -1
+	sed -n "s|^FROM \([^ ]*/\)\{0,1\}${image}:\([0-9.]*\)-alpine@sha256:.*|\2|p" "$file" | head -1
 }
 
 check_all_equal() {

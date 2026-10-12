@@ -5,13 +5,13 @@ import {
   IDEA_RESULT_SHOPPING,
   IDEA_RESULT_TASK,
   type IdeaResult,
-} from '@/domain/ideaBridge'
+} from '@/domain/shared/ideaBridge'
 import {
   IDEA_STATE_DONE,
   IDEA_STATE_DROPPED,
   IDEA_STATE_IDEA,
   IDEA_STATE_SHORTLISTED,
-} from '@/types/domain'
+} from '../../types'
 import { offeredResults } from '../bridge'
 
 function result(kind: IdeaResult['kind'], key = kind): IdeaResult {

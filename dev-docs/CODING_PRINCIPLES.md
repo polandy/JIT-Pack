@@ -34,8 +34,9 @@
     NFR-4.2a.
 * **Coverage:** the thresholds are CLAUDE.md invariant 7 and live once, in `scripts/coverage-gate.sh`, shared by
   `make cover` and the CI `go` job. Coverage is a smoke detector, not a goal.
-* **Always run with `-race`.** `make test` and `make ci` do, over `GO_PKGS` — never `go test ./...` (CLAUDE.md
-  §Commands).
+* **Always run with `-race`, and once without.** `make test` and `make ci` run both passes over `GO_PKGS` — never
+  `go test ./...` (CLAUDE.md §Commands); the plain pass, with a per-package timeout, catches a hang that `-race`'s
+  slower scheduling hides.
 * **Standard library testing only** (`testing`, `httptest`); a tiny diff helper (`go-cmp`) is allowed. No mocking
   frameworks — use hand-written fakes behind small interfaces.
 * Tests are deterministic: fake clock injected (`Clock` interface), seeded randomness, no sleeps — synchronization via
@@ -50,25 +51,31 @@ internal/wiregen/            the wire contract turned into the client's TypeScri
 internal/linkpreview/        what a web page says about itself (FR-29.16, FR-29.18) — imports nothing internal
 internal/store/              SQLite repositories; the only package importing database/sql
 internal/store/schema.sql    the whole schema, always current (//go:embed, ADR-018)
-internal/api/                HTTP handlers, WebSocket hub, auth middleware, push; wire.go is the contract
+internal/notify/             who is notified of what (FR-6.2, FR-7.11), the rows, Web Push delivery (ADR-099)
+internal/api/                HTTP handlers, WebSocket hub, auth middleware; wire*.go is the contract
 internal/webui/              serves the built client beside the API on one origin (ADR-043) — stdlib only
 ```
 
 The client's layers, each importing only from itself and those before it, with no exception (ADR-096;
-`scripts/layer-gate.mjs`, which also refuses a file in no layer). A feature module (`shopping/`, `planner/`, `meals/`)
-sits beside `views/` and reaches the kernel through `kernel/` and `composables/shared/` alone. The rule directories
-(`domain/`, a module's `domain/`) read only `types/`, `api/` and `domain/` (`scripts/domain-purity-gate.mjs`): a port a
-module's rules read keeps its shape in `domain/` and only its `InjectionKey` in `kernel/`, and a port a rule is handed
-(`ImportMutations`) is declared by the rule, its option shapes in `types/`. The composition root — `App.vue`,
-`main.ts`, `router/index.ts` and the dev seed in `dev/` — may import every layer and is imported by none.
+`scripts/layer-gate.mjs`, which also refuses a file in no layer and a package its layer avoids, as the table below
+says). A feature module (`shopping/`, `planner/`, `meals/`) sits beside `views/` and reaches the kernel's code through
+`kernel/`, `composables/shared/` and `domain/shared/` alone. Its `i18n/` and `types.ts` are vocabulary, its `domain/`
+rules, and its `rows.ts` declares its tables' codecs, which its store hands the kernel on its sinks (ADR-066 amendment
+2). The rule directories (`domain/`, a module's `domain/`) read only `types/`, `api/`, `domain/` and their module's
+`types.ts` (`scripts/domain-purity-gate.mjs`); `domain/shared/`, the rules a module reads too, reads only itself and
+the vocabulary (ADR-097). A port a module's rules read keeps its shape in `domain/shared/` and only its `InjectionKey`
+in `kernel/`, and a port a rule is handed (`ImportMutations`) is declared by the rule, its option shapes in `types/`.
+The composition root — `App.vue`, `featureModules.ts`, `main.ts`, `router/index.ts` and the dev seed in `dev/` — may
+import every layer and is imported by none.
 
 ```
 client/src/types, api, i18n, theme, assets, router/paths   the vocabulary: wire types, words, tokens, URLs
 client/src/domain/           entities, state machine, generation/analytics — pure, no I/O
-client/src/lib/              pure helpers above domain: wording, facts, formatting — no vue, Ionic, router or .vue
+                             `shared/` holds what a module reads too: calendar, due day, track, port shapes
+client/src/lib/              pure helpers above domain: wording, facts, formatting — no vue, router, pinia, Ionic or .vue
 client/src/auth/             the OIDC tokens and their refresh — the wire's words and the clock only
 client/src/sync/             the client's half of the wire: the HTTP client, HLC, the change builder, the write funnel,
-                             row codecs, the durable outbox and the WebSocket — no vue
+                             row codecs, the durable outbox and the WebSocket — no vue, router, pinia or Ionic
 client/src/local/            Local Mode's own storage: the row store, backup, export reminder
 client/src/notifications, pwa, router, mode.ts, config.ts   the app's edges: Web Push, the service worker, the
                              navigation guards, the mode it runs in and the server it talks to
@@ -77,7 +84,9 @@ client/src/stores/           pinia stores: the rows a device holds
 client/src/app/              the use cases: action groups the orchestrator and the CLI share — no components, no Ionic
 client/src/composables/      reactive glue: the orchestrator's Vue facade, Ionic controllers, screen-level state;
                              `shared/` holds what a module may mount
-client/src/components/       components; `global/` holds what a module may mount
+client/src/components/       components; `global/` holds what a module may mount (a subsystem in its
+                             own subfolder, e.g. `track/`); `shell/` is the frame's own — only `App.vue`
+                             and the shell import it
 client/src/views/            screens
 ```
 
@@ -95,8 +104,7 @@ client/src/views/            screens
   them as columns (`trackSettingsColumns` beside `trackSettingsChanges`).
 * The pure domain rules deliberately live in `client/src/domain/` rather than an `internal/domain/`: Local Mode runs
   with no backend, so generation, dependency resolution, analytics and review have to execute on the client to exist in
-  that mode at all. Push lives in `internal/api/push.go` rather than a separate `internal/notify/` — it is small enough
-  that the package boundary would buy nothing.
+  that mode at all.
 * **Accept interfaces, return structs.** Interfaces are declared where they are *consumed*, kept small (1–3 methods).
 * **Testability is an architectural acceptance criterion, not a property tests add later.** Where a new behaviour lands
   is decided by where its driving test can live: decision logic goes into pure functions a table-driven unit test can
@@ -138,8 +146,10 @@ client/src/views/            screens
 * `defer` for all cleanup, immediately after acquisition.
 * Concurrency: share memory by communicating; every goroutine has a defined owner and shutdown path (context
   cancellation); no naked `go func()` in handlers.
-* Logging: `log/slog`, structured key-value, levels `debug/info/warn/error`; never log secrets or JWTs; request-scoped
-  logger with trip/user IDs via middleware.
+* Logging: `log/slog`, structured key-value, levels `debug/info/warn/error`; never log secrets, JWTs, tokens or row
+  contents. `internal/api`'s `withLogging` middleware carries method, route and a generated `request_id` on every
+  request's context; `authed` adds `caller` once it knows who is asking. `logger(ctx)` reads it back, falling back
+  to `slog.Default()` outside a request (ARCH-08b).
 
 ## 4a. Named Constants — no magic strings or numbers
 

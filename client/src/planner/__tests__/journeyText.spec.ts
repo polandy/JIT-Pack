@@ -11,7 +11,7 @@ import {
   EXCURSION_ROLE_OUT,
   type ConnectionLeg,
   type DayEntry,
-} from '@/types/domain'
+} from '../types'
 import { budgetWords, daySummary, journeyDuration, journeyLine, wayWords } from '../journeyText'
 
 function entry(id: string, legs: ConnectionLeg[]): DayEntry {

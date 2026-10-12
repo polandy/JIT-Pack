@@ -51,7 +51,7 @@ func (s *Server) handlePutItemImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 	if _, err := s.store.SetItemImage(r.Context(), userID, r.PathValue(PathItemID), data); err != nil {
 		writeStoreError(w, err, "could not store item image")
 		return
@@ -62,7 +62,7 @@ func (s *Server) handlePutItemImage(w http.ResponseWriter, r *http.Request) {
 
 // handleDeleteItemImage removes an item's photo (FR-22.5).
 func (s *Server) handleDeleteItemImage(w http.ResponseWriter, r *http.Request) {
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 	if err := s.store.DeleteItemImage(r.Context(), userID, r.PathValue(PathItemID)); err != nil {
 		writeStoreError(w, err, "could not remove item image")
 		return
@@ -76,7 +76,7 @@ func (s *Server) handleDeleteItemImage(w http.ResponseWriter, r *http.Request) {
 // pusher (spec §8); every other device discovers the new image_hash on
 // its next ordinary master pull.
 func (s *Server) notifyMasterChangedToActor(r *http.Request) {
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 	if seq, err := s.store.HeadSeqMaster(r.Context()); err == nil && seq > 0 {
 		s.hub.NotifyMasterChanged(userID, seq)
 	}

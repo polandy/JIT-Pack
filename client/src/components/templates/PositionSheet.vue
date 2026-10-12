@@ -25,7 +25,7 @@ import type { TemplateItemEdit } from '@/sync/mutations'
 import { ACCOMMODATIONS, SEASONS, TRANSPORT_MODES, attributeLabel } from '@/lib/attributeLabels'
 import { modeIcon, modeLabel } from '@/lib/modeLabels'
 import { useMasterStore } from '@/stores/masterStore'
-import { ITEM_MODES, isShoppingMode } from '@/types/domain'
+import { ITEM_MODES, isShoppingMode, TEMPLATE_KIND_GROUP } from '@/types/domain'
 import type { ItemMode, TemplateAssignment, TemplateDedup } from '@/types/domain'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import SheetHead from '@/components/global/SheetHead.vue'
@@ -53,7 +53,9 @@ const tasks = computed(() => masterStore.getTemplateItemTasks(props.positionId))
 const detailsOpen = ref(false)
 
 const scopeName = computed(() =>
-  template.value?.kind === 'group' ? t('templates.sectionGroup') : t('templates.sectionTemplate'),
+  template.value?.kind === TEMPLATE_KIND_GROUP
+    ? t('templates.sectionGroup')
+    : t('templates.sectionTemplate'),
 )
 
 // --- Condition chips (FR-15.2): one value per attribute axis, tap toggles ---
@@ -90,7 +92,7 @@ const conditionSummary = computed(() => {
 // --- Edits (each commits on the spot, G-5) ---
 
 function update(fields: TemplateItemEdit) {
-  if (position.value) orchestrator.updateTemplateItem(position.value, fields)
+  if (position.value) orchestrator.masterData.updateTemplateItem(position.value, fields)
 }
 
 function stepQuantity(delta: number) {
@@ -123,12 +125,12 @@ const newTaskText = ref('')
 function addTask() {
   const task = newTaskText.value.trim()
   if (!task) return
-  orchestrator.addTemplateItemTask(props.positionId, task)
+  orchestrator.masterData.addTemplateItemTask(props.positionId, task)
   newTaskText.value = ''
 }
 
 function removeTask(taskId: string) {
-  orchestrator.deleteTemplateItemTask(taskId)
+  orchestrator.masterData.deleteTemplateItemTask(taskId)
 }
 </script>
 
@@ -195,7 +197,7 @@ function removeTask(taskId: string) {
       </div>
     </section>
 
-    <!-- FR-27.7: each task becomes an FR-7.3 todo on the generated trip item. -->
+    <!-- FR-27.7: each task becomes an FR-7.3 preparation on the generated trip item. -->
     <section class="sec">
       <h2 class="sl">
         {{ t('templates.prepSection') }}
@@ -231,7 +233,7 @@ function removeTask(taskId: string) {
       @click="detailsOpen = !detailsOpen"
     >
       <IonIcon :icon="chevronForwardOutline" class="caret" />
-      <span class="details-label">{{ t('item.details') }}</span>
+      <span class="details-label">{{ t('row.details') }}</span>
       <span v-if="!detailsOpen" class="details-hint">{{ t('templates.detailsHint') }}</span>
     </button>
 

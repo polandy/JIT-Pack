@@ -18,8 +18,8 @@ import { useTripIdentity } from '@/composables/shared/useTripIdentity'
 import { t } from '@/i18n'
 import type { TripCardProps } from '@/kernel/tripCards'
 import { tripSubPath } from '@/router/paths'
-import type { Meal } from '@/types/domain'
-import { MEAL_KIND_OUT } from '@/types/domain'
+import type { Meal } from './types'
+import { MEAL_KIND_OUT } from './types'
 import { boughtShare, mealsOn, planDays } from './domain/mealPlan'
 import { useMealSheet } from './sheet'
 import { useMealStore } from './store'
@@ -32,7 +32,7 @@ const MEALS_FOLD_KEY = 'meals'
 const orchestrator = useOrchestrator()
 const mealStore = useMealStore()
 const sheet = useMealSheet()
-const { nameOf } = useTripIdentity(props.tripId, orchestrator)
+const { nameOf } = useTripIdentity(props.tripId, orchestrator.identity)
 
 const today = computed(() => orchestrator.today())
 const meals = computed(() =>

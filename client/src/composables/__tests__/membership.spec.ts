@@ -11,6 +11,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/api/tables'
 import type { PullChange } from '@/api/types'
@@ -50,7 +51,7 @@ function seedWorld() {
 }
 
 function orchestrator() {
-  return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+  return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null, now: fixedClock })
 }
 
 function rowsOf(tripStore = useTripStore()) {
@@ -63,7 +64,7 @@ describe('setMembership (FR-25.21)', () => {
     const orch = orchestrator()
     const tripStore = useTripStore()
 
-    orch.setMembership(
+    orch.packing.setMembership(
       TRIP_ID,
       rowsOf(tripStore),
       {
@@ -122,7 +123,7 @@ describe('setMembership (FR-25.21)', () => {
       }),
     ])
 
-    orchestrator().setMembership(
+    orchestrator().packing.setMembership(
       TRIP_ID,
       rowsOf(tripStore),
       {
@@ -159,7 +160,7 @@ describe('setMembership (FR-25.21)', () => {
     const orch = orchestrator()
     const tripStore = useTripStore()
 
-    orch.setMembership(
+    orch.packing.setMembership(
       TRIP_ID,
       rowsOf(tripStore),
       {
@@ -171,7 +172,7 @@ describe('setMembership (FR-25.21)', () => {
       },
       [],
     )
-    orch.setMembership(TRIP_ID, rowsOf(tripStore), { kind: 'shared' }, [])
+    orch.packing.setMembership(TRIP_ID, rowsOf(tripStore), { kind: 'shared' }, [])
 
     const rows = rowsOf(tripStore)
     expect(rows).toHaveLength(1)
@@ -182,7 +183,7 @@ describe('setMembership (FR-25.21)', () => {
   it('writes nothing when the rows already express the membership', () => {
     seedWorld()
     const orch = orchestrator()
-    orch.setMembership(TRIP_ID, rowsOf(), { kind: 'shared' }, [])
+    orch.packing.setMembership(TRIP_ID, rowsOf(), { kind: 'shared' }, [])
 
     expect(harness.fetch).not.toHaveBeenCalled()
   })

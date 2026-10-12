@@ -15,7 +15,7 @@
  * `scripts/mark-font-gate.mjs` fails the build for exactly that).
  */
 
-import { foldSearch as fold, searchWords as words } from './search'
+import { foldSearch as fold, searchWords as words } from './shared/search'
 
 /** The coarse facets the picker's chip row offers, in the order it shows them. */
 export const MARK_FACETS = [
@@ -479,11 +479,6 @@ function keywordHits(keyword: string, haystack: string, haystackWords: string[])
   return keyword.length >= KEYWORD_SUBSTRING_MIN
     ? haystack.includes(keyword)
     : haystackWords.includes(keyword)
-}
-
-/** markFacetOf answers which facet an emoji belongs to, or null if it is not curated. */
-export function markFacetOf(emoji: string): MarkFacet | null {
-  return MARK_INDEX.find((entry) => entry.emoji === emoji)?.facet ?? null
 }
 
 /**

@@ -31,7 +31,7 @@ import ItemMark from '@/components/items/ItemMark.vue'
 import SearchOfferButton from '@/components/items/SearchOfferButton.vue'
 import { OFFER_CREATE } from '@/domain/itemSearch'
 import { findNameCollision } from '@/domain/nameCollision'
-import { searchMatches } from '@/domain/search'
+import { searchMatches } from '@/domain/shared/search'
 import { t } from '@/i18n'
 import type { Tag } from '@/types/domain'
 

@@ -19,6 +19,9 @@ import { describe, it, expect } from 'vitest'
 /** The pieces M4 is built from (`views/trips/packing/`), each needing its trip id. */
 const PART_OF_M4 =
   'a part of M4, rendered only by `PackingListPage`, which loads the partition for it'
+/** The pieces M25 is built from (`views/trips/tasks/`) that take its trip id. */
+const PART_OF_M25 =
+  'a part of M25, rendered only by `TripTasksPage`, which loads the partition for it'
 
 /**
  * Screens whose required `tripId` names a trip they do **not** read the trip
@@ -29,9 +32,14 @@ const PART_OF_M4 =
 const NOT_TRIP_PARTITION: Record<string, string> = {
   'src/views/dashboard/DashboardTasksBlock.vue':
     'a block of M1’s hero, not a screen: M1 loads and follows every active trip’s partition itself (`ensureTripData`), and the block asks `tripDataLoaded` before it says nothing is left',
-  'src/views/trips/packing/PackingGroupList.vue': PART_OF_M4,
+  'src/views/trips/excursion/ExcursionLineSheet.vue':
+    'a part of M27, rendered only by `TripExcursionPage`, which loads the partition for it',
+  'src/views/trips/packing/PackingGroupList.vue':
+    'M4’s list body, rendered by `PackingListPage` and `TripExcursionPage`, each of which loads the partition for it',
   'src/views/trips/packing/PackingHeadline.vue': PART_OF_M4,
-  'src/views/trips/packing/TripTodosSection.vue': PART_OF_M4,
+  'src/views/trips/packing/TripTasksSection.vue': PART_OF_M4,
+  'src/views/trips/tasks/TaskComposer.vue': PART_OF_M25,
+  'src/views/trips/tasks/TaskPhaseSection.vue': PART_OF_M25,
   'src/views/trips/TripMembersPage.vue':
     'the roster is `trip_members`, which is master data — it arrives with the master pull',
 }

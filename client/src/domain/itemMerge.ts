@@ -310,33 +310,39 @@ function planAliases(
 }
 
 /**
+ * The row `item` was merged into, or null (FR-24.15) — the one rule every
+ * reader of `merged_into_id` follows (ADR-069).
+ *
+ * One hop, and an alias whose target is itself aliased is no alias. The plan
+ * flattens chains at merge time, so a chain only exists where two devices
+ * merged across each other — the same pair in opposite directions leaves two
+ * rows naming each other — and each row then reads as the unaliased one it
+ * was before. A target this device does not hold is no alias either.
+ */
+export function aliasOf(
+  item: MasterItem,
+  lookup: (id: string) => MasterItem | undefined,
+): MasterItem | null {
+  const target = item.merged_into_id ? lookup(item.merged_into_id) : undefined
+  if (!target || target.merged_into_id) return null
+  return target
+}
+
+/**
  * The item and everything merged into it — what a rear view reads over
  * (FR-24.15).
  *
  * A trip row keeps naming the item it was generated from, so the survivor's
  * own id finds only its own history. One hop out, over the rows this device
  * holds, is what makes „was on trips X and Y" true again after a merge —
- * and it is the same hop {@link resolveMergedItem} makes in the other
- * direction, for a reader that starts from the trip row instead.
+ * read through {@link aliasOf}, so an item that is itself aliased gathers
+ * nothing and reads only its own past.
  */
 export function mergedIdsOf(itemId: string, items: readonly MasterItem[]): string[] {
-  return [itemId, ...items.filter((row) => row.merged_into_id === itemId).map((row) => row.id)]
-}
-
-/**
- * Where a trip's `source_item_id` reads back to today (FR-24.15).
- *
- * **One hop, never a chain.** {@link planItemMerge} flattens the alias at
- * merge time, so a reader never has to walk; following a second hop would
- * also be the one way two devices that merged the same pair in opposite
- * directions could loop, since field-level LWW can leave a pair of rows
- * naming each other (ADR-069). An alias whose target is itself aliased is
- * therefore treated as no alias at all: the rear view reports the two pasts
- * separately, which is the state the product was in before the merge existed.
- */
-export function resolveMergedItem(itemId: string, items: readonly MasterItem[]): string {
   const byId = new Map(items.map((row) => [row.id, row]))
-  const target = byId.get(itemId)?.merged_into_id
-  if (!target || target === itemId) return itemId
-  return byId.get(target)?.merged_into_id ? itemId : target
+  const lookup = (id: string) => byId.get(id)
+  return [
+    itemId,
+    ...items.filter((row) => aliasOf(row, lookup)?.id === itemId).map((row) => row.id),
+  ]
 }

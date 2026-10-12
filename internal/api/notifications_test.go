@@ -124,10 +124,10 @@ func TestNotifications_AssignmentAlongsidePackStillDelegates_FR25_19(t *testing.
 
 // FR-2.5 → ADR-058, end to end: assigning a row to a traveler linked to an
 // account notifies that account, the same way an explicit packer_user_id
-// delegation does — this is the glue (internal/api/notifications.go's
-// resolveTraveler closure, internal/store's TravelerLinkedUser) that
-// TestPlanRosterAssignment_* in notificationrules_test.go cannot reach,
-// since that file drives the pure decision with fakes, never the store.
+// delegation does — this is the glue (internal/notify's storeFacts,
+// internal/store's TravelerLinkedUser) that TestPlanRosterAssignment_* in
+// internal/notify/rules_test.go cannot reach, since that file drives the
+// pure decision with fakes, never the store.
 func TestNotifications_RosterAssignmentNotifiesLinkedAccount(t *testing.T) {
 	srv, st := newTestServerWithStore(t)
 	seedItem(t, srv, "item-1", "Zelt")
@@ -193,7 +193,7 @@ func TestNotifications_MentionInComment(t *testing.T) {
 }
 
 // FR-7.13 through the real push path: the thread is read back from the
-// store after the reply landed (emitNotifications' resolveThread), so the
+// store after the reply landed (internal/notify's storeFacts.thread), so the
 // first note's author is told and named the thread, and the replier is not.
 func TestNotifications_NoteReply_TellsTheThreadsAuthor_FR7_13(t *testing.T) {
 	srv := newTestServer(t)
@@ -323,13 +323,13 @@ func TestNotifications_TaskOnDelegatedItem_SingleNotification(t *testing.T) {
 	}
 }
 
-// FR-7.5 end to end through a push: the todo is written first and assigned
+// FR-7.5 end to end through a push: the task is written first and assigned
 // later, so the second mutation carries no body and the words the
 // notification names come from the stored comment.
-func TestNotifications_TripTodoAssignedLater_NamesTheTask(t *testing.T) {
+func TestNotifications_OwnTaskAssignedLater_NamesTheTask(t *testing.T) {
 	srv := newTestServer(t)
 	pushAs(t, srv, userA, map[string]any{
-		"mutation_id": "m-todo", "op": "insert", "table": "comments", "id": "c-todo",
+		"mutation_id": "m-task", "op": "insert", "table": "comments", "id": "c-task",
 		"fields": map[string]any{
 			"trip_id": trip, "trip_item_id": nil,
 			"body": "Pflanzen giessen", "is_task": 1, "task_state": "open",
@@ -337,7 +337,7 @@ func TestNotifications_TripTodoAssignedLater_NamesTheTask(t *testing.T) {
 		"hlc": "0000000002000-0000-aaaaaaaa",
 	})
 	pushAs(t, srv, userA, map[string]any{
-		"mutation_id": "m-assign", "op": "upsert", "table": "comments", "id": "c-todo",
+		"mutation_id": "m-assign", "op": "upsert", "table": "comments", "id": "c-task",
 		"fields": map[string]any{"assignee_user_id": userB},
 		"hlc":    "0000000003000-0000-aaaaaaaa",
 	})
@@ -347,11 +347,11 @@ func TestNotifications_TripTodoAssignedLater_NamesTheTask(t *testing.T) {
 		t.Fatalf("notifications = %+v, want one delegation", got.Notifications)
 	}
 	n := got.Notifications[0]
-	if n.Kind != "delegation" || n.Payload["item_name"] != "Pflanzen giessen" || n.Payload["comment_id"] != "c-todo" {
+	if n.Kind != "delegation" || n.Payload["item_name"] != "Pflanzen giessen" || n.Payload["comment_id"] != "c-task" {
 		t.Errorf("notification = %+v, want a delegation naming the task", n)
 	}
 	if _, ok := n.Payload["item_id"]; ok {
-		t.Errorf("payload carries item_id %v; a trip todo has no row", n.Payload["item_id"])
+		t.Errorf("payload carries item_id %v; an own task has no row", n.Payload["item_id"])
 	}
 }
 

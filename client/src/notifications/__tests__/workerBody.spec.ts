@@ -16,6 +16,7 @@ import 'fake-indexeddb/auto'
 import { IDBFactory } from 'fake-indexeddb'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import type { NotificationKind } from '@/api/types'
 import { describe, it, expect, afterEach, beforeEach } from 'vitest'
 
 import { DEFAULT_LOCALE, setLocale } from '@/i18n'
@@ -52,8 +53,9 @@ function loadWorker(): {
   return { ...build(stub, globalThis.indexedDB, undefined, undefined), source }
 }
 
+// `kind` is a string: a newer server's kind, outside this client's union, is a case.
 function notif(kind: string, payload: Record<string, unknown> | null): ServerNotification {
-  return { id: 'n1', kind, payload, created_at: '2026-07-09T12:00:00Z' }
+  return { id: 'n1', kind: kind as NotificationKind, payload, created_at: '2026-07-09T12:00:00Z' }
 }
 
 const CASES: ServerNotification[] = [

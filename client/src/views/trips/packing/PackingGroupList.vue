@@ -1,9 +1,11 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="R extends PackableRow">
 /**
  * M4's list body: the groups, their per-person clusters (FR-25.1) and rows,
  * and the leave a packed row makes (FR-25.2). It reads rows through the
  * page's resolvers and reports every act as an event — the writes stay with
- * the page's composables.
+ * the page's composables. M27 renders its list through it too (FR-31.6),
+ * under its own `screen` handle, without the *who* column, and with what a
+ * line needs done in the `#facts` slot under each row's name.
  */
 import { IonIcon, IonList } from '@ionic/vue'
 import { chevronDownOutline } from 'ionicons/icons'
@@ -12,41 +14,54 @@ import ClusterHead from '@/components/trips/ClusterHead.vue'
 import ForWhomStrip from '@/components/trips/ForWhomStrip.vue'
 import PackingRow from '@/components/trips/PackingRow.vue'
 import type { LongPress } from '@/composables/shared/useLongPress'
-import type { PackingCluster, PackingEntry, PackingGroup } from '@/domain/packingView'
+import type { PackableRow, PackingCluster, PackingEntry, PackingGroup } from '@/domain/packingView'
 import { t } from '@/i18n'
+import { prefersReducedMotion } from '@/lib/motion'
 import { collapseRow } from '@/lib/rowCollapse'
-import type { TripItem, TripParticipant } from '@/types/domain'
+import type { TripMemberProfile } from '@/types/domain'
 
 import type { ForWhom } from './useForWhom'
-import type { RowFacts } from './useRowFacts'
+import type { ListFacts } from './useRowFacts'
 
-const props = defineProps<{
-  tripId: string
-  groups: PackingGroup[]
-  participants: TripParticipant[]
-  closingPass: boolean
-  facts: RowFacts
-  forWhom: ForWhom
-  /** FR-5.5's press and hold, on a row and on a cluster head. */
-  rowHold: LongPress<TripItem>
-  clusterHold: LongPress<PackingCluster>
+const props = withDefaults(
+  defineProps<{
+    tripId: string
+    groups: PackingGroup<R>[]
+    closingPass: boolean
+    facts: ListFacts<R>
+    /** FR-25.28's *who* column; absent where the list has none (M27). */
+    forWhom?: ForWhom | null
+    /** The roster the *who* strip offers; read only with {@link forWhom}. */
+    memberProfiles?: TripMemberProfile[]
+    /** FR-5.5's press and hold, on a row and on a cluster head. */
+    rowHold: LongPress<R>
+    clusterHold?: LongPress<PackingCluster> | null
+    /** Whose handles the list's `data-testid`s carry, as `PackingRow`'s do. */
+    screen?: 'm4' | 'm27'
+  }>(),
+  { forWhom: null, memberProfiles: () => [], clusterHold: null, screen: 'm4' },
+)
+
+defineSlots<{
+  /** Under a row's name, after M4's own notes; `child` marks a traveler's row. */
+  facts?(scope: { item: R; testKey: string; child: boolean }): unknown
 }>()
 
 defineEmits<{
   toggleGroup: [key: string]
   toggleCluster: [key: string]
   clusterMenu: [cluster: PackingCluster]
-  rowMenu: [item: TripItem]
+  rowMenu: [item: R]
   toggleForWhom: [entry: PackingEntry]
-  assign: [item: TripItem, traveler?: string]
+  assign: [item: R, traveler?: string]
   open: [itemId: string]
-  passToggle: [item: TripItem]
-  editQuantity: [item: TripItem, event: MouseEvent]
-  increment: [item: TripItem]
-  decrement: [item: TripItem]
-  complete: [item: TripItem]
-  zero: [item: TripItem]
-  toggle: [item: TripItem]
+  passToggle: [item: R]
+  editQuantity: [item: R, event: MouseEvent]
+  increment: [item: R]
+  decrement: [item: R]
+  complete: [item: R]
+  zero: [item: R]
+  toggle: [item: R]
 }>()
 
 /**
@@ -54,7 +69,6 @@ defineEmits<{
  * the setting can change while the screen is open. The duration lives in CSS
  * only: `collapseRow` waits on `transitionend` rather than on a number.
  */
-const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 
 /**
  * Collapse a leaving row to zero height — the rules are in `collapseRow`.
@@ -64,11 +78,11 @@ const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
  */
 function onRowLeave(el: Element, done: () => void) {
   const { forWhomKey: key, rowId } = (el as HTMLElement).dataset
-  if (key !== undefined && props.forWhom.reshaped(key, rowId ?? null)) {
+  if (key !== undefined && props.forWhom?.reshaped(key, rowId ?? null)) {
     done()
     return
   }
-  collapseRow(el as HTMLElement, done, reducedMotion.matches)
+  collapseRow(el as HTMLElement, done, prefersReducedMotion())
 }
 
 /**
@@ -76,7 +90,7 @@ function onRowLeave(el: Element, done: () => void) {
  * row (E2E-G6-01). `PackingRow` stops the press at the control itself, so a
  * press that reaches this handler is already the row's.
  */
-function onRowPress(item: TripItem, event: PointerEvent): void {
+function onRowPress(item: R, event: PointerEvent): void {
   props.rowHold.down(item, event.clientX, event.clientY)
 }
 </script>
@@ -87,7 +101,7 @@ function onRowPress(item: TripItem, event: PointerEvent): void {
       <button
         class="group-head"
         :class="{ shut: group.collapsed }"
-        :data-testid="`m4-group-${group.key || 'none'}`"
+        :data-testid="`${screen === 'm27' ? 'm27-group' : 'm4-group'}-${group.key || 'none'}`"
         @click="$emit('toggleGroup', group.key)"
       >
         <IonIcon :icon="chevronDownOutline" class="caret" />
@@ -125,9 +139,10 @@ function onRowPress(item: TripItem, event: PointerEvent): void {
           <div
             v-if="entry.kind === 'cluster'"
             class="cluster"
-            :data-for-whom-key="forWhom.keyOf(entry)"
+            :data-for-whom-key="forWhom?.keyOf(entry)"
           >
             <ClusterHead
+              :screen="screen"
               :name="entry.name"
               :mode="entry.mode"
               :late="entry.latePacker"
@@ -137,20 +152,20 @@ function onRowPress(item: TripItem, event: PointerEvent): void {
               :collapsed="entry.collapsed"
               :faces="entry.faces"
               :master="facts.clusterMaster(entry)"
-              :seat="forWhom.seatFor(entry)"
+              :seat="forWhom?.seatFor(entry) ?? null"
               @for-whom="$emit('toggleForWhom', entry)"
               @toggle="$emit('toggleCluster', entry.key)"
               @menu="$emit('clusterMenu', entry)"
-              @press-start="(e: PointerEvent) => clusterHold.down(entry, e.clientX, e.clientY)"
-              @press-move="(e: PointerEvent) => clusterHold.move(e.clientX, e.clientY)"
-              @press-end="clusterHold.cancel()"
+              @press-start="(e: PointerEvent) => clusterHold?.down(entry, e.clientX, e.clientY)"
+              @press-move="(e: PointerEvent) => clusterHold?.move(e.clientX, e.clientY)"
+              @press-end="clusterHold?.cancel()"
             />
 
             <ForWhomStrip
-              v-if="forWhom.openOn(entry)"
+              v-if="forWhom?.openOn(entry)"
               :trip-id="tripId"
               :item-id="entry.instanceIds[0] ?? ''"
-              :participants="participants"
+              :member-profiles="memberProfiles"
               :test-key="entry.name"
             />
 
@@ -158,6 +173,7 @@ function onRowPress(item: TripItem, event: PointerEvent): void {
               <PackingRow
                 v-for="child in entry.children"
                 :key="child.item.id"
+                :screen="screen"
                 variant="child"
                 :item="child.item"
                 :label="child.traveler?.name ?? child.label"
@@ -183,12 +199,22 @@ function onRowPress(item: TripItem, event: PointerEvent): void {
                 @complete="$emit('complete', child.item)"
                 @zero="$emit('zero', child.item)"
                 @toggle="$emit('toggle', child.item)"
-              />
+              >
+                <template v-if="$slots.facts" #facts>
+                  <slot
+                    name="facts"
+                    :item="child.item"
+                    :test-key="`${entry.name}-${child.traveler?.name ?? ''}`"
+                    :child="true"
+                  />
+                </template>
+              </PackingRow>
             </div>
           </div>
 
           <PackingRow
             v-else
+            :screen="screen"
             :item="entry.item"
             :label="entry.label"
             :test-key="entry.item.name"
@@ -198,12 +224,12 @@ function onRowPress(item: TripItem, event: PointerEvent): void {
             :notes="facts.rowNotes(entry.item)"
             :traveler="entry.traveler"
             :master="facts.masterOf(entry.item)"
-            :prep-count="facts.openTodoCount(entry.item.id)"
+            :prep-count="facts.openPrepTaskCount(entry.item.id)"
             :borrowed-by="facts.borrowedBy(entry.item.id)"
             :edge-avatar="facts.edgeAvatarFor(entry.item)"
             :assignable="facts.assignableRow(entry.item)"
-            :seat="forWhom.seatFor(entry)"
-            :data-for-whom-key="forWhom.keyOf(entry)"
+            :seat="forWhom?.seatFor(entry) ?? null"
+            :data-for-whom-key="forWhom?.keyOf(entry)"
             :data-row-id="entry.item.id"
             @for-whom="$emit('toggleForWhom', entry)"
             @assign="$emit('assign', entry.item)"
@@ -219,17 +245,21 @@ function onRowPress(item: TripItem, event: PointerEvent): void {
             @complete="$emit('complete', entry.item)"
             @zero="$emit('zero', entry.item)"
             @toggle="$emit('toggle', entry.item)"
-          />
+          >
+            <template v-if="$slots.facts" #facts>
+              <slot name="facts" :item="entry.item" :test-key="entry.item.name" :child="false" />
+            </template>
+          </PackingRow>
           <!-- FR-25.28: the strip unfolds under the row it belongs to, as a
                line of the same card. Keyed, because a TransitionGroup
                child has to be. -->
           <ForWhomStrip
-            v-if="entry.kind === 'item' && forWhom.openOn(entry)"
+            v-if="entry.kind === 'item' && forWhom?.openOn(entry)"
             key="for-whom"
-            :data-for-whom-key="forWhom.keyOf(entry)"
+            :data-for-whom-key="forWhom?.keyOf(entry)"
             :trip-id="tripId"
             :item-id="entry.item.id"
-            :participants="participants"
+            :member-profiles="memberProfiles"
             :test-key="entry.item.name"
           />
         </template>

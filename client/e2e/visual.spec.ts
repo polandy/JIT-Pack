@@ -15,9 +15,9 @@ import type { Page } from '@playwright/test'
 import { PATH } from './routes'
 import { createItem } from './helpers/m9'
 import {
-  addPrepTodo,
+  addPrepTask,
   addTripNote,
-  addTripTodo,
+  addOwnTask,
   openNotes,
   openTasks,
   openThread,
@@ -295,19 +295,19 @@ test('E2E-VIS-13: visual: M25 a trip’s tasks @local @visual', async ({ page, s
   await freeze(page)
   await seedMode({ mode: 'local' })
   await packingList(page, ['Kulturbeutel', 'Zelt'])
-  await addPrepTodo(page, 'Kulturbeutel', 'Salbe in der Apotheke holen')
-  await addTripTodo(page, 'Pflanzen giessen')
-  await addTripTodo(page, 'Am Bahnhof die Zugverbindung abklären', 'during')
+  await addPrepTask(page, 'Kulturbeutel', 'Salbe in der Apotheke holen')
+  await addOwnTask(page, 'Pflanzen giessen')
+  await addOwnTask(page, 'Am Bahnhof die Zugverbindung abklären', 'during')
   await openTasks(page, 'before')
   // FR-7.8: one task carries a tag, so the baseline shows all three kinds of
   // heading — a tag, what came from the packing list, and what has none.
-  await visiblePage(page).getByTestId('trip-todo-open-Pflanzen giessen').click()
+  await visiblePage(page).getByTestId('trip-task-open-Pflanzen giessen').click()
   await page.getByTestId('tag-pick-search').locator('input').fill('Haus')
   await page.getByTestId('tag-pick-create').click()
   await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
   // FR-7.14: one task due today, so the *Fällig* block on top is in the
   // baseline — the preparation, named there by where it came from.
-  await visiblePage(page).getByTestId('trip-todo-open-Salbe in der Apotheke holen').click()
+  await visiblePage(page).getByTestId('trip-task-open-Salbe in der Apotheke holen').click()
   await page.getByTestId('task-sheet').getByTestId('due-chip-today').click()
   await expect(visiblePage(page).getByTestId('m25-due')).toBeVisible()
   await page.getByTestId('task-sheet-close').click()

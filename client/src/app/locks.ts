@@ -25,7 +25,7 @@ export interface LockState {
    * Who is holding this row, or null where it is not locked for me (G-3
    * wants the name, not only the padlock). The user id is what the client
    * has; resolving it to a display name is the view's job, since only it
-   * knows the trip's participants.
+   * knows the trip's members.
    */
   lockHolder(tripId: string, item: TripItem): string | null
   /**

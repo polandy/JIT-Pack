@@ -7,6 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import type { ServerNotification } from '@/notifications/format'
 import { installHarness } from '@/__tests__/harness'
 
@@ -59,6 +60,7 @@ describe('notification.created handling', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       onNotification: (n) => surfaced.push(n),
+      now: fixedClock,
     })
     mockNotificationList(notif('n1'), notif('n2'))
 
@@ -76,6 +78,7 @@ describe('notification.created handling', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       onNotification: (n) => surfaced.push(n),
+      now: fixedClock,
     })
     mockNotificationList() // connect()'s initial unread fetch: empty
     await orch.connect()

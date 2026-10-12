@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { installHarness, type Harness } from '@/__tests__/harness'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { fixedClock, FIXED_NOW_ISO } from '@/__tests__/fixedClock'
 import { TABLE } from '@/api/tables'
 import { createMealActions, type DraftIngredient, type MealFields } from '../actions'
 import { mealFeatureStore, useMealStore } from '../store'
@@ -25,6 +26,7 @@ function serverOrch() {
     baseUrl: 'http://localhost',
     getToken: () => null,
     features: [mealFeatureStore()],
+    now: fixedClock,
   })
 }
 
@@ -209,7 +211,7 @@ describe('the meal plan through the orchestrator (§3.33)', () => {
     const potatoes = mealStore.ingredientsOf(id)[0]!
     actions.setBought([potatoes], true)
     expect(mealStore.ingredientsOf(id)[0]).toMatchObject({ bought: true })
-    expect(mealStore.ingredientsOf(id)[0]!.bought_at).not.toBeNull()
+    expect(mealStore.ingredientsOf(id)[0]!.bought_at).toBe(FIXED_NOW_ISO)
     actions.setBought([mealStore.ingredientsOf(id)[0]!], false)
     expect(mealStore.ingredientsOf(id)[0]).toMatchObject({ bought: false, bought_at: null })
   })
@@ -221,7 +223,7 @@ describe('the meal plan through the orchestrator (§3.33)', () => {
     const lunch = { ...RACLETTE, slot: 'lunch' as const, excursionId: 'ex-1' }
     const id = actions.saveMeal('t1', null, lunch, [])!
     actions.setPacked(mealStore.getMeal(id)!, true)
-    expect(mealStore.getMeal(id)!.excursion_packed_at).not.toBeNull()
+    expect(mealStore.getMeal(id)!.excursion_packed_at).toBe(FIXED_NOW_ISO)
     actions.saveMeal(
       't1',
       mealStore.getMeal(id)!,

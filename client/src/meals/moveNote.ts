@@ -5,7 +5,7 @@
  */
 import { t } from '@/i18n'
 import { shortWeekday } from '@/lib/taskDueText'
-import type { MealIngredient } from '@/types/domain'
+import type { MealIngredient } from './types'
 import { isFresh } from './domain/ingredients'
 import { freshBoughtTooEarly } from './domain/mealPlan'
 

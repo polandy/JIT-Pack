@@ -5,7 +5,7 @@
  * with its own quantity (FR-25.1). This module is the only place that turns
  * a *picked* membership into the rows expressing it, and ADR-036 is the shape
  * it implements: rows are rewritten in place rather than deleted and recreated,
- * because comments (FR-7.1), preparation todos (FR-7.3) and packing progress
+ * because comments (FR-7.1), preparations (FR-7.3) and packing progress
  * are the expensive content on a row and membership is cheap metadata.
  *
  * Two rules carry the whole design:
@@ -26,6 +26,7 @@
 
 import { foldName } from './nameCollision'
 import { propagatedItemId } from './refresh'
+import { STATE_OPEN, STATE_PACKED, STATE_SKIPPED } from '@/types/domain'
 import type { Traveler, TripItem } from '@/types/domain'
 
 /**
@@ -58,7 +59,7 @@ export interface MembershipInput {
   /** The trip's roster, in trip order: it decides both ladders below. */
   travelers: Traveler[]
   /**
-   * Rows carrying comments or preparation todos. Passed in rather than read,
+   * Rows carrying comments or preparations. Passed in rather than read,
    * because those live in other stores and this module has no I/O.
    */
   rowsWithContent: string[]
@@ -122,7 +123,7 @@ export interface MembershipPlan {
  * because it is the one name for an item that survives the row turning into a
  * cluster and back.
  */
-export function membershipKey(row: TripItem): string {
+export function membershipKey(row: Pick<TripItem, 'source_item_id' | 'name'>): string {
   return row.source_item_id ?? `name:${foldName(row.name)}`
 }
 
@@ -184,8 +185,8 @@ function stateAfter(
   quantity: number,
   packedCount: number,
 ): TripItem['state'] | undefined {
-  if (row.state === 'skipped' && quantity > 0) return 'open'
-  if (row.state === 'packed' && packedCount < quantity) return 'open'
+  if (row.state === STATE_SKIPPED && quantity > 0) return STATE_OPEN
+  if (row.state === STATE_PACKED && packedCount < quantity) return STATE_OPEN
   return undefined
 }
 
@@ -292,7 +293,7 @@ function planCollapse(
     survivor: { rowId: keep.id, travelerName: nameOf(keep.assigned_traveler_id) },
     totals: { quantity, packed },
     unskipped:
-      fields.state === 'open' && keep.state === 'skipped'
+      fields.state === STATE_OPEN && keep.state === STATE_SKIPPED
         ? { rowId: keep.id, travelerName: nameOf(keep.assigned_traveler_id) }
         : null,
     empty: removed.length === 0 && Object.keys(fields).length === 0,
@@ -318,7 +319,7 @@ function planPerPerson(
   const insert: MembershipInsert[] = []
   let unskipped: MembershipPlan['unskipped'] = null
   // ADR-036's keep-and-repoint: the shared row becomes the first selected
-  // traveler's, so its thread, todos and progress survive the conversion.
+  // traveler's, so its thread, tasks and progress survive the conversion.
   let repointable: TripItem | null = survivorOf(unassigned, withContent, order) ?? null
 
   for (const m of members) {
@@ -338,7 +339,7 @@ function planPerPerson(
         state: stateAfter(repointable, m.quantity, packedCount),
       })
       if (Object.keys(fields).length > 0) update.push({ id: repointable.id, fields })
-      if (fields.state === 'open' && repointable.state === 'skipped') {
+      if (fields.state === STATE_OPEN && repointable.state === STATE_SKIPPED) {
         unskipped = { rowId: repointable.id, travelerName: nameOf(m.traveler_id) }
       }
       repointable = null
@@ -371,25 +372,6 @@ function planPerPerson(
   }
 }
 
-/** How much of the roster an item's membership covers — what the FR-25.21c select-all reports. */
-export type MembershipCoverage = 'none' | 'some' | 'all'
-
-/**
- * membershipCoverage says whether none, some or every traveler of the trip is
- * a member. Only travelers the trip still has are counted: a row pointing at a
- * removed traveler is not somebody the roster can show as checked, and letting
- * it count would make a partial set read as full.
- */
-export function membershipCoverage(
-  travelers: Traveler[],
-  members: MembershipMember[],
-): MembershipCoverage {
-  const ids = new Set(members.map((m) => m.traveler_id))
-  const covered = travelers.filter((t) => ids.has(t.id)).length
-  if (covered === 0) return 'none'
-  return covered === travelers.length ? 'all' : 'some'
-}
-
 /**
  * everyoneMembers is FR-25.21c's shortcut: the membership that has the whole
  * roster in it. An amount somebody chose is a decision and is kept — the
@@ -409,11 +391,10 @@ export function everyoneMembers(
 /**
  * The membership a set of rows already expresses, in trip order.
  *
- * A row assigned to somebody the trip no longer has is left out for the reason
- * {@link membershipCoverage} gives: it is not a member the roster can show, and
- * counting it would let a partial membership read as a full one. What it is
- * *not* is a licence to delete that row — that decision stays with the caller
- * and its confirm (ADR-036).
+ * A row assigned to somebody the trip no longer has is left out: it is not a
+ * member the roster can show, and counting it would let a partial membership
+ * read as a full one. What it is *not* is a licence to delete that row — that
+ * decision stays with the caller and its confirm (ADR-036).
  */
 export function membersOfRows(rows: TripItem[], travelers: Traveler[]): MembershipMember[] {
   const byTraveler = new Map<string, TripItem>()
@@ -490,7 +471,7 @@ export function membershipQuestion(
 
 /**
  * Which of these rows a delete would cost more than the row itself: a comment
- * thread (FR-7.1) or a preparation todo (FR-7.3). This module has no I/O, so
+ * thread (FR-7.1) or a preparation (FR-7.3). This module has no I/O, so
  * the two questions are asked of the caller — one callback each rather than
  * two prepared lists, so a caller cannot pass a list it built for other rows.
  *
@@ -500,9 +481,9 @@ export function membershipQuestion(
  */
 export function rowsCarryingContent(
   rows: TripItem[],
-  content: { hasComments: (rowId: string) => boolean; hasTodo: (rowId: string) => boolean },
+  content: { hasComments: (rowId: string) => boolean; hasPrepTask: (rowId: string) => boolean },
 ): string[] {
   return rows
-    .filter((row) => content.hasComments(row.id) || content.hasTodo(row.id))
+    .filter((row) => content.hasComments(row.id) || content.hasPrepTask(row.id))
     .map((row) => row.id)
 }

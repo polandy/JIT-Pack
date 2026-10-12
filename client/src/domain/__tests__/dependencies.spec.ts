@@ -6,6 +6,8 @@ import {
   skippedVia,
   dependencyCycleError,
   planDependencyBatch,
+  linkEdge,
+  linkedEnd,
   DEPENDENCY_LINK_COMPANION,
   DEPENDENCY_LINK_MAIN,
   DEPENDENCY_SKIP_CYCLE,
@@ -13,7 +15,8 @@ import {
   DEPENDENCY_SKIP_SELF,
   type DependencyResolutionInput,
 } from '../dependencies'
-import type { CategorisedMasterItem, ItemDependency } from '@/types/domain'
+import { STATE_OPEN, STATE_SKIPPED } from '@/types/domain'
+import type { CategorisedMasterItem, ItemDependency, ItemState } from '@/types/domain'
 
 function master(
   id: string,
@@ -221,8 +224,8 @@ describe('dependentsOf', () => {
 
   it('leaves a second row of the skipped item alone on cyclic data (FR-20.2)', () => {
     const deps = [dep('d1', 'battery', 'camera'), dep('d2', 'camera', 'battery')]
-    const main = { id: 'r1', source_item_id: 'camera', state: 'open' }
-    const twin = { id: 'r2', source_item_id: 'camera', state: 'open' }
+    const main = { id: 'r1', source_item_id: 'camera', state: STATE_OPEN }
+    const twin = { id: 'r2', source_item_id: 'camera', state: STATE_OPEN }
 
     expect(coSkipTargets(main, [main, twin], deps).map((r) => r.id)).toEqual([])
   })
@@ -230,7 +233,7 @@ describe('dependentsOf', () => {
 
 describe('coSkipTargets (FR-20.2)', () => {
   const deps = [dep('d1', 'battery', 'camera'), dep('d2', 'charger', 'battery')]
-  const row = (id: string, sourceItemId: string | null, state = 'open') => ({
+  const row = (id: string, sourceItemId: string | null, state: ItemState = STATE_OPEN) => ({
     id,
     source_item_id: sourceItemId,
     state,
@@ -297,14 +300,14 @@ describe('coSkipTargets (FR-20.2)', () => {
     expect(coSkipTargets(camera, rows, shared).map((r) => r.id)).toEqual(['r5'])
     // The positive control: with the drone skipped, the battery and the
     // charger do follow the camera out.
-    const droneSkipped = rows.map((r) => (r.id === 'r4' ? { ...r, state: 'skipped' } : r))
+    const droneSkipped = rows.map((r) => (r.id === 'r4' ? { ...r, state: STATE_SKIPPED } : r))
     expect(coSkipTargets(camera, droneSkipped, shared).map((r) => r.id)).toEqual(['r2', 'r3', 'r5'])
   })
 })
 
 describe('skippedVia (FR-20.2)', () => {
   const deps = [dep('d1', 'battery', 'camera'), dep('d2', 'charger', 'battery')]
-  const row = (id: string, sourceItemId: string | null, state = 'skipped') => ({
+  const row = (id: string, sourceItemId: string | null, state: ItemState = STATE_SKIPPED) => ({
     id,
     source_item_id: sourceItemId,
     state,
@@ -370,6 +373,17 @@ describe('dependencyCycleError', () => {
     expect(
       dependencyCycleError([], { item_id: 'camera', depends_on_item_id: 'camera' }, nameOf),
     ).toEqual({ reason: 'self', names: ['Kamera'] })
+  })
+})
+
+describe('linkEdge / linkedEnd (FR-20.1, read from either end)', () => {
+  it.each([
+    [DEPENDENCY_LINK_MAIN, { item_id: 'battery', depends_on_item_id: 'camera' }],
+    [DEPENDENCY_LINK_COMPANION, { item_id: 'camera', depends_on_item_id: 'battery' }],
+  ] as const)('standing on the battery, picking the camera as %s', (direction, edge) => {
+    expect(linkEdge(direction, 'battery', 'camera')).toEqual(edge)
+    // The far end of what was written is what was picked.
+    expect(linkedEnd(direction, edge)).toBe('camera')
   })
 })
 

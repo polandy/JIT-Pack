@@ -1,6 +1,6 @@
 /**
  * FR-29.20 — a route being edited: the draft, its undo and redo, and the
- * requests its new legs make. The rules are `domain/route.ts`; this is the
+ * requests its new legs make. The rules are `domain/shared/route.ts`; this is the
  * part that waits on a network.
  *
  * Every edit pushes the draft it replaces. An answer arriving for a leg is
@@ -18,7 +18,7 @@ import {
   type NewLegMode,
   type RouteDraft,
   type RoutePoint,
-} from '@/domain/route'
+} from '@/domain/shared/route'
 
 /** What a leg is fetched with — `composables/routing.ts` in the app, fakes in a test. */
 export interface LegFetchers {

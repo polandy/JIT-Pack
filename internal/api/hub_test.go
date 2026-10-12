@@ -1,8 +1,11 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -98,7 +101,14 @@ func wsSend(t *testing.T, ws *websocket.Conn, msg any) {
 	}
 }
 
-func wsRead(t *testing.T, ws *websocket.Conn) WSEvent {
+// wsFrame is a received frame as the tests read it: the payload decoded
+// generically, so an assertion names the wire key it checks.
+type wsFrame struct {
+	Type    WSEventType    `json:"type"`
+	Payload map[string]any `json:"payload"`
+}
+
+func wsRead(t *testing.T, ws *websocket.Conn) wsFrame {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -106,22 +116,22 @@ func wsRead(t *testing.T, ws *websocket.Conn) WSEvent {
 	if err != nil {
 		t.Fatalf("read: %v", err)
 	}
-	var evt WSEvent
+	var evt wsFrame
 	if err := json.Unmarshal(data, &evt); err != nil {
 		t.Fatalf("unmarshal event: %v", err)
 	}
 	return evt
 }
 
-func wsReadTimeout(t *testing.T, ws *websocket.Conn, timeout time.Duration) (WSEvent, bool) {
+func wsReadTimeout(t *testing.T, ws *websocket.Conn, timeout time.Duration) (wsFrame, bool) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	_, data, err := ws.Read(ctx)
 	if err != nil {
-		return WSEvent{}, false
+		return wsFrame{}, false
 	}
-	var evt WSEvent
+	var evt wsFrame
 	if err := json.Unmarshal(data, &evt); err != nil {
 		t.Fatalf("unmarshal event: %v", err)
 	}
@@ -172,7 +182,7 @@ func TestHub_TripChanged_BroadcastToSubscribers(t *testing.T) {
 	evt1 := wsRead(t, ws1)
 	evt2 := wsRead(t, ws2)
 
-	for _, evt := range []WSEvent{evt1, evt2} {
+	for _, evt := range []wsFrame{evt1, evt2} {
 		if evt.Type != "trip.changed" {
 			t.Errorf("type = %q, want trip.changed", evt.Type)
 		}
@@ -445,7 +455,7 @@ func TestHub_Roster_AnOlderSnapshotNeverArrivesLast_FR4_9(t *testing.T) {
 	hub.NotifyMasterChanged("sarah", marker)
 	var last []any
 	for {
-		var evt WSEvent
+		var evt wsFrame
 		if err := json.Unmarshal(<-sarahPeer.got, &evt); err != nil {
 			t.Fatalf("unmarshal frame: %v", err)
 		}
@@ -555,7 +565,7 @@ func TestHub_ABroadcastDoesNotWaitForAStalledPeer(t *testing.T) {
 
 	// The reading peer has the event while the other is still parked. No
 	// deadline is involved: the channel read is the rendezvous.
-	var evt WSEvent
+	var evt wsFrame
 	for {
 		frame := <-reading.got
 		if err := json.Unmarshal(frame, &evt); err != nil {
@@ -619,7 +629,7 @@ func TestHub_AReadingPeerKeepsEveryFrameInOrder(t *testing.T) {
 	}
 
 	for i := 0; i < sent; i++ {
-		var evt WSEvent
+		var evt wsFrame
 		if err := json.Unmarshal(<-peer.got, &evt); err != nil {
 			t.Fatalf("unmarshal frame %d: %v", i, err)
 		}
@@ -656,20 +666,50 @@ func TestHub_DroppingAPeerDoesNotStallTheBroadcastEither(t *testing.T) {
 
 	// Fill the queue, then overrun it — the next broadcast is the one that
 	// decides to drop it, and it is a broadcast the other peer is in too.
+	// The reading peer takes each frame before the next is sent, so only the
+	// stalled one ever falls behind; a burst would race its pump.
 	for i := 0; i < wsSendQueue; i++ {
 		hub.NotifyTripChanged("t1", int64(i))
+		awaitTripChanged(t, reading, int64(i))
 	}
 	hub.NotifyTripChanged("t1", 999)
 	<-stalled.closed // it was dropped, and CloseNow is now parked
+	awaitTripChanged(t, reading, 999)
 
 	hub.NotifyTripChanged("t1", 1000)
+	awaitTripChanged(t, reading, 1000)
+}
 
+// A caller that supplies its own logger (ARCH-08c) must see the hub's own
+// log lines on it too — otherwise its output is split between the logger
+// it configured and whatever slog.Default() happens to be.
+func TestHub_LogsToTheInjectedLogger(t *testing.T) {
+	var buf bytes.Buffer
+	injected := slog.New(slog.NewJSONHandler(&buf, nil))
+
+	failingHeadSeq := func(context.Context, string) (int64, error) {
+		return 0, errors.New("head seq unavailable")
+	}
+	hub := NewHub(failingHeadSeq, allowAll)
+	hub.logger = injected
+
+	hub.broadcastPresence("trip-1")
+
+	if got := buf.String(); !strings.Contains(got, "head seq for presence") || !strings.Contains(got, "head seq unavailable") {
+		t.Fatalf("hub log line did not reach the injected logger; got %q", got)
+	}
+}
+
+// awaitTripChanged reads the peer's frames until the trip.changed carrying
+// headSeq arrives, skipping any other frame (presence, roster).
+func awaitTripChanged(t *testing.T, peer *fakePeer, headSeq int64) {
+	t.Helper()
 	for {
-		var evt WSEvent
-		if err := json.Unmarshal(<-reading.got, &evt); err != nil {
+		var evt wsFrame
+		if err := json.Unmarshal(<-peer.got, &evt); err != nil {
 			t.Fatalf("unmarshal frame: %v", err)
 		}
-		if evt.Type == EventTripChanged && evt.Payload["head_seq"] == float64(1000) {
+		if evt.Type == EventTripChanged && evt.Payload["head_seq"] == float64(headSeq) {
 			return
 		}
 	}

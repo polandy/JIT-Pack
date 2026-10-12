@@ -23,6 +23,7 @@ import type {
   TaskPhase,
 } from '@/types/domain'
 import { ITEM_MODE_PACK, TASK_PHASE_BEFORE } from '@/types/domain'
+import { dayNumber } from './shared/calendar'
 
 export interface GenerationTraveler {
   name: string
@@ -94,7 +95,7 @@ export interface GeneratedItem {
   per_person: boolean
   /**
    * FR-27.7: the preparation tasks of the contributing position(s), which the
-   * caller writes as ordinary FR-7.3 todos on the created row. Empty rather
+   * caller writes as ordinary FR-7.3 preparations on the created row. Empty rather
    * than absent, so a caller never has to distinguish "none" from "unknown".
    */
   tasks: string[]
@@ -296,7 +297,7 @@ export interface GenerationResult {
    */
   unassignable: UnassignableItem[]
   /**
-   * FR-7.4: the trip todos the trip starts with — every source's trip tasks
+   * FR-7.4: the trip's own tasks the trip starts with — every source's trip tasks
    * in source order, the same text once however many groups say it. Each
    * carries the phase its template gave it (FR-7.7), so a Vorlage can author
    * „am Bahnhof die Zugverbindung abklären" for the trip itself.
@@ -312,16 +313,16 @@ export interface DraftTripTask {
 
 /** Inclusive day count matching the trips.duration_days DB definition (FR-2.1a: null without start date). */
 export function durationDays(startDate: string | null, endDate: string | null): number | null {
-  if (!startDate || !endDate) return null
-  const ms = Date.parse(endDate) - Date.parse(startDate)
-  if (Number.isNaN(ms)) return null
+  const start = startDate ? dayNumber(startDate) : null
+  const end = endDate ? dayNumber(endDate) : null
+  if (start === null || end === null) return null
   // An end before its start has no length. The pickers make that pair
   // unreachable in the app (FR-2.1d), but a row can still arrive inverted
   // from a device that predates the bound or from an import — and a negative
   // number here would reach generation as a quantity input rather than being
   // read as the absence it is.
-  if (ms < 0) return null
-  return Math.round(ms / 86_400_000) + 1
+  if (end < start) return null
+  return end - start + 1
 }
 
 /**
@@ -415,7 +416,7 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
           existing.sources.push(source)
           // A merge keeps the union of the preparation tasks: dropping the
           // second group's task would lose exactly the knowledge FR-27.7 is
-          // for. Identical text is one todo, not two — the same task learned
+          // for. Identical text is one task, not two — the same task learned
           // by two groups is still one thing to do.
           for (const t of tasks) {
             if (!existing.item.tasks.includes(t)) existing.item.tasks.push(t)
@@ -471,7 +472,7 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
     // FR-5.5 decides this *after* the merge, not per contribution: a position
     // asking for 0 is "considered and left behind", but another group may have
     // lifted the same item above 0, in which case the preparation does apply.
-    // A todo on a skipped row would count as open preparation on a row FR-25.2
+    // A preparation on a skipped row would count as open preparation on a row FR-25.2
     // hides — work nobody can reach and nobody will do.
     if (entry.item.quantity === 0) entry.item.tasks = []
     items.push(entry.item)

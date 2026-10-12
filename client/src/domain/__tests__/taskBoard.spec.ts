@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
 import { taskBoard } from '../taskBoard'
-import type { TripTask } from '../tripTodos'
-import type { TaskPhase, TodoState } from '@/types/domain'
+import type { TripTask } from '../tripTasks'
+import type { TaskPhase, TaskState } from '@/types/domain'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING } from '@/types/domain'
 
 const TODAY = '2026-07-08'
 
 function task(
   id: string,
-  over: { phase?: TaskPhase; due?: string | null; state?: TodoState } = {},
+  over: { phase?: TaskPhase; due?: string | null; state?: TaskState } = {},
 ): TripTask {
   return {
     id,

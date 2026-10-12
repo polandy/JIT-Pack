@@ -14,6 +14,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { installHarness, type Harness } from '@/__tests__/harness'
 import type { TrackUpload } from '@/api/types'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { IndexedDBPersistence } from '@/local/persistence'
 import type { ModuleHost, TrackFiles } from '@/sync/featureModule'
 import { TABLE } from '@/api/tables'
@@ -32,6 +33,7 @@ function serverOrch() {
     baseUrl: 'http://localhost',
     getToken: () => null,
     features: [plannerFeatureStore()],
+    now: fixedClock,
   })
 }
 
@@ -41,6 +43,7 @@ function localOrch(persistence = new IndexedDBPersistence()) {
     getToken: () => null,
     local: persistence,
     features: [plannerFeatureStore()],
+    now: fixedClock,
   })
 }
 

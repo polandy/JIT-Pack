@@ -16,6 +16,7 @@ import { DELETION_REMOVE } from '@/domain/masterDeletion'
 
 import { seedSampleMaster } from '../sampleMaster'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -32,6 +33,7 @@ function seed() {
     baseUrl: '',
     getToken: () => null,
     local: new IndexedDBPersistence(),
+    now: fixedClock,
   })
   return { orchestrator, result: seedSampleMaster(orchestrator), master: useMasterStore() }
 }
@@ -149,7 +151,9 @@ describe('seedSampleMaster (dev)', () => {
     ])
     // The two released ones carry a permanent delete; the rest are still used.
     const removable = master.retiredItemList
-      .filter((i) => orchestrator.masterItemDeletionOutlook(i.id).kind === DELETION_REMOVE)
+      .filter(
+        (i) => orchestrator.masterData.masterItemDeletionOutlook(i.id).kind === DELETION_REMOVE,
+      )
       .map((i) => i.name)
       .sort()
     expect(removable).toEqual(['Ohrstöpsel', 'Wärmflasche'])
@@ -188,6 +192,7 @@ describe('seedSampleData (dev)', () => {
       baseUrl: '',
       getToken: () => null,
       local: new IndexedDBPersistence(),
+      now: fixedClock,
     })
 
     const outcome = await seedSampleData(orchestrator)
@@ -270,6 +275,7 @@ describe('seedSampleData (dev)', () => {
       baseUrl: '',
       getToken: () => null,
       local: new IndexedDBPersistence(),
+      now: fixedClock,
     })
 
     // Connected first, because the FR-27.4 refresh refuses to run before the
@@ -293,7 +299,7 @@ describe('seedSampleData (dev)', () => {
     // It also arrives with an *open* question on it: a group gained a position
     // after the trip took its content over, so M4's proposal card is reachable
     // from a fresh install without editing a group by hand first.
-    const proposal = orchestrator.refreshProposals.value[planned[0]!.id]
+    const proposal = orchestrator.groupRefresh.refreshProposals.value[planned[0]!.id]
     expect(proposal?.add.map((a) => a.generated.name)).toEqual(['Stirnlampe'])
     // Offered, not applied — otherwise the seed would skip the question it
     // exists to show.
@@ -303,8 +309,10 @@ describe('seedSampleData (dev)', () => {
   it('rejects rather than resolving quietly when a seed step fails', async () => {
     const { seedSampleData } = await import('../sampleData')
     const broken = {
-      createTag: () => {
-        throw new Error('boom')
+      masterData: {
+        createTag: () => {
+          throw new Error('boom')
+        },
       },
     } as unknown as Parameters<typeof seedSampleData>[0]
 
@@ -398,6 +406,7 @@ describe('sample trip, FR-28.7', () => {
       baseUrl: '',
       getToken: () => null,
       local: new IndexedDBPersistence(),
+      now: fixedClock,
     })
     const master = useMasterStore()
     const tripStore = useTripStore()

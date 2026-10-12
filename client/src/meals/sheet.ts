@@ -8,7 +8,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-import type { MealSlot } from '@/types/domain'
+import type { MealSlot } from './types'
 
 /** What the sheet is asked to show: a meal, or a new one on a day and slot. */
 export type MealSheetRequest =

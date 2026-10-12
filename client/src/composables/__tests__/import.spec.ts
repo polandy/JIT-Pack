@@ -14,6 +14,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { ImportPlan } from '@/domain/spreadsheet'
@@ -59,7 +60,11 @@ const plan: ImportPlan = {
 
 describe('commitImport (FR-16.2)', () => {
   it('creates categories, merges decided items, and imports archived trips', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const master = useMasterStore()
     const trips = useTripStore()
     master.applyChange({
@@ -70,7 +75,7 @@ describe('commitImport (FR-16.2)', () => {
       row: { name: 'Unterhosen' },
     })
 
-    const result = orch.commitImport(plan)
+    const result = orch.tripCreation.commitImport(plan)
 
     // Master data: one new category, two new items, merge reused.
     const kleidung = master.tagList.find((c) => c.name === 'Kleidung')
@@ -112,11 +117,11 @@ describe('commitImport (FR-16.2)', () => {
 
     // '?' noise → open task on the imported trip item (NFR-4.7).
     const regen = items2023.find((i) => i.name === 'Regenschutz Rucksack')!
-    const todos = trips.getItemTodos(t2023.id, regen.id)
-    expect(todos).toHaveLength(1)
-    expect(todos[0]!.task_state).toBe('open')
+    const prepTasks = trips.getRowPrepTasks(t2023.id, regen.id)
+    expect(prepTasks).toHaveLength(1)
+    expect(prepTasks[0]!.task_state).toBe('open')
     // NFR-4.12: the body is the catalogue's, in the language that is active.
-    expect(todos[0]!.body).toBe(t('import.wizard.noiseTodo', { name: regen.name }))
+    expect(prepTasks[0]!.body).toBe(t('import.wizard.noiseTask', { name: regen.name }))
   })
 
   /**
@@ -129,15 +134,19 @@ describe('commitImport (FR-16.2)', () => {
   it('writes the noise task in the active language, not in English', () => {
     setLocale('de')
     try {
-      const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+      const orch = useSyncOrchestrator({
+        baseUrl: 'http://localhost',
+        getToken: () => null,
+        now: fixedClock,
+      })
       const trips = useTripStore()
 
-      const result = orch.commitImport(plan)
+      const result = orch.tripCreation.commitImport(plan)
 
       const row = trips.getItems(result.tripIds[0]!).find((i) => i.name === 'Regenschutz Rucksack')!
-      const [todo] = trips.getItemTodos(result.tripIds[0]!, row.id)
-      expect(todo!.body).toContain('klären')
-      expect(todo!.body).not.toContain('clarify')
+      const [prepTask] = trips.getRowPrepTasks(result.tripIds[0]!, row.id)
+      expect(prepTask!.body).toContain('klären')
+      expect(prepTask!.body).not.toContain('clarify')
     } finally {
       setLocale('en')
     }
@@ -151,9 +160,13 @@ describe('commitImport (FR-16.2)', () => {
    * optimistically — the whole inventory arrives untagged.
    */
   it('enqueues every master item before the tag assignment that references it', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
 
-    orch.commitImport(plan)
+    orch.tripCreation.commitImport(plan)
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
 
     const pushed = fetchMock.mock.calls
@@ -176,7 +189,11 @@ describe('commitImport (FR-16.2)', () => {
   })
 
   it('reuses an existing category instead of duplicating it', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const master = useMasterStore()
     master.applyChange({
       seq: 0,
@@ -186,7 +203,7 @@ describe('commitImport (FR-16.2)', () => {
       row: { name: 'Kleidung', sort_order: 0 },
     })
 
-    orch.commitImport({ ...plan, trips: [] })
+    orch.tripCreation.commitImport({ ...plan, trips: [] })
 
     expect(master.tagList.filter((c) => c.name === 'Kleidung')).toHaveLength(1)
     const socken2 = master.itemList.find((i) => i.name === 'Socken')!

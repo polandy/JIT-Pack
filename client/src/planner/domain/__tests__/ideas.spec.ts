@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import type { Idea, IdeaComment, IdeaVote } from '@/types/domain'
+import type { Idea, IdeaComment, IdeaVote } from '../../types'
 import {
   IDEA_STATE_DONE,
   IDEA_STATE_DROPPED,
   IDEA_STATE_IDEA,
   IDEA_STATE_SHORTLISTED,
-} from '@/types/domain'
+} from '../../types'
 import {
   IDEA_ORDER_NEWEST,
   IDEA_ORDER_SCORE,

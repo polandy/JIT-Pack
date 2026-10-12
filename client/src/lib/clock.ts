@@ -18,13 +18,14 @@ export type NowMs = () => number
 /** The same instant as an ISO-8601 string, which is what rows store. */
 export type NowIso = () => string
 
-/** Real time, used wherever no clock was supplied. */
-export const defaultNowMs: NowMs = Date.now
+/**
+ * Real time, used wherever no clock was supplied. It looks `Date.now` up on
+ * every call, so a spec that sets the machine clock (`vi.setSystemTime`)
+ * reaches the default too.
+ */
+export const defaultNowMs: NowMs = () => Date.now()
 
 /** Turns a millisecond clock into the ISO one the mutations write. */
 export function isoFrom(now: NowMs): NowIso {
   return () => new Date(now()).toISOString()
 }
-
-/** Real time as an ISO string. */
-export const defaultNowIso: NowIso = isoFrom(defaultNowMs)

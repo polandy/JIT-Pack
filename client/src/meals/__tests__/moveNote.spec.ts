@@ -6,7 +6,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { setLocale } from '@/i18n'
-import type { MealIngredient } from '@/types/domain'
+import type { MealIngredient } from '../types'
 import { freshNote } from '../moveNote'
 
 function bought(name: string, position: number): MealIngredient {

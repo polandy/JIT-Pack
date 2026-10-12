@@ -10,6 +10,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import { TABLE } from '@/api/tables'
@@ -47,6 +48,7 @@ async function localOrchestrator() {
       load: () => Promise.resolve([]),
       requestDurability: () => Promise.resolve(true),
     } as never,
+    now: fixedClock,
   })
   await orch.connect()
   return orch
@@ -125,7 +127,7 @@ describe('createTemplateFromTrip (FR-27.5)', () => {
     const master = useMasterStore()
     seedWorld()
 
-    const templateId = orch.createTemplateFromTrip(TRIP_ID, ANSWERS)!
+    const templateId = orch.postTrip.createTemplateFromTrip(TRIP_ID, ANSWERS)!
 
     expect(master.getTemplate(templateId)).toMatchObject({
       name: 'Samedan Sommer 2027',
@@ -141,7 +143,7 @@ describe('createTemplateFromTrip (FR-27.5)', () => {
     const master = useMasterStore()
     seedWorld({ deviation: true })
 
-    const templateId = orch.createTemplateFromTrip(TRIP_ID, ANSWERS)!
+    const templateId = orch.postTrip.createTemplateFromTrip(TRIP_ID, ANSWERS)!
 
     const groupNames = master
       .getTemplateItems(GROUP_ID)
@@ -155,7 +157,7 @@ describe('createTemplateFromTrip (FR-27.5)', () => {
     const master = useMasterStore()
     seedWorld({ deviation: true })
 
-    const templateId = orch.createTemplateFromTrip(TRIP_ID, {
+    const templateId = orch.postTrip.createTemplateFromTrip(TRIP_ID, {
       ...ANSWERS,
       choices: { [GROUP_ID]: 'own' },
     })!
@@ -172,7 +174,7 @@ describe('createTemplateFromTrip (FR-27.5)', () => {
     const master = useMasterStore()
     seedWorld({ loose: true })
 
-    const templateId = orch.createTemplateFromTrip(TRIP_ID, {
+    const templateId = orch.postTrip.createTemplateFromTrip(TRIP_ID, {
       ...ANSWERS,
       checkedLooseIds: ['row-foehn'],
     })!
@@ -188,7 +190,7 @@ describe('createTemplateFromTrip (FR-27.5)', () => {
     const master = useMasterStore()
     seedWorld({ perPerson: true })
 
-    const templateId = orch.createTemplateFromTrip(TRIP_ID, {
+    const templateId = orch.postTrip.createTemplateFromTrip(TRIP_ID, {
       ...ANSWERS,
       checkedLooseIds: ['row-jacke-tr-andy'],
     })!
@@ -205,7 +207,7 @@ describe('createTemplateFromTrip (FR-27.5)', () => {
     const master = useMasterStore()
     seedWorld({ loose: true })
 
-    const templateId = orch.createTemplateFromTrip(TRIP_ID, {
+    const templateId = orch.postTrip.createTemplateFromTrip(TRIP_ID, {
       ...ANSWERS,
       checkedLooseIds: ['row-foehn'],
       bundleName: 'Samedan Extras',
@@ -227,7 +229,7 @@ describe('createTemplateFromTrip (FR-27.5)', () => {
     seedWorld({ deviation: true, loose: true })
     const before = JSON.stringify(tripStore.getItems(TRIP_ID))
 
-    orch.createTemplateFromTrip(TRIP_ID, { ...ANSWERS, checkedLooseIds: ['row-foehn'] })
+    orch.postTrip.createTemplateFromTrip(TRIP_ID, { ...ANSWERS, checkedLooseIds: ['row-foehn'] })
 
     expect(JSON.stringify(tripStore.getItems(TRIP_ID))).toBe(before)
     expect(tripStore.getTrip(TRIP_ID)?.status).toBe('archived')
@@ -240,10 +242,11 @@ describe('createTemplateFromTrip (FR-27.5)', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       today: () => TODAY,
+      now: fixedClock,
     })
     seedWorld()
 
-    expect(orch.createTemplateFromTrip(TRIP_ID, ANSWERS)).toBeNull()
+    expect(orch.postTrip.createTemplateFromTrip(TRIP_ID, ANSWERS)).toBeNull()
     expect(useMasterStore().templateList.map((t) => t.name)).toEqual(['Makro Fotografie'])
   })
 })

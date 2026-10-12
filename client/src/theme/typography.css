@@ -347,6 +347,22 @@ ion-action-sheet.md .action-sheet-title {
 }
 
 /*
+ * The recessive line under a section head: what the section is for, or what
+ * acting in it will do. The same voice also closes a section when the line
+ * qualifies the list above it. A class rather than a `SectionHead` prop for
+ * that reason — the line is not always the head's.
+ *
+ * Margin and colour belong to the role for the reasons they belong to the
+ * head and the meta line: left to each screen, a scoped copy is what a child
+ * component cannot see, and the next screen writes a fourth.
+ */
+.jp-section-hint {
+  font-size: var(--jp-text-sm);
+  color: var(--ct-subtext0);
+  margin: 0 0 8px;
+}
+
+/*
  * A label *inside* dense content: the letter head in the inventory list, the
  * chip headings in quick-add, the word above a banner's sentence. Small,
  * tracked capitals in the UI face, recessive.

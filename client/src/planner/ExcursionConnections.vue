@@ -25,12 +25,7 @@ import { t } from '@/i18n'
 import { confirmDestructive } from '@/composables/shared/confirm'
 import type { ExcursionConnectionsProps } from '@/kernel/excursionConnections'
 import { shortDueDay } from '@/lib/taskDueText'
-import {
-  EXCURSION_ROLE_BACK,
-  EXCURSION_ROLE_OUT,
-  type DayEntry,
-  type ExcursionRole,
-} from '@/types/domain'
+import { EXCURSION_ROLE_BACK, EXCURSION_ROLE_OUT, type DayEntry, type ExcursionRole } from './types'
 import { createPlannerActions, type DayEntryFields } from './actions'
 import { connectionLines } from './connectionMap'
 import { excursionJourney, journeyBudget, journeyTimes } from './domain/journey'
@@ -47,7 +42,7 @@ const orchestrator = useOrchestrator()
 const plannerStore = usePlannerStore()
 const actions = createPlannerActions(orchestrator.moduleHost, plannerStore)
 const pageLinks = usePageLinks(props.tripId, orchestrator)
-const { myUserId, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator)
+const { myUserId, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator.identity)
 
 onMounted(loadIdentity)
 

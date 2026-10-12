@@ -105,7 +105,7 @@ describe('createWebSocket', () => {
     const mock = MockWebSocket.instances[0]!
     mock.simulateOpen()
 
-    const event: WSEvent = { type: 'trip.changed', payload: { trip_id: 't1', seq: 42 } }
+    const event: WSEvent = { type: 'trip.changed', payload: { trip_id: 't1', head_seq: 42 } }
     mock.simulateMessage(event)
 
     expect(handler).toHaveBeenCalledWith(event)

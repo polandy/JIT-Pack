@@ -10,7 +10,7 @@ import {
   type DayEntry,
   type ExcursionRole,
   type LatLon,
-} from '@/types/domain'
+} from '../types'
 import { legMode, timeOf, walkLeg, walkMinutes } from './connections'
 
 /** A stop the timetable knows. */

@@ -7,7 +7,7 @@
 import { formatDate, t } from '@/i18n'
 import type { NameOf } from '@/lib/rowFacts'
 import { localDay } from '@/lib/taskDueText'
-import { EXCURSION_ROLE_BACK, EXCURSION_ROLE_OUT, type ConnectionLeg } from '@/types/domain'
+import { EXCURSION_ROLE_BACK, EXCURSION_ROLE_OUT, type ConnectionLeg } from './types'
 import { connectionSummary, connectionTitle } from './domain/connections'
 import { DAY_LINE, type DayLine } from './domain/dayPlan'
 

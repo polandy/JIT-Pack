@@ -3,7 +3,6 @@ import type { packingEn } from './en'
 
 export const packingDe: Record<keyof typeof packingEn, string> = {
   'packing.title': 'Packliste',
-  'packing.itemsLeft': '{n} Packelement offen | {n} Packelemente offen',
   'packing.showDone': '{n} Erledigtes anzeigen | {n} Erledigte anzeigen',
   'packing.hideDone': '{n} Erledigtes ausblenden | {n} Erledigte ausblenden',
   'packing.allDone': 'Alles erledigt 🎉',
@@ -73,6 +72,31 @@ export const packingDe: Record<keyof typeof packingEn, string> = {
     'Der Artikel kommt sonst nirgends vor und wird auch aus dem Inventar gelöscht.',
   'packing.openPrep': '{n} Vorbereitung offen | {n} Vorbereitungen offen',
 
+  // M5 row detail.
+  'row.details': 'Details',
+  'row.detailsHint': 'Beschaffung · Gepäck · Flags',
+  'row.notes': 'Notizen',
+  'row.addNote': 'Notiz schreiben…',
+  'row.addPrep': 'Vorbereitung hinzufügen…',
+  'row.flagAsTask': 'Als Vorbereitung markieren',
+  'row.companions': 'Gehört dazu',
+  'row.assignTo': 'Jemandem zuweisen',
+  'row.assignedTo': 'Zugewiesen an',
+  'row.assignedToNobody': 'niemand',
+  'row.luggageOptional': 'Gepäck · optional',
+  'row.latePackerHint': 'Erst am Abreisetag packen',
+  'row.flagUnusedHint': 'Mitgenommen, nie gebraucht',
+  'row.flagMissingHint': 'Gebraucht und nicht dabei',
+  'row.saving': 'Speichert…',
+  'row.saved': 'Gespeichert',
+  'row.notFound': 'Dieses Packelement ist nicht auf der Liste.',
+  'row.stateOpen': 'offen',
+  'row.statePartial': 'teilweise',
+  'row.statePacked': 'gepackt',
+  'row.stateSkipped': 'weggelassen',
+  'row.statePackingNow': 'wird gepackt',
+  'row.statePackedOpenPrep': 'gepackt · Prep offen',
+
   'packing.packSection': 'Einpacken',
   'packing.prepSection': 'Vorbereitung',
   'packing.listUnknown': 'Packliste wird geladen …',
@@ -80,9 +104,7 @@ export const packingDe: Record<keyof typeof packingEn, string> = {
   'packing.emptyHint': 'Mit ＋ das erste Packelement hinzufügen.',
 
   // M4-Kopfzeile und Icon-Cluster in der App-Bar (G-12).
-  'packing.progress': '{packed}/{total}',
   'packing.searchPlaceholder': 'Packliste durchsuchen…',
-  'packing.closeSearch': 'Suche schliessen',
   'packing.foldAll': 'Alle zuklappen',
   'packing.unfoldAll': 'Alle aufklappen',
   'packing.openCount': '{n} offen',
@@ -192,7 +214,6 @@ export const packingDe: Record<keyof typeof packingEn, string> = {
   'container.loadOf': '{weight} von {max}',
   'container.overLimit': 'Über dem Gewichtslimit',
   'container.imbalance': '{n} % Ungleichgewicht',
-  'container.carriedBy': 'Getragen von {name}',
   'container.new': 'Neues Gepäckstück',
   'container.namePlaceholder': 'z. B. Linke Packtasche',
   'container.carrier': 'Getragen von',

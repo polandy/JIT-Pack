@@ -1,0 +1,517 @@
+package notify
+
+// FR-6.2/FR-7.2 as a decision, apart from the I/O that carries it out. Who a
+// push notifies is a rule over the mutations that landed and the trip's
+// members; creating the rows, pinging the sockets and sending Web Push is
+// not. Keeping the two in one method made every rule reachable only through
+// HTTP plus SQLite plus a goroutine, which is the cut CODING_PRINCIPLES §3
+// rules out.
+
+import (
+	"strings"
+	"unicode"
+
+	"jitpack/internal/store"
+	syncpkg "jitpack/internal/sync"
+)
+
+// plannedNotification is one notification the rules decided is owed:
+// its recipient, its kind and the FR-6.3 deep-link payload. Nothing here
+// has been persisted or delivered yet.
+type plannedNotification struct {
+	UserID  string
+	Kind    string
+	Payload map[string]any
+}
+
+// itemFacts is everything the rules need to know about a trip item: the
+// name a notification says out loud, and the packer FR-7.2 addresses.
+type itemFacts struct {
+	Name         string
+	PackerUserID string
+}
+
+// notificationFacts answers what the rules need to know beyond the mutation
+// itself, each answer reporting false when it cannot be read. It is the
+// rules' only I/O and enters as a seam so the decisions below can be stated
+// in a table; the implementation owns the store call and the logging behind
+// it (storeFacts).
+type notificationFacts interface {
+	// item answers a trip item.
+	item(itemID string) (itemFacts, bool)
+	// travelerAccount answers a traveler's linked account (FR-2.5 →
+	// ADR-058), reporting false when the traveler has none.
+	travelerAccount(travelerID string) (linkedUserID string, ok bool)
+	// words answers what an assignment notification names — a task's body
+	// (FR-7.5) or a shopping entry's name (FR-30.12), by the row's table.
+	// An assignment made after the row was written carries no words of its
+	// own.
+	words(table, id string) (string, bool)
+	// thread answers a note thread by its first note's id (FR-7.13).
+	thread(rootID string) (noteThreadFacts, bool)
+	// idea answers an idea by its id (FR-29.8).
+	idea(ideaID string) (ideaFacts, bool)
+}
+
+// noteThreadFacts is what FR-7.13's reply rule needs to know about a
+// thread: what to call it, and who has taken part in it.
+type noteThreadFacts struct {
+	// Title is the first note's title, empty when it has none.
+	Title string
+	// Body is the first note's words — its first line names an untitled
+	// thread.
+	Body string
+	// Participants are the first note's author and every replier, in any
+	// order and possibly repeated; the rule dedupes.
+	Participants []string
+}
+
+// ideaFacts is what FR-29.8's rules need to know about an idea: what it is
+// called, and who takes part in its discussion.
+type ideaFacts struct {
+	// Title names the idea in the notification.
+	Title string
+	// Participants are the idea's author and every commenter, in any order
+	// and possibly repeated; the rule dedupes.
+	Participants []string
+}
+
+// planNotifications turns one push's mutations into the notifications they
+// earn, in the order they should be delivered. It writes nothing and reads
+// only through facts.
+//
+// landed are the mutations that changed the trip. A trip with fewer than two
+// people on it earns nothing — FR-17.3, which is also why Single-User Mode
+// never produces a notification without the handler having to know it.
+func planNotifications(
+	tripID, actor string, landed []syncpkg.Mutation, members []store.MemberName, facts notificationFacts,
+) []plannedNotification {
+	if len(members) < 2 {
+		return nil
+	}
+	actorName := displayNameOf(members, actor)
+
+	var plan []plannedNotification
+	for _, m := range landed {
+		switch m.Table {
+		case store.TableTripItems:
+			plan = append(plan, planDelegation(tripID, actor, actorName, m, facts)...)
+			plan = append(plan, planRosterAssignment(tripID, actor, actorName, m, members, facts, plan)...)
+		case store.TableComments:
+			assigned := planAssignment(tripID, actor, actorName, m, members, facts)
+			plan = append(plan, assigned...)
+			if m.Op == syncpkg.OpInsert {
+				switch {
+				case store.IsNote(m.Fields) && isNoteReply(m):
+					// FR-7.13: a reply is for the thread's participants,
+					// not the whole trip — the first note already reached
+					// everyone.
+					plan = append(plan, planNoteReply(tripID, actor, actorName, m, members, facts)...)
+				case store.IsNote(m.Fields):
+					// FR-7.9 decision 5: a note is written *for* every
+					// co-traveller, not addressed to whoever it names, so it
+					// takes the broadcast rather than planComment's mention scan.
+					plan = append(plan, planNote(tripID, actor, actorName, m, members)...)
+				default:
+					plan = append(plan, withoutRecipients(planComment(tripID, actor, actorName, m, members, facts), assigned)...)
+				}
+			}
+		case store.TableShoppingEntries:
+			plan = append(plan, planAssignment(tripID, actor, actorName, m, members, facts)...)
+		case store.TableIdeas:
+			plan = append(plan, planIdea(tripID, actor, actorName, m, members, facts)...)
+		case store.TableIdeaComments:
+			if m.Op == syncpkg.OpInsert {
+				plan = append(plan, planIdeaComment(tripID, actor, actorName, m, members, facts)...)
+			}
+		}
+	}
+	return plan
+}
+
+// columnAssignee is whom a task (FR-7.5) or a shopping entry (FR-30.12) is
+// handed to — one column name on both tables.
+const columnAssignee = "assignee_user_id"
+
+// columnParentID is FR-7.13's reference from a reply to its thread's first
+// note — the field the reply rule reads off a mutation.
+const columnParentID = "parent_id"
+
+// The idea columns FR-29.8's rules read off a mutation: a state move and
+// which idea a comment is about. An insert's title is store.ColumnTitle —
+// the same column name as a comment's.
+const (
+	columnIdeaState = "state"
+	columnIdeaID    = "idea_id"
+)
+
+// planDelegation fires when a push hands packing responsibility to someone
+// else (FR-4.3 → FR-6.2). Since FR-25.19 packer_user_id *is* that
+// responsibility and nothing else — packing a row writes the separate
+// record column instead — so this reads a deliberate assignment rather
+// than having to tell the two apart.
+func planDelegation(tripID, actor, actorName string, m syncpkg.Mutation, facts notificationFacts) []plannedNotification {
+	target, _ := m.Fields["packer_user_id"].(string)
+	if target == "" || target == actor {
+		return nil
+	}
+	item, ok := facts.item(m.ID)
+	if !ok {
+		return nil
+	}
+	return []plannedNotification{{
+		UserID: target,
+		Kind:   store.NotifyDelegation,
+		Payload: map[string]any{
+			payloadTripID: tripID, payloadItemID: m.ID,
+			payloadActorID: actor, payloadActorName: actorName, payloadItemName: item.Name,
+		},
+	}}
+}
+
+// planRosterAssignment fires when a push points assigned_traveler_id at a
+// traveler linked to an account (FR-2.5 → ADR-058). "You were assigned
+// this item's packing" and "you're the linked account of its traveler"
+// read as the same sentence to the recipient, so this reuses
+// store.NotifyDelegation rather than adding a fifth notification kind and
+// preference the product has not asked for. already is the plan built so
+// far for this mutation: if planDelegation already notified the same
+// person for the same item, this stays silent.
+func planRosterAssignment(
+	tripID, actor, actorName string, m syncpkg.Mutation,
+	members []store.MemberName, facts notificationFacts,
+	already []plannedNotification,
+) []plannedNotification {
+	travelerID, _ := m.Fields["assigned_traveler_id"].(string)
+	if travelerID == "" {
+		return nil
+	}
+	linkedUserID, ok := facts.travelerAccount(travelerID)
+	if !ok || linkedUserID == "" || linkedUserID == actor {
+		return nil
+	}
+	// ADR-058: the notification pipeline trusts trip_members as its whole
+	// recipient universe; a linked account that left the trip earns
+	// nothing rather than a deep link it can no longer open.
+	if displayNameOf(members, linkedUserID) == "" {
+		return nil
+	}
+	for _, p := range already {
+		if p.UserID == linkedUserID && p.Kind == store.NotifyDelegation {
+			return nil
+		}
+	}
+	item, ok := facts.item(m.ID)
+	if !ok {
+		return nil
+	}
+	return []plannedNotification{{
+		UserID: linkedUserID,
+		Kind:   store.NotifyDelegation,
+		Payload: map[string]any{
+			payloadTripID: tripID, payloadItemID: m.ID,
+			payloadActorID: actor, payloadActorName: actorName, payloadItemName: item.Name,
+		},
+	}}
+}
+
+// planAssignment fires when a push hands a task (FR-7.5) or a shopping entry
+// (FR-30.12) to somebody else: planDelegation's counterpart, and the same
+// kind, because the delegation body („{actor} hat dir „{item}" zugewiesen")
+// already says the sentence. The payload names the row by the key its
+// table's deep link reads. The recipient must be on the trip — the link is
+// into it (ADR-058's driver 1).
+func planAssignment(
+	tripID, actor, actorName string, m syncpkg.Mutation,
+	members []store.MemberName, facts notificationFacts,
+) []plannedNotification {
+	target, _ := m.Fields[columnAssignee].(string)
+	if target == "" || target == actor || displayNameOf(members, target) == "" {
+		return nil
+	}
+	idKey, wordsColumn := payloadCommentID, store.ColumnBody
+	if m.Table == store.TableShoppingEntries {
+		idKey, wordsColumn = payloadEntryID, "name"
+	}
+	words, _ := m.Fields[wordsColumn].(string)
+	if words == "" {
+		var ok bool
+		if words, ok = facts.words(m.Table, m.ID); !ok {
+			return nil
+		}
+	}
+	return []plannedNotification{{
+		UserID: target,
+		Kind:   store.NotifyDelegation,
+		Payload: map[string]any{
+			payloadTripID: tripID, idKey: m.ID,
+			payloadActorID: actor, payloadActorName: actorName, payloadItemName: truncate(words, previewLen),
+		},
+	}}
+}
+
+// withoutRecipients drops from plan everyone already notified in taken: one
+// mutation earns a person one notification, and the rule that claimed them
+// first is the more actionable one.
+func withoutRecipients(plan, taken []plannedNotification) []plannedNotification {
+	var out []plannedNotification
+	for _, p := range plan {
+		if !containsRecipient(taken, p.UserID) {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// containsRecipient reports whether plan already notifies userID.
+func containsRecipient(plan []plannedNotification, userID string) bool {
+	for _, p := range plan {
+		if p.UserID == userID {
+			return true
+		}
+	}
+	return false
+}
+
+// planComment fires mention notifications for @display-name matches and a
+// task notification to the item's packer when the comment is a task
+// (FR-7.2). A packer who is also mentioned gets exactly one notification —
+// task wins, it is the more actionable kind.
+func planComment(
+	tripID, actor, actorName string,
+	m syncpkg.Mutation,
+	members []store.MemberName,
+	facts notificationFacts,
+) []plannedNotification {
+	body, _ := m.Fields[store.ColumnBody].(string)
+	payload := map[string]any{
+		payloadTripID: tripID, payloadCommentID: m.ID,
+		payloadActorID: actor, payloadActorName: actorName, payloadPreview: truncate(body, previewLen),
+	}
+
+	var plan []plannedNotification
+	notified := map[string]bool{}
+
+	if itemID, _ := m.Fields[store.ColumnItemID].(string); itemID != "" {
+		item, ok := facts.item(itemID)
+		if !ok {
+			// An unreadable item costs the comment its mentions too: the
+			// payload they would carry is the one that failed to resolve,
+			// and half of a deep link is worse than none.
+			return nil
+		}
+		payload[payloadItemID] = itemID
+		payload[payloadItemName] = item.Name
+		if syncpkg.IsTruthy(m.Fields[store.ColumnIsTask]) && item.PackerUserID != "" && item.PackerUserID != actor {
+			plan = append(plan, plannedNotification{UserID: item.PackerUserID, Kind: store.NotifyTask, Payload: payload})
+			notified[item.PackerUserID] = true
+		}
+	}
+
+	for _, target := range mentionTargets(body, members) {
+		if target == actor || notified[target] {
+			continue
+		}
+		plan = append(plan, plannedNotification{UserID: target, Kind: store.NotifyMention, Payload: payload})
+		notified[target] = true
+	}
+	return plan
+}
+
+// planNote fires FR-7.9's "to all members" push for a new trip note: every
+// member but its author, because a note is written for everyone else by
+// default — unlike planComment's mentions, which a body has to ask for by
+// name, a note needs no @name to reach the people it is for.
+func planNote(
+	tripID, actor, actorName string, m syncpkg.Mutation, members []store.MemberName,
+) []plannedNotification {
+	body, _ := m.Fields[store.ColumnBody].(string)
+	payload := map[string]any{
+		payloadTripID: tripID, payloadCommentID: m.ID,
+		payloadActorID: actor, payloadActorName: actorName, payloadPreview: truncate(body, previewLen),
+	}
+	var plan []plannedNotification
+	for _, member := range members {
+		if member.UserID == actor {
+			continue
+		}
+		plan = append(plan, plannedNotification{UserID: member.UserID, Kind: store.NotifyNote, Payload: payload})
+	}
+	return plan
+}
+
+// isNoteReply reports whether a note insert is FR-7.13's reply: it names
+// the thread's first note.
+func isNoteReply(m syncpkg.Mutation) bool {
+	parent, _ := m.Fields[columnParentID].(string)
+	return parent != ""
+}
+
+// planNoteReply fires FR-7.13's reply push: to every participant of the
+// thread — its first note's author and everyone who has replied — who is
+// still on the trip, but never to the replier. A tick does not make a
+// participant (question 4): it would subscribe a reader to a discussion.
+func planNoteReply(
+	tripID, actor, actorName string, m syncpkg.Mutation,
+	members []store.MemberName, facts notificationFacts,
+) []plannedNotification {
+	root, _ := m.Fields[columnParentID].(string)
+	thread, ok := facts.thread(root)
+	if !ok {
+		return nil
+	}
+	body, _ := m.Fields[store.ColumnBody].(string)
+	payload := map[string]any{
+		payloadTripID: tripID, payloadCommentID: m.ID, payloadThreadID: root,
+		payloadActorID: actor, payloadActorName: actorName,
+		payloadPreview: truncate(body, previewLen), payloadThread: truncate(threadName(thread), previewLen),
+	}
+	onTrip := map[string]bool{}
+	for _, member := range members {
+		onTrip[member.UserID] = true
+	}
+	notified := map[string]bool{actor: true}
+	var plan []plannedNotification
+	for _, target := range thread.Participants {
+		if notified[target] || !onTrip[target] {
+			continue
+		}
+		notified[target] = true
+		plan = append(plan, plannedNotification{UserID: target, Kind: store.NotifyNoteReply, Payload: payload})
+	}
+	return plan
+}
+
+// threadName is what a thread is called: its title, or else its first
+// line (FR-7.13).
+func threadName(thread noteThreadFacts) string {
+	if thread.Title != "" {
+		return thread.Title
+	}
+	first, _, _ := strings.Cut(thread.Body, "\n")
+	return first
+}
+
+// planIdea fires FR-29.8's two pushes about an idea itself, to every
+// co-traveller but the actor: a new idea, which is put up for everyone like a
+// note, and a move to the shortlist, which is the group's decision. Any other
+// edit — another state, a new title, a picture — notifies nobody.
+func planIdea(
+	tripID, actor, actorName string, m syncpkg.Mutation,
+	members []store.MemberName, facts notificationFacts,
+) []plannedNotification {
+	var kind, title string
+	switch {
+	case m.Op == syncpkg.OpInsert:
+		// The title travels with the insert: nothing needs reading.
+		kind = store.NotifyIdea
+		title, _ = m.Fields[store.ColumnTitle].(string)
+	case m.Op != syncpkg.OpDelete && m.Fields[columnIdeaState] == store.IdeaStateShortlisted:
+		kind = store.NotifyIdeaShortlisted
+		idea, ok := facts.idea(m.ID)
+		if !ok {
+			return nil
+		}
+		title = idea.Title
+	default:
+		return nil
+	}
+	payload := map[string]any{
+		payloadTripID: tripID, payloadIdeaID: m.ID,
+		payloadActorID: actor, payloadActorName: actorName, payloadItemName: truncate(title, previewLen),
+	}
+	var plan []plannedNotification
+	for _, member := range members {
+		if member.UserID != actor {
+			plan = append(plan, plannedNotification{UserID: member.UserID, Kind: kind, Payload: payload})
+		}
+	}
+	return plan
+}
+
+// planIdeaComment fires FR-29.8's push for a word about an idea: to the
+// idea's author and everyone who has written about it and is still on the
+// trip, never to the writer — FR-7.13's reply rule, so a lively discussion
+// does not ring every phone on the trip. A vote does not make a participant.
+func planIdeaComment(
+	tripID, actor, actorName string, m syncpkg.Mutation,
+	members []store.MemberName, facts notificationFacts,
+) []plannedNotification {
+	ideaID, _ := m.Fields[columnIdeaID].(string)
+	idea, ok := facts.idea(ideaID)
+	if !ok {
+		return nil
+	}
+	body, _ := m.Fields[store.ColumnBody].(string)
+	payload := map[string]any{
+		payloadTripID: tripID, payloadIdeaID: ideaID, payloadCommentID: m.ID,
+		payloadActorID: actor, payloadActorName: actorName,
+		payloadItemName: truncate(idea.Title, previewLen), payloadPreview: truncate(body, previewLen),
+	}
+	onTrip := map[string]bool{}
+	for _, member := range members {
+		onTrip[member.UserID] = true
+	}
+	notified := map[string]bool{actor: true}
+	var plan []plannedNotification
+	for _, target := range idea.Participants {
+		if notified[target] || !onTrip[target] {
+			continue
+		}
+		notified[target] = true
+		plan = append(plan, plannedNotification{UserID: target, Kind: store.NotifyIdeaComment, Payload: payload})
+	}
+	return plan
+}
+
+// displayNameOf resolves one member's display name. An id that is not on
+// the trip yields the empty string, which the client renders as an
+// unnamed actor rather than as nothing at all.
+func displayNameOf(members []store.MemberName, userID string) string {
+	for _, m := range members {
+		if m.UserID == userID {
+			return m.DisplayName
+		}
+	}
+	return ""
+}
+
+// mentionTargets returns the user ids of members whose display name
+// appears as @<name> in body. Matching is case-insensitive and
+// tolerates spaces inside names (OIDC display names); the character
+// after the name must be a word boundary so @Andyx never hits @Andy.
+func mentionTargets(body string, members []store.MemberName) []string {
+	lower := strings.ToLower(body)
+	var out []string
+	for _, m := range members {
+		name := strings.ToLower(m.DisplayName)
+		if name == "" {
+			continue
+		}
+		for idx := 0; ; {
+			i := strings.Index(lower[idx:], "@"+name)
+			if i < 0 {
+				break
+			}
+			end := idx + i + 1 + len(name)
+			if end >= len(lower) || !isNameRune(rune(lower[end])) {
+				out = append(out, m.UserID)
+				break
+			}
+			idx = end
+		}
+	}
+	return out
+}
+
+func isNameRune(r rune) bool {
+	return unicode.IsLetter(r) || unicode.IsDigit(r)
+}
+
+func truncate(s string, max int) string {
+	runes := []rune(s)
+	if len(runes) <= max {
+		return s
+	}
+	return string(runes[:max])
+}

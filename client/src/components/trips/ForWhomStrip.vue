@@ -30,7 +30,7 @@ import {
 } from '@/domain/membership'
 import { t, type MessageKey } from '@/i18n'
 import { useTripStore } from '@/stores/tripStore'
-import type { TripParticipant } from '@/types/domain'
+import type { TripMemberProfile } from '@/types/domain'
 
 const props = withDefaults(
   defineProps<{
@@ -38,7 +38,7 @@ const props = withDefaults(
     /** Any row of the item; the strip acts on every instance, not on this one. */
     itemId: string
     /** G-3 wants the name, and only a caller knows the trip's people. */
-    participants: TripParticipant[]
+    memberProfiles: TripMemberProfile[]
     /** A caller's own reason to be read-only, beside the claim the strip finds itself. */
     locked?: boolean
     /** M5: a stepper under every lit avatar. */
@@ -70,8 +70,8 @@ const rows = computed(() => (item.value ? membershipRows(allItems.value, item.va
 const rowsWithContent = computed(() =>
   rowsCarryingContent(rows.value, {
     hasComments: (rowId) => tripStore.getItemComments(props.tripId, rowId).length > 0,
-    hasTodo: (rowId) =>
-      tripStore.getTodos(props.tripId).some((todo) => todo.trip_item_id === rowId),
+    hasPrepTask: (rowId) =>
+      tripStore.getPrepTasks(props.tripId).some((task) => task.trip_item_id === rowId),
   }),
 )
 
@@ -87,7 +87,7 @@ const totalQuantity = computed(() => rows.value.reduce((n, r) => n + r.quantity,
  */
 const claimHolderId = computed(() => {
   for (const row of rows.value) {
-    const holder = orchestrator.lockHolder(props.tripId, row)
+    const holder = orchestrator.claims.lockHolder(props.tripId, row)
     if (holder !== null) return holder
   }
   return null
@@ -95,7 +95,7 @@ const claimHolderId = computed(() => {
 const isLocked = computed(() => props.locked || claimHolderId.value !== null)
 
 const lockNotice = computed(() => {
-  const who = props.participants.find((p) => p.user_id === claimHolderId.value)?.display_name
+  const who = props.memberProfiles.find((p) => p.user_id === claimHolderId.value)?.display_name
   return who ? t('membership.lockedBy', { who }) : t('membership.lockedByUnknown')
 })
 
@@ -129,7 +129,7 @@ function apply(target: MembershipTarget) {
 }
 
 function write(target: MembershipTarget, plan: MembershipPlan) {
-  orchestrator.setMembership(props.tripId, rows.value, target, rowsWithContent.value)
+  orchestrator.packing.setMembership(props.tripId, rows.value, target, rowsWithContent.value)
   if (plan.delete.length > 0) emit('rowsRemoved', plan.delete)
 }
 

@@ -9,44 +9,13 @@
  * lookup, which is the two rules below rather than a switch written twice.
  */
 import type { MessageKey } from '@/i18n'
-import type { NotificationEntry } from '@/api/types'
-
-/** FR-7.11's reminder — a kind whose body depends on its payload's day, and whose link is M25. */
-export const NOTIFY_TASK_DUE = 'task_due'
-/** FR-30.10's reminder for a purchase — the same day rule, and its link is M6. */
-export const NOTIFY_SHOPPING_DUE = 'shopping_due'
-/** FR-31.9's reminder for an excursion — the same day rule, and its link is the excursion's list. */
-export const NOTIFY_EXCURSION_DUE = 'excursion_due'
-
-/** FR-7.9's new note and FR-7.13's reply — the two kinds whose link is a thread on M26. */
-export const NOTIFY_NOTE = 'note'
-export const NOTIFY_NOTE_REPLY = 'note_reply'
-
-/**
- * FR-29.8's three planner kinds — each names its idea, and each link opens it
- * over the trip's ideas (M28).
- */
-export const NOTIFY_IDEA = 'idea'
-export const NOTIFY_IDEA_COMMENT = 'idea_comment'
-export const NOTIFY_IDEA_SHORTLISTED = 'idea_shortlisted'
-
-/** The kinds the server sends (Sync-API §8). */
-export const NOTIFICATION_KINDS = [
-  'delegation',
-  'mention',
-  'task',
-  'lock_taken',
-  NOTIFY_NOTE,
-  NOTIFY_NOTE_REPLY,
-  NOTIFY_TASK_DUE,
-  NOTIFY_SHOPPING_DUE,
-  NOTIFY_EXCURSION_DUE,
-  NOTIFY_IDEA,
-  NOTIFY_IDEA_COMMENT,
-  NOTIFY_IDEA_SHORTLISTED,
-] as const
-
-export type NotificationKind = (typeof NOTIFICATION_KINDS)[number]
+import {
+  NOTIFICATION_DUE,
+  NOTIFICATION_KIND,
+  NOTIFICATION_PAYLOAD_KEY,
+  type NotificationEntry,
+  type NotificationKind,
+} from '@/api/types'
 
 /**
  * The name of the body a notification renders with. A kind has two: one that
@@ -65,11 +34,36 @@ export type NotificationBodyName = `${BodyKind}` | `${BodyKind}Plain` | 'generic
 const TASK_DUE_TOMORROW = 'task_dueTomorrow'
 const SHOPPING_DUE_TOMORROW = 'shopping_dueTomorrow'
 const EXCURSION_DUE_TOMORROW = 'excursion_dueTomorrow'
-type BodyKind =
-  | NotificationKind
-  | typeof TASK_DUE_TOMORROW
-  | typeof SHOPPING_DUE_TOMORROW
-  | typeof EXCURSION_DUE_TOMORROW
+type TomorrowBody =
+  typeof TASK_DUE_TOMORROW | typeof SHOPPING_DUE_TOMORROW | typeof EXCURSION_DUE_TOMORROW
+type BodyKind = NotificationKind | TomorrowBody
+
+/**
+ * How each kind's sentence is chosen: whether it quotes the body's preview
+ * rather than naming an item (a mention, FR-7.9's note, FR-7.13's reply), and
+ * a reminder's tomorrow sentence (FR-7.11, FR-30.10, FR-31.9). A record over
+ * the generated kinds, so a kind the server adds fails the type check here.
+ */
+const KIND_BODIES: Readonly<
+  Record<NotificationKind, { quotes: boolean; tomorrow?: TomorrowBody }>
+> = {
+  [NOTIFICATION_KIND.delegation]: { quotes: false },
+  [NOTIFICATION_KIND.mention]: { quotes: true },
+  [NOTIFICATION_KIND.task]: { quotes: false },
+  [NOTIFICATION_KIND.lock_taken]: { quotes: false },
+  [NOTIFICATION_KIND.note]: { quotes: true },
+  [NOTIFICATION_KIND.note_reply]: { quotes: true },
+  [NOTIFICATION_KIND.task_due]: { quotes: false, tomorrow: TASK_DUE_TOMORROW },
+  [NOTIFICATION_KIND.shopping_due]: { quotes: false, tomorrow: SHOPPING_DUE_TOMORROW },
+  [NOTIFICATION_KIND.excursion_due]: { quotes: false, tomorrow: EXCURSION_DUE_TOMORROW },
+  [NOTIFICATION_KIND.idea]: { quotes: false },
+  [NOTIFICATION_KIND.idea_comment]: { quotes: false },
+  [NOTIFICATION_KIND.idea_shortlisted]: { quotes: false },
+}
+
+/** The kinds the server sends (Sync-API §8). */
+const NOTIFICATION_KINDS = Object.values(NOTIFICATION_KIND)
+
 const BODY_KINDS: readonly BodyKind[] = [
   ...NOTIFICATION_KINDS,
   TASK_DUE_TOMORROW,
@@ -77,18 +71,9 @@ const BODY_KINDS: readonly BodyKind[] = [
   EXCURSION_DUE_TOMORROW,
 ]
 
-/** A reminder kind's tomorrow sentence (FR-7.11, FR-30.10, FR-31.9). */
-const TOMORROW_BODIES: Readonly<Record<string, BodyKind>> = {
-  [NOTIFY_TASK_DUE]: TASK_DUE_TOMORROW,
-  [NOTIFY_SHOPPING_DUE]: SHOPPING_DUE_TOMORROW,
-  [NOTIFY_EXCURSION_DUE]: EXCURSION_DUE_TOMORROW,
+function isKind(kind: string): kind is NotificationKind {
+  return Object.hasOwn(KIND_BODIES, kind)
 }
-
-/** The kinds whose sentence quotes the body rather than naming an item. */
-const PREVIEW_KINDS: readonly string[] = ['mention', NOTIFY_NOTE, NOTIFY_NOTE_REPLY]
-
-/** The payload's `due` value that picks the tomorrow sentence (FR-7.11). */
-export const DUE_TOMORROW = 'tomorrow'
 
 /** Every body name, which is also every row the mirror must carry. */
 export const NOTIFICATION_BODY_NAMES: readonly NotificationBodyName[] = [
@@ -116,7 +101,11 @@ export function notificationDetail(payload: Record<string, unknown> | null): {
     const value = payload?.[key]
     return typeof value === 'string' ? value : ''
   }
-  return { item: str('item_name'), preview: str('preview'), due: str('due') }
+  return {
+    item: str(NOTIFICATION_PAYLOAD_KEY.item_name),
+    preview: str(NOTIFICATION_PAYLOAD_KEY.preview),
+    due: str(NOTIFICATION_PAYLOAD_KEY.due),
+  }
 }
 
 /**
@@ -128,11 +117,10 @@ export function notificationBodyName(
   kind: string,
   detail: { item: string; preview: string; due?: string },
 ): NotificationBodyName {
-  if (!(NOTIFICATION_KINDS as readonly string[]).includes(kind)) return 'generic'
-  // FR-7.9/FR-7.13: a note and a reply are about their own words, like a
-  // mention — they name no item, only the body's preview.
-  const named = PREVIEW_KINDS.includes(kind) ? detail.preview : detail.item
-  const body = (detail.due === DUE_TOMORROW && TOMORROW_BODIES[kind]) || kind
+  if (!isKind(kind)) return 'generic'
+  const { quotes, tomorrow } = KIND_BODIES[kind]
+  const named = quotes ? detail.preview : detail.item
+  const body = (detail.due === NOTIFICATION_DUE.tomorrow && tomorrow) || kind
   return (named ? body : `${body}Plain`) as NotificationBodyName
 }
 
@@ -142,8 +130,8 @@ export function notificationParams(
   actorFallback: string,
 ): Record<string, string> {
   const detail = notificationDetail(entry.payload)
-  const actor = entry.payload?.['actor_name']
-  const thread = entry.payload?.['thread']
+  const actor = entry.payload?.[NOTIFICATION_PAYLOAD_KEY.actor_name]
+  const thread = entry.payload?.[NOTIFICATION_PAYLOAD_KEY.thread]
   return {
     actor: typeof actor === 'string' && actor ? actor : actorFallback,
     item: detail.item,

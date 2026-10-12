@@ -29,7 +29,7 @@ import {
   pricetagsOutline,
   trashOutline,
 } from 'ionicons/icons'
-import { computed, inject, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { computed, inject, nextTick, onMounted, ref, watch } from 'vue'
 
 import BulkBar from '@/components/global/BulkBar.vue'
 import ChipRow from '@/components/global/ChipRow.vue'
@@ -44,16 +44,17 @@ import RestLine from '@/components/global/RestLine.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import { useDragToGroup, type DropPlace } from '@/composables/shared/useDragToGroup'
-import { setHeaderActions, type HeaderAction } from '@/composables/shared/useHeaderActions'
-import { setHeaderSelection } from '@/composables/shared/useHeaderSelection'
+import { usePhasedShelves } from '@/composables/shared/usePhasedShelves'
+import { setHeaderActions } from '@/composables/shared/useHeaderActions'
 import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
-import { SELECTION_ICON, useRowSelection } from '@/composables/shared/useRowSelection'
+import { offerSelection, useRowSelection } from '@/composables/shared/useRowSelection'
 import { useTripScreen } from '@/composables/shared/useTripScreen'
 import { useIdeaSeed } from '@/composables/shared/useIdeaSeed'
 import { useTripIdentity } from '@/composables/shared/useTripIdentity'
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
+import { prefersReducedMotion } from '@/lib/motion'
 import { collapseRow } from '@/lib/rowCollapse'
 import { pickAssignee as pickAssigneeFrom } from '@/composables/shared/pickAssignee'
 import { presentToast } from '@/composables/shared/toast'
@@ -66,12 +67,13 @@ import {
   TASK_PHASE_BEFORE,
   TASK_PHASE_DURING,
 } from '@/types/domain'
-import { isPackingClosed, standingOf } from '@/lib/tripPhase'
+import { isPackingClosed, standingOf } from '@/domain/shared/tripPhase'
 import { createShoppingActions, ownEntriesSource } from './actions'
 import { canDrop, listInFocus, planDrop, shoppingBoard, type ShoppingSection } from './list'
 import ShoppingListSection, { type AgainState } from './ShoppingListSection.vue'
 import ShoppingRows from './ShoppingRows.vue'
-import ShoppingTagChooser from './ShoppingTagChooser.vue'
+import ShoppingTagPicker from './ShoppingTagPicker.vue'
+import { useShoppingBatch } from './useShoppingBatch'
 import { useShoppingStore } from './store'
 
 const props = defineProps<{ tripId: string }>()
@@ -108,14 +110,14 @@ const beforeOpen = computed(
     listInFocus(standingOf(trip.value), orchestrator.today()) === ITEM_MODE_BUY_BEFORE,
 )
 
-// FR-30.4: a purchase is named from the trip's participants, the way every
+// FR-30.4: a purchase is named from the trip's members, the way every
 // other stamp on the trip is — empty in Local Mode, where nobody is named.
 const {
   nameOf,
   assignees,
   myUserId,
   load: loadIdentity,
-} = useTripIdentity(props.tripId, orchestrator)
+} = useTripIdentity(props.tripId, orchestrator.identity)
 
 /** FR-30.12: a seat only where there is somebody else to hand a purchase to — M25's rule. */
 const assignable = computed(() => assignees.value.length > 1)
@@ -172,11 +174,6 @@ const hasSourced = computed(() =>
   ),
 )
 
-/** How many of a list's open lines stand in the *Fällig* block. */
-function dueIn(list: ShoppingMode): number {
-  return board.value.due.filter((line) => board.value.listOf(line.key) === list).length
-}
-
 /** Nothing open and nothing bought, on either list: the screen's empty state (G-7). */
 const nothingAtAll = computed(
   () =>
@@ -196,51 +193,30 @@ function tagOfDue(line: ShoppingLine): string | null {
   return line.edit ? t('shopping.ownEntries') : t('shopping.packingList')
 }
 
-/** FR-7.12: the finished packing's *before* — the record of what was bought. */
-function isClosed(list: ShoppingMode): boolean {
-  return list === ITEM_MODE_BUY_BEFORE && beforeLocked.value
-}
-
 /**
- * M25 alike: a list with nothing open under its heading leaves reading order
- * for one line at the end rather than taking a heading's worth of room above
- * the one still being worked, as the closed *before* does — also while its last open lines stand in the
- * *Fällig* block, which is where they are read (the line counts them).
+ * The shelves M6 shares with M25 (`usePhasedShelves`): a list with nothing
+ * open under its heading, or the finished packing's *before* — the record
+ * of what was bought (FR-7.12) — is one line at the end.
  */
-function inOrder(list: ShoppingMode): boolean {
-  return !isClosed(list) && board.value.lists[list].open > 0
-}
-
-const restLists = computed(() => SHOPPING_MODES.filter((list) => !inOrder(list)))
-const restOpen = reactive<Record<ShoppingMode, boolean>>({
-  [ITEM_MODE_BUY_BEFORE]: false,
-  [ITEM_MODE_BUY_LOCAL]: false,
+const shelves = usePhasedShelves<ShoppingMode>({
+  shelves: SHOPPING_MODES,
+  closed: (list) => list === ITEM_MODE_BUY_BEFORE && beforeLocked.value,
+  open: (list) => board.value.lists[list].open,
+  due: (list) => board.value.due.filter((line) => board.value.listOf(line.key) === list).length,
+  done: (list) => bought.value[list].length,
+  words: {
+    name: (list) =>
+      list === ITEM_MODE_BUY_BEFORE ? 'shopping.beforeDeparture' : 'shopping.atDestination',
+    history: 'shopping.beforeHistory',
+    historyEmpty: 'shopping.beforeHistoryEmpty',
+    rest: 'shopping.listRest',
+    restDone: 'shopping.listRestBought',
+    restDue: 'shopping.listRestDue',
+    restDueDone: 'shopping.listRestDueBought',
+  },
 })
-
-/** *„Vor der Reise · nichts offen · 2 gekauft"* (*„· 1 fällig"* while the block holds some) — or the closed *before*'s own words. */
-function restLabel(list: ShoppingMode): string {
-  const n = bought.value[list].length
-  if (isClosed(list)) {
-    return n > 0 ? t('shopping.beforeHistory', { n }) : t('shopping.beforeHistoryEmpty')
-  }
-  const name = t(
-    list === ITEM_MODE_BUY_BEFORE ? 'shopping.beforeDeparture' : 'shopping.atDestination',
-  )
-  const due = dueIn(list)
-  if (due > 0) {
-    return n > 0
-      ? t('shopping.listRestDueBought', { list: name, due, n })
-      : t('shopping.listRestDue', { list: name, due })
-  }
-  return n > 0
-    ? t('shopping.listRestBought', { list: name, n })
-    : t('shopping.listRest', { list: name })
-}
-
-/** The line opens where there is something below it: a purchase, or the lock's sentence. */
-function restExpandable(list: ShoppingMode): boolean {
-  return isClosed(list) || bought.value[list].length > 0
-}
+const { isClosed, inOrder, restShelves, restOpen, toggleRest, restLabel, restExpandable, dropKey } =
+  shelves
 
 /**
  * FR-25.11j: a bought row leaves the open list rather than vanishing —
@@ -248,7 +224,6 @@ function restExpandable(list: ShoppingMode): boolean {
  * `collapseRow` (kernel `lib/`): height to zero, then gone. Checked live,
  * since the setting can change while the screen is open.
  */
-const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 
 /**
  * The rows mid-purchase, by key — the animated case. Every group is its own
@@ -267,7 +242,7 @@ function onRowLeave(el: Element, done: () => void) {
     return
   }
   buying.delete(key)
-  collapseRow(el as HTMLElement, done, reducedMotion.matches)
+  collapseRow(el as HTMLElement, done, prefersReducedMotion())
 }
 
 /**
@@ -295,79 +270,26 @@ async function buyLine(line: ShoppingLine) {
  * selectable.
  */
 const selection = useRowSelection()
-const { selecting, selected } = selection
+const { selecting } = selection
 
 /** The lines a selection can act on: every open own entry, across both lists and every group. */
 const ownOpenLines = computed(() => SHOPPING_MODES.flatMap((list) => own.open(props.tripId, list)))
 
-const endSelecting = selection.end
-
-/** „Alle N" takes every own line — the same act undoes it (FR-30.9, M9's `toggleAll`). */
-function toggleAllSelected() {
-  selection.toggleAll(ownOpenLines.value.map((line) => line.key))
-}
-
-setHeaderSelection(() =>
-  selecting.value
-    ? {
-        count: selected.value.size,
-        total: ownOpenLines.value.length,
-        testid: 'm6',
-        onExit: endSelecting,
-        onAll: toggleAllSelected,
-      }
-    : null,
-)
-
-setHeaderActions(() => {
-  const select: HeaderAction = {
-    id: 'm6-select',
-    icon: SELECTION_ICON,
-    label: t('shopping.select'),
-    active: selecting.value,
-    onClick: () => (selecting.value ? endSelecting() : selection.start()),
-  }
-  return ownOpenLines.value.length > 0 || selecting.value ? [select] : []
+// „Alle N" takes every own line — the same act undoes it (FR-30.9).
+const selectIcon = offerSelection(selection, {
+  testid: 'm6',
+  keys: () => ownOpenLines.value.map((line) => line.key),
 })
+setHeaderActions(() => selectIcon('m6-select', t('shopping.select')))
 
-const bulkSheetOpen = ref(false)
-
-/** The last batch's undo, live for as long as its snackbar (FR-30.9, M9's `bulkUndo`). One batch at a time. */
-let bulkUndo: (() => void) | null = null
-
-function undoBulk() {
-  const undo = bulkUndo
-  bulkUndo = null
-  undo?.()
-}
-
-/** One tag for the batch, across both lists: one write per list, one undo for both. */
-async function applyBulkTag(tag: string | null) {
-  const results = SHOPPING_MODES.map((list) =>
-    own.bulkSetTag(props.tripId, list, selected.value, tag),
-  )
-  const touched = results.reduce((n, result) => n + result.touched, 0)
-  bulkSheetOpen.value = false
-  endSelecting()
-  if (touched === 0) {
-    await presentToast({
-      message: t('shopping.bulkNothingToDo'),
-      positionAnchor: FAB_ANCHOR.m6,
-      cssClass: 'pack-toast',
-    })
-    return
-  }
-  bulkUndo = () => results.forEach((result) => result.undo())
-  await presentToast({
-    message: t(tag !== null ? 'shopping.bulkTagged' : 'shopping.bulkUntagged', {
-      n: touched,
-      tag: tag ?? '',
-    }),
-    positionAnchor: FAB_ANCHOR.m6,
-    cssClass: 'pack-toast',
-    buttons: [{ text: t('packing.undo'), handler: () => undoBulk() }],
-  })
-}
+const { selectedLines, bulkSheetOpen, applyBulkTag, bulkAssign, bulkRemove } = useShoppingBatch({
+  tripId: props.tripId,
+  own,
+  selection,
+  ownOpenLines,
+  pickAssignee,
+  nameOf,
+})
 
 /** FR-30.12: the person picker M4 and M25 ask with (`composables/shared/pickAssignee`), over the trip's own people. */
 function pickAssignee(header: string, current: string | null) {
@@ -401,53 +323,6 @@ function liveOwnLine(key: string): ShoppingLine | undefined {
   return ownOpenLines.value.find((line) => line.key === key)
 }
 
-/** FR-30.12: one person for the batch, across both lists — `applyBulkTag`'s shape. */
-async function bulkAssign() {
-  const picked = await pickAssignee(t('shopping.bulkAssignTitle', { n: selected.value.size }), null)
-  if (picked === undefined) return
-  const results = SHOPPING_MODES.map((list) =>
-    own.bulkSetAssignee(props.tripId, list, selected.value, picked),
-  )
-  const touched = results.reduce((n, result) => n + result.touched, 0)
-  endSelecting()
-  if (touched === 0) {
-    await presentToast({
-      message: t('shopping.bulkNothingToDo'),
-      positionAnchor: FAB_ANCHOR.m6,
-      cssClass: 'pack-toast',
-    })
-    return
-  }
-  bulkUndo = () => results.forEach((result) => result.undo())
-  await presentToast({
-    message:
-      picked === null
-        ? t('shopping.bulkUnassigned', { n: touched })
-        : t('shopping.bulkAssigned', { n: touched, who: nameOf(picked) ?? '' }),
-    positionAnchor: FAB_ANCHOR.m6,
-    cssClass: 'pack-toast',
-    buttons: [{ text: t('packing.undo'), handler: () => undoBulk() }],
-  })
-}
-
-/**
- * FR-30.9: the selection removed in one act, across both lists. No question
- * first — the toast's undo puts every entry back, as it does each batch here.
- */
-async function bulkRemove() {
-  const results = SHOPPING_MODES.map((list) => own.bulkRemove(props.tripId, list, selected.value))
-  const touched = results.reduce((n, result) => n + result.touched, 0)
-  endSelecting()
-  if (touched === 0) return
-  bulkUndo = () => results.forEach((result) => result.undo())
-  await presentToast({
-    message: t('shopping.bulkRemoved', { n: touched }),
-    positionAnchor: FAB_ANCHOR.m6,
-    cssClass: 'pack-toast',
-    buttons: [{ text: t('packing.undo'), handler: () => undoBulk() }],
-  })
-}
-
 const draft = ref('')
 
 const content = ref<InstanceType<typeof IonContent> | null>(null)
@@ -459,22 +334,16 @@ const composerOpen = computed(() => composer.value?.expanded ?? false)
  * own entry may also be dropped onto another own group of **its own list** —
  * a tag heading, or the untagged one — which retags it (FR-30.9), at the gap
  * it was let go in. The gesture is `useDragToGroup` (FR-7.8's own); a drop
- * target is the list and the section's key, since the same tag can head a
- * group on both. What a drop writes is `planDrop`'s.
+ * target is the list and the section's key (`usePhasedShelves`'s `dropKey`).
+ * What a drop writes is `planDrop`'s.
  *
  * The retag goes through `bulkSetTag`, not `line.edit` — a drop is exactly a
  * batch of one, and `bulkSetTag`'s undo diffs against the entry as the write
  * actually left it rather than the pre-write snapshot (see its own doc
  * comment).
  */
-const DROP_SEPARATOR = '|'
-
-function dropKeyOf(list: ShoppingMode) {
-  return (section: ShoppingSection) => `${list}${DROP_SEPARATOR}${section.key}`
-}
-
 function placeOf(place: DropPlace): { list: ShoppingMode; section: ShoppingSection } | null {
-  const [list, key] = place.target.split(DROP_SEPARATOR) as [ShoppingMode, string]
+  const { shelf: list, key } = shelves.readDropKey(place.target)
   const section = board.value.lists[list]?.sections.find((s) => s.key === key)
   return section ? { list, section } : null
 }
@@ -867,7 +736,7 @@ setHeaderTitle(
             :bought="bought[list]"
             :today="today"
             :name-of="nameOf"
-            :drop-key="dropKeyOf(list)"
+            :drop-key="dropKey(list)"
             :selection="selection"
             :leave="onRowLeave"
             :assignable="assignable"
@@ -884,7 +753,7 @@ setHeaderTitle(
         <!-- M25 alike: a list with nothing open — or a
              finished packing's *before*, FR-7.12 — is one line at the end. -->
         <section
-          v-for="list in restLists"
+          v-for="list in restShelves"
           :key="list"
           class="list-rest"
           :data-testid="list === ITEM_MODE_BUY_BEFORE ? 'm6-before' : 'm6-local'"
@@ -894,7 +763,7 @@ setHeaderTitle(
             :expandable="restExpandable(list)"
             :open="restOpen[list]"
             :testid="list === ITEM_MODE_BUY_BEFORE ? 'm6-before-fold' : 'm6-local-fold'"
-            @toggle="restOpen[list] = !restOpen[list]"
+            @toggle="toggleRest(list)"
           >
             <InlineHint v-if="isClosed(list)" class="hint-wide" data-testid="m6-before-locked">{{
               t('shopping.beforeLocked')
@@ -908,7 +777,7 @@ setHeaderTitle(
               :bought="bought[list]"
               :today="today"
               :name-of="nameOf"
-              :drop-key="dropKeyOf(list)"
+              :drop-key="dropKey(list)"
               :again="againState"
               @unbuy="(line) => line.unbuy()"
               @again="(line) => buyAgain(line, list)"
@@ -934,7 +803,7 @@ setHeaderTitle(
       </p>
 
       <!-- FR-30.9: what the selection can be acted on with. -->
-      <BulkBar v-if="selecting && selected.size > 0" data-testid="m6-bulkbar">
+      <BulkBar v-if="selecting && selectedLines.length > 0" data-testid="m6-bulkbar">
         <button type="button" data-testid="m6-bulk-tag" @click="bulkSheetOpen = true">
           <IonIcon :icon="pricetagsOutline" />
           {{ t('shopping.bulkTag') }}
@@ -956,12 +825,12 @@ setHeaderTitle(
       <SheetModal :is-open="bulkSheetOpen" testid="m6-bulk-sheet" @dismiss="bulkSheetOpen = false">
         <section v-if="bulkSheetOpen" class="entry-sheet">
           <SheetHead
-            :title="t('shopping.bulkTagTitle', { n: selected.size })"
+            :title="t('shopping.bulkTagTitle', { n: selectedLines.length })"
             title-testid="m6-bulk-title"
             close-testid="m6-bulk-close"
             @close="bulkSheetOpen = false"
           />
-          <ShoppingTagChooser
+          <ShoppingTagPicker
             :tags="shoppingStore.tagCounts(tripId).map((entry) => entry.tag)"
             :assigned="null"
             :summary="false"
@@ -1003,7 +872,7 @@ setHeaderTitle(
           />
         </template>
         <template #tag>
-          <ShoppingTagChooser
+          <ShoppingTagPicker
             v-if="entrySheet"
             :tags="shoppingStore.tagCounts(tripId).map((entry) => entry.tag)"
             :assigned="entrySheet.tag"

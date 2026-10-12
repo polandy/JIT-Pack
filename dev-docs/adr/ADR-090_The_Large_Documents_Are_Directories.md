@@ -35,13 +35,13 @@ The files stay; the reading discipline changes — grep for the id, read by offs
 ### Option B — one file per section for the specs, one per week or month for the ledgers *(accepted)*
 
 The addendum becomes one file per numbered section (`3.29-planner.md`, `nfr.md`), the UI spec and the UI test spec one
-file per screen (`M28-ideen.md`) plus the global patterns, the traceability matrix and the journeys. Each directory's
+file per screen (`M28-ideas.md`) plus the global patterns, the traceability matrix and the journeys. Each directory's
 `README.md` carries the preamble and names every file. The implementation log becomes one file per week, the e2e
 ledger's narratives one per month beside its `status.md`; **each dated file opens with the index of its own
 sections**, and the README says how to search the index lines across them.
 
 **Pros**
-- A change to M28 reads `ui-spec/M28-ideen.md` — 17 KB, not 347 KB — and the default read of any one file is one
+- A change to M28 reads `ui-spec/M28-ideas.md` — 17 KB, not 347 KB — and the default read of any one file is one
   section.
 - The newest ledger file is small, so "what happened recently" is one short read.
 - Every id stays valid; a reader finds a file by its number with `ls`.

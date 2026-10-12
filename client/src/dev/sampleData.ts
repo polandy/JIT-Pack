@@ -31,7 +31,7 @@ export async function seedSampleData(orchestrator: Orchestrator): Promise<SeedOu
   const plannedTripId = seedPlannedTrip(orchestrator, master.vacationTemplateId)
   // Accepted outright: the seed exists to hand a fresh device a trip that
   // already has its groups' items.
-  orchestrator.acceptTripRefresh(plannedTripId)
+  orchestrator.groupRefresh.acceptTripRefresh(plannedTripId)
 
   // …and then one group gains a position, so the device also arrives with an
   // *open* FR-27.4 question on that trip. Without it the proposal card is
@@ -43,12 +43,12 @@ export async function seedSampleData(orchestrator: Orchestrator): Promise<SeedOu
   const macro = master.groups['Makro Fotografie']
   const headlamp = master.items['Stirnlampe']
   if (macro && headlamp) {
-    orchestrator.addTemplateItem(macro, headlamp, {
+    orchestrator.masterData.addTemplateItem(macro, headlamp, {
       quantity: 1,
       assignment: 'trip_global',
       defaultMode: ITEM_MODE_PACK,
     })
-    orchestrator.proposeTripRefresh(plannedTripId)
+    orchestrator.groupRefresh.proposeTripRefresh(plannedTripId)
   }
   return {
     tripId,

@@ -55,6 +55,7 @@ import {
   TRIP_STATUS_ACTIVE,
   TRIP_STATUS_ARCHIVED,
   TRIP_STATUS_PLANNING,
+  type ItemState,
   type Trip,
   type TripItem,
   type TripStatus,
@@ -130,10 +131,10 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
         add.traveler_id,
       )
       write(mutation)
-      // FR-27.7 tasks become ordinary FR-7.3 todos, enqueued after the row
+      // FR-27.7 tasks become ordinary FR-7.3 preparations, enqueued after the row
       // they hang off — pushed ahead of it, the server rejects the key.
       for (const body of add.generated.tasks) {
-        commentActions.addPrepTodo(tripId, id, CLIENT_ACTOR_PLACEHOLDER, body)
+        commentActions.addPrepTask(tripId, id, CLIENT_ACTOR_PLACEHOLDER, body)
       }
     }
 
@@ -472,7 +473,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
 
   /** Every task of the trip, both kinds, as the close reads them (FR-7.7). */
   function tasksOf(tripId: string): ClosingTask[] {
-    return [...tripStore.getTripTodos(tripId), ...tripStore.getTodos(tripId)]
+    return [...tripStore.getOwnTasks(tripId), ...tripStore.getPrepTasks(tripId)]
   }
 
   /**
@@ -508,7 +509,7 @@ export function createTripLifecycleActions(ctx: SyncContext, deps: TripLifecycle
    */
   function restorePackingClose(
     tripId: string,
-    records: { itemId: string; quantity: number; packedCount: number; state: string }[],
+    records: { itemId: string; quantity: number; packedCount: number; state: ItemState }[],
     tasks: readonly TaskPhaseRecord[] = [],
     buyRows: readonly TripItem[] = [],
   ) {

@@ -10,7 +10,7 @@
  * a field.
  */
 import { describe, it, expect, beforeEach } from 'vitest'
-import { config, flushPromises, mount } from '@vue/test-utils'
+import { config, flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
 import InventoryBrowseSheet from '../InventoryBrowseSheet.vue'
@@ -19,8 +19,8 @@ import { browseHideCarried } from '@/composables/useBrowseHideCarried'
 import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 import { t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
-import type { BrowseRowSummary } from '@/domain/browseRows'
-import type { Traveler } from '@/types/domain'
+import { plainBrowseScope, type BrowseAction, type BrowseRowSummary } from '@/domain/browseRows'
+import type { MasterItem, Traveler } from '@/types/domain'
 
 function tag(id: string, name: string, sortOrder: number) {
   useMasterStore().applyChange({
@@ -71,18 +71,20 @@ let masterLoaded = true
 
 const orchestratorFake = {
   masterDataLoaded: () => masterLoaded,
-  createMasterItem: (name: string) => {
-    writes.created.push(name)
-    item(`new-${name}`, name)
-    return `new-${name}`
-  },
-  assignTag: () => 'assignment',
-  createTag: () => 'tag',
-  restoreMasterItem: (id: string) => {
-    writes.restored.push(id)
-    const hidden = useMasterStore().getItem(id)
-    if (hidden) item(id, hidden.name)
-    return true
+  masterData: {
+    createMasterItem: (name: string) => {
+      writes.created.push(name)
+      item(`new-${name}`, name)
+      return `new-${name}`
+    },
+    assignTag: () => 'assignment',
+    createTag: () => 'tag',
+    restoreMasterItem: (id: string) => {
+      writes.restored.push(id)
+      const hidden = useMasterStore().getItem(id)
+      if (hidden) item(id, hidden.name)
+      return true
+    },
   },
 }
 
@@ -91,13 +93,29 @@ const orchestratorFake = {
 config.global.provide = { [ORCHESTRATOR]: orchestratorFake }
 
 function mountSheet(carriedItemIds: string[] = []) {
-  return mount(InventoryBrowseSheet, { props: { carriedItemIds } })
+  return mount(InventoryBrowseSheet, { props: { scope: plainBrowseScope(carriedItemIds) } })
 }
 
 function rowNames(wrapper: ReturnType<typeof mountSheet>): string[] {
   return wrapper.findAll('[data-testid="browse-row"]').map((row) => {
     return row.find('[data-testid="browse-row-name"]').text()
   })
+}
+
+/**
+ * The sheet's one `action` emit, filtered to the verb under test — the
+ * replacement for asserting on a verb's own old emit name.
+ */
+function actions<V extends BrowseAction<MasterItem>['verb']>(
+  wrapper: VueWrapper<unknown>,
+  verb: V,
+): Extract<BrowseAction<MasterItem>, { verb: V }>[] {
+  const emitted = (wrapper.emitted('action') as [BrowseAction<MasterItem>][] | undefined) ?? []
+  return emitted
+    .map(([action]) => action)
+    .filter(
+      (action): action is Extract<BrowseAction<MasterItem>, { verb: V }> => action.verb === verb,
+    )
 }
 
 describe('InventoryBrowseSheet (FR-25.13d)', () => {
@@ -151,9 +169,9 @@ describe('InventoryBrowseSheet (FR-25.13d)', () => {
       .find((row) => row.text().includes('Badehose'))!
     await badehose.trigger('click')
 
-    const adds = wrapper.emitted('add')
+    const adds = actions(wrapper, 'add')
     expect(adds).toHaveLength(1)
-    expect(adds![0]![0]).toMatchObject({ id: 'i-badehose', name: 'Badehose' })
+    expect(adds[0]!.item).toMatchObject({ id: 'i-badehose', name: 'Badehose' })
     // A run means the sheet asked for nothing after the tap.
     expect(wrapper.emitted('close')).toBeUndefined()
   })
@@ -175,7 +193,7 @@ describe('InventoryBrowseSheet (FR-25.13d)', () => {
     const wrapper = mountSheet()
 
     // Every Technik item carried: the group keeps its carried row…
-    await wrapper.setProps({ carriedItemIds: ['i-ladekabel'] })
+    await wrapper.setProps({ scope: plainBrowseScope(['i-ladekabel']) })
     await wrapper.find('[data-testid="browse-tag-Technik"]').trigger('click')
     expect(wrapper.find('[data-testid="browse-row-carried"]').text()).toContain('Ladekabel')
     expect(wrapper.find('[data-testid="browse-no-match"]').exists()).toBe(false)
@@ -260,7 +278,7 @@ describe('InventoryBrowseSheet — hiding what is already in (FR-25.13e)', () =>
 
     // The caller's carried set grows after the tap — the row must not vanish
     // under the finger, and it is the run's only feedback.
-    await wrapper.setProps({ carriedItemIds: ['i-pullover', 'i-badehose'] })
+    await wrapper.setProps({ scope: plainBrowseScope(['i-pullover', 'i-badehose']) })
 
     const added = wrapper.find('[data-testid="browse-added-now"]')
     expect(added.exists()).toBe(true)
@@ -278,7 +296,7 @@ describe('InventoryBrowseSheet — hiding what is already in (FR-25.13e)', () =>
   it('re-takes the snapshot when the tag filter changes', async () => {
     const wrapper = mountSheet(['i-pullover'])
     await toggle(wrapper)
-    await wrapper.setProps({ carriedItemIds: ['i-pullover', 'i-badehose'] })
+    await wrapper.setProps({ scope: plainBrowseScope(['i-pullover', 'i-badehose']) })
     expect(wrapper.find('[data-testid="browse-added-now"]').exists()).toBe(true)
 
     // Moving the axis starts a new pass over a different part of the
@@ -354,7 +372,7 @@ describe('InventoryBrowseSheet — the two verbs (FR-25.13f)', () => {
     seed()
   })
 
-  /** M4's answer about what the trip carries; M6 and M8 pass none. */
+  /** M4's answer about what the trip carries; M8 passes none. */
   function states(
     entries: Record<string, Partial<BrowseRowSummary> & { state: BrowseRowSummary['state'] }>,
   ): ReadonlyMap<string, BrowseRowSummary> {
@@ -370,10 +388,12 @@ describe('InventoryBrowseSheet — the two verbs (FR-25.13f)', () => {
     carriedItemIds: string[],
     rowStates: ReadonlyMap<string, BrowseRowSummary>,
   ) {
-    return mount(InventoryBrowseSheet, { props: { carriedItemIds, rowStates } })
+    return mount(InventoryBrowseSheet, {
+      props: { scope: { carriedItemIds, rowStates, travelers: [] } },
+    })
   }
 
-  it('offers no verbs where the caller reports no packing states (M6/M8, G-8)', () => {
+  it('offers no verbs where the caller reports no packing states (M8, G-8)', () => {
     const wrapper = mountSheet()
 
     expect(wrapper.find('[data-testid="browse-pack"]').exists()).toBe(false)
@@ -384,10 +404,10 @@ describe('InventoryBrowseSheet — the two verbs (FR-25.13f)', () => {
     const wrapper = mountSheet()
 
     await wrapper.get('[data-testid="browse-row"]').trigger('click')
-    await wrapper.setProps({ carriedItemIds: ['i-badehose'] })
+    await wrapper.setProps({ scope: plainBrowseScope(['i-badehose']) })
 
-    // M6 and M8 have one verb and no undo, so the run's ledger must not
-    // speak for them — FR-25.13d's state is the whole feedback they have.
+    // M8 has one verb and no undo, so the run's ledger must not speak for
+    // it — FR-25.13d's state is the whole feedback it has.
     expect(wrapper.find('[data-testid="browse-carried-state"]').text()).toContain('already in')
     expect(wrapper.find('[data-testid="browse-added-now"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="browse-undo"]').exists()).toBe(false)
@@ -399,10 +419,12 @@ describe('InventoryBrowseSheet — the two verbs (FR-25.13f)', () => {
     await wrapper.get(`[aria-label='Mark "Badehose" as packed']`).trigger('click')
     await wrapper.get(`[aria-label='Deliberately leave "Pullover" behind']`).trigger('click')
 
-    expect(wrapper.emitted('addPacked')?.[0]?.[0]).toMatchObject({ id: 'i-badehose' })
-    expect(wrapper.emitted('addSkipped')?.[0]?.[0]).toMatchObject({ id: 'i-pullover' })
+    const adds = actions(wrapper, 'add')
+    expect(adds).toHaveLength(2)
+    expect(adds[0]).toMatchObject({ item: { id: 'i-badehose' }, decided: 'packed' })
+    expect(adds[1]).toMatchObject({ item: { id: 'i-pullover' }, decided: 'skipped' })
     // Neither is a plain add: the decision travels with it, not after it.
-    expect(wrapper.emitted('add')).toBeUndefined()
+    expect(adds.every((add) => add.decided !== undefined)).toBe(true)
   })
 
   it('acts on the existing rows where the trip already carries the item', async () => {
@@ -410,8 +432,10 @@ describe('InventoryBrowseSheet — the two verbs (FR-25.13f)', () => {
 
     await wrapper.find('[data-testid="browse-pack"]').trigger('click')
 
-    expect(wrapper.emitted('pack')?.[0]?.[0]).toMatchObject({ id: 'i-badehose' })
-    expect(wrapper.emitted('addPacked')).toBeUndefined()
+    const packed = actions(wrapper, 'packCarried')
+    expect(packed).toHaveLength(1)
+    expect(packed[0]!.itemId).toBe('i-badehose')
+    expect(actions(wrapper, 'add')).toHaveLength(0)
   })
 
   it('says what the run did to a line, and how many people it reached (FR-25.21)', async () => {
@@ -440,7 +464,9 @@ describe('InventoryBrowseSheet — the two verbs (FR-25.13f)', () => {
 
     await wrapper.find('[data-testid="browse-undo"]').trigger('click')
 
-    expect(wrapper.emitted('undo')?.[0]?.[0]).toMatchObject({ id: 'i-badehose' })
+    const undos = actions(wrapper, 'undo')
+    expect(undos).toHaveLength(1)
+    expect(undos[0]!.itemId).toBe('i-badehose')
     // The run's record is gone, so the line renders from the props again —
     // which is what makes a second decision on it possible.
     expect(wrapper.find('[data-testid="browse-skipped-now"]').exists()).toBe(false)
@@ -455,7 +481,13 @@ describe('InventoryBrowseSheet — the two verbs (FR-25.13f)', () => {
     await wrapper.get(`[aria-label='Mark "Badehose" as packed']`).trigger('click')
     // What the caller reports back is "carried since the snapshot" — which
     // FR-25.13e reads as *added*. The tap knows better, and must win.
-    await wrapper.setProps({ carriedItemIds: ['i-ladekabel', 'i-badehose'] })
+    await wrapper.setProps({
+      scope: {
+        carriedItemIds: ['i-ladekabel', 'i-badehose'],
+        rowStates: states({ 'i-ladekabel': { state: 'open' } }),
+        travelers: [],
+      },
+    })
 
     expect(wrapper.find('[data-testid="browse-packed-now"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="browse-added-now"]').exists()).toBe(false)
@@ -486,6 +518,13 @@ describe('InventoryBrowseSheet — the two verbs (FR-25.13f)', () => {
 
 describe('InventoryBrowseSheet — „für alle" (FR-25.13g)', () => {
   const THREE_TRAVELERS = 3
+  /**
+   * Above FR-25.13h's inline-avatar threshold: with `scope.travelers` the one
+   * source for both the count and the roster, a free line's 👥 only stays the
+   * plain bulk verb this describe tests where the roster is this big —
+   * exactly the condition the FR-25.13h describe's own "FOUR" roster checks.
+   */
+  const FOUR_TRAVELERS = 4
 
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -505,17 +544,25 @@ describe('InventoryBrowseSheet — „für alle" (FR-25.13g)', () => {
     )
   }
 
+  /** A roster of this size — names are irrelevant here, only the count is. */
+  function travelers(count: number): Traveler[] {
+    return Array.from({ length: count }, (_, i) => ({
+      id: `tr-${i}`,
+      trip_id: 't1',
+      name: `Traveler ${i}`,
+      linked_user_id: null,
+    }))
+  }
+
   function mountForAll(props: {
     carriedItemIds?: string[]
     rowStates?: ReadonlyMap<string, BrowseRowSummary>
     travelerCount?: number
   }) {
+    const { carriedItemIds = [], rowStates = states({}), travelerCount = THREE_TRAVELERS } = props
     return mount(InventoryBrowseSheet, {
       props: {
-        carriedItemIds: [],
-        rowStates: states({}),
-        travelerCount: THREE_TRAVELERS,
-        ...props,
+        scope: { carriedItemIds, rowStates, travelers: travelers(travelerCount) },
       },
     })
   }
@@ -529,26 +576,31 @@ describe('InventoryBrowseSheet — „für alle" (FR-25.13g)', () => {
   }
 
   it('offers the verb on a free line and adds for everybody in one tap', async () => {
-    const wrapper = mountForAll({})
+    // Above the inline-avatar threshold (FR-25.13h): a roster this size keeps
+    // 👥 the plain bulk verb this test is about, rather than the per-traveler
+    // picker a roster of three or fewer would turn it into.
+    const wrapper = mountForAll({ travelerCount: FOUR_TRAVELERS })
 
     await forAllOn(wrapper, 'Badehose')!.trigger('click')
 
-    expect(wrapper.emitted('addForAll')?.[0]?.[0]).toMatchObject({ id: 'i-badehose' })
+    const forAlls = actions(wrapper, 'addForAll')
+    expect(forAlls).toHaveLength(1)
+    expect(forAlls[0]!.item).toMatchObject({ id: 'i-badehose' })
     // The plain add is not what this tap is: a sheet that emitted both would
     // write the row twice.
-    expect(wrapper.emitted('add')).toBeUndefined()
+    expect(actions(wrapper, 'add')).toHaveLength(0)
   })
 
   it('says how many people the tap reached, and offers the way back', async () => {
-    const wrapper = mountForAll({})
+    const wrapper = mountForAll({ travelerCount: FOUR_TRAVELERS })
 
     await forAllOn(wrapper, 'Badehose')!.trigger('click')
 
     const state = wrapper.get('[data-testid="browse-for-all-now"]')
     expect(state.text()).toContain('for everyone')
     // FR-25.13f's rule for a verb that reaches a set: a single ✓ that packed
-    // three rows claims less than it did, and so would a silent „added".
-    expect(state.text()).toContain('3 people')
+    // four rows claims less than it did, and so would a silent „added".
+    expect(state.text()).toContain('4 people')
     expect(wrapper.find('[data-testid="browse-undo"]').exists()).toBe(true)
   })
 
@@ -563,9 +615,11 @@ describe('InventoryBrowseSheet — „für alle" (FR-25.13g)', () => {
     expect(alone.find('[data-testid="browse-pack"]').exists()).toBe(true)
   })
 
-  it('is absent where the sheet has no verbs at all (M6/M8)', () => {
+  it('is absent where the sheet has no verbs at all (M8)', () => {
     const wrapper = mount(InventoryBrowseSheet, {
-      props: { carriedItemIds: [], travelerCount: THREE_TRAVELERS },
+      props: {
+        scope: { carriedItemIds: [], rowStates: null, travelers: travelers(THREE_TRAVELERS) },
+      },
     })
 
     expect(wrapper.find('[data-testid="browse-for-all"]').exists()).toBe(false)
@@ -596,8 +650,10 @@ describe('InventoryBrowseSheet — „für alle" (FR-25.13g)', () => {
 
     await forAllOn(wrapper, 'Badehose')!.trigger('click')
 
-    expect(wrapper.emitted('spreadToAll')?.[0]?.[0]).toMatchObject({ id: 'i-badehose' })
-    expect(wrapper.emitted('addForAll')).toBeUndefined()
+    const spreads = actions(wrapper, 'spread')
+    expect(spreads).toHaveLength(1)
+    expect(spreads[0]!.itemId).toBe('i-badehose')
+    expect(actions(wrapper, 'addForAll')).toHaveLength(0)
   })
 
   it('keeps every verb off a settled or locked line, „für alle" included', () => {
@@ -645,10 +701,7 @@ describe('InventoryBrowseSheet — assign to one traveler (FR-25.13h)', () => {
   function mountAssign(travelers: Traveler[] = THREE) {
     return mount(InventoryBrowseSheet, {
       props: {
-        carriedItemIds: [],
-        rowStates: new Map(),
-        travelerCount: travelers.length,
-        travelers,
+        scope: { carriedItemIds: [], rowStates: new Map(), travelers },
       },
     })
   }
@@ -672,13 +725,13 @@ describe('InventoryBrowseSheet — assign to one traveler (FR-25.13h)', () => {
 
     await rowFree(wrapper, 'Badehose').get('[data-testid="browse-assign-Nina"]').trigger('click')
 
-    expect(wrapper.emitted('assignToTravelers')?.[0]).toMatchObject([
-      { id: 'i-badehose' },
-      ['tr-b'],
-    ])
+    expect(actions(wrapper, 'assign')[0]).toMatchObject({
+      item: { id: 'i-badehose' },
+      travelerIds: ['tr-b'],
+    })
     // A dedicated write, not a second add and not a „für alle" in disguise.
-    expect(wrapper.emitted('add')).toBeUndefined()
-    expect(wrapper.emitted('addForAll')).toBeUndefined()
+    expect(actions(wrapper, 'add')).toHaveLength(0)
+    expect(actions(wrapper, 'addForAll')).toHaveLength(0)
   })
 
   it('says who it went to, and offers the way back', async () => {
@@ -697,10 +750,10 @@ describe('InventoryBrowseSheet — assign to one traveler (FR-25.13h)', () => {
     await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
     await row.get('[data-testid="browse-assign-Mila"]').trigger('click')
 
-    expect(wrapper.emitted('assignToTravelers')?.[1]).toMatchObject([
-      { id: 'i-badehose' },
-      ['tr-b', 'tr-c'],
-    ])
+    expect(actions(wrapper, 'assign')[1]).toMatchObject({
+      item: { id: 'i-badehose' },
+      travelerIds: ['tr-b', 'tr-c'],
+    })
     expect(wrapper.get('[data-testid="browse-assigned-now"]').text()).toContain('Nina, Mila')
     // Still one row, one Undo — multi-select is still one running action.
     expect(wrapper.findAll('[data-testid="browse-undo"]')).toHaveLength(1)
@@ -726,10 +779,10 @@ describe('InventoryBrowseSheet — assign to one traveler (FR-25.13h)', () => {
     await row.get('[data-testid="browse-assign-Mila"]').trigger('click')
     await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
 
-    expect(wrapper.emitted('assignToTravelers')?.[2]).toMatchObject([
-      { id: 'i-badehose' },
-      ['tr-c'],
-    ])
+    expect(actions(wrapper, 'assign')[2]).toMatchObject({
+      item: { id: 'i-badehose' },
+      travelerIds: ['tr-c'],
+    })
     expect(wrapper.get('[data-testid="browse-assigned-now"]').text()).toContain('Mila')
     expect(wrapper.get('[data-testid="browse-assigned-now"]').text()).not.toContain('Nina')
   })
@@ -741,7 +794,10 @@ describe('InventoryBrowseSheet — assign to one traveler (FR-25.13h)', () => {
     await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
     await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
 
-    expect(wrapper.emitted('assignToTravelers')?.[1]).toMatchObject([{ id: 'i-badehose' }, []])
+    expect(actions(wrapper, 'assign')[1]).toMatchObject({
+      item: { id: 'i-badehose' },
+      travelerIds: [],
+    })
     expect(wrapper.find('[data-testid="browse-assigned-now"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="browse-undo"]').exists()).toBe(false)
   })
@@ -764,7 +820,7 @@ describe('InventoryBrowseSheet — assign to one traveler (FR-25.13h)', () => {
     await row.get('[data-testid="browse-assign-Mila"]').trigger('click')
     await row.get('[data-testid="browse-undo"]').trigger('click')
 
-    expect(wrapper.emitted('undo')?.[0]).toMatchObject([{ id: 'i-badehose' }])
+    expect(actions(wrapper, 'undo')[0]).toMatchObject({ itemId: 'i-badehose' })
     expect(row.findAll('[data-testid^="browse-assign-"]').at(0)?.classes()).not.toContain(
       'selected',
     )
@@ -780,19 +836,19 @@ describe('InventoryBrowseSheet — assign to one traveler (FR-25.13h)', () => {
     // The same write an avatar tap makes, for the whole roster at once — not
     // the bulk `addForAll` verb, which would close the row and take the
     // avatar buttons (and so any way to deselect) with it.
-    expect(wrapper.emitted('assignToTravelers')?.[0]).toMatchObject([
-      { id: 'i-badehose' },
-      ['tr-a', 'tr-b', 'tr-c'],
-    ])
-    expect(wrapper.emitted('addForAll')).toBeUndefined()
+    expect(actions(wrapper, 'assign')[0]).toMatchObject({
+      item: { id: 'i-badehose' },
+      travelerIds: ['tr-a', 'tr-b', 'tr-c'],
+    })
+    expect(actions(wrapper, 'addForAll')).toHaveLength(0)
     expect(row.findAll('[data-testid^="browse-assign-"].selected')).toHaveLength(3)
 
     await row.get('[data-testid="browse-assign-Nina"]').trigger('click')
 
-    expect(wrapper.emitted('assignToTravelers')?.[1]).toMatchObject([
-      { id: 'i-badehose' },
-      ['tr-a', 'tr-c'],
-    ])
+    expect(actions(wrapper, 'assign')[1]).toMatchObject({
+      item: { id: 'i-badehose' },
+      travelerIds: ['tr-a', 'tr-c'],
+    })
     expect(row.get('[data-testid="browse-assign-Nina"]').classes()).not.toContain('selected')
   })
 
@@ -812,15 +868,15 @@ describe('InventoryBrowseSheet — assign to one traveler (FR-25.13h)', () => {
 
     // ≤3: 👥 writes the same assignment an avatar tap would, so the row stays
     // `assigning` and every traveler it just picked can still be deselected.
-    expect(three.emitted('assignToTravelers')?.[0]).toMatchObject([
-      { id: 'i-badehose' },
-      ['tr-a', 'tr-b', 'tr-c'],
-    ])
-    expect(three.emitted('addForAll')).toBeUndefined()
+    expect(actions(three, 'assign')[0]).toMatchObject({
+      item: { id: 'i-badehose' },
+      travelerIds: ['tr-a', 'tr-b', 'tr-c'],
+    })
+    expect(actions(three, 'addForAll')).toHaveLength(0)
     // Past three there is no avatar row to keep open for — 👥 is still the
     // popover's own accumulate-only bulk verb.
-    expect(four.emitted('addForAll')?.[0]?.[0]).toMatchObject({ id: 'i-badehose' })
-    expect(four.emitted('assignToTravelers')).toBeUndefined()
+    expect(actions(four, 'addForAll')[0]!.item).toMatchObject({ id: 'i-badehose' })
+    expect(actions(four, 'assign')).toHaveLength(0)
   })
 
   it('names the traveler for the screen reader, and says "remove" once selected', async () => {
@@ -882,11 +938,14 @@ describe('InventoryBrowseSheet — taking a settled decision back (FR-25.13i)', 
   function mountSettled() {
     return mount(InventoryBrowseSheet, {
       props: {
-        carriedItemIds: ['i-badehose', 'i-pullover'],
-        rowStates: states({
-          'i-badehose': { state: 'packed' },
-          'i-pullover': { state: 'skipped' },
-        }),
+        scope: {
+          carriedItemIds: ['i-badehose', 'i-pullover'],
+          rowStates: states({
+            'i-badehose': { state: 'packed' },
+            'i-pullover': { state: 'skipped' },
+          }),
+          travelers: [],
+        },
       },
     })
   }
@@ -916,14 +975,15 @@ describe('InventoryBrowseSheet — taking a settled decision back (FR-25.13i)', 
       .find((row) => row.text().includes('Pullover'))!
     await pullover.get('[data-testid="browse-reopen"]').trigger('click')
 
-    expect(wrapper.emitted('reopen')?.[0]?.[0]).toMatchObject({ id: 'i-pullover' })
-    expect(wrapper.emitted('reopen')).toHaveLength(1)
+    const reopens = actions(wrapper, 'reopen')
+    expect(reopens).toHaveLength(1)
+    expect(reopens[0]!.itemId).toBe('i-pullover')
     // Not the run ledger's undo: there is nothing of this run's to take back,
     // and the caller's two ways back write different things.
-    expect(wrapper.emitted('undo')).toBeUndefined()
+    expect(actions(wrapper, 'undo')).toHaveLength(0)
   })
 
-  it('offers no way back where the caller reports no states at all (M6/M8, G-8)', () => {
+  it('offers no way back where the caller reports no states at all (M8, G-8)', () => {
     const wrapper = mountSheet(['i-pullover'])
 
     // The positive signal that this is the verb-free sheet and not an empty
@@ -964,8 +1024,11 @@ describe('InventoryBrowseSheet — taking a settled decision back (FR-25.13i)', 
   it('offers the filter only where something has been decided', () => {
     const nothingDecided = mount(InventoryBrowseSheet, {
       props: {
-        carriedItemIds: ['i-badehose'],
-        rowStates: states({ 'i-badehose': { state: 'open' } }),
+        scope: {
+          carriedItemIds: ['i-badehose'],
+          rowStates: states({ 'i-badehose': { state: 'open' } }),
+          travelers: [],
+        },
       },
     })
 
@@ -985,7 +1048,11 @@ describe('InventoryBrowseSheet — taking a settled decision back (FR-25.13i)', 
     await pullover().get('[data-testid="browse-reopen"]').trigger('click')
     // What the caller reports back once the reset has landed.
     await wrapper.setProps({
-      rowStates: states({ 'i-badehose': { state: 'packed' }, 'i-pullover': { state: 'open' } }),
+      scope: {
+        carriedItemIds: ['i-badehose', 'i-pullover'],
+        rowStates: states({ 'i-badehose': { state: 'packed' }, 'i-pullover': { state: 'open' } }),
+        travelers: [],
+      },
     })
 
     // The row stays where it was and says what happened to it, rather than
@@ -1016,10 +1083,13 @@ describe('InventoryBrowseSheet — taking a settled decision back (FR-25.13i)', 
   it('a locked line keeps offering nothing — a takeover is FR-5.7, not a reset', () => {
     const wrapper = mount(InventoryBrowseSheet, {
       props: {
-        carriedItemIds: ['i-badehose'],
-        rowStates: states({
-          'i-badehose': { state: 'locked', lockNote: 'Sia is packing this right now' },
-        }),
+        scope: {
+          carriedItemIds: ['i-badehose'],
+          rowStates: states({
+            'i-badehose': { state: 'locked', lockNote: 'Sia is packing this right now' },
+          }),
+          travelers: [],
+        },
       },
     })
 
@@ -1055,7 +1125,7 @@ describe("InventoryBrowseSheet — the name's long-press tooltip (FR-25.13h)", (
 
     await row.trigger('click')
 
-    expect(wrapper.emitted('add')?.[0]?.[0]).toMatchObject({ id: 'i-badehose' })
+    expect(actions(wrapper, 'add')[0]!.item).toMatchObject({ id: 'i-badehose' })
   })
 })
 
@@ -1072,7 +1142,7 @@ describe('InventoryBrowseSheet — search and the missing name (FR-25.13j)', () 
 
   function mountSearching(carriedItemIds: string[] = []) {
     return mount(InventoryBrowseSheet, {
-      props: { carriedItemIds },
+      props: { scope: plainBrowseScope(carriedItemIds) },
       global: { stubs: SHEET_STUB },
     })
   }
@@ -1133,7 +1203,7 @@ describe('InventoryBrowseSheet — search and the missing name (FR-25.13j)', () 
     expect(sheet.props('isOpen')).toBe(true)
     expect(sheet.props('name')).toBe('Zelt')
     expect(writes.created).toEqual([])
-    expect(wrapper.emitted('add')).toBeUndefined()
+    expect(actions(wrapper, 'add')).toHaveLength(0)
   })
 
   it('creates the item with the filtered tag and adds it like a tapped line', async () => {
@@ -1148,7 +1218,7 @@ describe('InventoryBrowseSheet — search and the missing name (FR-25.13j)', () 
     await flushPromises()
 
     expect(writes.created).toEqual(['Powerbank'])
-    expect(wrapper.emitted('add')?.[0]?.[0]).toMatchObject({ id: 'new-Powerbank' })
+    expect(actions(wrapper, 'add')[0]!.item).toMatchObject({ id: 'new-Powerbank' })
     expect(wrapper.findComponent(CreateItemSheet).props('isOpen')).toBe(false)
     // The name exists now, so the offer goes.
     expect(offerTitle(wrapper).exists()).toBe(false)
@@ -1170,7 +1240,7 @@ describe('InventoryBrowseSheet — search and the missing name (FR-25.13j)', () 
 
     expect(writes.restored).toEqual(['i-stirnlampe'])
     expect(writes.created).toEqual([])
-    expect(wrapper.emitted('add')?.[0]?.[0]).toMatchObject({ id: 'i-stirnlampe' })
+    expect(actions(wrapper, 'add')[0]!.item).toMatchObject({ id: 'i-stirnlampe' })
   })
 
   it('offers nothing before the inventory has arrived (ADR-033)', async () => {

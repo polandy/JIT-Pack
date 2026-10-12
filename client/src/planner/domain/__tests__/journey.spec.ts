@@ -9,7 +9,7 @@ import {
   type ConnectionLeg,
   type DayEntry,
   type ExcursionRole,
-} from '@/types/domain'
+} from '../../types'
 import { excursionJourney, journeyBudget, journeyTimes } from '../journey'
 
 function leg(from: string, to: string, dep: string, arr: string, line = 'RE'): ConnectionLeg {

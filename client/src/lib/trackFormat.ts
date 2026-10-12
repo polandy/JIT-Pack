@@ -1,8 +1,8 @@
 /**
  * How a track's figures read (FR-29.17) — on the board's card, the track
- * card and an excursion's row alike. Presentation, so here and not in `domain/track.ts`.
+ * card and an excursion's row alike. Presentation, so here and not in `domain/shared/track.ts`.
  */
-import { roundToFive } from '@/domain/track'
+import { roundToFive } from '@/domain/shared/track'
 import { formatNumber, t } from '@/i18n'
 import type { TrackFields } from '@/types/domain'
 

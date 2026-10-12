@@ -13,8 +13,8 @@ import {
   valueAfter,
   type ActivityReader,
   type ActivityReaders,
-} from '@/domain/activityReader'
-import type { ShoppingEntry } from '@/types/domain'
+} from '@/domain/shared/activityReader'
+import type { ShoppingEntry } from './types'
 import { TABLE } from '@/api/tables'
 
 const BOUGHT = 'bought' satisfies keyof ShoppingEntry

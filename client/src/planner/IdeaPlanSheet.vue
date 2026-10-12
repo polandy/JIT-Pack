@@ -15,7 +15,7 @@ import SheetModal from '@/components/global/SheetModal.vue'
 import TimeField from '@/components/global/TimeField.vue'
 import { t } from '@/i18n'
 import { shortDueDay } from '@/lib/taskDueText'
-import type { Idea } from '@/types/domain'
+import type { Idea } from './types'
 import { isPlanTime } from './domain/dayPlan'
 
 const props = defineProps<{

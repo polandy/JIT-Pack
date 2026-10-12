@@ -14,6 +14,7 @@ import { createPinia, setActivePinia } from 'pinia'
 
 import { installHarness, type Harness } from '@/__tests__/harness'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { fixedClock, FIXED_NOW_ISO } from '@/__tests__/fixedClock'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useTripStore } from '@/stores/tripStore'
 import type { ShoppingSource } from '@/kernel/shoppingSources'
@@ -34,6 +35,7 @@ function serverOrch() {
     baseUrl: 'http://localhost',
     getToken: () => null,
     features: [shoppingFeatureStore()],
+    now: fixedClock,
   })
 }
 
@@ -43,6 +45,7 @@ function localOrch(persistence = new IndexedDBPersistence()) {
     getToken: () => null,
     local: persistence,
     features: [shoppingFeatureStore()],
+    now: fixedClock,
   })
 }
 
@@ -150,7 +153,7 @@ describe('The due day (FR-30.10)', () => {
       true,
     )
 
-    expect(duePurchases([])('t1', '2026-07-08')).toEqual({ due: 2, overdue: 1 })
+    expect(duePurchases(() => [])('t1', '2026-07-08')).toEqual({ due: 2, overdue: 1 })
   })
 
   /**
@@ -171,7 +174,7 @@ describe('The due day (FR-30.10)', () => {
       open: (_trip: string, list: string) => lines(list),
     } as unknown as ShoppingSource
 
-    expect(duePurchases([source])('t1', '2026-07-08')).toEqual({ due: 2, overdue: 1 })
+    expect(duePurchases(() => [source])('t1', '2026-07-08')).toEqual({ due: 2, overdue: 1 })
   })
 
   it('a bought entry’s line carries no day — a purchase made is never overdue', () => {
@@ -343,12 +346,12 @@ describe('The close of the packing (FR-7.12)', () => {
     // FR-7.16: and it says it was carried, in the same write.
     const carriedOf = (name: string) =>
       shoppingStore.getEntries('t1').find((e) => e.name === name)!.carried_over_at
-    expect(carriedOf('Sonnenhut')).toEqual(expect.any(String))
+    expect(carriedOf('Sonnenhut')).toBe(FIXED_NOW_ISO)
     expect(carriedOf('Kaffee')).toBeNull()
     await orch.drainTrip('t1')
     expect(harness.pushedMutations().at(-1)).toMatchObject({
       op: 'upsert',
-      fields: { list: 'buy_local', carried_over_at: expect.any(String) },
+      fields: { list: 'buy_local', carried_over_at: FIXED_NOW_ISO },
     })
 
     effect.undo()
@@ -390,7 +393,7 @@ describe('Local Mode', () => {
 
     const orch = localOrch(persistence)
     await orch.connect()
-    orch.deleteTrip('t1')
+    orch.tripLifecycle.deleteTrip('t1')
     await persistence.whenSettled()
 
     expect((await persistence.load()).map((r) => `${r.table}/${r.id}`)).toEqual([])

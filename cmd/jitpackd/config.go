@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"jitpack/internal/api"
+	"jitpack/internal/linkpreview"
+	"jitpack/internal/notify"
 )
 
 // currencyCodeLen is ISO 4217's alphabetic code length.
@@ -89,7 +91,7 @@ type Config struct {
 
 	// TaskReminderAt is when FR-7.11's daily reminder runs, as a time of
 	// day in the server's own time zone (the TZ variable): "HH:MM",
-	// default 06:00 (api.DefaultTaskReminderAt).
+	// default 06:00 (notify.DefaultTaskReminderAt).
 	TaskReminderAt time.Duration // JITPACK_TASK_REMINDER_TIME
 }
 
@@ -208,7 +210,7 @@ func parseCurrency(raw string) (string, error) {
 func parseReminderTime(raw string) (time.Duration, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
-		return api.DefaultTaskReminderAt, nil
+		return notify.DefaultTaskReminderAt, nil
 	}
 	t, err := time.Parse("15:04", raw)
 	if err != nil {
@@ -282,4 +284,59 @@ func splitList(raw string) []string {
 		}
 	}
 	return out
+}
+
+// apiOptions is c's fields translated into api.Options — every one but
+// OIDC, which main sets only once discovery against OIDCIssuer has
+// succeeded, not something this pure a translation can do.
+func (c Config) apiOptions(version string) api.Options {
+	opts := api.Options{
+		Currency:    c.Currency,
+		PushContact: c.PushContact,
+		AdminEmails: c.AdminEmails,
+		Version:     version,
+		UpdateCheck: c.UpdateCheck,
+		NoMapTiles:  !c.MapTiles,
+		NoTimetable: !c.Timetable,
+		RoutingURL:  c.RoutingURL,
+	}
+	if c.LinkPreviews {
+		opts.LinkPreviews = linkpreview.NewFetcher()
+	}
+	return opts
+}
+
+// banners is the startup line for every optional feature c turns on, in
+// the order main prints them.
+func (c Config) banners(version string) []string {
+	var lines []string
+	if c.LinkPreviews {
+		lines = append(lines, "link previews on: pasted links' pages are read from the internet "+
+			"(FR-29.16, JITPACK_LINK_PREVIEWS=false turns this off)")
+	}
+	if c.MapTiles {
+		lines = append(lines, "map tiles on: devices fetch them from swisstopo and OpenStreetMap "+
+			"(FR-29.17, JITPACK_MAP_TILES=false turns this off)")
+	}
+	if c.Timetable {
+		lines = append(lines, "timetable on: devices search transport.opendata.ch for connections "+
+			"(FR-29.18, JITPACK_TIMETABLE=false turns this off)")
+	}
+	if c.RoutingURL != "" {
+		lines = append(lines, fmt.Sprintf("routing on: devices ask %s for paths when a route is edited "+
+			"(FR-29.20, JITPACK_ROUTING=false turns this off)", c.RoutingURL))
+	}
+	if c.UpdateCheck {
+		// The build names itself in the line, because that is the half an
+		// operator cannot otherwise see: an image built without a release
+		// tag makes no check at all (FR-23.8).
+		lines = append(lines, fmt.Sprintf("release check on, this build is %q (an untagged build makes no check)", version))
+	}
+	if len(c.AdminEmails) > 0 {
+		lines = append(lines, fmt.Sprintf("instance admins: %d address(es) (FR-23.1)", len(c.AdminEmails)))
+	}
+	if c.Currency != "" {
+		lines = append(lines, fmt.Sprintf("amounts are labelled %s (FR-21.9)", c.Currency))
+	}
+	return lines
 }

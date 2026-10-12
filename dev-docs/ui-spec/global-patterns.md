@@ -467,6 +467,9 @@ These patterns apply to every screen and are specified once.
     * **The count is a value, not part of the label.** Joining the two inside the translated string (*Open · 3*, *Own
       items · 1 of 2*) would set the figure in the display face and leave it nothing to align with. The catalogue keeps
       the sentence where the figures need a word between them; the head renders it as the count.
+  * **A section's hint line is a role (`.jp-section-hint`).** The recessive line under a head that says what the
+    section is for — UI face at the row detail's size, `--ct-subtext0`, with its own bottom margin.
+    It is a class, not part of the head component, because the same voice also closes a section under its list.
   * **A sheet's head is a component, not a shape each sheet draws (FR-21.12).** The sheet's name at the sheet title role
     with the h1 margin already declined, an optional second line under it at `.jp-meta`, an optional lead (a mark, a
     thumbnail, a state glyph) and an optional trailing indicator, and the way out. The lead sits against the **top** of

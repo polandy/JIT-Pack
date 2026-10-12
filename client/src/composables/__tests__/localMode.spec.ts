@@ -11,6 +11,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -26,7 +27,12 @@ beforeEach(() => {
 })
 
 function newLocalOrch(persistence = new IndexedDBPersistence()) {
-  return useSyncOrchestrator({ baseUrl: '', getToken: () => null, local: persistence })
+  return useSyncOrchestrator({
+    baseUrl: '',
+    getToken: () => null,
+    local: persistence,
+    now: fixedClock,
+  })
 }
 
 describe('Local Mode', () => {
@@ -35,7 +41,7 @@ describe('Local Mode', () => {
     const orch = newLocalOrch(persistence)
     const trips = useTripStore()
 
-    orch.quickAddItem('t1', 'Socken', {}, false)
+    orch.packing.quickAddItem('t1', 'Socken', {}, false)
 
     expect(trips.getItems('t1')).toHaveLength(1)
     await vi.waitFor(async () => {
@@ -158,7 +164,7 @@ describe('Local Mode', () => {
 
     const orch = newLocalOrch(persistence)
     await orch.connect()
-    orch.deleteTrip('t1')
+    orch.tripLifecycle.deleteTrip('t1')
     await persistence.whenSettled()
 
     const left = (await persistence.load()).map((r) => `${r.table}/${r.id}`).sort()
@@ -180,7 +186,7 @@ describe('Local Mode', () => {
 
     const first = newLocalOrch(persistence)
     await first.connect()
-    first.deleteTrip('t1')
+    first.tripLifecycle.deleteTrip('t1')
     await persistence.whenSettled()
 
     // A fresh store is the point: the live one had already dropped its
@@ -221,7 +227,7 @@ describe('Local Mode', () => {
 
     const orch = newLocalOrch(persistence)
     await orch.connect()
-    orch.deleteMasterItem('i1')
+    orch.masterData.deleteMasterItem('i1')
     await persistence.whenSettled()
 
     const left = (await persistence.load()).map((r) => `${r.table}/${r.id}`).sort()
@@ -278,14 +284,14 @@ describe('Local Mode', () => {
 
     const orch = newLocalOrch(persistence)
     await orch.connect()
-    orch.deleteTemplate('tpl1')
+    orch.masterData.deleteTemplate('tpl1')
     await persistence.whenSettled()
 
     const left = (await persistence.load()).map((r) => `${r.table}/${r.id}`).sort()
     expect(left).toEqual(['templates/grp1'])
   })
 
-  it('a deleted trip item takes its comments and todos off the device', async () => {
+  it('a deleted trip item takes its comments and preparations off the device', async () => {
     const persistence = new IndexedDBPersistence()
     await persistence.save([
       { seq: 0, table: 'trips', id: 't1', deleted: false, row: { name: 'Engadin', year: 2026 } },
@@ -306,7 +312,7 @@ describe('Local Mode', () => {
       {
         seq: 0,
         table: 'comments',
-        id: 'todo1',
+        id: 'prep1',
         deleted: false,
         row: {
           trip_id: 't1',
@@ -328,7 +334,7 @@ describe('Local Mode', () => {
 
     const orch = newLocalOrch(persistence)
     await orch.connect()
-    orch.removeAddedItem('t1', 'ti1')
+    orch.packing.removeAddedItem('t1', 'ti1')
     await persistence.whenSettled()
 
     const left = (await persistence.load()).map((r) => `${r.table}/${r.id}`).sort()
@@ -339,7 +345,7 @@ describe('Local Mode', () => {
     const persistence = new IndexedDBPersistence()
     const orch = newLocalOrch(persistence)
 
-    orch.createTripFromWizard({
+    orch.tripCreation.createTripFromWizard({
       name: 'Engadin',
       year: 2026,
       startDate: null,
@@ -359,7 +365,7 @@ describe('Local Mode', () => {
           late_packer: false,
           traveler_index: 0,
           per_person: true,
-          // FR-27.7 in Local Mode (invariant 5): the todo is generated on the
+          // FR-27.7 in Local Mode (invariant 5): the preparation is generated on the
           // device, so it has to persist without a server having seen it.
           tasks: ['Waschen nicht vergessen'],
         },
@@ -376,7 +382,7 @@ describe('Local Mode', () => {
     const item = useTripStore().getItems(tripId)[0]!
     expect(
       useTripStore()
-        .getItemTodos(tripId, item.id)
+        .getRowPrepTasks(tripId, item.id)
         .map((t) => t.body),
     ).toEqual(['Waschen nicht vergessen'])
   })
@@ -394,12 +400,12 @@ describe('Local Mode', () => {
     const orch = newLocalOrch(persistence)
     const master = useMasterStore()
 
-    const vacId = orch.createTemplate('Fotoreise', 'template')!
-    const grpId = orch.createTemplate('Makro', 'group')!
-    orch.addTemplateInclude(vacId, grpId)
-    const itemId = orch.createMasterItem('Kamera')
-    const positionId = orch.addTemplateItem(grpId, itemId, { assignment: 'trip_global' })
-    const taskId = orch.addTemplateItemTask(positionId, 'Akkus laden')
+    const vacId = orch.masterData.createTemplate('Fotoreise', 'template')!
+    const grpId = orch.masterData.createTemplate('Makro', 'group')!
+    orch.masterData.addTemplateInclude(vacId, grpId)
+    const itemId = orch.masterData.createMasterItem('Kamera')
+    const positionId = orch.masterData.addTemplateItem(grpId, itemId, { assignment: 'trip_global' })
+    const taskId = orch.masterData.addTemplateItemTask(positionId, 'Akkus laden')
 
     expect(master.getIncludes(vacId).map((i) => i.included_template_id)).toEqual([grpId])
     expect(master.resolve(vacId).positions.map((p) => p.item_id)).toEqual([itemId])
@@ -411,7 +417,7 @@ describe('Local Mode', () => {
       expect(rows.some((r) => r.table === 'template_item_tasks')).toBe(true)
     })
 
-    orch.deleteTemplateItemTask(taskId)
+    orch.masterData.deleteTemplateItemTask(taskId)
     expect(master.getTemplateItemTasks(positionId)).toEqual([])
     expect(fetchMock).not.toHaveBeenCalled()
   })
@@ -427,6 +433,7 @@ describe('Local Mode', () => {
       getToken: () => null,
       local: persistence,
       onLocalWrite,
+      now: fixedClock,
     })
 
     await orch.connect()
@@ -435,7 +442,7 @@ describe('Local Mode', () => {
     // the stamp did not move for it.
     expect(onLocalWrite).not.toHaveBeenCalled()
 
-    orch.quickAddItem('t1', 'Zahnbürste', {}, false)
+    orch.packing.quickAddItem('t1', 'Zahnbürste', {}, false)
     expect(onLocalWrite).toHaveBeenCalledTimes(1)
   })
 
@@ -446,7 +453,7 @@ describe('Local Mode', () => {
     localStorage.setItem('jitpack_mode', 'local')
     const orch = newLocalOrch()
 
-    orch.commitPortableRestore([])
+    orch.portable.commitPortableRestore([])
 
     expect(loadMigrationPending()).toBe(true)
   })

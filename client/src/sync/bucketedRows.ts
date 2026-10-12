@@ -10,8 +10,16 @@
  * remove that stopped at the first bucket would leave the row in its old one
  * as well, which is the failure that has no symptom.
  */
-import type { Ref } from 'vue'
 import type { RowSink } from './sinks'
+
+/**
+ * What a store hands in to hold its map: a Vue `Ref` satisfies it
+ * structurally, so the store keeps its reactivity and `sync/` stays Vue-free
+ * (ADR-096, `scripts/layer-gate.mjs`).
+ */
+export interface Holder<V> {
+  readonly value: V
+}
 
 /** A row that can live in a bucket: it has an id of its own. */
 export interface BucketedRow {
@@ -37,7 +45,7 @@ export interface BucketedRows<T extends BucketedRow> {
  * the parent id off a row — the one thing that differs between the seven.
  */
 export function bucketedRows<T extends BucketedRow>(
-  rows: Ref<Map<string, T[]>>,
+  rows: Holder<Map<string, T[]>>,
   bucketOf: (row: T) => string,
 ): BucketedRows<T> {
   return {
@@ -87,7 +95,7 @@ export function bucketSink<T extends BucketedRow>(rows: BucketedRows<T>): RowSin
 }
 
 /** A `Map` keyed by row id as a `RowSink`. */
-export function keyedSink<T extends BucketedRow>(map: Ref<Map<string, T>>): RowSink<T> {
+export function keyedSink<T extends BucketedRow>(map: Holder<Map<string, T>>): RowSink<T> {
   return {
     set: (row) => map.value.set(row.id, row),
     remove: (id) => map.value.delete(id),

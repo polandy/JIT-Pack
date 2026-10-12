@@ -1,11 +1,11 @@
 /**
  * Every act on a packing row — the count, the claim, the skip, the removal,
  * the flags — each behind the snackbar's undo (FR-25.31). The row menu, the
- * cluster head's fan-out and the row's own controls all end up here.
+ * cluster head's fan-out and the row's own controls all end up here; the
+ * count and the skip are `useRowSteps`, which an excursion's list shares.
  */
 import type { ComputedRef } from 'vue'
 
-import { stateFor } from '@/domain/packState'
 import { removalNeedsConfirm } from '@/domain/rowRemoval'
 import { t } from '@/i18n'
 import { confirmAction, confirmDestructive } from '@/composables/shared/confirm'
@@ -17,6 +17,7 @@ import { ITEM_MODE_BUY_LOCAL, type ITEM_MODE_PACK, type TripItem } from '@/types
 
 import type { PackingCore } from './usePackingCore'
 import type { RowFacts } from './useRowFacts'
+import { useRowSteps } from './useRowSteps'
 
 /** How the acts reach M5: a removed row's open detail is closed with it. */
 export interface DetailNav {
@@ -36,13 +37,11 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
     locked,
     rowUndo,
     actUndoably,
-    restorePacked,
     liveRow,
-    announceAct,
-    announcePacked,
     announceSkipped,
     announceRemoved,
   } = core
+  const steps = useRowSteps(core.port)
 
   /**
    * FR-25.25: the row's own avatar, tapped.
@@ -64,8 +63,8 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
       picked === null
         ? t('packing.unassignedToast', { name: item.name })
         : t('packing.assignedToast', { name: item.name, who: nameOf(picked) ?? '' }),
-      () => orchestrator.setPacker(item, picked),
-      (live) => orchestrator.setPacker(live, previous),
+      () => orchestrator.packing.setPacker(item, picked),
+      (live) => orchestrator.packing.setPacker(live, previous),
     )
   }
 
@@ -78,9 +77,9 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
     actUndoably(
       item,
       t('packing.claimedToast', { name: item.name }),
-      () => orchestrator.packingNow(item),
+      () => orchestrator.claims.packingNow(item),
       (live) => {
-        if (orchestrator.holdsClaim(tripId, live)) orchestrator.releaseClaim(live)
+        if (orchestrator.claims.holdsClaim(tripId, live)) orchestrator.claims.releaseClaim(live)
       },
     )
   }
@@ -90,9 +89,9 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
     actUndoably(
       item,
       t('packing.releasedToast', { name: item.name }),
-      () => orchestrator.releaseClaim(item),
+      () => orchestrator.claims.releaseClaim(item),
       (live) => {
-        if (!locked(live)) orchestrator.packingNow(live)
+        if (!locked(live)) orchestrator.claims.packingNow(live)
       },
     )
   }
@@ -111,7 +110,7 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
    * between a lock that can be broken and a lock that is not a lock.
    */
   async function onTakeOver(item: TripItem) {
-    const holderId = orchestrator.lockHolder(tripId, item)
+    const holderId = orchestrator.claims.lockHolder(tripId, item)
     const who = holderId ? nameOf(holderId) : ''
     const confirmed = await confirmAction({
       header: t('packing.takeoverConfirmTitle'),
@@ -123,7 +122,7 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
     if (!confirmed) return
 
     try {
-      const previous = await orchestrator.takeOverClaim(tripId, item)
+      const previous = await orchestrator.claims.takeOverClaim(tripId, item)
       const previousName = previous ? nameOf(previous) : ''
       await presentToast({
         message: previousName
@@ -143,27 +142,6 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
   }
 
   /**
-   * FR-5.5: say that a thing is deliberately not coming, rather than leaving
-   * it open and indistinguishable from forgotten.
-   *
-   * The snackbar is not decoration here: FR-20.2 may take companions along,
-   * and a cascade the user never sees is a list that changed behind their
-   * back. It names them and offers the one undo that puts the whole cascade
-   * back.
-   */
-  function onSkipItem(item: TripItem) {
-    // Armed from what the skip reports rather than from the row in hand: the
-    // companions are only known once the cascade has run, and `skipItem`
-    // returns them as they were *before* it wrote (pinned by its own test).
-    const affected = orchestrator.skipItem(tripId, item)
-    rowUndo.armUndo(affected, (records) => orchestrator.restoreSkip(records))
-    void announceSkipped(
-      item.name,
-      affected.slice(1).map((row) => row.name),
-    )
-  }
-
-  /**
    * FR-5.5 over every instance at once: one undo for all of them, the way the
    * row's own skip arms one for its companions. `affected` is gathered from the
    * skips themselves — FR-20.2 co-skips a companion only once no traveler's row
@@ -172,11 +150,11 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
   function skipRows(name: string, rows: TripItem[]): void {
     const affected: TripItem[] = []
     for (const row of rows) {
-      for (const hit of orchestrator.skipItem(tripId, row)) {
+      for (const hit of orchestrator.packing.skipItem(tripId, row)) {
         if (!affected.some((known) => known.id === hit.id)) affected.push(hit)
       }
     }
-    rowUndo.armUndo(affected, (records) => orchestrator.restoreSkip(records))
+    rowUndo.armUndo(affected, (records) => orchestrator.packing.restoreSkip(records))
     const targets = new Set(rows.map((row) => row.id))
     void announceSkipped(
       name,
@@ -190,7 +168,7 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
    * one thing the reader just did on purpose.
    */
   function removeRow(item: TripItem): void {
-    orchestrator.removeItem(item, [])
+    orchestrator.packing.removeItem(item, [])
     if (nav.openItemId.value === item.id) nav.closeItem()
   }
 
@@ -204,10 +182,10 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
    * ever re-inserts a row, or, after a confirmation, un-hides one (FR-25.31).
    */
   async function onRemoveItem(item: TripItem) {
-    const removal = orchestrator.planRowRemoval(tripId, item)
-    const leftItem = orchestrator.itemLeftByRemoval(item)
+    const removal = orchestrator.packing.planRowRemoval(tripId, item)
+    const leftItem = orchestrator.packing.itemLeftByRemoval(item)
     const pruneLeftItem = () => {
-      if (leftItem !== null) void orchestrator.pruneItemLeftByRemoval(tripId, leftItem)
+      if (leftItem !== null) void orchestrator.removalPrune.pruneItemLeftByRemoval(tripId, leftItem)
     }
     if (!removalNeedsConfirm(removal)) {
       // A copy, not the store's row: the undo re-inserts from it after the row
@@ -215,7 +193,7 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
       const snapshot = { ...item }
       rowUndo.armUndo(
         [snapshot],
-        () => orchestrator.restoreRemovedItem(tripId, snapshot),
+        () => orchestrator.packing.restoreRemovedItem(tripId, snapshot),
         pruneLeftItem,
       )
       removeRow(item)
@@ -240,17 +218,18 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
    * (ADR-065) — the instances are no use of each other.
    */
   async function removeRows(name: string, rows: TripItem[]): Promise<void> {
-    const removal = orchestrator.planRowsRemoval(tripId, rows)
-    const leftItem = orchestrator.itemLeftByRemovals(rows)
+    const removal = orchestrator.packing.planRowsRemoval(tripId, rows)
+    const leftItem = orchestrator.packing.itemLeftByRemovals(rows)
     const pruneLeftItem = () => {
-      if (leftItem !== null) void orchestrator.pruneItemLeftByRemoval(tripId, leftItem)
+      if (leftItem !== null) void orchestrator.removalPrune.pruneItemLeftByRemoval(tripId, leftItem)
     }
     if (!removalNeedsConfirm(removal)) {
       const snapshots = rows.map((row) => ({ ...row }))
       rowUndo.armUndo(
         snapshots,
         () => {
-          for (const snapshot of snapshots) orchestrator.restoreRemovedItem(tripId, snapshot)
+          for (const snapshot of snapshots)
+            orchestrator.packing.restoreRemovedItem(tripId, snapshot)
         },
         pruneLeftItem,
       )
@@ -272,7 +251,7 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
   /**
    * FR-25.31: a confirmed removal has an undo too. Its companions are skipped
    * now — an ordinary write the snackbar can take back — but the rows themselves
-   * only leave the screen: deleting them would take their comments and todos
+   * only leave the screen: deleting them would take their comments and preparations
    * along, and those cannot be written back under their own authors. The delete
    * is what lapses, with ADR-065's prune after it.
    */
@@ -289,12 +268,12 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
       [...rows, ...companions],
       (records) => {
         unhide()
-        orchestrator.restoreSkip(records.filter((record) => !ids.has(record.itemId)))
+        orchestrator.packing.restoreSkip(records.filter((record) => !ids.has(record.itemId)))
       },
       () => {
         for (const id of ids) {
           const live = liveRow(id)
-          if (live) orchestrator.removeItem(live, [])
+          if (live) orchestrator.packing.removeItem(live, [])
         }
         unhide()
         afterDelete()
@@ -302,7 +281,7 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
     )
     for (const id of ids) core.removingRows.value.add(id)
     if (nav.openItemId.value !== null && ids.has(nav.openItemId.value)) nav.closeItem()
-    orchestrator.skipRows(companions)
+    orchestrator.packing.skipRows(companions)
   }
 
   /**
@@ -317,8 +296,8 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
       value
         ? t('packing.flagUnusedToast', { item: item.name })
         : t('packing.unflagUnusedToast', { item: item.name }),
-      () => orchestrator.setReviewFlag(item, 'unused', value),
-      (live) => orchestrator.setReviewFlag(live, 'unused', previous),
+      () => orchestrator.packing.setReviewFlag(item, 'unused', value),
+      (live) => orchestrator.packing.setReviewFlag(live, 'unused', previous),
     )
   }
 
@@ -336,12 +315,6 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
     onFlagUnused(item, !item.flag_unused)
   }
 
-  function onUnskipItem(item: TripItem) {
-    rowUndo.armUndo([item], (records) => orchestrator.restoreSkip(records))
-    orchestrator.unskipItem(item)
-    void announceAct(t('packing.unskippedToast', { name: item.name }))
-  }
-
   function onLatePacker(item: TripItem, latePacker: boolean) {
     const previous = item.late_packer
     actUndoably(
@@ -349,8 +322,8 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
       t(latePacker ? 'packing.latePackerOnToast' : 'packing.latePackerOffToast', {
         name: item.name,
       }),
-      () => orchestrator.setLatePacker(item, latePacker),
-      (live) => orchestrator.setLatePacker(live, previous),
+      () => orchestrator.packing.setLatePacker(item, latePacker),
+      (live) => orchestrator.packing.setLatePacker(live, previous),
     )
   }
 
@@ -362,75 +335,24 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
       t(mode === ITEM_MODE_BUY_LOCAL ? 'packing.buyLocalToast' : 'packing.packInsteadToast', {
         name: item.name,
       }),
-      () => orchestrator.setMode(item, mode),
-      (live) => orchestrator.setMode(live, previous),
+      () => orchestrator.packing.setMode(item, mode),
+      (live) => orchestrator.packing.setMode(live, previous),
     )
-  }
-
-  /**
-   * A step of the counter is announced like a pack, and the step that
-   * completes the row *is* one — it leaves the list the same way (FR-25.2).
-   */
-  function onIncrement(item: TripItem) {
-    packStep(item, Math.min(item.packed_count + 1, item.quantity), () =>
-      orchestrator.packIncrement(item),
-    )
-  }
-
-  function onDecrement(item: TripItem) {
-    packStep(item, Math.max(item.packed_count - 1, 0), () => orchestrator.packDecrement(item))
-  }
-
-  function packStep(item: TripItem, packed: number, act: () => void) {
-    const name = item.name
-    rowUndo.actWithUndo([item], act, restorePacked)
-    void (packed >= item.quantity
-      ? announcePacked(name)
-      : announceAct(t('packing.countToast', { name, packed, quantity: item.quantity })))
-  }
-
-  function onComplete(item: TripItem) {
-    const name = item.name
-    rowUndo.actWithUndo([item], () => orchestrator.packComplete(item), restorePacked)
-    void announcePacked(name)
-  }
-
-  function onZero(item: TripItem) {
-    const name = item.name
-    rowUndo.actWithUndo([item], () => orchestrator.packZero(item), restorePacked)
-    void announceAct(t('packing.unpackedToast', { name }))
-  }
-
-  function onToggle(item: TripItem) {
-    // Un-packing a revealed done row is announced too (FR-25.31): its result
-    // is on screen, but a mistap on a list of done rows
-    // is as expensive to find again as one on the open list.
-    const reads = stateFor(item.packed_count, item.quantity)
-    const unpacks = reads === 'packed' || reads === 'skipped'
-    const name = item.name
-    rowUndo.actWithUndo([item], () => orchestrator.packToggle(item), restorePacked)
-    void (unpacks ? announceAct(t('packing.unpackedToast', { name })) : announcePacked(name))
   }
 
   return {
+    ...steps,
     onAssignRow,
     onPackingNow,
     onReleaseClaim,
     canTakeOver,
     onTakeOver,
-    onSkipItem,
     skipRows,
     onRemoveItem,
     removeRows,
     onFlagUnused,
     onPassToggle,
-    onUnskipItem,
     onLatePacker,
     onSetMode,
-    onIncrement,
-    onDecrement,
-    onComplete,
-    onZero,
-    onToggle,
   }
 }

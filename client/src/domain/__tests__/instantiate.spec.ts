@@ -528,8 +528,8 @@ describe('generateTripItems reports what an empty roster cannot place (FR-1.4)',
 
 /**
  * FR-27.7: a template position can carry preparation tasks, and generation
- * hands each one to the trip item as an ordinary FR-7.3 todo. No new flag is
- * involved — the open todo is what keeps the row from counting as done.
+ * hands each one to the trip item as an ordinary FR-7.3 preparation. No new flag is
+ * involved — the open preparation is what keeps the row from counting as done.
  */
 describe('generateTripItems carries preparation tasks (FR-27.7)', () => {
   it('carries a position task onto the generated item', () => {
@@ -606,7 +606,7 @@ describe('generateTripItems carries preparation tasks (FR-27.7)', () => {
     expect(res.items[0]!.tasks).toEqual(['Akkus laden', 'Sensor reinigen'])
   })
 
-  it('the same task text from two groups becomes one todo, not two', () => {
+  it('the same task text from two groups becomes one task, not two', () => {
     const res = generateTripItems(
       input({
         templates: [template('t1', 'Ferien'), group('g1', 'Makro'), group('g2', 'Wildlife')],
@@ -673,7 +673,7 @@ describe('generateTripItems keeps its reports honest across contributors', () =>
       }),
     )
 
-    // Quantity 0 is "considered and left behind". A todo on it would count as
+    // Quantity 0 is "considered and left behind". A preparation on it would count as
     // open preparation on a row FR-25.2 hides — an open task nobody can reach.
     expect(res.items[0]!.quantity).toBe(0)
     expect(res.items[0]!.tasks).toEqual([])
@@ -1155,7 +1155,7 @@ describe('the rows a wizard draft is made of', () => {
 })
 
 /**
- * FR-7.4: a template's trip tasks become the trip's own todos. They travel
+ * FR-7.4: a template's trip tasks become the trip's own tasks. They travel
  * the composition like positions do, and the same chore said twice is one.
  */
 describe('generateTripItems — trip tasks (FR-7.4)', () => {

@@ -36,8 +36,8 @@ import { MEAL_CONTEXT } from '@/kernel/mealContext'
 import { presentToast, TOAST_DURATION_MS } from '@/composables/shared/toast'
 import { localDay, shortDueDay } from '@/lib/taskDueText'
 import { tripSubPath } from '@/router/paths'
-import type { Meal, MealSlot } from '@/types/domain'
-import { MEAL_KIND_OUT, MEAL_SLOT_DINNER, MEAL_SLOTS } from '@/types/domain'
+import type { Meal, MealSlot } from './types'
+import { MEAL_KIND_OUT, MEAL_SLOT_DINNER, MEAL_SLOTS } from './types'
 import { createMealActions } from './actions'
 import {
   agenda,
@@ -73,7 +73,7 @@ const context = inject(MEAL_CONTEXT, null)
 const router = useRouter()
 
 const { trip, loaded, ensure } = useTripScreen(props.tripId, orchestrator)
-const { nameOf, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator)
+const { nameOf, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator.identity)
 
 const contentEl = ref<InstanceType<typeof IonContent> | null>(null)
 /** The page's scroller, read once: a move keeps the meal under the finger through it. */

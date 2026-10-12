@@ -18,13 +18,14 @@ import EmptyState from '@/components/global/EmptyState.vue'
 import FoldToggle from '@/components/global/FoldToggle.vue'
 import IdeaOrigin from '@/components/global/IdeaOrigin.vue'
 import ListSection from '@/components/global/ListSection.vue'
-import ExcursionSheet, { type ExcursionSheetResult } from '@/components/trips/ExcursionSheet.vue'
+import ExcursionSheet, { type ExcursionSheetResult } from './excursion/ExcursionSheet.vue'
 import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
 import { useIdeaSeed } from '@/composables/shared/useIdeaSeed'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { useTripScreen } from '@/composables/shared/useTripScreen'
-import { arrangeExcursions, participantsOf, spanOf, sumUnits } from '@/domain/excursions'
-import { orderTracks } from '@/domain/track'
+import { participantsOf, sumUnits } from '@/domain/excursionLines'
+import { arrangeExcursions, spanOf } from '@/domain/excursionSchedule'
+import { orderTracks } from '@/domain/shared/track'
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { EXCURSION_JOURNEY_LINE } from '@/kernel/excursionConnections'
@@ -32,8 +33,8 @@ import { EXCURSION_EXTRA_LINES, extraLinesOf, withExtraUnits } from '@/kernel/ex
 import { excursionDays } from '@/lib/excursionText'
 import { tracksSummary } from '@/lib/trackFormat'
 import { presentToast } from '@/composables/shared/toast'
-import { beforeIsOver, standingOf } from '@/lib/tripPhase'
-import type { IdeaSeed } from '@/domain/ideaBridge'
+import { beforeIsOver, standingOf } from '@/domain/shared/tripPhase'
+import type { IdeaSeed } from '@/domain/shared/ideaBridge'
 import { ORIGIN_QUERY_PARAM, tripExcursionsPath } from '@/router/paths'
 import { useTripStore } from '@/stores/tripStore'
 import type { Excursion } from '@/types/domain'
@@ -128,7 +129,7 @@ function dismiss() {
 async function create(result: ExcursionSheetResult) {
   const ideaId = fromIdea.value?.id ?? null
   dismiss()
-  const report = orchestrator.createExcursion(props.tripId, { ...result, ideaId })
+  const report = orchestrator.excursions.createExcursion(props.tripId, { ...result, ideaId })
   if (!report) return
   // Made from an idea, its list keeps the way back to the idea (FR-29.13).
   const origin = ideaId ? route.query[ORIGIN_QUERY_PARAM] : undefined

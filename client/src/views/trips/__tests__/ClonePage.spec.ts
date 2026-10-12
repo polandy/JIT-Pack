@@ -29,7 +29,9 @@ vi.mock('vue-router', () => ({
 
 const orchestratorFake = {
   ...tripScreenStub(),
-  cloneTrip: vi.fn((): string | null => null),
+  tripCreation: {
+    cloneTrip: vi.fn((): string | null => null),
+  },
 }
 
 function seedSource() {
@@ -117,13 +119,13 @@ describe('ClonePage — the new trip’s dates are one range (FR-2.1d, G-17)', (
   it('clones with the range picked', async () => {
     seedSource()
     orchestratorFake.loadedTrips.add('src')
-    orchestratorFake.cloneTrip.mockReturnValue('trip-2')
+    orchestratorFake.tripCreation.cloneTrip.mockReturnValue('trip-2')
     const wrapper = mountPage()
 
     await wrapper.findComponent(DateRangeField).vm.$emit('update', '2026-10-09', '2026-10-18')
     await wrapper.get('.confirm').trigger('click')
 
-    expect(orchestratorFake.cloneTrip).toHaveBeenCalledWith(
+    expect(orchestratorFake.tripCreation.cloneTrip).toHaveBeenCalledWith(
       'src',
       expect.objectContaining({ startDate: '2026-10-09', endDate: '2026-10-18' }),
     )
@@ -132,12 +134,12 @@ describe('ClonePage — the new trip’s dates are one range (FR-2.1d, G-17)', (
   it('clones with no dates while none is picked (FR-2.1b)', async () => {
     seedSource()
     orchestratorFake.loadedTrips.add('src')
-    orchestratorFake.cloneTrip.mockReturnValue('trip-2')
+    orchestratorFake.tripCreation.cloneTrip.mockReturnValue('trip-2')
     const wrapper = mountPage()
 
     await wrapper.get('.confirm').trigger('click')
 
-    expect(orchestratorFake.cloneTrip).toHaveBeenCalledWith(
+    expect(orchestratorFake.tripCreation.cloneTrip).toHaveBeenCalledWith(
       'src',
       expect.objectContaining({ startDate: null, endDate: null }),
     )
@@ -153,13 +155,13 @@ describe('M19 writes one clone however often the button is pressed', () => {
   it('ignores the second press', async () => {
     seedSource()
     orchestratorFake.loadedTrips.add('src')
-    orchestratorFake.cloneTrip.mockReturnValue('trip-2')
+    orchestratorFake.tripCreation.cloneTrip.mockReturnValue('trip-2')
     const wrapper = mountPage()
 
     await wrapper.get('.confirm').trigger('click')
     await wrapper.get('.confirm').trigger('click')
 
-    expect(orchestratorFake.cloneTrip).toHaveBeenCalledTimes(1)
+    expect(orchestratorFake.tripCreation.cloneTrip).toHaveBeenCalledTimes(1)
   })
 
   it('keeps the door open when the clone did not happen', async () => {
@@ -167,12 +169,12 @@ describe('M19 writes one clone however often the button is pressed', () => {
     // and nowhere was navigated to, so the screen must still be usable.
     seedSource()
     orchestratorFake.loadedTrips.add('src')
-    orchestratorFake.cloneTrip.mockReturnValue(null)
+    orchestratorFake.tripCreation.cloneTrip.mockReturnValue(null)
     const wrapper = mountPage()
 
     await wrapper.get('.confirm').trigger('click')
     await wrapper.get('.confirm').trigger('click')
 
-    expect(orchestratorFake.cloneTrip).toHaveBeenCalledTimes(2)
+    expect(orchestratorFake.tripCreation.cloneTrip).toHaveBeenCalledTimes(2)
   })
 })

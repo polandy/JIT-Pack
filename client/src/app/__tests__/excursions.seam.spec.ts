@@ -6,7 +6,7 @@
  * list as a Gruppe writes.
  */
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { createExcursionActions } from '../actions/excursions'
@@ -19,6 +19,9 @@ import { changesOf, makeSeamContext, pullIn, type Recorded, type SeamContext } f
 import { TABLE } from '@/api/tables'
 import { ref } from 'vue'
 import { keyedSink } from '@/sync/bucketedRows'
+import { specifiedSinks } from '@/sync/sinks'
+import { PLANNER_ROWS } from '@/planner/rows'
+import type { IdeaPlanWrites } from '@/domain/shared/ideaBridge'
 
 /** No track is uploaded here — `excursionTracks.seam.spec.ts` drives those. */
 const noTrackFiles = {
@@ -288,6 +291,32 @@ describe('the line’s own acts — FR-31.6, FR-31.8', () => {
 })
 
 describe('deleting — FR-31.1, FR-31.5', () => {
+  /*
+   * FR-29.15: an excursion made from an idea is the idea's one line on the
+   * day plan, so the idea's day goes with it — the planner's write, through
+   * the port the composition root binds.
+   */
+  it('takes the day of the idea it was made from away, and of no other', () => {
+    seedTrip()
+    const actions = build()
+    const unplan = vi.fn<IdeaPlanWrites['unplan']>()
+    const made = (ideaId: string | null) =>
+      actions.createExcursion(TRIP_ID, {
+        name: 'Gola Gorropu',
+        startsOn: '2026-07-14',
+        endsOn: '2026-07-14',
+        travelerIds: null,
+        templateId: null,
+        ideaId,
+      })!.excursionId
+
+    actions.deleteExcursion(TRIP_ID, made(null), { unplan })
+    expect(unplan).not.toHaveBeenCalled()
+    actions.deleteExcursion(TRIP_ID, made('idea-gorropu'), { unplan })
+    expect(unplan.mock.calls).toEqual([[TRIP_ID, 'idea-gorropu']])
+    expect(ctx.tripStore.getExcursions(TRIP_ID)).toEqual([])
+  })
+
   it('takes the excursion’s participants and lines with it, and leaves the suitcase', () => {
     seedTrip()
     seedGroup()
@@ -336,7 +365,7 @@ describe('deleting — FR-31.1, FR-31.5', () => {
     seedTrip()
     ctx.features = [
       {
-        sinks: {
+        sinks: specifiedSinks(PLANNER_ROWS, {
           [TABLE.dayEntryTravelers]: keyedSink(
             ref(
               new Map([
@@ -347,7 +376,7 @@ describe('deleting — FR-31.1, FR-31.5', () => {
               ]),
             ),
           ),
-        },
+        }),
       },
     ]
     const comments = createCommentActions(ctx)
@@ -535,6 +564,72 @@ describe('addGroupLines — FR-31.2 on an existing excursion', () => {
     expect(written.lines).toBe(3)
     expect(lines().filter((l) => l.name === 'Stirnlampe')).toHaveLength(1)
     expect(lines().filter((l) => l.name === 'Hüttenschlafsack')).toHaveLength(2)
+  })
+})
+
+describe('addLines with a decision — the browse sheet’s ✓ and ✕ (FR-25.13f)', () => {
+  function lamp() {
+    return {
+      source_item_id: 'item-lamp',
+      name: 'Stirnlampe',
+      category_name: null,
+      assigned_traveler_id: null,
+      quantity: 1,
+      mode: 'pack' as const,
+      for_all_participants: false,
+      weight_grams: null,
+      value_cents: null,
+      source_template_id: null,
+    }
+  }
+
+  function emptyExcursion(actions: ReturnType<typeof build>) {
+    return actions.createExcursion(TRIP_ID, {
+      name: 'H',
+      startsOn: null,
+      endsOn: null,
+      travelerIds: null,
+      templateId: null,
+    })!.excursionId
+  }
+
+  it('writes a packed line, linked into the suitcase like an open add', () => {
+    seedTrip()
+    const actions = build()
+    const excursionId = emptyExcursion(actions)
+
+    const written = actions.addLines(TRIP_ID, excursionId, [lamp()], 'packed')
+
+    const row = ctx.tripStore.getItems(TRIP_ID)[0]!
+    expect(row).toMatchObject({ name: 'Stirnlampe', state: 'open' })
+    expect(lines()[0]).toMatchObject({
+      trip_item_id: row.id,
+      quantity: 1,
+      packed_count: 1,
+      state: 'packed',
+    })
+
+    written.undo()
+
+    expect(lines()).toEqual([])
+    expect(ctx.tripStore.getItems(TRIP_ID)).toEqual([])
+  })
+
+  it('writes a skipped line at an amount of zero, and the suitcase gains nothing for it', () => {
+    seedTrip()
+    const actions = build()
+    const excursionId = emptyExcursion(actions)
+
+    actions.addLines(TRIP_ID, excursionId, [lamp()], 'skipped')
+
+    expect(ctx.tripStore.getItems(TRIP_ID)).toEqual([])
+    expect(lines()[0]).toMatchObject({
+      trip_item_id: null,
+      quantity: 0,
+      packed_count: 0,
+      state: 'skipped',
+      not_in_luggage: false,
+    })
   })
 })
 

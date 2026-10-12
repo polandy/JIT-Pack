@@ -9,7 +9,7 @@ import { IonIcon } from '@ionic/vue'
 import { openOutline, walkOutline } from 'ionicons/icons'
 
 import { t } from '@/i18n'
-import type { ConnectionLeg } from '@/types/domain'
+import type { ConnectionLeg } from './types'
 import { timeOf } from './domain/connections'
 
 defineProps<{ legs: readonly ConnectionLeg[]; link?: string | null }>()

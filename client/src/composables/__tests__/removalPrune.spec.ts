@@ -10,6 +10,7 @@ import { IDBFactory } from 'fake-indexeddb'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -75,9 +76,9 @@ type Orchestrator = ReturnType<typeof useSyncOrchestrator>
 /** The M4 sequence: remove the row, then let its undo lapse. */
 async function removeAndLapse(orch: Orchestrator, id: string): Promise<void> {
   const removed = row(id)
-  const left = orch.itemLeftByRemoval(removed)
-  orch.removeItem(removed, [])
-  if (left !== null) await orch.pruneItemLeftByRemoval(TRIP, left)
+  const left = orch.packing.itemLeftByRemoval(removed)
+  orch.packing.removeItem(removed, [])
+  if (left !== null) await orch.removalPrune.pruneItemLeftByRemoval(TRIP, left)
 }
 
 describe('Local Mode — the device holds every trip, so its answer is final', () => {
@@ -86,6 +87,7 @@ describe('Local Mode — the device holds every trip, so its answer is final', (
       baseUrl: '',
       getToken: () => null,
       local: new IndexedDBPersistence(),
+      now: fixedClock,
     })
   }
 
@@ -115,10 +117,10 @@ describe('Local Mode — the device holds every trip, so its answer is final', (
     const orch = localOrch()
     seed([{ id: 'ti-1', source_item_id: ITEM }])
     const removed = { ...row('ti-1') }
-    orch.removeItem(removed, [])
-    orch.restoreRemovedItem(TRIP, removed)
+    orch.packing.removeItem(removed, [])
+    orch.packing.restoreRemovedItem(TRIP, removed)
 
-    await orch.pruneItemLeftByRemoval(TRIP, ITEM)
+    await orch.removalPrune.pruneItemLeftByRemoval(TRIP, ITEM)
 
     expect(useMasterStore().getItem(ITEM)).toBeDefined()
   })
@@ -162,7 +164,11 @@ describe('Server Mode — the server decides over every trip', () => {
   }
 
   function serverOrch(): Orchestrator {
-    return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    return useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
   }
 
   it('asks the server to prune — after the removal has reached it', async () => {
@@ -200,7 +206,7 @@ describe('Server Mode — the server decides over every trip', () => {
     ])
 
     await removeAndLapse(orch, 'ti-1')
-    await orch.pruneItemLeftByRemoval(TRIP, ITEM)
+    await orch.removalPrune.pruneItemLeftByRemoval(TRIP, ITEM)
     // The positive signal for the absence below: the removal has reached the
     // server, so a prune that were coming would have been asked by now.
     await orch.drainTrip(TRIP)

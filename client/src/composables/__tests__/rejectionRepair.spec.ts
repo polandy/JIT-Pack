@@ -15,6 +15,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { useTripStore } from '@/stores/tripStore'
 import { REJECTION_REASON } from '@/sync/rejectionReasons'
 import { TABLE } from '@/api/tables'
@@ -108,6 +109,7 @@ describe('a refused mutation stops diverging the device', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       outboxStore: store,
+      now: fixedClock,
     })
     const trips = useTripStore()
     trips.applyChanges([optimisticRow('Umbenannt')])
@@ -137,6 +139,7 @@ describe('a refused mutation stops diverging the device', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       outboxStore: store,
+      now: fixedClock,
     })
     const trips = useTripStore()
     trips.applyChanges([optimisticRow('Fremde Zeile')])
@@ -161,6 +164,7 @@ describe('a refused mutation stops diverging the device', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       outboxStore: store,
+      now: fixedClock,
     })
     const trips = useTripStore()
     trips.applyChanges([optimisticRow('Noch da')])
@@ -186,6 +190,7 @@ describe('a refused mutation stops diverging the device', () => {
       getToken: () => null,
       outboxStore: store,
       onRejections: (report) => seen.push({ count: report.count, reason: report.reason }),
+      now: fixedClock,
     })
 
     jsonOnce(rejectedPush(REJECTION_REASON.stillReferenced))

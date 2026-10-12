@@ -1,10 +1,11 @@
-// Package api — apitoken.go mints the long-lived credentials of FR-23.7.
+// apitoken.go mints the long-lived credentials of FR-23.7.
 //
 // An API token is an ordinary session JWT with a longer life and three extra
 // claims. **Nothing about it is stored** (ADR-039): it cannot be listed and
 // cannot be revoked one at a time, and rotating the signing secret is what
 // revokes them all. The trade is written up in the ADR; what lives here is
 // the shape.
+
 package api
 
 import (
@@ -157,7 +158,7 @@ func (s *Server) handleMintAPIToken(w http.ResponseWriter, r *http.Request) {
 			"API tokens need a server that signs sessions")
 		return
 	}
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 
 	// A token may not mint another one. Without this a leaked credential
 	// renews itself before its own expiry and outlives every lifetime its

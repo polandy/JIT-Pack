@@ -11,6 +11,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/api/tables'
 import type { PullChange } from '@/api/types'
@@ -42,7 +43,7 @@ function seedTrip(extra: PullChange[] = []) {
 }
 
 function orchestrator() {
-  return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+  return useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null, now: fixedClock })
 }
 
 function rowsOf() {
@@ -57,7 +58,14 @@ describe('setTravelerAssignment (FR-25.13h — the free line)', () => {
   it('adds one row, assigned to exactly the traveler set it was given', () => {
     seedTrip()
 
-    const result = orchestrator().setTravelerAssignment(TRIP_ID, NAME, OPTS, true, [], ['tr-b'])
+    const result = orchestrator().packing.setTravelerAssignment(
+      TRIP_ID,
+      NAME,
+      OPTS,
+      true,
+      [],
+      ['tr-b'],
+    )
 
     expect(rowsOf()).toHaveLength(1)
     expect(rowsOf()[0]).toMatchObject({
@@ -73,10 +81,10 @@ describe('setTravelerAssignment (FR-25.13h — the free line)', () => {
     seedTrip()
     const orch = orchestrator()
 
-    orch.setTravelerAssignment(TRIP_ID, NAME, OPTS, false, [], ['tr-a'])
+    orch.packing.setTravelerAssignment(TRIP_ID, NAME, OPTS, false, [], ['tr-a'])
     // The sheet re-reads the item's own rows before the second tap, the way
     // `rowsOfMasterItem` does, and hands back the *whole* desired set.
-    orch.setTravelerAssignment(TRIP_ID, NAME, OPTS, false, rowsOf(), ['tr-a', 'tr-b'])
+    orch.packing.setTravelerAssignment(TRIP_ID, NAME, OPTS, false, rowsOf(), ['tr-a', 'tr-b'])
 
     expect(
       rowsOf()
@@ -89,9 +97,9 @@ describe('setTravelerAssignment (FR-25.13h — the free line)', () => {
     seedTrip()
     const orch = orchestrator()
 
-    orch.setTravelerAssignment(TRIP_ID, NAME, OPTS, false, [], ['tr-a'])
-    orch.setTravelerAssignment(TRIP_ID, NAME, OPTS, false, rowsOf(), ['tr-a', 'tr-b'])
-    orch.setTravelerAssignment(TRIP_ID, NAME, OPTS, false, rowsOf(), ['tr-b'])
+    orch.packing.setTravelerAssignment(TRIP_ID, NAME, OPTS, false, [], ['tr-a'])
+    orch.packing.setTravelerAssignment(TRIP_ID, NAME, OPTS, false, rowsOf(), ['tr-a', 'tr-b'])
+    orch.packing.setTravelerAssignment(TRIP_ID, NAME, OPTS, false, rowsOf(), ['tr-b'])
 
     expect(rowsOf().map((row) => row.assigned_traveler_id)).toEqual(['tr-b'])
   })
@@ -100,8 +108,8 @@ describe('setTravelerAssignment (FR-25.13h — the free line)', () => {
     seedTrip()
     const orch = orchestrator()
 
-    orch.setTravelerAssignment(TRIP_ID, NAME, OPTS, false, [], ['tr-c'])
-    orch.setTravelerAssignment(TRIP_ID, NAME, OPTS, false, rowsOf(), [])
+    orch.packing.setTravelerAssignment(TRIP_ID, NAME, OPTS, false, [], ['tr-c'])
+    orch.packing.setTravelerAssignment(TRIP_ID, NAME, OPTS, false, rowsOf(), [])
 
     expect(rowsOf()).toHaveLength(0)
   })
@@ -109,7 +117,7 @@ describe('setTravelerAssignment (FR-25.13h — the free line)', () => {
   it('drops a traveler id the trip does not have, rather than writing a dangling one', () => {
     seedTrip()
 
-    const result = orchestrator().setTravelerAssignment(
+    const result = orchestrator().packing.setTravelerAssignment(
       TRIP_ID,
       NAME,
       OPTS,
@@ -128,8 +136,8 @@ describe('setTravelerAssignment (FR-25.13h — the free line)', () => {
     seedTrip()
     const orch = orchestrator()
 
-    const result = orch.setTravelerAssignment(TRIP_ID, NAME, OPTS, false, [], ['tr-c'])
-    orch.removeAddedItem(TRIP_ID, result.id)
+    const result = orch.packing.setTravelerAssignment(TRIP_ID, NAME, OPTS, false, [], ['tr-c'])
+    orch.packing.removeAddedItem(TRIP_ID, result.id)
 
     expect(rowsOf()).toHaveLength(0)
   })

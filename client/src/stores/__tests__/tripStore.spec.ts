@@ -99,7 +99,7 @@ describe('tripStore', () => {
         row(TABLE.containers, 'c1', { trip_id: 't1', name: 'Rucksack' }),
         row(TABLE.tripMembers, 'mem1', { trip_id: 't1', user_id: 'u1', role: 'owner' }),
         row(TABLE.comments, 'com1', { trip_id: 't1', body: 'Vergiss die Karte nicht' }),
-        row(TABLE.comments, 'todo1', {
+        row(TABLE.comments, 'prep1', {
           trip_id: 't1',
           trip_item_id: 'i1',
           body: 'Akku laden',
@@ -128,7 +128,7 @@ describe('tripStore', () => {
       expect(cascadeOf(TABLE.trips, 't1', tripStore)).toEqual(
         expect.arrayContaining([
           { table: TABLE.comments, id: 'com1' },
-          { table: TABLE.comments, id: 'todo1' },
+          { table: TABLE.comments, id: 'prep1' },
           { table: TABLE.tripGeneratedPositions, id: 'gen1' },
           { table: TABLE.tripItems, id: 'i1' },
           { table: TABLE.travelers, id: 'trav1' },
@@ -148,9 +148,9 @@ describe('tripStore', () => {
       const at = (table: string, id: string) =>
         cascadeOf(TABLE.trips, 't1', tripStore).findIndex((c) => c.table === table && c.id === id)
 
-      // The todo hangs off the trip item as well as off the trip; the server
+      // The preparation hangs off the trip item as well as off the trip; the server
       // emits its own cascade leaf-first for the same reason.
-      expect(at(TABLE.comments, 'todo1')).toBeLessThan(at(TABLE.tripItems, 'i1'))
+      expect(at(TABLE.comments, 'prep1')).toBeLessThan(at(TABLE.tripItems, 'i1'))
     })
 
     it('empties every bucket the trip owned', () => {
@@ -165,7 +165,7 @@ describe('tripStore', () => {
       expect(tripStore.getContainers('t1')).toEqual([])
       expect(tripStore.getMembers('t1')).toEqual([])
       expect(tripStore.getComments('t1')).toEqual([])
-      expect(tripStore.getTodos('t1')).toEqual([])
+      expect(tripStore.getPrepTasks('t1')).toEqual([])
       expect(tripStore.getTemplateSources('t1')).toEqual([])
       expect(tripStore.getGeneratedPositions('t1')).toEqual([])
       expect(tripStore.getAppliedChanges('t1')).toEqual([])
@@ -319,60 +319,10 @@ describe('tripStore', () => {
     expect(tripStore.getItems('t1')).toHaveLength(0)
   })
 
-  it('computes KPIs', () => {
-    const tripStore = useTripStore()
-    tripStore.applyChanges([
-      {
-        seq: 1,
-        table: 'trip_items',
-        id: 'i1',
-        deleted: false,
-        row: {
-          trip_id: 't1',
-          name: 'A',
-          quantity: 2,
-          packed_count: 1,
-          weight_grams: 100,
-          value_cents: 500,
-          state: 'partial',
-          mode: 'pack',
-          updated_hlc: 'h1',
-        },
-      },
-      {
-        seq: 2,
-        table: 'trip_items',
-        id: 'i2',
-        deleted: false,
-        row: {
-          trip_id: 't1',
-          name: 'B',
-          quantity: 3,
-          packed_count: 3,
-          weight_grams: 200,
-          value_cents: 1000,
-          state: 'packed',
-          mode: 'pack',
-          updated_hlc: 'h2',
-        },
-      },
-    ])
-
-    const k = tripStore.kpis('t1')
-    expect(k.totalItems).toBe(5) // 2 + 3
-    expect(k.packedItems).toBe(4) // 1 + 3
-    expect(k.totalWeight).toBe(800) // 100*2 + 200*3
-    expect(k.packedWeight).toBe(700) // 100*1 + 200*3
-    expect(k.totalValue).toBe(4000) // 500*2 + 1000*3
-    expect(k.packedValue).toBe(3500) // 500*1 + 1000*3
-
-    // FR-25.31: a row whose removal is still inside its undo is off the line.
-    const hidden = tripStore.kpis('t1', new Set(['i2']))
-    expect(hidden.totalItems).toBe(2)
-    expect(hidden.packedItems).toBe(1)
-  })
-
-  it('counts a skipped row as no units — not packed, not owed (amends FR-25.22)', () => {
+  // The KPI arithmetic itself — units, weight, value, the skipped-row
+  // exception and FR-25.31's hidden rows — is `domain/tripKpis`'s own spec;
+  // what belongs here is that the store hands the rule its own rows.
+  it('computes KPIs over its own rows', () => {
     const tripStore = useTripStore()
     tripStore.applyChange({
       seq: 1,
@@ -381,21 +331,18 @@ describe('tripStore', () => {
       deleted: false,
       row: {
         trip_id: 't1',
-        name: 'Left behind on purpose',
-        quantity: 0,
-        packed_count: 0,
-        state: 'skipped',
+        name: 'A',
+        quantity: 2,
+        packed_count: 1,
+        weight_grams: 100,
+        value_cents: 500,
+        state: 'partial',
         mode: 'pack',
         updated_hlc: 'h1',
       },
     })
 
-    const k = tripStore.kpis('t1')
-    // A consciously-skipped row is neither packed nor part of what is left
-    // to pack — it must not inflate the trip line the way a real packed row
-    // does, or a trip with many skipped rows reads as further along than it is.
-    expect(k.totalItems).toBe(0)
-    expect(k.packedItems).toBe(0)
+    expect(tripStore.kpis('t1')).toMatchObject({ totalItems: 2, packedItems: 1 })
   })
 
   it('handles travelers', () => {
@@ -429,14 +376,14 @@ describe('tripStore', () => {
     expect(tripStore.getContainers('t1')).toHaveLength(0)
   })
 
-  // --- Preparation Todos (FR-7.3) ---
+  // --- Preparation tasks (FR-7.3) ---
 
-  it('applies comment with is_task as todo', () => {
+  it('applies comment with is_task as a preparation', () => {
     const tripStore = useTripStore()
     tripStore.applyChange({
       seq: 1,
       table: 'comments',
-      id: 'todo1',
+      id: 'prep1',
       deleted: false,
       row: {
         trip_id: 't1',
@@ -447,9 +394,9 @@ describe('tripStore', () => {
         task_state: 'open',
       },
     })
-    expect(tripStore.getTodos('t1')).toHaveLength(1)
-    expect(tripStore.getTodos('t1')[0]!.body).toBe('Charge battery')
-    expect(tripStore.getTodos('t1')[0]!.task_state).toBe('open')
+    expect(tripStore.getPrepTasks('t1')).toHaveLength(1)
+    expect(tripStore.getPrepTasks('t1')[0]!.body).toBe('Charge battery')
+    expect(tripStore.getPrepTasks('t1')[0]!.task_state).toBe('open')
   })
 
   it('ignores non-task comments', () => {
@@ -468,15 +415,15 @@ describe('tripStore', () => {
         task_state: null,
       },
     })
-    expect(tripStore.getTodos('t1')).toHaveLength(0)
+    expect(tripStore.getPrepTasks('t1')).toHaveLength(0)
   })
 
-  it('upserts existing todo (resolve)', () => {
+  it('upserts existing preparation (resolve)', () => {
     const tripStore = useTripStore()
     tripStore.applyChange({
       seq: 1,
       table: 'comments',
-      id: 'todo1',
+      id: 'prep1',
       deleted: false,
       row: {
         trip_id: 't1',
@@ -490,7 +437,7 @@ describe('tripStore', () => {
     tripStore.applyChange({
       seq: 2,
       table: 'comments',
-      id: 'todo1',
+      id: 'prep1',
       deleted: false,
       row: {
         trip_id: 't1',
@@ -501,16 +448,16 @@ describe('tripStore', () => {
         task_state: 'resolved',
       },
     })
-    expect(tripStore.getTodos('t1')).toHaveLength(1)
-    expect(tripStore.getTodos('t1')[0]!.task_state).toBe('resolved')
+    expect(tripStore.getPrepTasks('t1')).toHaveLength(1)
+    expect(tripStore.getPrepTasks('t1')[0]!.task_state).toBe('resolved')
   })
 
-  it('deletes a todo', () => {
+  it('deletes a preparation', () => {
     const tripStore = useTripStore()
     tripStore.applyChange({
       seq: 1,
       table: 'comments',
-      id: 'todo1',
+      id: 'prep1',
       deleted: false,
       row: {
         trip_id: 't1',
@@ -521,17 +468,17 @@ describe('tripStore', () => {
         task_state: 'open',
       },
     })
-    tripStore.applyChange({ seq: 2, table: 'comments', id: 'todo1', deleted: true, row: null })
-    expect(tripStore.getTodos('t1')).toHaveLength(0)
+    tripStore.applyChange({ seq: 2, table: 'comments', id: 'prep1', deleted: true, row: null })
+    expect(tripStore.getPrepTasks('t1')).toHaveLength(0)
   })
 
-  it('getItemTodos filters by trip item', () => {
+  it('getRowPrepTasks filters by trip item', () => {
     const tripStore = useTripStore()
     tripStore.applyChanges([
       {
         seq: 1,
         table: 'comments',
-        id: 'todo1',
+        id: 'prep1',
         deleted: false,
         row: {
           trip_id: 't1',
@@ -545,7 +492,7 @@ describe('tripStore', () => {
       {
         seq: 2,
         table: 'comments',
-        id: 'todo2',
+        id: 'prep2',
         deleted: false,
         row: {
           trip_id: 't1',
@@ -559,7 +506,7 @@ describe('tripStore', () => {
       {
         seq: 3,
         table: 'comments',
-        id: 'todo3',
+        id: 'prep3',
         deleted: false,
         row: {
           trip_id: 't1',
@@ -571,11 +518,13 @@ describe('tripStore', () => {
         },
       },
     ])
-    expect(tripStore.getItemTodos('t1', 'i1')).toHaveLength(2)
-    expect(tripStore.getItemTodos('t1', 'i2')).toHaveLength(1)
+    expect(tripStore.getRowPrepTasks('t1', 'i1')).toHaveLength(2)
+    expect(tripStore.getRowPrepTasks('t1', 'i2')).toHaveLength(1)
   })
 
-  it('itemsWithOpenPrep returns items with open todos', () => {
+  // The grouping rule itself is `domain/tripKpis`'s own spec; this checks
+  // only that the store passes its own rows to it.
+  it('itemsWithOpenPrep returns items with an open preparation', () => {
     const tripStore = useTripStore()
     tripStore.applyChanges([
       {
@@ -595,23 +544,8 @@ describe('tripStore', () => {
       },
       {
         seq: 2,
-        table: 'trip_items',
-        id: 'i2',
-        deleted: false,
-        row: {
-          trip_id: 't1',
-          name: 'Clothes',
-          quantity: 1,
-          packed_count: 0,
-          state: 'open',
-          mode: 'pack',
-          updated_hlc: 'h2',
-        },
-      },
-      {
-        seq: 3,
         table: 'comments',
-        id: 'todo1',
+        id: 'prep1',
         deleted: false,
         row: {
           trip_id: 't1',
@@ -626,10 +560,10 @@ describe('tripStore', () => {
     const result = tripStore.itemsWithOpenPrep('t1')
     expect(result).toHaveLength(1)
     expect(result[0]!.item.name).toBe('Camera')
-    expect(result[0]!.openTodos).toHaveLength(1)
+    expect(result[0]!.openPrepTasks).toHaveLength(1)
   })
 
-  it('KPIs include todo counts', () => {
+  it('KPIs include preparation counts', () => {
     const tripStore = useTripStore()
     tripStore.applyChanges([
       {
@@ -650,7 +584,7 @@ describe('tripStore', () => {
       {
         seq: 2,
         table: 'comments',
-        id: 'todo1',
+        id: 'prep1',
         deleted: false,
         row: {
           trip_id: 't1',
@@ -661,32 +595,8 @@ describe('tripStore', () => {
           task_state: 'open',
         },
       },
-      {
-        seq: 3,
-        table: 'comments',
-        id: 'todo2',
-        deleted: false,
-        row: {
-          trip_id: 't1',
-          trip_item_id: 'i1',
-          author_id: 'u1',
-          body: 'Task B',
-          is_task: 1,
-          task_state: 'resolved',
-        },
-      },
     ])
-    const k = tripStore.kpis('t1')
-    expect(k.totalTodos).toBe(2)
-    expect(k.resolvedTodos).toBe(1)
-
-    // FR-25.31: a row hidden while its removal's undo is live takes its todos
-    // out of the count with it; a hidden todo leaves on its own.
-    expect(tripStore.kpis('t1', new Set(['i1'])).totalTodos).toBe(0)
-    expect(tripStore.kpis('t1', new Set(['todo2']))).toMatchObject({
-      totalTodos: 1,
-      resolvedTodos: 0,
-    })
+    expect(tripStore.kpis('t1')).toMatchObject({ totalPrepTasks: 1, resolvedPrepTasks: 0 })
   })
 })
 
@@ -699,7 +609,7 @@ describe('a trip pulled from the wire', () => {
     const tripStore = useTripStore()
 
     // `duration_days` is a generated column and deliberately not syncable
-    // (`syncableColumns` in internal/store/store.go), so every pull carries
+    // (`syncableColumns` in internal/store/tables.go), so every pull carries
     // the dates and no duration. Reading it off the row leaves M4 and the
     // analytics without one for every trip that arrived over the wire.
     tripStore.applyChange({

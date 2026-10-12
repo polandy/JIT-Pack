@@ -169,11 +169,13 @@ const anyAdHoc = computed(() => composition.value.loose.some((l) => l.reason ===
  * taken name is refused where it is typed, before any of the screen's other
  * writes have run.
  */
-const nameTaken = computed(() => orchestrator.templateNameCollision(templateName.value) ?? null)
+const nameTaken = computed(
+  () => orchestrator.names.templateNameCollision(templateName.value) ?? null,
+)
 
 const bundleTaken = computed(() => {
   if (!bundleOn.value) return null
-  return orchestrator.templateNameCollision(bundleName.value) ?? null
+  return orchestrator.names.templateNameCollision(bundleName.value) ?? null
 })
 
 /** The two names this screen writes must also differ from each other. */
@@ -209,7 +211,7 @@ async function create() {
   // the button live on a screen that is still on top — and a second thumb tap
   // there writes a second Vorlage. Released again only where the screen stays.
   creating.value = true
-  const templateId = orchestrator.createTemplateFromTrip(props.tripId, {
+  const templateId = orchestrator.postTrip.createTemplateFromTrip(props.tripId, {
     templateName: templateName.value.trim(),
     choices: choices.value,
     checkedLooseIds: [...checked.value],

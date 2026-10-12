@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import type { ConnectionLeg } from '@/types/domain'
+import type { ConnectionLeg } from '../types'
 import { connectionLines, connectionStops, legendHues } from '../connectionMap'
 
 const WALK: ConnectionLeg = {

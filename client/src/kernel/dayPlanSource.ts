@@ -1,29 +1,25 @@
 /**
  * The packing side's dated rows as a source of the day plan (FR-29.15).
  *
- * The packing side of the contract in `domain/dayPlanLine.ts`: each dated
+ * The packing side of the contract in `domain/shared/dayPlanLine.ts`: each dated
  * excursion on its days with its rucksack's progress, and each task with a
  * due day on that day, its tick being M25's write. A projection, never a copy.
  */
-import type { DayPlanLine, DayPlanSource } from '@/domain/dayPlanLine'
-import { DAY_PLAN_EXCURSION, DAY_PLAN_TASK } from '@/domain/dayPlanLine'
+import type { DayPlanLine, DayPlanSource } from '@/domain/shared/dayPlanLine'
+import { DAY_PLAN_EXCURSION, DAY_PLAN_TASK } from '@/domain/shared/dayPlanLine'
 import { withExtraUnits, type ExcursionExtraLine } from '@/kernel/excursionExtraLines'
-import { spanOf, sumUnits } from '@/domain/excursions'
-import type { TripTask } from '@/domain/tripTodos'
+import { sumUnits } from '@/domain/excursionLines'
+import { spanOf } from '@/domain/excursionSchedule'
+import type { TripTask } from '@/domain/tripTasks'
 import { t } from '@/i18n'
 import { tripExcursionsPath, tripSubPath } from '@/router/paths'
-import type {
-  Excursion,
-  ExcursionItem,
-  ExcursionTraveler,
-  ItemTodo,
-  TripTodo,
-} from '@/types/domain'
+import type { Excursion, ExcursionLine, ExcursionTraveler, PrepTask, OwnTask } from '@/types/domain'
+import { TASK_STATE_OPEN, TASK_STATE_RESOLVED } from '@/types/domain'
 
 /** What the source reads — the trip store's excursions and the trip's tasks. */
 export interface DayPlanReads {
   getExcursions(tripId: string): Excursion[]
-  getExcursionItems(tripId: string): ExcursionItem[]
+  getExcursionItems(tripId: string): ExcursionLine[]
   /** FR-31.3: who goes on which excursion — none of an excursion's for everybody. */
   getExcursionTravelers(tripId: string): ExcursionTraveler[]
   tasksOf(tripId: string): TripTask[]
@@ -92,7 +88,7 @@ export function createDayPlanSource(reads: DayPlanReads, writes: DayPlanWrites):
         detail: null,
         assignee: task.assignee_user_id,
         progress: null,
-        done: task.task_state === 'resolved',
+        done: task.task_state === TASK_STATE_RESOLVED,
         toggle: () => writes.toggleTask(tripId, task),
         path: tripSubPath(tripId, 'tasks'),
       }))
@@ -105,16 +101,16 @@ export function createDayPlanSource(reads: DayPlanReads, writes: DayPlanWrites):
 
 /** The task writes a tick on the plan needs — the orchestrator's, as M25 uses them. */
 export interface TaskTickWrites {
-  resolveTripTodo(todo: TripTodo): void
-  reopenTripTodo(todo: TripTodo): void
-  resolvePrepTodo(todo: ItemTodo): void
-  reopenPrepTodo(todo: ItemTodo): void
+  resolveOwnTask(task: OwnTask): void
+  reopenOwnTask(task: OwnTask): void
+  resolvePrepTask(task: PrepTask): void
+  reopenPrepTask(task: PrepTask): void
 }
 
 /** The live rows a tick is written against, so the optimistic baseline is current. */
 export interface TaskTickReads {
-  getTripTodos(tripId: string): TripTodo[]
-  getItemTodos(tripId: string, itemId: string): ItemTodo[]
+  getOwnTasks(tripId: string): OwnTask[]
+  getRowPrepTasks(tripId: string, itemId: string): PrepTask[]
 }
 
 /**
@@ -129,14 +125,14 @@ export function toggleTask(
   task: TripTask,
 ): void {
   if (task.item) {
-    const prep = reads.getItemTodos(tripId, task.item.id).find((row) => row.id === task.id)
+    const prep = reads.getRowPrepTasks(tripId, task.item.id).find((row) => row.id === task.id)
     if (!prep) return
-    if (prep.task_state === 'open') writes.resolvePrepTodo(prep)
-    else writes.reopenPrepTodo(prep)
+    if (prep.task_state === TASK_STATE_OPEN) writes.resolvePrepTask(prep)
+    else writes.reopenPrepTask(prep)
     return
   }
-  const todo = reads.getTripTodos(tripId).find((row) => row.id === task.id)
-  if (!todo) return
-  if (todo.task_state === 'open') writes.resolveTripTodo(todo)
-  else writes.reopenTripTodo(todo)
+  const own = reads.getOwnTasks(tripId).find((row) => row.id === task.id)
+  if (!own) return
+  if (own.task_state === TASK_STATE_OPEN) writes.resolveOwnTask(own)
+  else writes.reopenOwnTask(own)
 }

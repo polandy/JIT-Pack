@@ -7,6 +7,8 @@
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
+import { pinDeviceTimeZone } from '@/__tests__/deviceRegion'
+
 import { de } from '../messages/de'
 import {
   CATALOGUE_PARTS,
@@ -16,7 +18,6 @@ import {
   formatDate,
   formatNumber,
   initLocale,
-  pinDeviceTimeZone,
   regionalLocale,
   resolveLocale,
   setLocale,
@@ -92,25 +93,25 @@ describe('t', () => {
   })
 
   it('interpolates named parameters', () => {
-    expect(t('trip.daysUntil', { n: 2 })).toContain('2')
+    expect(t('tasks.dueInDays', { n: 2 })).toContain('2')
   })
 
   it('picks the singular form for n === 1 (one | other)', () => {
-    expect(t('packing.itemsLeft', { n: 1 })).toBe('1 item left')
+    expect(t('packing.clusterScope', { n: 1 })).toBe('1 row')
   })
 
   it('picks the plural form for n !== 1', () => {
-    expect(t('packing.itemsLeft', { n: 4 })).toBe('4 items left')
+    expect(t('packing.clusterScope', { n: 4 })).toBe('4 rows')
   })
 
   it('uses the plural form for zero, matching English usage', () => {
-    expect(t('packing.itemsLeft', { n: 0 })).toBe('0 items left')
+    expect(t('packing.clusterScope', { n: 0 })).toBe('0 rows')
   })
 
   it('pluralizes German independently of English', () => {
     setLocale('de')
-    expect(t('packing.itemsLeft', { n: 1 })).toBe('1 Packelement offen')
-    expect(t('packing.itemsLeft', { n: 4 })).toBe('4 Packelemente offen')
+    expect(t('packing.clusterScope', { n: 1 })).toBe('1 Zeile')
+    expect(t('packing.clusterScope', { n: 4 })).toBe('4 Zeilen')
   })
 
   /**
@@ -147,7 +148,7 @@ describe('t', () => {
   })
 
   it('leaves an unmatched placeholder untouched rather than printing undefined', () => {
-    expect(t('trip.daysUntil', {})).toContain('{n}')
+    expect(t('tasks.dueInDays', {})).toContain('{n}')
   })
 })
 

@@ -29,17 +29,14 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { TABLE_SPECS, todoCodec, tripTodoCodec } from '../tableRegistry'
+import { KERNEL_TABLE_SPECS, prepTaskCodec, ownTaskCodec } from '../tableRegistry'
+import { ALL_ROW_SPECS, CODEC_SOURCES } from '@/__tests__/rowSpecs'
 import { TABLE, TABLE_COLUMNS, type SyncTable } from '@/api/tables'
 
-const registrySource = readFileSync(
-  fileURLToPath(new URL('../tableRegistry.ts', import.meta.url)),
-  'utf8',
-)
-const buildersSource = readFileSync(
-  fileURLToPath(new URL('../../sync/rows.ts', import.meta.url)),
-  'utf8',
-)
+/** Every file a parser or a builder lives in — the kernel's and each module's `rows.ts`. */
+const codecSource = CODEC_SOURCES.map((path) =>
+  readFileSync(fileURLToPath(new URL(`../../__tests__/${path}`, import.meta.url)), 'utf8'),
+).join('\n')
 
 /** The body of a top-level function, by name. */
 function bodyOf(source: string, name: string): string {
@@ -61,7 +58,7 @@ function spreads(body: string): string[] {
 
 /** The row columns a parser reads, with those of the parsers it spreads in. */
 function parsedColumns(fn: string): Set<string> {
-  const body = bodyOf(registrySource, fn)
+  const body = bodyOf(codecSource, fn)
   return new Set([
     ...[...body.matchAll(/row\['(\w+)'\]/g)].map((m) => m[1] as string),
     ...spreads(body).flatMap((inner) => [...parsedColumns(inner)]),
@@ -70,7 +67,7 @@ function parsedColumns(fn: string): Set<string> {
 
 /** The row columns a builder writes, with those of the builders it spreads in. */
 function encodedColumns(fn: string): Set<string> {
-  const body = bodyOf(buildersSource, fn)
+  const body = bodyOf(codecSource, fn)
   return new Set([
     ...[...body.matchAll(/^ {4}(\w+):/gm)].map((m) => m[1] as string),
     ...spreads(body).flatMap((inner) => [...encodedColumns(inner)]),
@@ -78,7 +75,7 @@ function encodedColumns(fn: string): Set<string> {
 }
 
 /**
- * The pairs, named by the functions rather than read off `TABLE_SPECS` —
+ * The pairs, named by the functions rather than read off the specs —
  * a source-level check needs the source-level names, and the registry is
  * asserted below to hold exactly these tables.
  */
@@ -114,19 +111,19 @@ const PAIRS: Array<{ table: SyncTable; parse: string; encode: string; encodeOnly
   { table: TABLE.tripItems, parse: 'rowToTripItem', encode: 'itemRow' },
   { table: TABLE.travelers, parse: 'rowToTraveler', encode: 'travelerRow' },
   { table: TABLE.containers, parse: 'rowToContainer', encode: 'containerRow' },
-  // FR-7.2: `comments` is read three ways — a note, an item todo, a trip
-  // todo — and `is_task` is the column the *store* routes on, before any
-  // parser runs, so every builder writes it and none reads it. The two
-  // todo codecs are not in `TABLE_SPECS` (it is keyed by table), so they are
-  // named here by hand.
+  // FR-7.2: `comments` is read three ways — a note, a preparation, the
+  // trip's own task — and `is_task` is the column the *store* routes on,
+  // before any parser runs, so every builder writes it and none reads it.
+  // The two task codecs are not in `KERNEL_TABLE_SPECS` (it is keyed by
+  // table), so they are named here by hand.
   { table: TABLE.comments, parse: 'rowToComment', encode: 'commentRow', encodeOnly: ['is_task'] },
-  { table: TABLE.comments, parse: 'rowToTodo', encode: 'todoRow', encodeOnly: ['is_task'] },
-  // FR-7.4: a trip todo has no anchor by definition — the builder writes
+  { table: TABLE.comments, parse: 'rowToPrepTask', encode: 'prepTaskRow', encodeOnly: ['is_task'] },
+  // FR-7.4: the trip's own task has no anchor by definition — the builder writes
   // the null `trip_item_id` and the parser has nothing to read from it.
   {
     table: TABLE.comments,
-    parse: 'rowToTripTodo',
-    encode: 'tripTodoRow',
+    parse: 'rowToOwnTask',
+    encode: 'ownTaskRow',
     encodeOnly: ['trip_item_id', 'is_task'],
   },
   { table: TABLE.noteAcks, parse: 'rowToNoteAck', encode: 'noteAckRow' },
@@ -136,7 +133,7 @@ const PAIRS: Array<{ table: SyncTable; parse: string; encode: string; encodeOnly
     parse: 'rowToExcursionTraveler',
     encode: 'excursionTravelerRow',
   },
-  { table: TABLE.excursionItems, parse: 'rowToExcursionItem', encode: 'excursionItemRow' },
+  { table: TABLE.excursionItems, parse: 'rowToExcursionLine', encode: 'excursionItemRow' },
 ]
 
 describe('every codec pair agrees about its columns', () => {
@@ -203,26 +200,26 @@ describe('every column a parser without a builder reads is one the schema declar
 
 describe('the registry covers the wire', () => {
   it('names every table in TABLE, and only those', () => {
-    expect(Object.keys(TABLE_SPECS).sort()).toEqual(Object.values(TABLE).sort())
+    expect(Object.keys(ALL_ROW_SPECS).sort()).toEqual(Object.values(TABLE).sort())
   })
 
   it('pairs every table a builder exists for', () => {
-    const encoded = Object.entries(TABLE_SPECS)
+    const encoded = Object.entries(ALL_ROW_SPECS)
       .filter(([, codec]) => 'encode' in codec)
       .map(([table]) => table)
       .sort()
     expect(encoded).toEqual([...new Set(PAIRS.map((p) => p.table))].sort())
   })
 
-  it('names the todo codecs of comments by the functions they hold', () => {
+  it('names the task codecs of comments by the functions they hold', () => {
     const named = PAIRS.filter((p) => p.table === TABLE.comments).map((p) => [p.parse, p.encode])
-    for (const codec of [TABLE_SPECS[TABLE.comments], todoCodec, tripTodoCodec]) {
+    for (const codec of [KERNEL_TABLE_SPECS[TABLE.comments], prepTaskCodec, ownTaskCodec]) {
       expect(named).toContainEqual([codec.parse.name, codec.encode?.name])
     }
   })
 
   it('lists every table without a builder as parse-only', () => {
-    const parseOnly = Object.entries(TABLE_SPECS)
+    const parseOnly = Object.entries(ALL_ROW_SPECS)
       .filter(([, codec]) => !('encode' in codec))
       .map(([table]) => table)
       .sort()

@@ -16,6 +16,7 @@ import { useTripStore } from '@/stores/tripStore'
 import { createMutations } from '@/sync/mutations'
 import { MASTER_PARTITION, pullPartitionAll } from '@/sync/partition'
 import { HLCGenerator } from '@/sync/hlc'
+import { isoFrom } from '@/lib/clock'
 import { optimisticInsert } from '@/sync/optimistic'
 import { parsePortableAll } from '@/domain/portable'
 import {
@@ -101,8 +102,8 @@ export async function runImport(opts: ImportOptions, io: CommandIO): Promise<num
   // already holds its trips and templates must add nothing.
   const trips = useTripStore()
   const hlc = new HLCGenerator(io.now, io.deviceId)
-  const client = new APIClient(opts.serverUrl, () => opts.token)
-  const mutations = createMutations(hlc)
+  const client = new APIClient(opts.serverUrl, () => opts.token, { now: io.now })
+  const mutations = createMutations(hlc, isoFrom(io.now))
 
   // The inventory has to be here before anything is planned: FR-18.4 matches
   // each document against what the instance holds, and a dry run has to read

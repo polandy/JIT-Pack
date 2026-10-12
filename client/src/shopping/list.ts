@@ -10,10 +10,11 @@
  * — „Brot" typed here and „Brot" on the packing list are two decisions,
  * and the list says so rather than guessing that they are one (ADR-066).
  */
-import { DUE_SOON_DAYS, daysBetween, pressingGroupsFirst, sortByDue } from '@/domain/dueDay'
-import { byHand, dropInto, renumber, type Placement } from '@/domain/handOrder'
+import { daysBetween } from '@/domain/shared/calendar'
+import { DUE_SOON_DAYS, pressingGroupsFirst, sortByDue } from '@/domain/shared/dueDay'
+import { byHand, dropInto, renumber, type Placement } from '@/domain/shared/handOrder'
 import type { ShoppingLine, ShoppingSource } from '@/kernel/shoppingSources'
-import { beforeIsOver, type TripStanding } from '@/lib/tripPhase'
+import { beforeIsOver, type TripStanding } from '@/domain/shared/tripPhase'
 import type { ShoppingMode } from '@/types/domain'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, SHOPPING_MODES } from '@/types/domain'
 

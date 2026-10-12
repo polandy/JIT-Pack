@@ -7,6 +7,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock } from '@/__tests__/fixedClock'
 import { useTripStore } from '@/stores/tripStore'
 import { installHarness } from '@/__tests__/harness'
 
@@ -93,12 +94,16 @@ function seedSource(tripStore: ReturnType<typeof useTripStore>) {
 
 describe('cloneTrip (FR-12)', () => {
   it('clones the curated list with remapped links and fresh state', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     seedSource(tripStore)
     await orch.ensureTripData('src')
 
-    const tripId = orch.cloneTrip('src', {
+    const tripId = orch.tripCreation.cloneTrip('src', {
       name: 'Engadin 2026',
       year: 2026,
       startDate: '2026-08-01',
@@ -142,12 +147,16 @@ describe('cloneTrip (FR-12)', () => {
   })
 
   it('drops links and containers when the carry-over options are off', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     seedSource(tripStore)
     await orch.ensureTripData('src')
 
-    const tripId = orch.cloneTrip('src', {
+    const tripId = orch.tripCreation.cloneTrip('src', {
       name: 'Engadin 2026',
       year: 2026,
       startDate: null,
@@ -167,13 +176,17 @@ describe('cloneTrip (FR-12)', () => {
   })
 
   it('refuses to clone a trip whose rows are not on the device (ADR-033)', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     seedSource(tripStore)
 
     // The partition was never pulled: "not pulled yet" must not be read as
     // "empty trip" — before the guard this produced a clone with zero items.
-    const tripId = orch.cloneTrip('src', {
+    const tripId = orch.tripCreation.cloneTrip('src', {
       name: 'Engadin 2026',
       year: 2026,
       startDate: null,

@@ -15,10 +15,12 @@ import { useTripIdentity } from '@/composables/shared/useTripIdentity'
 import type { TripScreen } from '@/composables/shared/useTripScreen'
 import { canJudgeUnused, isActive } from '@/domain/trips'
 import { pickAssignee as pickAssigneeFrom } from '@/composables/shared/pickAssignee'
-import { isPackingClosed } from '@/lib/tripPhase'
+import { isPackingClosed } from '@/domain/shared/tripPhase'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import type { TripItem, TripParticipant } from '@/types/domain'
+import type { TripItem, TripMemberProfile } from '@/types/domain'
+
+import { actUndoably as actUndoablyOn, type RowPort } from './rowPort'
 
 /** M4's shared state and the undo-armed write helpers its parts share. */
 export type PackingCore = ReturnType<typeof usePackingCore>
@@ -39,10 +41,10 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
   // --- Identity, for FR-25.19/25.20 ---------------------------------------
   const {
     myUserId,
-    participants,
+    memberProfiles,
     nameOf,
     load: loadIdentity,
-  } = useTripIdentity(tripId, orchestrator)
+  } = useTripIdentity(tripId, orchestrator.identity)
 
   /**
    * FR-9.3's closing pass: a *mode of M4*, not a screen of its own. It keeps
@@ -57,12 +59,12 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
   /**
    * Rows whose confirmed removal is still inside the snackbar's undo (FR-25.31).
    * They leave the screen at once and the trip only when the undo lapses — the
-   * row, its comments and its todos are never deleted and re-created, so the
+   * row, its comments and its preparations are never deleted and re-created, so the
    * undo cannot resurrect a note under the wrong author (invariant 3).
    */
   const removingRows = ref(new Set<string>())
   /** The same for the trip's own tasks (FR-7.4). */
-  const removingTodos = ref(new Set<string>())
+  const removingOwn = ref(new Set<string>())
 
   const allItems = computed(() =>
     tripStore.getItems(tripId).filter((row) => !removingRows.value.has(row.id)),
@@ -76,7 +78,7 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
   const judgeable = computed(() => canJudgeUnused(trip.value))
 
   function locked(item: TripItem): boolean {
-    return orchestrator.isLockedByOther(tripId, item)
+    return orchestrator.claims.isLockedByOther(tripId, item)
   }
 
   /** The rows behind a fan-out plan, in the order the plan names them. */
@@ -98,20 +100,20 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
    */
   const assignableMembers = computed(() => {
     const members = new Set(tripStore.getMembers(tripId).map((m) => m.user_id))
-    return participants.value.filter(
+    return memberProfiles.value.filter(
       (person) => members.has(person.user_id) && person.user_id !== myUserId.value,
     )
   })
 
   /**
-   * FR-7.5: who a trip todo can be handed to — every member, *me included*.
+   * FR-7.5: who the trip's own task can be handed to — every member, *me included*.
    * A row leaves me out because an unassigned row is already mine to see
-   * (FR-25.20); a todo has no such filter, and „I'll do it" is the most
+   * (FR-25.20); the trip's own task has no such filter, and „I'll do it" is the most
    * common thing a household says about one.
    */
-  const todoAssignees = computed(() => {
+  const ownTaskAssignees = computed(() => {
     const members = new Set(tripStore.getMembers(tripId).map((m) => m.user_id))
-    return participants.value.filter((person) => members.has(person.user_id))
+    return memberProfiles.value.filter((person) => members.has(person.user_id))
   })
 
   /**
@@ -123,7 +125,7 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
   async function pickAssignee(
     header: string,
     current: string | null,
-    people: readonly TripParticipant[] = assignableMembers.value,
+    people: readonly TripMemberProfile[] = assignableMembers.value,
   ): Promise<string | null | undefined> {
     return pickAssigneeFrom(header, current, people)
   }
@@ -131,26 +133,14 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
   const announcer = usePackAnnouncer()
   const { rowUndo, announceAct } = announcer
 
-  /**
-   * FR-25.31: act on one row behind the snackbar's undo. `restore` gets the row
-   * as it is *when the undo fires* and writes back only the field its act
-   * changed — building the write from the row in hand would revert whatever
-   * landed in between (the reason `restorePack` re-reads, too). A row deleted
-   * meanwhile stays deleted.
-   */
+  /** FR-25.31: act on one row behind the snackbar's undo — see `rowPort.actUndoably`. */
   function actUndoably(
     item: TripItem,
     message: string,
     act: () => void,
     restore: (live: TripItem) => void,
   ) {
-    const id = item.id
-    rowUndo.armAction(item.name, () => {
-      const live = liveRow(id)
-      if (live) restore(live)
-    })
-    act()
-    void announceAct(message)
+    actUndoablyOn(port, item, message, act, restore)
   }
 
   /** The same for a fan-out over several rows (FR-25.26): one undo for all. */
@@ -167,11 +157,38 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
   /** Put back what a pack changed, and only that (FR-25.2). */
   function restorePacked(records: RowUndoRecord[]) {
     for (const record of records) {
-      orchestrator.restorePack(record.itemId, record.packedCount, record.state)
+      orchestrator.packing.restorePack(record.itemId, record.packedCount, record.state)
     }
   }
 
+  /** The trip's rows as M4's shared row slices act on them (`rowPort.ts`). */
+  const port: RowPort<TripItem> = {
+    rows: allItems,
+    travelers,
+    span: computed(() => ({
+      start: trip.value?.start_date ?? null,
+      end: trip.value?.end_date ?? null,
+    })),
+    liveRow,
+    inert: (row) => closingPass.value || locked(row),
+    setQuantity: (row, quantity) => orchestrator.packing.setQuantity(row, quantity),
+    packIncrement: (row) => orchestrator.packing.packIncrement(row),
+    packDecrement: (row) => orchestrator.packing.packDecrement(row),
+    packComplete: (row) => orchestrator.packing.packComplete(row),
+    packZero: (row) => orchestrator.packing.packZero(row),
+    packToggle: (row) => orchestrator.packing.packToggle(row),
+    skip: (row) => orchestrator.packing.skipItem(tripId, row),
+    unskip: (row) => orchestrator.packing.unskipItem(row),
+    restorePacked,
+    restoreSkip: (records) => orchestrator.packing.restoreSkip(records),
+    rowUndo,
+    announceAct,
+    announcePacked: announcer.announcePacked,
+    announceSkipped: announcer.announceSkipped,
+  }
+
   return {
+    port,
     tripId,
     tripStore,
     masterStore,
@@ -180,12 +197,12 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
     rowsLoaded,
     ensureTripRows,
     myUserId,
-    participants,
+    memberProfiles,
     nameOf,
     loadIdentity,
     closingPass,
     removingRows,
-    removingTodos,
+    removingOwn,
     allItems,
     travelers,
     active,
@@ -195,7 +212,7 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
     rowsOf,
     liveRow,
     assignableMembers,
-    todoAssignees,
+    ownTaskAssignees,
     pickAssignee,
     ...announcer,
     actUndoably,

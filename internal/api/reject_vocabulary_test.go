@@ -16,11 +16,11 @@ import (
 // user is told nothing about. Both sides are read from source here, so
 // neither a new reason nor a renamed one can be half-landed.
 func TestRejectReasons_ClientKnowsEveryOneTheServerCanSend(t *testing.T) {
-	goReasons := matches(t, "../store/store.go", `RejectReason = "([a-z_]+)"`)
+	goReasons := matches(t, "../store/vocabulary.go", `RejectReason = "([a-z_]+)"`)
 	tsReasons := matches(t, "../../client/src/sync/rejectionReasons.ts", `: '([a-z_]+)',`)
 
 	if len(goReasons) < 2 {
-		t.Fatalf("read %d reasons from store.go — the pattern stopped matching", len(goReasons))
+		t.Fatalf("read %d reasons from vocabulary.go — the pattern stopped matching", len(goReasons))
 	}
 	for _, reason := range goReasons {
 		if reason == "" { // ReasonNone is the zero value, not a refusal.

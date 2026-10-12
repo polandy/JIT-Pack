@@ -1,4 +1,4 @@
-// Package store — partition.go holds the one push pipeline both sync
+// partition.go holds the one push pipeline both sync
 // partitions run, and the value that says which partition is running it.
 //
 // The trip and master paths (Sync-API §5) run the same fourteen steps —
@@ -8,6 +8,7 @@
 // spread through two copies, so a rule such as ADR-031's re-log or FR-24.3's
 // retire-instead is written once, and "where does a rejection get re-logged"
 // has one answer.
+
 package store
 
 import (

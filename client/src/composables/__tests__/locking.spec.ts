@@ -7,11 +7,10 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-import { createMutations } from '@/sync/mutations'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
-import { HLCGenerator } from '@/sync/hlc'
 import { useTripStore } from '@/stores/tripStore'
 import { installHarness } from '@/__tests__/harness'
+import { fixedMutations, fixedClock, FIXED_NOW_ISO } from '@/__tests__/fixedClock'
 
 interface WSStub {
   send: ReturnType<typeof vi.fn>
@@ -62,13 +61,13 @@ function seedItem(tripStore: ReturnType<typeof useTripStore>, row: Record<string
 }
 
 describe('packing-now mutations', () => {
-  const mutations = createMutations(new HLCGenerator(() => Date.now(), 'aabbccdd'))
+  const mutations = fixedMutations()
 
   it('startPackingNow claims the item with a timestamp', () => {
     const mut = mutations.startPackingNow('ti1')
 
     expect(mut.fields!['state']).toBe('packing_now')
-    expect(mut.fields!['packing_now_at']).toBeTruthy()
+    expect(mut.fields!['packing_now_at']).toBe(FIXED_NOW_ISO)
   })
 
   it('any pack transition releases the claim (FR-5.3)', () => {
@@ -84,19 +83,27 @@ describe('packing-now mutations', () => {
 
 describe('lock state (G-3)', () => {
   it('own packing-now claim never locks the item for me', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
 
-    orch.packingNow(item)
+    orch.claims.packingNow(item)
 
     const claimed = tripStore.getItems('t1')[0]!
     expect(claimed.state).toBe('packing_now')
-    expect(orch.isLockedByOther('t1', claimed)).toBe(false)
+    expect(orch.claims.isLockedByOther('t1', claimed)).toBe(false)
   })
 
   it('foreign ephemeral lock events lock and unlock the item', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
     await orch.connect()
@@ -107,7 +114,7 @@ describe('lock state (G-3)', () => {
         payload: { trip_id: 't1', item_id: 'ti1', by_user: 'sarah', name: 'Zelt' },
       }),
     })
-    expect(orch.isLockedByOther('t1', item)).toBe(true)
+    expect(orch.claims.isLockedByOther('t1', item)).toBe(true)
 
     wsInstances[0]!.onmessage!({
       data: JSON.stringify({
@@ -115,13 +122,17 @@ describe('lock state (G-3)', () => {
         payload: { trip_id: 't1', item_id: 'ti1', by_user: 'sarah', name: 'Zelt' },
       }),
     })
-    expect(orch.isLockedByOther('t1', item)).toBe(false)
+    expect(orch.claims.isLockedByOther('t1', item)).toBe(false)
   })
 })
 
 describe('who holds the lock (G-3)', () => {
   it('names the holder from the ephemeral event before the pull lands', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
     await orch.connect()
@@ -133,17 +144,21 @@ describe('who holds the lock (G-3)', () => {
       }),
     })
 
-    expect(orch.lockHolder('t1', item)).toBe('sarah')
+    expect(orch.claims.lockHolder('t1', item)).toBe('sarah')
   })
 
   it('names nobody for a row that is not locked for me', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
 
-    orch.packingNow(item)
+    orch.claims.packingNow(item)
 
-    expect(orch.lockHolder('t1', tripStore.getItems('t1')[0]!)).toBeNull()
+    expect(orch.claims.lockHolder('t1', tripStore.getItems('t1')[0]!)).toBeNull()
   })
 })
 
@@ -161,14 +176,15 @@ describe('a claim that was taken over (FR-5.7)', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       currentUserId: () => 'alice',
+      now: fixedClock,
     })
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
     await orch.connect()
 
-    orch.packingNow(item)
+    orch.claims.packingNow(item)
     const claimed = tripStore.getItems('t1')[0]!
-    expect(orch.holdsClaim('t1', claimed)).toBe(true)
+    expect(orch.claims.holdsClaim('t1', claimed)).toBe(true)
 
     wsInstances[0]!.onmessage!({
       data: JSON.stringify({
@@ -178,9 +194,9 @@ describe('a claim that was taken over (FR-5.7)', () => {
     })
 
     const after = tripStore.getItems('t1')[0]!
-    expect(orch.holdsClaim('t1', after)).toBe(false)
-    expect(orch.lockHolder('t1', after)).toBe('bob')
-    expect(orch.isLockedByOther('t1', after)).toBe(true)
+    expect(orch.claims.holdsClaim('t1', after)).toBe(false)
+    expect(orch.claims.lockHolder('t1', after)).toBe('bob')
+    expect(orch.claims.isLockedByOther('t1', after)).toBe(true)
   })
 
   it('stops being mine when the pull names another account, with no event', () => {
@@ -188,22 +204,23 @@ describe('a claim that was taken over (FR-5.7)', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       currentUserId: () => 'alice',
+      now: fixedClock,
     })
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
 
-    orch.packingNow(item)
+    orch.claims.packingNow(item)
     // What a drain after the takeover writes: the server has stamped the
     // taker (invariant 3), and this device may have been offline for the
     // event entirely.
     const taken = seedItem(tripStore, {
       state: 'packing_now',
       packing_now_by: 'bob',
-      packing_now_at: new Date().toISOString(),
+      packing_now_at: '2026-03-14T09:00:00.000Z',
     })
 
-    expect(orch.lockHolder('t1', taken)).toBe('bob')
-    expect(orch.holdsClaim('t1', taken)).toBe(false)
+    expect(orch.claims.lockHolder('t1', taken)).toBe('bob')
+    expect(orch.claims.holdsClaim('t1', taken)).toBe(false)
   })
 
   it('leaves my claim alone when the account is my own', async () => {
@@ -211,12 +228,13 @@ describe('a claim that was taken over (FR-5.7)', () => {
       baseUrl: 'http://localhost',
       getToken: () => null,
       currentUserId: () => 'alice',
+      now: fixedClock,
     })
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
     await orch.connect()
 
-    orch.packingNow(item)
+    orch.claims.packingNow(item)
     // The hub broadcasts a claim to every subscriber including the claimer,
     // and my own second device is still me — this must not read as a
     // takeover.
@@ -228,17 +246,21 @@ describe('a claim that was taken over (FR-5.7)', () => {
     })
 
     const after = tripStore.getItems('t1')[0]!
-    expect(orch.holdsClaim('t1', after)).toBe(true)
-    expect(orch.lockHolder('t1', after)).toBeNull()
+    expect(orch.claims.holdsClaim('t1', after)).toBe(true)
+    expect(orch.claims.lockHolder('t1', after)).toBeNull()
   })
 
   it('keeps the device rule where there is no identity to compare (Single-User)', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
     await orch.connect()
 
-    orch.packingNow(item)
+    orch.claims.packingNow(item)
     wsInstances[0]!.onmessage!({
       data: JSON.stringify({
         type: 'item.locked',
@@ -248,45 +270,57 @@ describe('a claim that was taken over (FR-5.7)', () => {
 
     // One account, two devices: the claim belongs to the device that made
     // it, and there is no second person who could have taken it.
-    expect(orch.holdsClaim('t1', tripStore.getItems('t1')[0]!)).toBe(true)
+    expect(orch.claims.holdsClaim('t1', tripStore.getItems('t1')[0]!)).toBe(true)
   })
 })
 
 describe('my own claim (G-3)', () => {
   it('is reported to me, because nothing else on the row can be', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
 
-    orch.packingNow(item)
+    orch.claims.packingNow(item)
 
     const claimed = tripStore.getItems('t1')[0]!
     // Both halves: the row is not locked *for me* — that is what makes it
     // usable — and it is nonetheless being held by me against the others.
-    expect(orch.lockHolder('t1', claimed)).toBeNull()
-    expect(orch.holdsClaim('t1', claimed)).toBe(true)
+    expect(orch.claims.lockHolder('t1', claimed)).toBeNull()
+    expect(orch.claims.holdsClaim('t1', claimed)).toBe(true)
   })
 
   it('stops being reported once the row is released', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
 
-    orch.packingNow(item)
-    orch.releaseClaim(tripStore.getItems('t1')[0]!)
+    orch.claims.packingNow(item)
+    orch.claims.releaseClaim(tripStore.getItems('t1')[0]!)
 
-    expect(orch.holdsClaim('t1', tripStore.getItems('t1')[0]!)).toBe(false)
+    expect(orch.claims.holdsClaim('t1', tripStore.getItems('t1')[0]!)).toBe(false)
   })
 })
 
 describe('releasing a claim (G-3)', () => {
   it('gives the row back without packing it, and to the state it came from', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const item = seedItem(tripStore, { quantity: 3, packed_count: 1 })
 
-    orch.packingNow(item)
-    orch.releaseClaim(tripStore.getItems('t1')[0]!)
+    orch.claims.packingNow(item)
+    orch.claims.releaseClaim(tripStore.getItems('t1')[0]!)
 
     const after = tripStore.getItems('t1')[0]!
     // Partial, not open: one of the three is already in the bag, and a
@@ -298,23 +332,31 @@ describe('releasing a claim (G-3)', () => {
   })
 
   it('returns an untouched row to open', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const item = seedItem(tripStore, { quantity: 2, packed_count: 0 })
 
-    orch.packingNow(item)
-    orch.releaseClaim(tripStore.getItems('t1')[0]!)
+    orch.claims.packingNow(item)
+    orch.claims.releaseClaim(tripStore.getItems('t1')[0]!)
 
     expect(tripStore.getItems('t1')[0]!.state).toBe('open')
   })
 
   it('unlocks the row for the other devices, which is the point of it', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const item = seedItem(tripStore)
 
-    orch.packingNow(item)
-    orch.releaseClaim(tripStore.getItems('t1')[0]!)
+    orch.claims.packingNow(item)
+    orch.claims.releaseClaim(tripStore.getItems('t1')[0]!)
 
     // Asserted on the row the other devices would read, not on the local
     // `myLocks` bookkeeping — that one never locked it for me anyway.
@@ -327,12 +369,16 @@ describe('taking a claim over (FR-5.7)', () => {
     return seedItem(tripStore, {
       state: 'packing_now',
       packing_now_by: 'sarah',
-      packing_now_at: new Date().toISOString(),
+      packing_now_at: '2026-03-14T09:00:00.000Z',
     })
   }
 
   it('asks the server, because only it can stamp who took over', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     fetchMock.mockImplementation((url: string) =>
       Promise.resolve(
@@ -347,7 +393,7 @@ describe('taking a claim over (FR-5.7)', () => {
       ),
     )
 
-    const holder = await orch.takeOverClaim('t1', claimedByOther(tripStore))
+    const holder = await orch.claims.takeOverClaim('t1', claimedByOther(tripStore))
 
     expect(holder).toBe('sarah')
     const calls = fetchMock.mock.calls.map((c) => String(c[0]))
@@ -355,7 +401,11 @@ describe('taking a claim over (FR-5.7)', () => {
   })
 
   it('leaves the row claimed by me, never free in between', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const item = claimedByOther(tripStore)
     fetchMock.mockResolvedValue(
@@ -368,18 +418,22 @@ describe('taking a claim over (FR-5.7)', () => {
     // The positive signal the assertion below needs: before the takeover
     // the row is somebody else's, so "not locked for me" afterwards is
     // the takeover's doing rather than an unread row.
-    expect(orch.isLockedByOther('t1', item)).toBe(true)
+    expect(orch.claims.isLockedByOther('t1', item)).toBe(true)
 
-    await orch.takeOverClaim('t1', item)
+    await orch.claims.takeOverClaim('t1', item)
 
     const after = tripStore.getItems('t1')[0]!
     expect(after.state).toBe('packing_now')
-    expect(orch.isLockedByOther('t1', after)).toBe(false)
-    expect(orch.holdsClaim('t1', after)).toBe(true)
+    expect(orch.claims.isLockedByOther('t1', after)).toBe(false)
+    expect(orch.claims.holdsClaim('t1', after)).toBe(true)
   })
 
   it('leaves the claim where it was when the server refuses', async () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
     const item = claimedByOther(tripStore)
     fetchMock.mockResolvedValue(
@@ -393,11 +447,11 @@ describe('taking a claim over (FR-5.7)', () => {
       ),
     )
 
-    await expect(orch.takeOverClaim('t1', item)).rejects.toThrow(/nobody is packing/)
+    await expect(orch.claims.takeOverClaim('t1', item)).rejects.toThrow(/nobody is packing/)
 
     // A refusal that had already moved the row locally would show the
     // taker a claim they do not have.
-    expect(orch.holdsClaim('t1', tripStore.getItems('t1')[0]!)).toBe(false)
-    expect(orch.isLockedByOther('t1', tripStore.getItems('t1')[0]!)).toBe(true)
+    expect(orch.claims.holdsClaim('t1', tripStore.getItems('t1')[0]!)).toBe(false)
+    expect(orch.claims.isLockedByOther('t1', tripStore.getItems('t1')[0]!)).toBe(true)
   })
 })

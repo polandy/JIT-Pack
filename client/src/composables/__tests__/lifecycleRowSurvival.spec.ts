@@ -15,6 +15,7 @@ import { IDBFactory } from 'fake-indexeddb'
 import { describe, it, expect, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { fixedClock, FIXED_NOW_ISO } from '@/__tests__/fixedClock'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -30,6 +31,7 @@ function newLocalOrch() {
     baseUrl: '',
     getToken: () => null,
     local: new IndexedDBPersistence(),
+    now: fixedClock,
   })
 }
 
@@ -58,10 +60,10 @@ describe('a retire keeps the row it marks', () => {
       { name: 'Fotografie', kind: 'group', owner_id: 'u' },
     )
 
-    orch.deleteMasterItem('it-1')
+    orch.masterData.deleteMasterItem('it-1')
 
     const item = master.getItem('it-1')
-    expect(item?.retired_at).toBeTruthy()
+    expect(item?.retired_at).toBe(FIXED_NOW_ISO)
     expect(item?.name).toBe('Kamera')
     expect(item?.icon).toBe('📷')
     expect(item?.image_hash).toBe('abc123')
@@ -91,10 +93,10 @@ describe('a retire keeps the row it marks', () => {
       row: { trip_id: 'trip-1', name: 'Kamera', quantity: 1, source_template_id: 'tpl-1' },
     })
 
-    orch.deleteTemplate('tpl-1')
+    orch.masterData.deleteTemplate('tpl-1')
 
     const template = master.getTemplate('tpl-1')
-    expect(template?.retired_at).toBeTruthy()
+    expect(template?.retired_at).toBe(FIXED_NOW_ISO)
     expect(template?.name).toBe('Fotografie')
     expect(template?.kind).toBe('group')
     expect(template?.icon).toBe('🎞️')
@@ -113,7 +115,7 @@ describe('a restore keeps the row it clears the marker on', () => {
       row: { name: 'Sonnencreme', icon: '🧴', image_hash: 'def456', retired_at: RETIRED },
     })
 
-    expect(orch.restoreMasterItem('it-1')).toBe(true)
+    expect(orch.masterData.restoreMasterItem('it-1')).toBe(true)
 
     const item = master.getItem('it-1')
     expect(item?.retired_at).toBeNull()
@@ -133,7 +135,7 @@ describe('a restore keeps the row it clears the marker on', () => {
       row: { name: 'Fotografie', kind: 'group', owner_id: 'u', icon: '🎞️', retired_at: RETIRED },
     })
 
-    expect(orch.restoreTemplate('tpl-1')).toBe(true)
+    expect(orch.masterData.restoreTemplate('tpl-1')).toBe(true)
 
     const template = master.getTemplate('tpl-1')
     expect(template?.retired_at).toBeNull()

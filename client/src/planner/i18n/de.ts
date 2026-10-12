@@ -66,7 +66,6 @@ export const plannerDe: Record<keyof typeof plannerEn, string> = {
   'timetable.slack': '{slack} Luft',
   'timetable.tooEarly': '{late} zu früh',
   'timetable.pick': '{time} {from} → {to} nehmen',
-  'excursionConnections.title': 'Hin und zurück',
   'journey.title': 'Der Tag',
   'journey.slackAlone': '{slack} Luft',
   'journey.shortAlone': '{missing} zu wenig',

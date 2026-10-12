@@ -13,6 +13,7 @@ import { useRouter } from 'vue-router'
 import { saveTokens } from '@/auth/tokens'
 import { serverBaseUrl } from '@/config'
 import { t } from '@/i18n'
+import { defaultNowMs } from '@/lib/clock'
 import { PATH } from '@/router/paths'
 
 const router = useRouter()
@@ -56,7 +57,7 @@ onMounted(async () => {
           : t('login.rejected')
       return
     }
-    saveTokens((await resp.json()) as SessionTokens)
+    saveTokens((await resp.json()) as SessionTokens, defaultNowMs)
     // Full reload so the orchestrator starts with the token in place.
     window.location.replace(PATH.dashboard)
   } catch {

@@ -182,6 +182,22 @@ describe('the scale carries the views now (FR-21.5)', () => {
     expect(rule).toMatch(/font-size:\s*var\(--jp-text-/)
   })
 
+  it("names the section's hint line once, where a child component sees it too (G-13)", () => {
+    // A page's scoped rule does not reach the section component it renders, so
+    // a scoped copy has to be repeated in every child, and a screen that
+    // forgets one renders the hint as body copy.
+    const rule = /\.jp-section-hint\s*\{([^}]*)\}/.exec(css)?.[1]
+    expect(rule, 'typography.css defines no .jp-section-hint role').toBeTruthy()
+    expect(rule).toMatch(/color:\s*var\(--ct-subtext0\)/)
+    expect(rule).toMatch(/font-size:\s*var\(--jp-text-/)
+    expect(rule).toMatch(/margin:/)
+    for (const file of vueFiles) {
+      expect(readFileSync(file, 'utf8'), `${file} styles a hint line of its own`).not.toMatch(
+        /\.section-hint\b/,
+      )
+    }
+  })
+
   it('retires the role whose one screen gave it up (ADR-050)', () => {
     // `.jp-screen-title` existed for M4's in-content name and nothing else.
     // The head uses `.jp-page-title`; a role left defined with no user is a

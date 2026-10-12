@@ -203,7 +203,7 @@ real use, or the owner asks for it.
 FR-7.13 in §3.7a, M25's and M1's entries in the UI-Spec, **no ADR unless question 3 or 4 is decided against the
 recommendation** (the rest is additive; the per-thread tick is ADR-073's table read one way further, which an
 amendment note on ADR-073 records). `schema.sql` **and** `006_note_threads.sql`; the server's parent and title rules
-with failure-path tests; `planNoteReply` in `notificationrules.go` with the participant set tested; the thread
+with failure-path tests; `planNoteReply` in `internal/notify/rules.go` with the participant set tested; the thread
 derivation in `client/src/domain/tripNotes.ts` (grouping, order, new count, `seen_through` on tick); the `de`/`en`
 catalogues and the notification text; `docs/trip-notes.md` and `docs/notifications.md`; the dev seed extended by a
 thread with replies from two authors; e2e cases: **a reply lifts its thread and lands on top inside it**, **a reply

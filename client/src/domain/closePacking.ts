@@ -21,26 +21,29 @@
  * to happen, the action writes it, and the undo puts back exactly these rows.
  */
 import { stateFor } from './packState'
-import { taskPhaseOf } from './tripTodos'
+import { taskPhaseOf } from './tripTasks'
 
 import {
   ITEM_MODE_BUY_BEFORE,
   ITEM_MODE_PACK,
+  STATE_OPEN,
+  STATE_PACKED,
   STATE_SKIPPED,
   TASK_PHASE_BEFORE,
   TASK_PHASE_DURING,
+  TASK_STATE_OPEN,
   type TaskPhase,
   type TaskTag,
-  type ItemTodo,
+  type PrepTask,
   type TripItem,
-  type TripTodo,
+  type OwnTask,
 } from '@/types/domain'
 
 /**
  * A task as the close reads it — either kind (FR-7.3's preparation or
- * FR-7.4's trip todo), because both cross.
+ * FR-7.4's own task), because both cross.
  */
-export type ClosingTask = ItemTodo | TripTodo
+export type ClosingTask = PrepTask | OwnTask
 
 /** What closing the packing would do, and what the reader is owed first. */
 export interface ClosePackingPlan {
@@ -101,7 +104,7 @@ export function planPackingClose(
     // change nobody made.
     if (item.state === STATE_SKIPPED) continue
     const reads = stateFor(item.packed_count, item.quantity)
-    if (reads === 'open') skip.push(item)
+    if (reads === STATE_OPEN) skip.push(item)
     else if (reads === 'partial') trim.push(item)
     else continue
 
@@ -143,7 +146,7 @@ export function planPackingClose(
  */
 export function tasksCrossing(tasks: readonly ClosingTask[]): ClosingTask[] {
   return tasks.filter(
-    (task) => task.task_state === 'open' && taskPhaseOf(task) === TASK_PHASE_BEFORE,
+    (task) => task.task_state === TASK_STATE_OPEN && taskPhaseOf(task) === TASK_PHASE_BEFORE,
   )
 }
 
@@ -171,8 +174,8 @@ export function packingIsFinished(items: readonly TripItem[]): boolean {
     packable += 1
     if (item.state === STATE_SKIPPED) continue
     const reads = stateFor(item.packed_count, item.quantity)
-    if (reads === 'packed') packed += 1
-    else if (reads !== 'skipped') open += 1
+    if (reads === STATE_PACKED) packed += 1
+    else if (reads !== STATE_SKIPPED) open += 1
   }
   return packable > 0 && open === 0 && packed > 0
 }
@@ -205,9 +208,9 @@ export function rowsCrossingToLocal(items: readonly TripItem[]): TripItem[] {
  * where the task came from, and a row's preparation is filed under its row
  * already (*Aus Packliste*, FR-7.6); moving it out would lose that.
  */
-export function tasksToFileAsCarried(crossing: readonly ClosingTask[]): TripTodo[] {
+export function tasksToFileAsCarried(crossing: readonly ClosingTask[]): OwnTask[] {
   return crossing.filter(
-    (task): task is TripTodo => !('trip_item_id' in task) && task.task_tag_id === null,
+    (task): task is OwnTask => !('trip_item_id' in task) && task.task_tag_id === null,
   )
 }
 

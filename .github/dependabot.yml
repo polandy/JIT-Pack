@@ -41,7 +41,7 @@ updates:
       #
       # Bundler requirement syntax, which is what the docker ecosystem takes;
       # `25.x` is npm/NuGet syntax and Gem::Requirement rejects it.
-      - dependency-name: node
+      - dependency-name: public.ecr.aws/docker/library/node
         versions:
           - "~> 25.0"
           - "~> 27.0"

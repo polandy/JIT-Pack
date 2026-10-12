@@ -107,10 +107,12 @@ describe('createGroupRefreshActions without an orchestrator', () => {
 
     actions.acceptTripRefresh(TRIP_ID)
 
-    // The edge is the point: the task becomes an ordinary FR-7.3 prep todo,
-    // written by the group that owns todos rather than a second writer here.
-    const todo = queued.flatMap((q) => q.muts).find((mut) => mut.mutation.table === TABLE.comments)
-    expect(todo?.mutation.fields).toMatchObject({ body: 'Akku laden', is_task: 1 })
+    // The edge is the point: the task becomes an ordinary FR-7.3 preparation,
+    // written by the group that owns preparations rather than a second writer here.
+    const prepTask = queued
+      .flatMap((q) => q.muts)
+      .find((mut) => mut.mutation.table === TABLE.comments)
+    expect(prepTask?.mutation.fields).toMatchObject({ body: 'Akku laden', is_task: 1 })
   })
 
   it('asks nothing while the trip’s own rows are not on the device (ADR-016)', () => {

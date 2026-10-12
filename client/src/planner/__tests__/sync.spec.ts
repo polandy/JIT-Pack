@@ -14,6 +14,7 @@ import { createPinia, setActivePinia } from 'pinia'
 
 import { installHarness, type Harness } from '@/__tests__/harness'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { fixedClock, FIXED_NOW_ISO } from '@/__tests__/fixedClock'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useTripStore } from '@/stores/tripStore'
 import type { IdeaPictures, ModuleHost } from '@/sync/featureModule'
@@ -22,6 +23,7 @@ import { createPlannerActions, type IdeaFields } from '../actions'
 import { voteTally } from '../domain/ideas'
 import { plannerFeatureStore, usePlannerStore } from '../store'
 import { cascadeOf } from '@/sync/cascade'
+import { ideaPlanWrites } from '@/planner'
 
 let harness: Harness
 
@@ -35,6 +37,7 @@ function serverOrch() {
     baseUrl: 'http://localhost',
     getToken: () => null,
     features: [plannerFeatureStore()],
+    now: fixedClock,
   })
 }
 
@@ -44,6 +47,7 @@ function localOrch(persistence = new IndexedDBPersistence()) {
     getToken: () => null,
     local: persistence,
     features: [plannerFeatureStore()],
+    now: fixedClock,
   })
 }
 
@@ -187,7 +191,7 @@ describe('Server Mode', () => {
     await orch.drainTrip('t1')
 
     expect(word()).toMatchObject({ body: 'Nur mit Guide' })
-    expect(word().edited_at).not.toBeNull()
+    expect(word().edited_at).toBe(FIXED_NOW_ISO)
     const edits = harness
       .pushedMutations()
       .filter((m) => m.table === TABLE.ideaComments && m.op === 'upsert')
@@ -254,6 +258,36 @@ describe('the day plan (FR-29.14, FR-29.15)', () => {
     expect(plans.map((m) => m.fields)).toEqual([
       { planned_on: '2026-07-14', planned_at: '09:00' },
       { planned_on: null, planned_at: null },
+    ])
+  })
+
+  /*
+   * FR-29.15: the port the packing side reaches when an excursion made from an
+   * idea is deleted — the idea keeps its state, loses its day, and an idea
+   * this device does not hold is no write.
+   */
+  it('takes an idea’s day away for the packing side, and writes nothing for one it lacks', async () => {
+    const orch = serverOrch()
+    harness.mockDrain()
+    const plannerStore = usePlannerStore()
+    const actions = createPlannerActions(orch.moduleHost, plannerStore)
+    const id = actions.addIdea('t1', GORROPU, 'user-andy')!
+    actions.planIdea(plannerStore.getIdea(id)!, '2026-07-14', '09:00')
+    const port = ideaPlanWrites(orch.moduleHost)
+
+    port.unplan('t1', id)
+    port.unplan('t1', 'idea-unknown')
+
+    expect(plannerStore.getIdea(id)).toMatchObject({
+      state: 'idea',
+      planned_on: null,
+      planned_at: null,
+    })
+    await orch.drainTrip('t1')
+    const plans = harness.pushedMutations().filter((m) => m.op === 'upsert')
+    expect(plans.map((m) => [m.id, m.fields])).toEqual([
+      [id, { planned_on: '2026-07-14', planned_at: '09:00' }],
+      [id, { planned_on: null, planned_at: null }],
     ])
   })
 
@@ -699,7 +733,7 @@ describe('Local Mode', () => {
 
     const orch = localOrch(persistence)
     await orch.connect()
-    orch.deleteTrip('t1')
+    orch.tripLifecycle.deleteTrip('t1')
     await persistence.whenSettled()
 
     expect((await persistence.load()).map((r) => `${r.table}/${r.id}`)).toEqual([])

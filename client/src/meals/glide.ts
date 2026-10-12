@@ -10,6 +10,8 @@
  * time, these free days only during the drag.
  */
 
+import { prefersReducedMotion } from '@/lib/motion'
+
 /** The attribute a block is keyed by: `day:<date>` or `meal:<id>`. */
 export const GLIDE_ATTRIBUTE = 'data-glide'
 
@@ -67,7 +69,7 @@ export function snapshot(root: ParentNode): Map<string, number> {
  * the blocks inside it.
  */
 export function glide(root: ParentNode, before: ReadonlyMap<string, number>): void {
-  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+  if (prefersReducedMotion()) return
   const blocks = [...root.querySelectorAll<HTMLElement>(`[${GLIDE_ATTRIBUTE}]`)]
   const keyOf = (el: HTMLElement) => el.getAttribute(GLIDE_ATTRIBUTE)!
   const parents = new Map<string, string>()

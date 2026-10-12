@@ -1,18 +1,17 @@
 /**
  * Comments & tickets (FR-7.1/7.2): plain comments are their own layer,
- * flagging one as task promotes it into the existing task/todo
+ * flagging one as task promotes it into the existing task
  * machinery (FR-7.3 supersedes hard completion-blocking with the
  * "packed with open prep" state).
  */
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
-import { createMutations } from '@/sync/mutations'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
-import { HLCGenerator } from '@/sync/hlc'
 import { useTripStore } from '@/stores/tripStore'
 import type { PullChange } from '@/api/types'
 import { installHarness } from '@/__tests__/harness'
+import { fixedMutations, fixedClock, FIXED_NOW_ISO } from '@/__tests__/fixedClock'
 
 function commentChange(id: string, row: Record<string, unknown>): PullChange {
   return {
@@ -33,7 +32,7 @@ describe('tripStore comments (FR-7.1)', () => {
     tripStore.applyChange(commentChange('c2', { is_task: 1, task_state: 'open' }))
 
     expect(tripStore.getItemComments('t1', 'ti1').map((c) => c.id)).toEqual(['c1'])
-    expect(tripStore.getItemTodos('t1', 'ti1').map((t) => t.id)).toEqual(['c2'])
+    expect(tripStore.getRowPrepTasks('t1', 'ti1').map((t) => t.id)).toEqual(['c2'])
   })
 
   it('keeps trip-level comments (null trip_item_id) retrievable', () => {
@@ -50,11 +49,11 @@ describe('tripStore comments (FR-7.1)', () => {
 
     tripStore.applyChange(commentChange('c1', { is_task: 1, task_state: 'open' }))
     expect(tripStore.getItemComments('t1', 'ti1')).toHaveLength(0)
-    expect(tripStore.getItemTodos('t1', 'ti1')).toHaveLength(1)
+    expect(tripStore.getRowPrepTasks('t1', 'ti1')).toHaveLength(1)
 
     tripStore.applyChange(commentChange('c1', { is_task: 0 }))
     expect(tripStore.getItemComments('t1', 'ti1')).toHaveLength(1)
-    expect(tripStore.getItemTodos('t1', 'ti1')).toHaveLength(0)
+    expect(tripStore.getRowPrepTasks('t1', 'ti1')).toHaveLength(0)
   })
 
   it('deletion removes the comment wherever it lives', () => {
@@ -147,7 +146,7 @@ describe('tripStore comments (FR-7.1)', () => {
 })
 
 describe('comment mutations', () => {
-  const mutations = createMutations(new HLCGenerator(() => Date.now(), 'aabbccdd'))
+  const mutations = fixedMutations()
 
   it('addComment builds a plain comment insert', () => {
     const { mutation } = mutations.addComment('t1', 'ti1', 'u1', 'Ventil prüfen')
@@ -175,7 +174,7 @@ describe('comment mutations', () => {
     const opened = mutations.addComment('t1', null, 'u1', 'Code 4711', { title: 'Schlüsselbox' })
     expect(opened.mutation.fields).toMatchObject({ title: 'Schlüsselbox', is_task: 0 })
     expect(opened.mutation.fields).not.toHaveProperty('parent_id')
-    expect(opened.mutation.fields?.['created_at']).toEqual(expect.any(String))
+    expect(opened.mutation.fields?.['created_at']).toBe(FIXED_NOW_ISO)
 
     const answered = mutations.addComment('t1', null, 'u1', 'Danke', {
       parentId: 'note-1',
@@ -190,7 +189,7 @@ describe('comment mutations', () => {
     const first = mutations.editNote('note-1', 'Code 4712', 'Box')
     expect(first.op).toBe('upsert')
     expect(first.fields).toMatchObject({ body: 'Code 4712', title: 'Box' })
-    expect(first.fields?.['edited_at']).toEqual(expect.any(String))
+    expect(first.fields?.['edited_at']).toBe(FIXED_NOW_ISO)
 
     expect(mutations.editNote('reply-1', 'Danke!').fields).not.toHaveProperty('title')
   })
@@ -238,18 +237,22 @@ describe('orchestrator comment actions', () => {
     installHarness().mockDrain()
   })
 
-  it('addComment applies optimistically; flag as task moves it to todos', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+  it('addComment applies optimistically; flag as task moves it to preparations', () => {
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
-    const id = orch.addComment('t1', 'ti1', 'u1', 'Ventil prüfen')
+    const id = orch.comments.addComment('t1', 'ti1', 'u1', 'Ventil prüfen')
     expect(tripStore.getItemComments('t1', 'ti1')).toHaveLength(1)
 
-    orch.flagCommentAsTask('t1', tripStore.getItemComments('t1', 'ti1')[0]!)
+    orch.comments.flagCommentAsTask('t1', tripStore.getItemComments('t1', 'ti1')[0]!)
     expect(tripStore.getItemComments('t1', 'ti1')).toHaveLength(0)
-    const todos = tripStore.getItemTodos('t1', 'ti1')
-    expect(todos).toHaveLength(1)
-    expect(todos[0]).toMatchObject({ id, body: 'Ventil prüfen', task_state: 'open' })
+    const prepTasks = tripStore.getRowPrepTasks('t1', 'ti1')
+    expect(prepTasks).toHaveLength(1)
+    expect(prepTasks[0]).toMatchObject({ id, body: 'Ventil prüfen', task_state: 'open' })
   })
 
   /**
@@ -258,10 +261,14 @@ describe('orchestrator comment actions', () => {
    * does, and flips it. This is the seam both M25 and M1 call through.
    */
   it('toggleNoteTick inserts the first tick and flips the existing row after', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
-    orch.toggleNoteTick('t1', 'note-1', 'u1', null, {
+    orch.comments.toggleNoteTick('t1', 'note-1', 'u1', null, {
       ticked: false,
       seenThrough: '2026-09-20T10:00:00Z',
     })
@@ -274,7 +281,10 @@ describe('orchestrator comment actions', () => {
       seen_through: '2026-09-20T10:00:00Z',
     })
 
-    orch.toggleNoteTick('t1', 'note-1', 'u1', acks[0]!, { ticked: true, seenThrough: null })
+    orch.comments.toggleNoteTick('t1', 'note-1', 'u1', acks[0]!, {
+      ticked: true,
+      seenThrough: null,
+    })
     const flipped = tripStore.getNoteAcks('t1')
     expect(flipped).toHaveLength(1)
     expect(flipped[0]).toMatchObject({ id: acks[0]!.id, acked: false })
@@ -286,15 +296,19 @@ describe('orchestrator comment actions', () => {
    * off.
    */
   it('toggleNoteTick re-ticks a re-opened thread through its newest entry', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
-    orch.toggleNoteTick('t1', 'note-1', 'u1', null, {
+    orch.comments.toggleNoteTick('t1', 'note-1', 'u1', null, {
       ticked: false,
       seenThrough: '2026-09-20T10:00:00Z',
     })
     const ack = tripStore.getNoteAcks('t1')[0]!
-    orch.toggleNoteTick('t1', 'note-1', 'u1', ack, {
+    orch.comments.toggleNoteTick('t1', 'note-1', 'u1', ack, {
       ticked: false,
       seenThrough: '2026-09-21T09:00:00Z',
     })
@@ -307,16 +321,20 @@ describe('orchestrator comment actions', () => {
 
   /** FR-7.13: deleting a first note takes its thread, as the server's cascade does. */
   it('deleteComment on a first note removes its replies and its ticks', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      now: fixedClock,
+    })
     const tripStore = useTripStore()
 
-    const root = orch.addComment('t1', null, 'u1', 'Code 4711', { title: 'Schlüsselbox' })
-    orch.addComment('t1', null, 'u2', 'Danke', { parentId: root })
-    const other = orch.addComment('t1', null, 'u2', 'Fähre um 8')
-    orch.toggleNoteTick('t1', root, 'u2', null, { ticked: false, seenThrough: null })
+    const root = orch.comments.addComment('t1', null, 'u1', 'Code 4711', { title: 'Schlüsselbox' })
+    orch.comments.addComment('t1', null, 'u2', 'Danke', { parentId: root })
+    const other = orch.comments.addComment('t1', null, 'u2', 'Fähre um 8')
+    orch.comments.toggleNoteTick('t1', root, 'u2', null, { ticked: false, seenThrough: null })
     expect(tripStore.getTripComments('t1')).toHaveLength(3)
 
-    orch.deleteComment(root)
+    orch.comments.deleteComment(root)
 
     expect(tripStore.getTripComments('t1').map((c) => c.id)).toEqual([other])
     expect(tripStore.getNoteAcks('t1')).toEqual([])

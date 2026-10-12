@@ -1,0 +1,426 @@
+<script setup lang="ts">
+/**
+ * The app's one header bar (G-9, ADR-011).
+ *
+ * There is exactly one; no screen supplies its own. The right-hand group
+ * — sync indicator (G-2) and settings/avatar (G-1) — is unconditional,
+ * which is what keeps the conflict log reachable from inside a trip.
+ * The left slot switches: the logo on a tab root, `‹ back` everywhere
+ * else. The page's *name* is not here — it is in the page, at a
+ * size a bar cannot give it (PageHead, ADR-050).
+ */
+import {
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonButtons,
+  IonButton,
+  IonBadge,
+  IonIcon,
+  actionSheetController,
+  useIonRouter,
+} from '@ionic/vue'
+import {
+  chevronBackOutline,
+  closeOutline,
+  ellipsisVerticalOutline,
+  settingsOutline,
+} from 'ionicons/icons'
+import { computed, inject } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import SyncIndicator from './SyncIndicator.vue'
+import BrandMark from '@/components/global/BrandMark.vue'
+import { backTarget, enteredFrom } from '@/router/backTarget'
+import { actionsFor, type HeaderAction } from '@/composables/shared/useHeaderActions'
+import { selectionFor } from '@/composables/shared/useHeaderSelection'
+import { selectionLabel } from '@/lib/selectionLabel'
+import { tripViewEntry, tripViewMenu } from '@/lib/tripViews'
+import { TRIP_VIEW_COUNTS } from '@/kernel/tripViewCounts'
+import { t } from '@/i18n'
+import type { SyncState } from '@/composables/useSyncStatus'
+import { PATH } from '@/router/paths'
+
+withDefaults(
+  defineProps<{
+    syncState: SyncState
+    syncPendingCount: number
+    syncLabel: string
+    /** NFR-4.13: a newer build waits — shown as a dot on the G-2 glyph. */
+    syncUpdateReady?: boolean
+  }>(),
+  { syncUpdateReady: false },
+)
+
+const emit = defineEmits<{
+  syncTap: []
+}>()
+
+const route = useRoute()
+const router = useRouter()
+const ionRouter = useIonRouter()
+
+const back = computed(() => backTarget(route))
+
+/**
+ * G-20: while the page is selecting, the bar is the selection's — ✕, the
+ * count and „Alle N" — and nothing else of the page's. The sync glyph stays
+ * (G-2 is unconditional); back, the cluster, the ⋮ and the gear give way,
+ * because each would leave or change the screen under a half-made batch.
+ */
+const selection = computed(() => selectionFor(route.path))
+
+/**
+ * How many glyphs the bar will show beside the ⋮ (ADR-050). The count is a
+ * budget rather than a description: M4 stood at seven, and every one of them
+ * had arrived one at a time because nothing said what full looked like.
+ */
+const MAX_BAR_ACTIONS = 3
+
+/**
+ * A tab root's budget: search and nothing else (ADR-050 amendment 1). The
+ * roots are the family's first row on every visit, and what else they carried
+ * — imports done once a year, an eye and a ✓✓ with no literal reading — read
+ * as noise there. Held here rather than left to the pages, so the next root
+ * action becomes a word without anyone remembering the rule.
+ */
+const MAX_ROOT_BAR_ACTIONS = 1
+
+const barBudget = computed(() => (back.value ? MAX_BAR_ACTIONS : MAX_ROOT_BAR_ACTIONS))
+
+// G-12: the current page's icon cluster, described by the page rather
+// than teleported into this toolbar — see useHeaderActions.
+const glyphActions = computed(() => actionsFor(route.path).filter((a) => !a.overflow))
+
+const pageActions = computed(() => glyphActions.value.slice(0, barBudget.value))
+
+// FR-30.3: a view's count belongs to the module behind it, not to the frame.
+const counts = inject(TRIP_VIEW_COUNTS, {})
+
+/**
+ * The trip's other views, for the screens that are one (ADR-051 amendment 1).
+ *
+ * The switcher under the page's name shows the two views a trip is worked in;
+ * the ones it leaves out are offered here, as words, on all four trip screens
+ * — which is what keeps the sideways step ADR-051 bought. The frame fills
+ * this from the route table, so none of the four screens registers it and
+ * none of them can forget to.
+ *
+ * Read from the same table the pills are read from, so a view cannot change
+ * its name or its destination by moving between the two shapes; the id is the
+ * same too, because a menu entry is the same action wearing other clothes.
+ */
+const tripViewActions = computed<HeaderAction[]>(() => {
+  const current = route.meta.tripView
+  const tripId = route.params.tripId
+  if (!current || typeof tripId !== 'string') return []
+  return tripViewMenu(current).map((id) => {
+    const view = tripViewEntry(id, tripId, counts)
+    return {
+      id: view.testid,
+      icon: view.icon,
+      label: view.label,
+      overflow: true,
+      onClick: () => router.push(view.path),
+    }
+  })
+})
+
+/*
+ * The ones the page put behind the ⋮ (UX-13), and the ones that did not fit.
+ * An action sheet rather than a popover: it is the menu shape the rest of the
+ * app already uses (M2's and M7's row menus), and it renders each entry as a
+ * *word*, which is what the bar could not do for them.
+ *
+ * Where you can go comes before what you can do: the trip's other views head
+ * the sheet, and the page's own entries — which change the trip rather than
+ * leaving it — follow. The surplus keeps its registration order and lands
+ * ahead of the declared overflow, so a page that overruns the budget reads as
+ * the list it wrote rather than as a reshuffle.
+ */
+const overflowActions = computed(() => [
+  ...tripViewActions.value,
+  ...glyphActions.value.slice(barBudget.value),
+  ...actionsFor(route.path).filter((a) => a.overflow),
+])
+
+async function openOverflow() {
+  // Held in a box: assigned only inside a callback, so TypeScript's flow
+  // analysis would narrow a plain `let` back to `null` at the call below.
+  const chosen: { run: (() => void) | null } = { run: null }
+  const sheet = await actionSheetController.create({
+    buttons: [
+      ...overflowActions.value.map((action) => ({
+        text: action.label,
+        icon: action.icon,
+        // The same id the action would have carried as a glyph: a menu entry
+        // is the same action, and a test that knew where to click should not
+        // have to know which of the two shapes it is wearing today.
+        htmlAttributes: { 'data-testid': action.id },
+        handler: () => {
+          chosen.run = action.onClick
+        },
+      })),
+      { text: t('common.cancel'), role: 'cancel' },
+    ],
+  })
+  await sheet.present()
+  /*
+   * The action runs *after* the sheet is gone, not inside its handler.
+   * While an overlay is up Ionic marks the router outlet `aria-hidden` and
+   * clears it on dismissal; a handler that navigates races that teardown
+   * and the flag stays on the outlet — so the screen the user just opened
+   * is fully rendered, entirely clickable, and invisible to assistive
+   * technology. Found by an e2e case that could see the button in the DOM
+   * and not in the accessibility tree.
+   */
+  await sheet.onDidDismiss()
+  chosen.run?.()
+}
+
+// G-9: the gear is on every screen — except M17 itself, where it would
+// only reopen the screen it is on.
+const onSettings = computed(() => route.path === PATH.settings)
+
+/**
+ * Where the gear points — with the origin already in the href.
+ *
+ * The router would write the origin itself: `originStamp.ts` redirects any
+ * entry into an `acceptsFrom` route that carries none. Writing it here is
+ * not a second mechanism but the thing that keeps the tap a *single*
+ * navigation, which is what the outlet needs — a redirect aborts the push
+ * Ionic's `router-link` had already staged, Ionic keeps the staged params,
+ * and from two pages deep the outlet then hides the wrong one (ADR-049
+ * amendment 1 records the reading; the log entry of 2026-09-13 records the
+ * measurement). The guard stays for the entry points that navigate
+ * programmatically; this is the one `router-link` into a stamped route.
+ *
+ * An unmatched path is no origin, which is the guard's own rule: `‹` would
+ * carry the user to a URL that renders nothing, and the fallback parent has
+ * to answer instead.
+ */
+const settingsHref = computed(() =>
+  route.matched.length === 0
+    ? PATH.settings
+    : router.resolve({ path: PATH.settings, query: enteredFrom(route.fullPath) }).fullPath,
+)
+
+function goHome() {
+  ionRouter.navigate(PATH.dashboard, 'back', 'replace')
+}
+
+/**
+ * The declared parent, not history.back(): a deep link opened from a
+ * notification has a one-entry stack, and §7's contract is that back
+ * still lands on the parent trip rather than leaving the app.
+ *
+ * Direction 'back' animates backwards, and the action is **replace**.
+ * 'pop' would tell Ionic to unwind its own stack, and the declared
+ * parent is frequently not the entry we arrived from — a deep-linked
+ * child has no such entry at all. The default push is worse still: it
+ * leaves the page we came from mounted *and* mounts a second copy of the
+ * parent, so the route ends up with two live instances. The stale one
+ * kept winning the header's action registry, which is how the trip
+ * list's search field ended up rendered on a page nobody could see.
+ */
+function goBack() {
+  if (back.value) ionRouter.navigate(back.value, 'back', 'replace')
+}
+</script>
+
+<template>
+  <IonHeader>
+    <IonToolbar v-if="selection" class="selecting" :data-testid="`${selection.testid}-selbar`">
+      <IonButtons slot="start">
+        <IonButton
+          :aria-label="t('selection.exit')"
+          :title="t('selection.exit')"
+          :data-testid="`${selection.testid}-select-exit`"
+          @click="selection.onExit"
+        >
+          <IonIcon slot="icon-only" :icon="closeOutline" />
+        </IonButton>
+      </IonButtons>
+      <span class="selcount" aria-live="polite" :data-testid="`${selection.testid}-select-count`">
+        {{ selectionLabel(selection.count) }}
+      </span>
+      <IonButtons slot="end">
+        <button
+          type="button"
+          class="select-all"
+          :data-testid="`${selection.testid}-select-all`"
+          @click="selection.onAll"
+        >
+          {{ t('selection.all', { n: selection.total }) }}
+        </button>
+        <SyncIndicator
+          :state="syncState"
+          :pending-count="syncPendingCount"
+          :label="syncLabel"
+          :update-ready="syncUpdateReady"
+          @tap="emit('syncTap')"
+        />
+      </IonButtons>
+    </IonToolbar>
+    <IonToolbar v-else>
+      <IonButtons v-if="back" slot="start">
+        <IonButton
+          data-testid="header-back"
+          :aria-label="t('common.back')"
+          :title="t('common.back')"
+          @click="goBack"
+        >
+          <IonIcon slot="icon-only" :icon="chevronBackOutline" />
+        </IonButton>
+      </IonButtons>
+
+      <IonTitle
+        v-if="!back"
+        slot="start"
+        class="app-logo"
+        data-testid="header-logo"
+        @click="goHome"
+      >
+        <span class="logo-row">
+          <BrandMark :size="22" data-splash-target />
+          <span class="logo-wordmark">JIT<i class="logo-dot">·</i>Pack</span>
+        </span>
+      </IonTitle>
+
+      <!-- The current page's G-12 cluster (useHeaderActions). A group of its
+           own because on desktop it is the page's and stands over the column,
+           while the group after it is the frame's and keeps the corner. -->
+      <IonButtons slot="end" class="page-cluster">
+        <IonButton
+          v-for="action in pageActions"
+          :key="action.id"
+          :data-testid="action.id"
+          :aria-label="action.label"
+          :title="action.label"
+          :color="action.active ? 'primary' : undefined"
+          @click="action.onClick"
+        >
+          <IonIcon slot="icon-only" :icon="action.icon" />
+          <IonBadge v-if="action.badge" color="primary" class="action-badge">
+            {{ action.badge }}
+          </IonBadge>
+        </IonButton>
+        <IonButton
+          v-if="overflowActions.length > 0"
+          data-testid="header-overflow"
+          :aria-label="t('common.moreActions')"
+          :title="t('common.moreActions')"
+          @click="openOverflow"
+        >
+          <IonIcon slot="icon-only" :icon="ellipsisVerticalOutline" />
+        </IonButton>
+      </IonButtons>
+      <IonButtons slot="end">
+        <SyncIndicator
+          :state="syncState"
+          :pending-count="syncPendingCount"
+          :label="syncLabel"
+          :update-ready="syncUpdateReady"
+          @tap="emit('syncTap')"
+        />
+        <IonButton
+          v-if="!onSettings"
+          :router-link="settingsHref"
+          data-testid="header-settings"
+          :aria-label="t('settings.title')"
+          :title="t('settings.title')"
+        >
+          <IonIcon slot="icon-only" :icon="settingsOutline" />
+        </IonButton>
+      </IonButtons>
+    </IonToolbar>
+  </IonHeader>
+</template>
+
+<style scoped>
+/* The selection's bar is tinted, so the mode reads at a glance — the same
+   wash the in-page bar wore before G-20 moved it up here. */
+.selecting {
+  --background: color-mix(in srgb, var(--jp-action) 16%, var(--jp-surface-page));
+}
+
+.selcount {
+  display: block;
+  padding-inline: 4px;
+  font-weight: var(--jp-weight-semibold);
+}
+
+.select-all {
+  margin-inline-end: 4px;
+  padding: 5px 12px;
+  border: 1px solid var(--ct-surface1);
+  border-radius: var(--jp-r-pill);
+  background: var(--jp-surface-sunken);
+  color: var(--ct-text);
+  font-size: var(--jp-text-sm);
+  cursor: pointer;
+}
+
+.select-all:focus-visible {
+  outline: 2px solid var(--jp-action);
+  outline-offset: 2px;
+}
+
+.app-logo {
+  cursor: pointer;
+}
+
+.action-badge {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  font-size: var(--jp-text-3xs);
+  padding: 2px 4px;
+}
+
+.logo-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  vertical-align: middle;
+}
+
+/* The wordmark is a lockup, not a title: it keeps the UI face while the
+   surrounding ion-title rule (G-13) sets display type for page titles. */
+.logo-wordmark {
+  font-family: var(--jp-font-ui);
+  font-weight: var(--jp-weight-bold);
+  font-size: var(--jp-text-lg);
+  letter-spacing: var(--jp-tracking-tight);
+  display: none;
+}
+
+.logo-dot {
+  font-style: normal;
+  color: var(--ion-color-primary);
+}
+
+/* G-9: mark only on mobile, mark + wordmark on desktop */
+@media (min-width: 900px) {
+  .logo-wordmark {
+    display: inline;
+  }
+
+  /*
+   * G-12 (UX-14, ADR-050 amendment 2): the page's cluster ends where the
+   * content column ends. The bar spans the window and the column does not, so
+   * the offset is the body's own layout restated from the same tokens — the
+   * rail on the left, the open pane on the right (ADR-064), and the measure
+   * centred in what they leave. `max()` is the column filling that room
+   * outright, where only the pane is right of it. The toolbar's container is
+   * the containing block and is the window's width, so `100%` is the window.
+   */
+  .page-cluster {
+    position: absolute;
+    inset-block: 0;
+    right: calc(
+      var(--jp-frame-pane-w) +
+        max(0px, (100% - var(--jp-nav-rail-w) - var(--jp-frame-pane-w) - var(--jp-measure)) / 2)
+    );
+  }
+}
+</style>

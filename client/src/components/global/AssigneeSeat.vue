@@ -29,7 +29,7 @@ const emit = defineEmits<{ assign: [event: MouseEvent] }>()
   <button
     type="button"
     class="assign"
-    :aria-label="avatar ? t('item.assignedTo') : t('item.assignTo')"
+    :aria-label="avatar ? t('row.assignedTo') : t('row.assignTo')"
     @click.stop.prevent="(e: MouseEvent) => emit('assign', e)"
     @pointerdown.stop
   >

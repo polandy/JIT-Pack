@@ -168,7 +168,7 @@ async function toast(message: string) {
 }
 
 function apply(row: Row) {
-  orchestrator.applyReviewProposal(row.p, row.target)
+  orchestrator.postTrip.applyReviewProposal(row.p, row.target)
   row.state = 'applied'
   const group = master.templateList.find((g) => g.id === row.target)?.name ?? ''
   void toast(

@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -17,47 +16,6 @@ import (
 // is gone — a phone that changed networks, a killed tab — and reaping it is
 // what keeps the hub's presence list (G-10) free of ghost devices.
 const wsIdleTimeout = 5 * time.Minute
-
-// wsMessage is the client→server envelope (Sync-API Spec §7):
-//
-//	{"subscribe":   ["trip:<id>", "user:<own-id>"]}
-//	{"unsubscribe": ["trip:<id>"]}
-//	{"cursor":      {"trip_id": "...", "seq": 123}}
-//	{"location":    {"trip_id": "...", "lat": 46.5, "lon": 9.8, "accuracy_m": 12}}
-//	{"location":    {"trip_id": "...", "stop": true}}
-type wsMessage struct {
-	Subscribe   []string  `json:"subscribe,omitempty"`
-	Unsubscribe []string  `json:"unsubscribe,omitempty"`
-	Cursor      *wsCursor `json:"cursor,omitempty"`
-	// Viewing names the trip the packing list is open on, "trip_id": "" for
-	// none (FR-4.9).
-	Viewing *wsViewing `json:"viewing,omitempty"`
-	// Ping is the client's keepalive (Sync-API §9), answered with an
-	// EventPong frame. App-level on purpose: a browser cannot send
-	// protocol pings, and the client needs a frame it can *see* to know
-	// the connection is still two-way.
-	Ping bool `json:"ping,omitempty"`
-	// Location shares where the sender is on a trip, or stops sharing it
-	// (FR-29.19).
-	Location *wsLocation `json:"location,omitempty"`
-}
-
-type wsLocation struct {
-	TripID    string  `json:"trip_id"`
-	Lat       float64 `json:"lat"`
-	Lon       float64 `json:"lon"`
-	AccuracyM float64 `json:"accuracy_m"`
-	Stop      bool    `json:"stop"`
-}
-
-type wsViewing struct {
-	TripID string `json:"trip_id"`
-}
-
-type wsCursor struct {
-	TripID string `json:"trip_id"`
-	Seq    int64  `json:"seq"`
-}
 
 // wsAuth wraps authed for the WebSocket route: browsers cannot set
 // headers on WebSocket dials, so the token is also accepted as a
@@ -77,11 +35,11 @@ func (s *Server) wsAuth(next http.HandlerFunc) http.HandlerFunc {
 // handleWS upgrades the HTTP connection to WebSocket. The user ID is
 // already in the context by the time this handler runs.
 func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
-	userID, _ := r.Context().Value(userIDKey).(string)
+	userID := callerID(r.Context())
 
 	ws, err := websocket.Accept(w, r, nil)
 	if err != nil {
-		slog.Error("ws accept", "error", err)
+		logger(r.Context()).Error("ws accept", "error", err)
 		return
 	}
 
@@ -98,7 +56,7 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return
 		}
-		var msg wsMessage
+		var msg WSClientFrame
 		if err := json.Unmarshal(data, &msg); err != nil {
 			continue
 		}
@@ -109,14 +67,14 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 			// user:<id> frames are accepted but redundant:
 			// notification.created is delivered by the connection's
 			// authenticated identity (hub.NotifyNotificationCreated).
-			if tripID, ok := strings.CutPrefix(channel, "trip:"); ok {
+			if tripID, ok := strings.CutPrefix(channel, WSChannelTripPrefix); ok {
 				if s.isMember(r, tripID, userID) {
 					s.hub.Subscribe(c, tripID)
 				}
 			}
 		}
 		for _, channel := range msg.Unsubscribe {
-			if tripID, ok := strings.CutPrefix(channel, "trip:"); ok {
+			if tripID, ok := strings.CutPrefix(channel, WSChannelTripPrefix); ok {
 				s.hub.Unsubscribe(c, tripID)
 			}
 		}

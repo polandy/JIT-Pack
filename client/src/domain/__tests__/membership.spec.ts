@@ -6,7 +6,6 @@ import { describe, expect, it } from 'vitest'
 
 import {
   everyoneMembers,
-  membershipCoverage,
   membershipRows,
   planMembership,
   type MembershipInput,
@@ -456,30 +455,6 @@ describe('everyoneMembers (FR-25.21c — the select-all shortcut)', () => {
   })
 })
 
-describe('membershipCoverage (FR-25.21c)', () => {
-  it('reads none, some and all off the roster', () => {
-    expect(membershipCoverage(TRAVELERS, [])).toBe('none')
-    expect(membershipCoverage(TRAVELERS, [{ traveler_id: ANDY.id, quantity: 2 }])).toBe('some')
-    expect(
-      membershipCoverage(
-        TRAVELERS,
-        TRAVELERS.map((t) => ({ traveler_id: t.id, quantity: 1 })),
-      ),
-    ).toBe('all')
-  })
-
-  it('counts only travelers the trip still has, so a stale row cannot read as full', () => {
-    const gone = { traveler_id: 'tr-removed', quantity: 1 }
-    expect(membershipCoverage(TRAVELERS, [gone])).toBe('none')
-    expect(
-      membershipCoverage(TRAVELERS, [
-        ...TRAVELERS.map((t) => ({ traveler_id: t.id, quantity: 1 })),
-        gone,
-      ]),
-    ).toBe('all')
-  })
-})
-
 describe('membersOfRows (FR-25.13g — the membership rows already express)', () => {
   it("reads each traveler's own amount, in trip order rather than row order", () => {
     const rows = [
@@ -518,28 +493,26 @@ describe('membersOfRows (FR-25.13g — the membership rows already express)', ()
 })
 
 describe('rowsCarryingContent (what a delete would cost beyond the row)', () => {
-  const rows = [row('r-comment'), row('r-todo'), row('r-bare')]
+  const rows = [row('r-comment'), row('r-prep'), row('r-bare')]
   const content = {
     hasComments: (id: string) => id === 'r-comment',
-    hasTodo: (id: string) => id === 'r-todo',
+    hasPrepTask: (id: string) => id === 'r-prep',
   }
 
-  it('names a row with a comment thread and one with a preparation todo', () => {
-    expect(rowsCarryingContent(rows, content)).toEqual(['r-comment', 'r-todo'])
+  it('names a row with a comment thread and one with a preparation', () => {
+    expect(rowsCarryingContent(rows, content)).toEqual(['r-comment', 'r-prep'])
   })
 
   it('names a row once when it carries both', () => {
-    expect(rowsCarryingContent(rows, { hasComments: () => true, hasTodo: () => true })).toEqual([
-      'r-comment',
-      'r-todo',
-      'r-bare',
-    ])
+    expect(rowsCarryingContent(rows, { hasComments: () => true, hasPrepTask: () => true })).toEqual(
+      ['r-comment', 'r-prep', 'r-bare'],
+    )
   })
 
   it('is empty where nothing hangs off the rows — a delete then costs the row alone', () => {
-    expect(rowsCarryingContent(rows, { hasComments: () => false, hasTodo: () => false })).toEqual(
-      [],
-    )
+    expect(
+      rowsCarryingContent(rows, { hasComments: () => false, hasPrepTask: () => false }),
+    ).toEqual([])
   })
 })
 

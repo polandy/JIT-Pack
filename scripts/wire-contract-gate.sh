@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # The client's wire types and path builders are generated from
-# internal/api/wire.go (NFR-4.14, ADR-026/027), and its table contract from
+# internal/api/wire*.go (NFR-4.14, ADR-026/027), and its table contract from
 # internal/store/tables.go and schema.sql (ARCH-11). This regenerates them and
-# fails when a checked-in file differs.
+# fails when a checked-in file differs. client/public/sw.js cannot import the
+# generated types; workerWire.spec.ts holds its push-body names to them.
 #
 # It exists because two sides written independently drift in ways invisible to
 # both test suites — a client reading a key no server sends, taking a hint for
@@ -19,7 +20,7 @@ types_target="client/src/api/types.ts"
 routes_target="client/src/api/routes.ts"
 tables_target="client/src/api/tables.ts"
 
-# Generated beside the tree rather than over it: the check must compare wire.go
+# Generated beside the tree rather than over it: the check must compare wire*.go
 # against the files on disk, not against whatever git happens to hold — running
 # it must never rewrite the files it is judging.
 fresh_types="$(mktemp)"
@@ -52,6 +53,6 @@ check() {
 	echo "wire-contract-gate: ok ($target matches $source)"
 }
 
-check "$types_target" "$fresh_types" internal/api/wire.go
+check "$types_target" "$fresh_types" "internal/api/wire*.go"
 check "$routes_target" "$fresh_routes" internal/api/wire.go
 check "$tables_target" "$fresh_tables" "internal/store/tables.go and schema.sql"

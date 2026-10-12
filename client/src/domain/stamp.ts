@@ -9,6 +9,7 @@
  * time stays absolute — "packed at 14:32" is what someone standing in
  * front of a suitcase can act on, where "3 hours ago" needs arithmetic.
  */
+import { MS_PER_DAY } from './shared/calendar'
 
 /** A rendered stamp; the caller words `today`/`yesterday` through `t()`. */
 export interface RelativeStamp {
@@ -25,8 +26,6 @@ function startOfDay(at: Date): number {
   return new Date(at.getFullYear(), at.getMonth(), at.getDate()).getTime()
 }
 
-const DAY_MS = 86_400_000
-
 /**
  * Formats an ISO instant relative to `now`. Days are counted between
  * calendar days rather than in elapsed hours: something packed at 23:50
@@ -36,7 +35,7 @@ export function relativeStamp(at: string, now: Date, locale: string): RelativeSt
   const stamped = new Date(at)
   if (Number.isNaN(stamped.getTime())) return null
 
-  const days = Math.round((startOfDay(now) - startOfDay(stamped)) / DAY_MS)
+  const days = Math.round((startOfDay(now) - startOfDay(stamped)) / MS_PER_DAY)
   return {
     dayKey: days === 0 ? 'today' : days === 1 ? 'yesterday' : null,
     date: stamped.toLocaleDateString(locale, { day: 'numeric', month: 'short' }),

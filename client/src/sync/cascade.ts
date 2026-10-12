@@ -26,8 +26,7 @@
 import type { SyncTable } from '@/api/tables'
 import { localTombstone } from './optimistic'
 import type { PullChange } from '@/api/types'
-import type { RowSinks, SinkHolder } from './sinks'
-import { TABLE_SPECS, type CascadeParent } from './tableRegistry'
+import type { RowSinks, SinkHolder, SpecifiedSink } from './sinks'
 
 /** One row a delete takes with it. */
 export interface CascadeRow {
@@ -41,28 +40,30 @@ interface ChildRef {
   column: string
 }
 
-/** Each parent table's children, inverted once from `TABLE_SPECS.cascadeParents`. */
-const CHILDREN: ReadonlyMap<SyncTable, readonly ChildRef[]> = (() => {
+/**
+ * Each parent table's children, inverted from the `cascadeParents` of the
+ * sinks' specs. Only a table some sink holds can have rows to find, so the
+ * edges of the stores at hand are all the walk needs — a module's tables
+ * reach it on its store, never through a kernel list.
+ */
+function childrenOf(sinks: RowSinks): ReadonlyMap<SyncTable, readonly ChildRef[]> {
   const children = new Map<SyncTable, ChildRef[]>()
-  for (const [table, spec] of Object.entries(TABLE_SPECS) as [
-    SyncTable,
-    { cascadeParents?: readonly CascadeParent[] },
-  ][]) {
-    for (const parent of spec.cascadeParents ?? []) {
+  for (const [table, sink] of Object.entries(sinks) as [SyncTable, SpecifiedSink][]) {
+    for (const parent of sink.spec.cascadeParents ?? []) {
       const list = children.get(parent.table) ?? []
       list.push({ table, column: parent.column })
       children.set(parent.table, list)
     }
   }
   return children
-})()
+}
 
 const keyOf = (row: CascadeRow) => `${row.table}\u0000${row.id}`
 
 /**
  * cascadeOf names every row a delete of `table`/`id` takes with it, leaf-first
  * and excluding the parent, out of whatever the given stores hold. Nothing
- * here names a table: the edges are `TABLE_SPECS`' `cascadeParents`, followed
+ * here names a table: the edges are the sinks' `cascadeParents`, followed
  * as far as they reach — a trip item takes its notes, a note its replies and
  * the ticks of both, as SQLite's own cascade does.
  *
@@ -74,6 +75,7 @@ const keyOf = (row: CascadeRow) => `${row.table}\u0000${row.id}`
  */
 export function cascadeOf(table: SyncTable, id: string, ...stores: SinkHolder[]): CascadeRow[] {
   const sinks: RowSinks = Object.assign({}, ...stores.map((s) => s.sinks))
+  const children = childrenOf(sinks)
   const root: CascadeRow = { table, id }
   const below = new Map<string, CascadeRow[]>()
   const found = new Set<string>([keyOf(root)])
@@ -82,7 +84,7 @@ export function cascadeOf(table: SyncTable, id: string, ...stores: SinkHolder[])
   while (level.size > 0) {
     const next = new Map<SyncTable, Set<string>>()
     for (const [parentTable, parentIds] of level) {
-      for (const child of CHILDREN.get(parentTable) ?? []) {
+      for (const child of children.get(parentTable) ?? []) {
         for (const row of sinks[child.table]?.rows() ?? []) {
           const fields = row as Record<string, unknown> & { id: string }
           const parentId = fields[child.column]

@@ -2,7 +2,7 @@
  * FR-7.6: a trip's tasks — its own (FR-7.4) and the preparations its rows owe
  * (FR-7.3) — as the one list every surface reads.
  *
- * Wiring only. The rule is `tripTasks` in `domain/tripTodos.ts`, which knows
+ * Wiring only. The rule is `tripTasks` in `domain/tripTasks.ts`, which knows
  * nothing of stores and is tested without them; what lives here is the join
  * the rule needs: the rows a preparation can hang off, each with the mark it
  * inherits from its master item (FR-28.7). Four surfaces ask for the list —
@@ -11,7 +11,7 @@
  */
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import { tripTasks, type TripTask, type TripTaskItem } from '@/domain/tripTodos'
+import { tripTasks, type TripTask, type TripTaskItem } from '@/domain/tripTasks'
 
 /** Reader for the trip tasks of any trip this device holds. */
 export function useTripTasks() {
@@ -33,7 +33,7 @@ export function useTripTasks() {
 
   /** Every task of the trip, in FR-7.6's order. */
   function tasksOf(tripId: string): TripTask[] {
-    return tripTasks(tripStore.getTripTodos(tripId), tripStore.getTodos(tripId), rowsOf(tripId))
+    return tripTasks(tripStore.getOwnTasks(tripId), tripStore.getPrepTasks(tripId), rowsOf(tripId))
   }
 
   return { tasksOf }

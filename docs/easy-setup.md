@@ -69,7 +69,7 @@ Then start JIT-Pack with the new values:
 docker compose up -d
 ```
 
-`docker compose logs app` now says `starting in multi-user mode (OIDC broker: https://<AUTH_HOST>)`.
+`docker compose logs app` now says `starting in multi-user mode oidc_broker=https://<AUTH_HOST>`.
 
 **6. Sign in.** Open `https://<JITPACK_HOST>`, choose **Server** on the first-run screen, then **Sign in with SSO**. Pocket ID asks for your passkey and, the first time, whether JIT-Pack may see your name and e-mail. You land in the app as its admin.
 

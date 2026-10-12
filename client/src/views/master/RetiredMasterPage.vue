@@ -49,8 +49,10 @@ import { t, formatDate } from '@/i18n'
 import type { MessageKey } from '@/i18n'
 import { presentToast } from '@/composables/shared/toast'
 import { useMasterStore } from '@/stores/masterStore'
+import { aliasOf } from '@/domain/itemMerge'
 import { DELETION_REMOVE } from '@/domain/masterDeletion'
 import { RESTORE_NAME_TAKEN, type RestoreVerdict } from '@/domain/masterRestore'
+import { TEMPLATE_KIND_GROUP } from '@/types/domain'
 import type { MasterItem, Template } from '@/types/domain'
 import { confirmDestructive, promptText } from '@/composables/shared/confirm'
 import {
@@ -59,9 +61,8 @@ import {
   deletionOutlookKey,
 } from '@/lib/deletionLabels'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
-import { setHeaderActions, type HeaderAction } from '@/composables/shared/useHeaderActions'
-import { setHeaderSelection } from '@/composables/shared/useHeaderSelection'
-import { SELECTION_ICON, useRowSelection } from '@/composables/shared/useRowSelection'
+import { setHeaderActions } from '@/composables/shared/useHeaderActions'
+import { offerSelection, useRowSelection } from '@/composables/shared/useRowSelection'
 
 const masterStore = useMasterStore()
 const orchestrator = useOrchestrator()
@@ -92,7 +93,8 @@ interface RetiredRow {
   /**
    * FR-24.15: the item this row was merged into, by name, or null. A row that
    * got here by a merge says so, because its restore is otherwise an offer to
-   * re-create the duplicate the user has just removed.
+   * re-create the duplicate the user has just removed. Read through
+   * `aliasOf`, so two rows merged into each other name neither (ADR-069).
    */
   mergedInto: string | null
   /** The sentence the permanent-delete confirm carries. */
@@ -106,7 +108,7 @@ interface RetiredRow {
 
 const itemRows = computed<RetiredRow[]>(() =>
   masterStore.retiredItemList.map((item) => {
-    const outlook = orchestrator.masterItemDeletionOutlook(item.id)
+    const outlook = orchestrator.masterData.masterItemDeletionOutlook(item.id)
     return {
       id: item.id,
       name: item.name,
@@ -115,23 +117,21 @@ const itemRows = computed<RetiredRow[]>(() =>
       photoItem: item,
       references: outlook.references,
       removable: outlook.kind === DELETION_REMOVE,
-      mergedInto: item.merged_into_id
-        ? (masterStore.getItem(item.merged_into_id)?.name ?? null)
-        : null,
+      mergedInto: aliasOf(item, masterStore.getItem)?.name ?? null,
       // Read only where `removable` is true, and there the key is the remove
       // one — a retiring row's button is not rendered.
       removeKey: deletionOutlookKey(DELETION_SUBJECT_ITEM, outlook),
       takenKey: 'retired.nameTakenItem',
-      verdict: (name?: string) => orchestrator.masterItemRestoreVerdict(item.id, name),
-      restore: (name?: string) => orchestrator.restoreMasterItem(item.id, name),
-      purge: () => orchestrator.deleteMasterItem(item.id),
+      verdict: (name?: string) => orchestrator.masterData.masterItemRestoreVerdict(item.id, name),
+      restore: (name?: string) => orchestrator.masterData.restoreMasterItem(item.id, name),
+      purge: () => orchestrator.masterData.deleteMasterItem(item.id),
     }
   }),
 )
 
 const templateRows = computed<RetiredRow[]>(() =>
   masterStore.retiredTemplateList.map((template) => {
-    const outlook = orchestrator.templateDeletionOutlook(template.id)
+    const outlook = orchestrator.masterData.templateDeletionOutlook(template.id)
     return {
       id: template.id,
       name: template.name,
@@ -147,9 +147,9 @@ const templateRows = computed<RetiredRow[]>(() =>
       // Which scope holds the name is a fact, not a bug — `templates.name`
       // is UNIQUE instance-wide and across both scopes (FR-1.6).
       takenKey: 'retired.nameTakenGroup',
-      verdict: (name?: string) => orchestrator.templateRestoreVerdict(template.id, name),
-      restore: (name?: string) => orchestrator.restoreTemplate(template.id, name),
-      purge: () => orchestrator.deleteTemplate(template.id),
+      verdict: (name?: string) => orchestrator.masterData.templateRestoreVerdict(template.id, name),
+      restore: (name?: string) => orchestrator.masterData.restoreTemplate(template.id, name),
+      purge: () => orchestrator.masterData.deleteTemplate(template.id),
     }
   }),
 )
@@ -199,9 +199,12 @@ function takenMessage(row: RetiredRow, name: string): string {
   const holder = verdict.holder
   if (segment.value === SEGMENT_TEMPLATES) {
     const scope = (holder as Template).kind
-    return t(scope === 'group' ? 'retired.nameTakenGroup' : 'retired.nameTakenTemplate', {
-      name: holder.name,
-    })
+    return t(
+      scope === TEMPLATE_KIND_GROUP ? 'retired.nameTakenGroup' : 'retired.nameTakenTemplate',
+      {
+        name: holder.name,
+      },
+    )
   }
   return t('retired.nameTakenItem', { name: holder.name })
 }
@@ -275,28 +278,11 @@ const selectedRows = computed(() => rows.value.filter((row) => selected.value.ha
 watch(segment, () => selection.end())
 
 // G-20: the selection's bar is the app bar's while it lasts.
-setHeaderSelection(() =>
-  selecting.value
-    ? {
-        count: selectedRows.value.length,
-        total: rows.value.length,
-        testid: 'm23',
-        onExit: selection.end,
-        onAll: () => selection.toggleAll(rows.value.map((row) => row.id)),
-      }
-    : null,
-)
-
-setHeaderActions(() => {
-  const select: HeaderAction = {
-    id: 'm23-select',
-    icon: SELECTION_ICON,
-    label: t('selection.start'),
-    active: selecting.value,
-    onClick: () => (selecting.value ? selection.end() : selection.start()),
-  }
-  return rows.value.length > 0 || selecting.value ? [select] : []
+const selectIcon = offerSelection(selection, {
+  testid: 'm23',
+  keys: () => rows.value.map((row) => row.id),
 })
+setHeaderActions(() => selectIcon('m23-select', t('selection.start')))
 
 /** A tap on a row does nothing outside the mode; inside it, it picks. */
 function onRowClick(row: RetiredRow) {

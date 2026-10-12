@@ -19,7 +19,7 @@ import { useTaskActs } from '@/composables/useTaskActs'
 import { useTripIdentity } from '@/composables/shared/useTripIdentity'
 import { useTripTasks } from '@/composables/useTripTasks'
 import { openDueDay } from '@/domain/taskDue'
-import { dashboardTasks, type TripTask } from '@/domain/tripTodos'
+import { dashboardTasks, type TripTask } from '@/domain/tripTasks'
 import { t } from '@/i18n'
 import { DUE_BLOCK_TASKS, dueBlockAnchor } from '@/kernel/tripCards'
 import { tripSubPath } from '@/router/paths'
@@ -43,7 +43,7 @@ const MAX_TASKS = 4
 const orchestrator = useOrchestrator()
 const masterStore = useMasterStore()
 const { tasksOf } = useTripTasks()
-const { myUserId, nameOf } = useTripIdentity(props.tripId, orchestrator)
+const { myUserId, nameOf } = useTripIdentity(props.tripId, orchestrator.identity)
 const { rowUndo, announceAct, announceTaskDone } = usePackAnnouncer(null)
 
 const acts = useTaskActs(() => props.tripId, {
@@ -88,7 +88,7 @@ const empty = computed(() => {
 
 /** Written in the phase in front of the trip, which is what the field's label promised. */
 function add(text: string) {
-  const id = orchestrator.addTripTodo(
+  const id = orchestrator.comments.addOwnTask(
     props.tripId,
     CLIENT_ACTOR_PLACEHOLDER,
     text,

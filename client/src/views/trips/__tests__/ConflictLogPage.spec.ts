@@ -38,17 +38,23 @@ function entry(over: Partial<ConflictEntry> = {}): ConflictEntry {
 }
 
 const orchestrator = {
-  ...identityStub(),
-  fetchConflicts: vi.fn<() => Promise<ConflictEntry[]>>(),
-  fetchMasterConflicts: vi.fn<() => Promise<ConflictEntry[]>>(),
-  revertConflict: vi.fn<() => Promise<void>>(),
-  fetchLockEvents: vi.fn<() => Promise<LockEvent[]>>(),
-  fetchUsers: vi.fn(() =>
-    Promise.resolve([
-      { user_id: 'u-sia', display_name: 'Sia' },
-      { user_id: 'u-andy', display_name: 'Andy' },
-    ]),
-  ),
+  identity: {
+    ...identityStub(),
+    fetchUsers: vi.fn(() =>
+      Promise.resolve([
+        { user_id: 'u-sia', display_name: 'Sia' },
+        { user_id: 'u-andy', display_name: 'Andy' },
+      ]),
+    ),
+  },
+  conflicts: {
+    fetchConflicts: vi.fn<() => Promise<ConflictEntry[]>>(),
+    fetchMasterConflicts: vi.fn<() => Promise<ConflictEntry[]>>(),
+    revertConflict: vi.fn<() => Promise<void>>(),
+  },
+  claims: {
+    fetchLockEvents: vi.fn<() => Promise<LockEvent[]>>(),
+  },
 }
 
 function takeover(over: Partial<LockEvent> = {}): LockEvent {
@@ -67,10 +73,10 @@ beforeEach(() => {
   setActivePinia(createPinia())
   setLocale('en')
   vi.clearAllMocks()
-  orchestrator.fetchConflicts.mockResolvedValue([entry()])
-  orchestrator.fetchMasterConflicts.mockResolvedValue([entry()])
-  orchestrator.revertConflict.mockResolvedValue(undefined)
-  orchestrator.fetchLockEvents.mockResolvedValue([])
+  orchestrator.conflicts.fetchConflicts.mockResolvedValue([entry()])
+  orchestrator.conflicts.fetchMasterConflicts.mockResolvedValue([entry()])
+  orchestrator.conflicts.revertConflict.mockResolvedValue(undefined)
+  orchestrator.claims.fetchLockEvents.mockResolvedValue([])
 })
 
 async function mountPage(props: { tripId?: string } = { tripId: 'trip-1' }) {
@@ -89,9 +95,9 @@ describe('the revert control', () => {
     await wrapper.find('[data-testid="conflict-revert"]').trigger('click')
     await flushPromises()
 
-    expect(orchestrator.revertConflict).toHaveBeenCalledWith('cf-1', 'trip-1')
+    expect(orchestrator.conflicts.revertConflict).toHaveBeenCalledWith('cf-1', 'trip-1')
     // Re-read, not patched: the server owns whether the entry is spent.
-    expect(orchestrator.fetchConflicts).toHaveBeenCalledTimes(2)
+    expect(orchestrator.conflicts.fetchConflicts).toHaveBeenCalledTimes(2)
   })
 
   it('reverts a master entry without naming a trip', async () => {
@@ -100,12 +106,12 @@ describe('the revert control', () => {
     await wrapper.find('[data-testid="conflict-revert"]').trigger('click')
     await flushPromises()
 
-    expect(orchestrator.revertConflict).toHaveBeenCalledWith('cf-1', undefined)
-    expect(orchestrator.fetchMasterConflicts).toHaveBeenCalledTimes(2)
+    expect(orchestrator.conflicts.revertConflict).toHaveBeenCalledWith('cf-1', undefined)
+    expect(orchestrator.conflicts.fetchMasterConflicts).toHaveBeenCalledTimes(2)
   })
 
   it('offers no revert on an entry that is already spent', async () => {
-    orchestrator.fetchConflicts.mockResolvedValue([entry({ reverted: true })])
+    orchestrator.conflicts.fetchConflicts.mockResolvedValue([entry({ reverted: true })])
 
     const wrapper = await mountPage()
 
@@ -127,7 +133,7 @@ describe('each refusal reaches the reader as its own sentence', () => {
 
   for (const { code, says } of refusals) {
     it(`says "${says}" for ${code || 'a failure with no code'}`, async () => {
-      orchestrator.revertConflict.mockRejectedValue(
+      orchestrator.conflicts.revertConflict.mockRejectedValue(
         code ? new APIRequestError(409, { code, message: 'x' }) : new Error('network down'),
       )
       const wrapper = await mountPage()
@@ -140,10 +146,10 @@ describe('each refusal reaches the reader as its own sentence', () => {
   }
 
   it('re-reads after a stale entry, so the button becomes the reverted note', async () => {
-    orchestrator.revertConflict.mockRejectedValue(
+    orchestrator.conflicts.revertConflict.mockRejectedValue(
       new APIRequestError(409, { code: 'already_reverted', message: 'x' }),
     )
-    orchestrator.fetchConflicts
+    orchestrator.conflicts.fetchConflicts
       .mockResolvedValueOnce([entry()])
       .mockResolvedValueOnce([entry({ reverted: true })])
     const wrapper = await mountPage()
@@ -164,7 +170,7 @@ describe('a row says what it is about in words', () => {
   it('names the trip and the column, not the table and the field', async () => {
     const trips = useTripStore()
     trips.setTrip({ id: 'trip-1', name: 'Sommerferien Sardinien', year: 2026 } as Trip)
-    orchestrator.fetchConflicts.mockResolvedValue([
+    orchestrator.conflicts.fetchConflicts.mockResolvedValue([
       entry({ entity_table: 'trips', entity_id: 'trip-1', field: 'start_date' }),
     ])
 
@@ -184,7 +190,7 @@ describe('a row says what it is about in words', () => {
       deleted: false,
       row: { trip_id: 'trip-1', name: 'Sonnencreme', quantity: 1 },
     })
-    orchestrator.fetchConflicts.mockResolvedValue([
+    orchestrator.conflicts.fetchConflicts.mockResolvedValue([
       entry({ entity_table: 'trip_items', entity_id: 'ti-1', field: 'quantity' }),
     ])
 
@@ -196,7 +202,7 @@ describe('a row says what it is about in words', () => {
   it('names an inventory item from the master partition', async () => {
     const master = useMasterStore()
     master.items.set('it-1', { id: 'it-1', name: 'Zahnbürste' } as never)
-    orchestrator.fetchMasterConflicts.mockResolvedValue([
+    orchestrator.conflicts.fetchMasterConflicts.mockResolvedValue([
       entry({ entity_table: 'items', entity_id: 'it-1', field: 'weight_grams' }),
     ])
 
@@ -208,7 +214,7 @@ describe('a row says what it is about in words', () => {
   it('falls back to the kind of thing when this device does not know the row', async () => {
     // A row deleted since, or one this device has never pulled: an id says
     // nothing, and the entry is still evidence of what was overwritten.
-    orchestrator.fetchConflicts.mockResolvedValue([
+    orchestrator.conflicts.fetchConflicts.mockResolvedValue([
       entry({ entity_table: 'trip_items', entity_id: 'gone', field: 'quantity' }),
     ])
 
@@ -220,7 +226,7 @@ describe('a row says what it is about in words', () => {
   // FR-30.1: the shopping list's own entries travel the trip partition, so a
   // merge can drop one of their fields too; the log names the kind and the column.
   it('names a shopping entry and its two own columns', async () => {
-    orchestrator.fetchConflicts.mockResolvedValue([
+    orchestrator.conflicts.fetchConflicts.mockResolvedValue([
       entry({ id: 'cf-a', entity_table: 'shopping_entries', entity_id: 'e1', field: 'bought' }),
       entry({ id: 'cf-b', entity_table: 'shopping_entries', entity_id: 'e1', field: 'list' }),
     ])
@@ -237,7 +243,7 @@ describe('a row says what it is about in words', () => {
   })
 
   it('keeps a column it has no word for rather than inventing one', async () => {
-    orchestrator.fetchConflicts.mockResolvedValue([entry({ field: 'image_hash' })])
+    orchestrator.conflicts.fetchConflicts.mockResolvedValue([entry({ field: 'image_hash' })])
 
     const wrapper = await mountPage()
 
@@ -247,7 +253,7 @@ describe('a row says what it is about in words', () => {
 
 describe('a value is shown, not its encoding', () => {
   it('drops the JSON quotes from a name', async () => {
-    orchestrator.fetchConflicts.mockResolvedValue([
+    orchestrator.conflicts.fetchConflicts.mockResolvedValue([
       entry({ field: 'name', losing_value: '"Sardinien"', winning_value: '"Sizilien"' }),
     ])
 
@@ -258,7 +264,7 @@ describe('a value is shown, not its encoding', () => {
   })
 
   it('reads a flag as a word', async () => {
-    orchestrator.fetchConflicts.mockResolvedValue([
+    orchestrator.conflicts.fetchConflicts.mockResolvedValue([
       entry({ field: 'flag_missing', losing_value: 'true', winning_value: 'false' }),
     ])
 
@@ -269,7 +275,7 @@ describe('a value is shown, not its encoding', () => {
   })
 
   it('shows an absent value as the em dash, whether it is null or empty', async () => {
-    orchestrator.fetchConflicts.mockResolvedValue([
+    orchestrator.conflicts.fetchConflicts.mockResolvedValue([
       entry({ field: 'end_date', losing_value: 'null', winning_value: '' }),
     ])
 
@@ -295,7 +301,7 @@ describe('a foreign key is shown as the thing it points at', () => {
         row: { trip_id: 'trip-1', name },
       })
     }
-    orchestrator.fetchConflicts.mockResolvedValue([
+    orchestrator.conflicts.fetchConflicts.mockResolvedValue([
       entry({ field: 'assigned_traveler_id', losing_value: '"tr-1"', winning_value: '"tr-2"' }),
     ])
 
@@ -307,7 +313,7 @@ describe('a foreign key is shown as the thing it points at', () => {
   })
 
   it('keeps the id when this device cannot name it', async () => {
-    orchestrator.fetchConflicts.mockResolvedValue([
+    orchestrator.conflicts.fetchConflicts.mockResolvedValue([
       entry({ field: 'container_id', losing_value: '"c-gone"', winning_value: 'null' }),
     ])
 
@@ -338,7 +344,7 @@ describe('the timestamp follows the language (NFR-4.12)', () => {
  */
 describe('the takeover record', () => {
   it('names who took what from whom', async () => {
-    orchestrator.fetchLockEvents.mockResolvedValue([takeover()])
+    orchestrator.claims.fetchLockEvents.mockResolvedValue([takeover()])
 
     const wrapper = await mountPage()
 
@@ -353,11 +359,11 @@ describe('the takeover record', () => {
   })
 
   it('is absent on the master log, which belongs to no trip', async () => {
-    orchestrator.fetchLockEvents.mockResolvedValue([takeover()])
+    orchestrator.claims.fetchLockEvents.mockResolvedValue([takeover()])
 
     const wrapper = await mountPage({})
 
-    expect(orchestrator.fetchLockEvents).not.toHaveBeenCalled()
+    expect(orchestrator.claims.fetchLockEvents).not.toHaveBeenCalled()
     expect(wrapper.find('[data-testid="lock-event-row"]').exists()).toBe(false)
   })
 
@@ -366,7 +372,7 @@ describe('the takeover record', () => {
     // because the trip has no takeovers, not because it never renders.
     const wrapper = await mountPage()
 
-    expect(orchestrator.fetchLockEvents).toHaveBeenCalledWith('trip-1')
+    expect(orchestrator.claims.fetchLockEvents).toHaveBeenCalledWith('trip-1')
     expect(wrapper.find('[data-testid="lock-event-row"]').exists()).toBe(false)
   })
 })
@@ -380,7 +386,7 @@ describe('the takeover record', () => {
 describe('the log before its own request has come back (ADR-033, G-7)', () => {
   it('says the log is loading rather than reporting a clean merge', async () => {
     let release!: (entries: ConflictEntry[]) => void
-    orchestrator.fetchConflicts.mockReturnValue(
+    orchestrator.conflicts.fetchConflicts.mockReturnValue(
       new Promise<ConflictEntry[]>((resolve) => (release = resolve)),
     )
 
@@ -410,7 +416,7 @@ describe('the log before its own request has come back (ADR-033, G-7)', () => {
     // A revert re-reads the log. The notice must not come back for it — the
     // screen has an answer already, and hiding it would be the worse lie.
     let release!: (entries: ConflictEntry[]) => void
-    orchestrator.fetchConflicts.mockReturnValue(
+    orchestrator.conflicts.fetchConflicts.mockReturnValue(
       new Promise<ConflictEntry[]>((resolve) => (release = resolve)),
     )
     await wrapper.find('[data-testid="conflict-revert"]').trigger('click')

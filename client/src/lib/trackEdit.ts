@@ -1,6 +1,6 @@
 import type { TrackKind } from '@/api/types'
-import type { TrackPoint } from '@/domain/track'
-import type { RoutePoint } from '@/domain/route'
+import type { TrackPoint } from '@/domain/shared/track'
+import type { RoutePoint } from '@/domain/shared/route'
 
 /** The track an edit starts from: its file's points and the settings its time is counted with. */
 export interface EditedTrack {

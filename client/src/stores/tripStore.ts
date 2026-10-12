@@ -6,61 +6,69 @@
  */
 
 import { bucketedRows, bucketSink, keyedSink } from '@/sync/bucketedRows'
-import { TABLE } from '@/api/tables'
+import { TABLE, type SyncTable } from '@/api/tables'
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type {
   AppliedChange,
   GeneratedPosition,
-  ShoppingMode,
   Trip,
   TripItem,
   TripKPIs,
   Traveler,
   Container,
   Excursion,
-  ExcursionItem,
+  ExcursionLine,
   ExcursionTrack,
   ExcursionTraveler,
   ItemComment,
-  ItemTodo,
+  PrepTask,
   NoteAck,
-  TripTodo,
+  OwnTask,
   TripMember,
   TripTemplateSource,
 } from '@/types/domain'
-import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, STATE_PACKED } from '@/types/domain'
+import { TASK_STATE_RESOLVED } from '@/types/domain'
 import type { PullChange } from '@/api/types'
-import { unitsOf } from '@/domain/packState'
+import { shoppingLists, type ShoppingLists } from '@/domain/shoppingLists'
 import {
-  codecFor,
+  itemsWithOpenPrep as pureItemsWithOpenPrep,
+  tripKpis as pureTripKpis,
+} from '@/domain/tripKpis'
+import {
   encodedRow,
-  TABLE_SPECS,
-  todoCodec,
-  tripTodoCodec,
+  KERNEL_TABLE_SPECS,
+  prepTaskCodec,
+  ownTaskCodec,
   type SyncRow,
 } from '@/sync/tableRegistry'
-import { applyToSink, currentRowIn, removeCascading, type RowSinks } from '@/sync/sinks'
+import {
+  applyToSink,
+  currentRowIn,
+  removeCascading,
+  specifiedSinks,
+  type RowSinks,
+} from '@/sync/sinks'
 
 export const useTripStore = defineStore(TABLE.trips, () => {
   const trips = ref<Map<string, Trip>>(new Map())
   const tripItems = ref<Map<string, TripItem[]>>(new Map())
   const travelers = ref<Map<string, Traveler[]>>(new Map())
   const containers = ref<Map<string, Container[]>>(new Map())
-  const todos = ref<Map<string, ItemTodo[]>>(new Map())
+  const prepTasks = ref<Map<string, PrepTask[]>>(new Map())
   const comments = ref<Map<string, ItemComment[]>>(new Map())
   // FR-7.9: a note's per-person ticks, bucketed by trip_id like every other
   // trip-partition row (note_acks carries its own, rather than only a
   // comment_id — see schema.sql).
   const noteAcks = ref<Map<string, NoteAck[]>>(new Map())
-  // FR-7.4: a separate bucket rather than a filter over `todos`, so that
-  // every packing figure reading `todos` cannot count a trip task by mistake.
-  const tripTodos = ref<Map<string, TripTodo[]>>(new Map())
+  // FR-7.4: a separate bucket rather than a filter over `prepTasks`, so that
+  // every packing figure reading `prepTasks` cannot count a trip task by mistake.
+  const ownTasks = ref<Map<string, OwnTask[]>>(new Map())
   // FR-31 (ADR-077): an excursion, who goes on it, and its own lines —
   // three trip-partition tables, bucketed by trip_id like the rest.
   const excursions = ref<Map<string, Excursion[]>>(new Map())
   const excursionTravelers = ref<Map<string, ExcursionTraveler[]>>(new Map())
-  const excursionItems = ref<Map<string, ExcursionItem[]>>(new Map())
+  const excursionItems = ref<Map<string, ExcursionLine[]>>(new Map())
   // FR-31.15: an excursion's GPX tracks, the row of each (ADR-089).
   const excursionTracks = ref<Map<string, ExcursionTrack[]>>(new Map())
   const members = ref<Map<string, TripMember[]>>(new Map())
@@ -78,8 +86,8 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   const memberRows = bucketedRows(members, (r) => r.trip_id)
   const commentRows = bucketedRows(comments, (r) => r.trip_id)
   const noteAckRows = bucketedRows(noteAcks, (r) => r.trip_id)
-  const todoRows = bucketedRows(todos, (r) => r.trip_id)
-  const tripTodoRows = bucketedRows(tripTodos, (r) => r.trip_id)
+  const prepTaskRows = bucketedRows(prepTasks, (r) => r.trip_id)
+  const ownTaskRows = bucketedRows(ownTasks, (r) => r.trip_id)
   const excursionRows = bucketedRows(excursions, (r) => r.trip_id)
   const excursionTravelerRows = bucketedRows(excursionTravelers, (r) => r.trip_id)
   const excursionItemRows = bucketedRows(excursionItems, (r) => r.trip_id)
@@ -97,52 +105,9 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     return tripItems.value.get(tripId) ?? []
   }
 
-  /**
-   * getShoppingItems derives the M6 procurement lists (FR-3.2): open
-   * BUY_BEFORE and BUY_LOCAL items. Purchased BUY_BEFORE items flip to
-   * PACK (FR-3.3) and thereby leave the list.
-   *
-   * Beside each open list is what was bought from it (FR-25.11j), found two
-   * ways. `bought_from` is the record M6's own check-off writes, and for a
-   * BUY_BEFORE row it is the only way back, because the purchase changed the
-   * mode. A BUY_LOCAL purchase is different: it *is* a packing act, so the
-   * ordinary FR-25.17 path records it in `state` and `packed_at` and writes
-   * no `bought_from` at all — which is what a row checked off on M4 rather
-   * than in the shop looks like. Reading only the column drops such a row off
-   * both tabs, present in the data and on no screen.
-   *
-   * The two are disjoint by construction rather than by a second condition: a
-   * row still on the open list is never also reported as bought, so an
-   * actionable row can never hide under the reveal — the failure FR-25.11a
-   * names.
-   */
-  function getShoppingItems(tripId: string): {
-    buyBefore: TripItem[]
-    buyLocal: TripItem[]
-    boughtBefore: TripItem[]
-    boughtLocal: TripItem[]
-  } {
-    const items = getItems(tripId)
-    const open = items.filter((i) => i.state !== STATE_PACKED && i.state !== 'skipped')
-    const buyBefore = open.filter((i) => i.mode === ITEM_MODE_BUY_BEFORE)
-    const buyLocal = open.filter((i) => i.mode === ITEM_MODE_BUY_LOCAL)
-    const stillOpen = new Set([...buyBefore, ...buyLocal].map((i) => i.id))
-    // A BUY_LOCAL row that is packed and still in its own mode was bought,
-    // whether or not the act that packed it went through M6.
-    const packedLocally = (i: TripItem) =>
-      i.mode === ITEM_MODE_BUY_LOCAL && i.state === STATE_PACKED
-    const bought = (from: ShoppingMode) =>
-      items.filter(
-        (i) =>
-          !stillOpen.has(i.id) &&
-          (i.bought_from === from || (from === ITEM_MODE_BUY_LOCAL && packedLocally(i))),
-      )
-    return {
-      buyBefore,
-      buyLocal,
-      boughtBefore: bought(ITEM_MODE_BUY_BEFORE),
-      boughtLocal: bought(ITEM_MODE_BUY_LOCAL),
-    }
+  /** M6's procurement lists (FR-3.2/25.11j) — the rule is `domain/shoppingLists`. */
+  function getShoppingItems(tripId: string): ShoppingLists {
+    return shoppingLists(getItems(tripId))
   }
 
   function getTravelers(tripId: string): Traveler[] {
@@ -185,22 +150,23 @@ export const useTripStore = defineStore(TABLE.trips, () => {
       .sort((a, b) => b.created_at.localeCompare(a.created_at) || a.id.localeCompare(b.id))
   }
 
-  function getTodos(tripId: string): ItemTodo[] {
-    return todos.value.get(tripId) ?? []
+  function getPrepTasks(tripId: string): PrepTask[] {
+    return prepTasks.value.get(tripId) ?? []
   }
 
-  function getItemTodos(tripId: string, tripItemId: string): ItemTodo[] {
-    return getTodos(tripId).filter((t) => t.trip_item_id === tripItemId)
+  function getRowPrepTasks(tripId: string, tripItemId: string): PrepTask[] {
+    return getPrepTasks(tripId).filter((t) => t.trip_item_id === tripItemId)
   }
 
   /**
-   * The trip's own todos (FR-7.4), open first, each half by text — an order
+   * The trip's own tasks (FR-7.4), open first, each half by text — an order
    * that survives a reload, which the store's insertion order does not.
    */
-  function getTripTodos(tripId: string): TripTodo[] {
-    return [...(tripTodos.value.get(tripId) ?? [])].sort(
+  function getOwnTasks(tripId: string): OwnTask[] {
+    return [...(ownTasks.value.get(tripId) ?? [])].sort(
       (a, b) =>
-        Number(a.task_state === 'resolved') - Number(b.task_state === 'resolved') ||
+        Number(a.task_state === TASK_STATE_RESOLVED) -
+          Number(b.task_state === TASK_STATE_RESOLVED) ||
         a.body.localeCompare(b.body) ||
         a.id.localeCompare(b.id),
     )
@@ -232,7 +198,7 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   }
 
   /** FR-31.4: the lines of a trip's excursions — of one excursion when it is named. */
-  function getExcursionItems(tripId: string, excursionId?: string): ExcursionItem[] {
+  function getExcursionItems(tripId: string, excursionId?: string): ExcursionLine[] {
     const all = excursionItems.value.get(tripId) ?? []
     return excursionId === undefined ? all : all.filter((l) => l.excursion_id === excursionId)
   }
@@ -248,69 +214,19 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     return noteAcks.value.get(tripId) ?? []
   }
 
-  /** Items that are packed but still have open prep todos. */
-  function itemsWithOpenPrep(tripId: string): Array<{ item: TripItem; openTodos: ItemTodo[] }> {
-    const items = getItems(tripId)
-    const tripTodos = getTodos(tripId)
-    const result: Array<{ item: TripItem; openTodos: ItemTodo[] }> = []
-
-    for (const item of items) {
-      const openTodos = tripTodos.filter(
-        (t) => t.trip_item_id === item.id && t.task_state === 'open',
-      )
-      if (openTodos.length > 0) {
-        result.push({ item, openTodos })
-      }
-    }
-    return result
+  /** Items that are packed but still have an open preparation — the rule is `domain/tripKpis`. */
+  function itemsWithOpenPrep(tripId: string): Array<{ item: TripItem; openPrepTasks: PrepTask[] }> {
+    return pureItemsWithOpenPrep(getItems(tripId), getPrepTasks(tripId))
   }
 
   /**
    * `hidden` names rows the caller no longer shows although they are still
-   * stored — FR-25.31's removals waiting for their undo to lapse. A hidden
-   * trip item takes its own todos out of the count with it.
+   * stored — FR-25.31's removals waiting for their undo to lapse. The rule,
+   * including how a hidden row takes its own preparations out of the count
+   * with it, is `domain/tripKpis`.
    */
   function kpis(tripId: string, hidden: ReadonlySet<string> = new Set()): TripKPIs {
-    const items = getItems(tripId).filter((item) => !hidden.has(item.id))
-    const tripTodos = getTodos(tripId).filter(
-      (todo) => !hidden.has(todo.id) && !(todo.trip_item_id && hidden.has(todo.trip_item_id)),
-    )
-    let totalItems = 0
-    let packedItems = 0
-    let totalWeight = 0
-    let packedWeight = 0
-    let totalValue = 0
-    let packedValue = 0
-
-    for (const item of items) {
-      // FR-25.22: the same units M4's group and cluster heads count, so the
-      // trip line is the sum of the fractions drawn under it.
-      const units = unitsOf(item)
-      totalItems += units.total
-      packedItems += units.done
-      if (item.weight_grams) {
-        totalWeight += item.weight_grams * item.quantity
-        packedWeight += item.weight_grams * item.packed_count
-      }
-      if (item.value_cents) {
-        totalValue += item.value_cents * item.quantity
-        packedValue += item.value_cents * item.packed_count
-      }
-    }
-
-    const totalTodos = tripTodos.length
-    const resolvedTodos = tripTodos.filter((t) => t.task_state === 'resolved').length
-
-    return {
-      totalItems,
-      packedItems,
-      totalWeight,
-      packedWeight,
-      totalValue,
-      packedValue,
-      totalTodos,
-      resolvedTodos,
-    }
+    return pureTripKpis(getItems(tripId), getPrepTasks(tripId), hidden)
   }
 
   // --- Mutations ---
@@ -320,7 +236,7 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   }
 
   /** The sinks, one per table this store holds. */
-  const sinks: RowSinks = {
+  const sinks: RowSinks = specifiedSinks(KERNEL_TABLE_SPECS, {
     [TABLE.trips]: keyedSink(trips),
     [TABLE.tripItems]: bucketSink(itemRows),
     [TABLE.travelers]: bucketSink(travelerRows),
@@ -337,11 +253,11 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     [TABLE.comments]: {
       set: (c: ItemComment) => commentRows.upsert(c),
       get: (id) => commentRows.find(id),
-      rows: () => [...commentRows.all(), ...todoRows.all(), ...tripTodoRows.all()],
+      rows: () => [...commentRows.all(), ...prepTaskRows.all(), ...ownTaskRows.all()],
       remove: (id) => {
         commentRows.remove(id)
-        todoRows.remove(id)
-        tripTodoRows.remove(id)
+        prepTaskRows.remove(id)
+        ownTaskRows.remove(id)
       },
     },
     [TABLE.noteAcks]: bucketSink(noteAckRows),
@@ -349,12 +265,12 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     [TABLE.excursionTravelers]: bucketSink(excursionTravelerRows),
     [TABLE.excursionItems]: bucketSink(excursionItemRows),
     [TABLE.excursionTracks]: bucketSink(excursionTrackRows),
-  }
+  })
 
   function applyChange(change: PullChange): void {
-    const known = codecFor(change.table)
-    if (!known || !sinks[known.table]) return
-    const { table, codec } = known
+    const table = change.table as SyncTable
+    const sink = Object.hasOwn(sinks, table) ? sinks[table] : undefined
+    if (!sink) return
     if (change.deleted) {
       removeCascading(sinks, table, change.id)
       return
@@ -367,16 +283,16 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     if (table === TABLE.comments) {
       sinks[TABLE.comments]?.remove(change.id)
       if (!row['is_task']) {
-        commentRows.upsert(TABLE_SPECS[TABLE.comments].parse(change.id, row))
+        commentRows.upsert(KERNEL_TABLE_SPECS[TABLE.comments].parse(change.id, row))
       } else if (row['trip_item_id'] == null) {
         // FR-7.4: a task with no row is the trip's own.
-        tripTodoRows.upsert(tripTodoCodec.parse(change.id, row))
+        ownTaskRows.upsert(ownTaskCodec.parse(change.id, row))
       } else {
-        todoRows.upsert(todoCodec.parse(change.id, row))
+        prepTaskRows.upsert(prepTaskCodec.parse(change.id, row))
       }
       return
     }
-    applyToSink(sinks, table, codec.parse(change.id, row))
+    applyToSink(sinks, table, sink.spec.parse(change.id, row))
   }
 
   function applyChanges(changes: PullChange[]): void {
@@ -393,11 +309,11 @@ export const useTripStore = defineStore(TABLE.trips, () => {
   function currentRow(table: string, id: string): SyncRow | undefined {
     if (table !== TABLE.comments) return currentRowIn(sinks, table, id)
     const comment = commentRows.find(id)
-    if (comment) return encodedRow(TABLE.comments, comment)
-    const todo = todoRows.find(id)
-    if (todo) return (todoCodec.encode as (t: ItemTodo) => SyncRow)(todo)
-    const tripTodo = tripTodoRows.find(id)
-    return tripTodo && (tripTodoCodec.encode as (t: TripTodo) => SyncRow)(tripTodo)
+    if (comment) return encodedRow(KERNEL_TABLE_SPECS[TABLE.comments], comment)
+    const prepTask = prepTaskRows.find(id)
+    if (prepTask) return (prepTaskCodec.encode as (t: PrepTask) => SyncRow)(prepTask)
+    const ownTask = ownTaskRows.find(id)
+    return ownTask && (ownTaskCodec.encode as (t: OwnTask) => SyncRow)(ownTask)
   }
 
   return {
@@ -413,9 +329,9 @@ export const useTripStore = defineStore(TABLE.trips, () => {
     getTemplateSources,
     getGeneratedPositions,
     getAppliedChanges,
-    getTodos,
-    getItemTodos,
-    getTripTodos,
+    getPrepTasks,
+    getRowPrepTasks,
+    getOwnTasks,
     getComments,
     getItemComments,
     getTripComments,

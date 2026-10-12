@@ -5,7 +5,7 @@
  */
 
 import type { SessionTokens } from '@/api/types'
-import { defaultNowMs, type NowMs } from '@/lib/clock'
+import type { NowMs } from '@/lib/clock'
 
 const KEY = 'jitpack_tokens'
 
@@ -22,7 +22,7 @@ export interface StoredTokens {
  * the machine while the caller reads an injected clock is an expiry that no
  * test can state.
  */
-export function saveTokens(set: SessionTokens, now: NowMs = defaultNowMs): void {
+export function saveTokens(set: SessionTokens, now: NowMs): void {
   const stored: StoredTokens = {
     access_token: set.access_token,
     refresh_token: set.refresh_token,

@@ -26,24 +26,26 @@ interface Writes {
 let writes: Writes
 
 const orchestratorFake = {
-  createMasterItem: (name: string) => {
-    writes.created.push(name)
-    return `new-${name}`
-  },
-  assignTag: (itemId: string, tagId: string) => {
-    writes.assigned.push({ itemId, tagId })
-    return `${itemId}-${tagId}`
-  },
-  createTag: (name: string) => {
-    writes.tags.push(name)
-    useMasterStore().applyChange({
-      seq: 0,
-      table: TABLE.tags,
-      id: `t-${name}`,
-      deleted: false,
-      row: { name, sort_order: 9 },
-    })
-    return `t-${name}`
+  masterData: {
+    createMasterItem: (name: string) => {
+      writes.created.push(name)
+      return `new-${name}`
+    },
+    assignTag: (itemId: string, tagId: string) => {
+      writes.assigned.push({ itemId, tagId })
+      return `${itemId}-${tagId}`
+    },
+    createTag: (name: string) => {
+      writes.tags.push(name)
+      useMasterStore().applyChange({
+        seq: 0,
+        table: TABLE.tags,
+        id: `t-${name}`,
+        deleted: false,
+        row: { name, sort_order: 9 },
+      })
+      return `t-${name}`
+    },
   },
 }
 

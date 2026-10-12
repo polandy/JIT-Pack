@@ -31,10 +31,8 @@ import {
   IonButton,
   IonIcon,
   IonNote,
-  IonSearchbar,
 } from '@ionic/vue'
 import {
-  addOutline,
   cameraOutline,
   checkmarkOutline,
   chevronDownOutline,
@@ -43,8 +41,12 @@ import {
   warningOutline,
 } from 'ionicons/icons'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { dependencyCycleError, type DependencyCycleError } from '@/domain/dependencies'
+import { useRouter } from 'vue-router'
+import {
+  DEPENDENCY_LINK_COMPANION,
+  DEPENDENCY_LINK_MAIN,
+  type DependencyLinkDirection,
+} from '@/domain/dependencies'
 import { containingTemplates, commentsOnItem } from '@/domain/itemHistory'
 import { mergedIdsOf } from '@/domain/itemMerge'
 import { findNameCollision } from '@/domain/nameCollision'
@@ -56,46 +58,56 @@ import SaveIndicator from '@/components/global/SaveIndicator.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import MarkPicker from '@/components/items/MarkPicker.vue'
 import { formatDay, t } from '@/i18n'
-import type { MasterItemEdit } from '@/sync/mutations'
-import type { DependencyMode, Tag } from '@/types/domain'
-import { itemPath, templatePath } from '@/router/paths'
+import { itemPath } from '@/router/paths'
 import { confirmDestructive } from '@/composables/shared/confirm'
-import { dependencyOffer } from '@/lib/itemEditorOffers'
 import {
   DELETION_SUBJECT_ITEM,
   deletionSentence as deletionSentenceFor,
 } from '@/lib/deletionLabels'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
+import { useItemFields } from '@/composables/useItemFields'
 import SectionHead from '@/components/global/SectionHead.vue'
 import TagChooser from '@/components/items/TagChooser.vue'
 import CreateItemSheet from '@/components/items/CreateItemSheet.vue'
-import SearchOfferButton from '@/components/items/SearchOfferButton.vue'
-import { OFFER_CREATE, searchOffer } from '@/domain/itemSearch'
+import RelatedItemsSection from '@/components/items/RelatedItemsSection.vue'
+import ContainmentSection from '@/components/items/ContainmentSection.vue'
 
 const props = defineProps<{ itemId?: string }>()
 
 const masterStore = useMasterStore()
 const tripStore = useTripStore()
 const orchestrator = useOrchestrator()
-const { directory, load } = useIdentity(orchestrator)
-const route = useRoute()
+const { directory, load } = useIdentity(orchestrator.identity)
 const router = useRouter()
 
-/** FR-24.5: the same component, in its minimal mode. */
-const isCreating = computed(() => route.name === 'item-create')
+/**
+ * FR-24.5: the same component, in its minimal mode — the creation route is
+ * the one that names no item.
+ */
+const isCreating = computed(() => !props.itemId)
 
 const item = computed(() => (props.itemId ? masterStore.getItem(props.itemId) : undefined))
 
-// --- Creation draft (FR-24.5) ---
+// --- The fields, draft or live (FR-24.1/24.5) ---
 
-const draftName = ref('')
-const draftTagIds = ref<string[]>([])
-// FR-28.1: staged while creating, live once saved — like the tags above it.
-const draftIcon = ref<string | null>(null)
-// FR-1.9: the optional default assignee, staged like the mark.
-const draftAssignee = ref<string | null>(null)
-const draftWeight = ref('')
-const draftPrice = ref('')
+const { fields, draft } = useItemFields(() => props.itemId, {
+  item: (id) => masterStore.getItem(id),
+  allTags: () => masterStore.tagList,
+  itemTags: (id) => masterStore.getItemTags(id),
+  assignTag: (id, tagId) => orchestrator.masterData.assignTag(id, tagId),
+  unassignTag: (id, tagId) => {
+    const assignment = masterStore.itemTagList.find((a) => a.item_id === id && a.tag_id === tagId)
+    if (assignment) orchestrator.masterData.unassignTag(assignment.id)
+  },
+  setPrimaryTag: (id, tagId) => orchestrator.masterData.setPrimaryTag(id, tagId),
+  update: (row, edit) => orchestrator.masterData.updateMasterItem(row, edit),
+})
+
+/** An input's text, from a keystroke (`ionInput`) or a blur (`ionBlur`). */
+function inputText(event: CustomEvent): string {
+  return ((event.target as HTMLIonInputElement).value as string | null | undefined) ?? ''
+}
+
 const showMore = ref(false)
 const nameError = ref('')
 const nameInput = ref<{ $el: HTMLElement } | null>(null)
@@ -116,55 +128,11 @@ onMounted(async () => {
   native?.focus()
 })
 
-// --- Tags (FR-24.1) ---
-
-const assignedTags = computed<Tag[]>(() => {
-  if (isCreating.value) {
-    const byId = new Map(masterStore.tagList.map((tag) => [tag.id, tag]))
-    return draftTagIds.value.map((id) => byId.get(id)).filter((tag): tag is Tag => !!tag)
-  }
-  return props.itemId ? masterStore.getItemTags(props.itemId) : []
-})
-
-function assign(tagId: string) {
-  if (isCreating.value) {
-    if (!draftTagIds.value.includes(tagId)) draftTagIds.value = [...draftTagIds.value, tagId]
-  } else if (props.itemId) {
-    orchestrator.assignTag(props.itemId, tagId)
-  }
-}
-
-function unassign(tagId: string) {
-  if (isCreating.value) {
-    draftTagIds.value = draftTagIds.value.filter((id) => id !== tagId)
-    return
-  }
-  const assignment = masterStore.itemTagList.find(
-    (a) => a.item_id === props.itemId && a.tag_id === tagId,
-  )
-  if (assignment) orchestrator.unassignTag(assignment.id)
-}
-
-/**
- * Make an assigned tag the primary one (FR-24.9) — where the item is filed
- * in the inventory, rather than the accident of which tag was assigned
- * first, changeable only by removing them all.
- *
- * While *creating*, the draft's order is the assignment order, so the same
- * act is a move inside the list rather than a write.
- */
-function makePrimary(tagId: string) {
-  if (isCreating.value) {
-    draftTagIds.value = [tagId, ...draftTagIds.value.filter((id) => id !== tagId)]
-    return
-  }
-  if (props.itemId) orchestrator.setPrimaryTag(props.itemId, tagId)
-}
-
 // --- Creating ---
 
 async function createItem() {
-  const name = draftName.value.trim()
+  const staged = draft()
+  const name = staged.name
   if (!name) {
     // A hint, not a disabled button: the user should not have to work out
     // why nothing happens (FR-24.5).
@@ -179,15 +147,13 @@ async function createItem() {
   }
   nameError.value = ''
 
-  const weight = parseInt(draftWeight.value, 10)
-  const price = parseFloat(draftPrice.value)
-  const id = orchestrator.createMasterItem(name, {
-    weightGrams: isNaN(weight) ? null : weight,
-    valueCents: isNaN(price) ? null : Math.round(price * 100),
-    icon: draftIcon.value,
-    defaultAssigneeId: draftAssignee.value,
+  const id = orchestrator.masterData.createMasterItem(name, {
+    weightGrams: staged.weightGrams,
+    valueCents: staged.valueCents,
+    icon: staged.icon,
+    defaultAssigneeId: staged.defaultAssigneeId,
   })
-  for (const tagId of draftTagIds.value) orchestrator.assignTag(id, tagId)
+  for (const tagId of staged.tagIds) orchestrator.masterData.assignTag(id, tagId)
 
   // No toast. The screen itself is the confirmation and a better one: the
   // header becomes the item's name, the FR-25.15 indicator settles on ✓,
@@ -199,13 +165,6 @@ async function createItem() {
   // replace, not push: "back" from the saved item belongs on the
   // inventory, not on a creation form for an item that now exists.
   await router.replace(itemPath(id))
-}
-
-// --- Editing an existing item ---
-
-function updateField<K extends keyof MasterItemEdit>(field: K, value: MasterItemEdit[K]) {
-  if (!item.value) return
-  orchestrator.updateMasterItem(item.value, { [field]: value })
 }
 
 // --- The default assignee (FR-1.9) ---
@@ -223,54 +182,13 @@ const NO_ASSIGNEE = ''
  */
 const canAssign = computed(() => directory.value.length > 1)
 
-const assignee = computed(() =>
-  isCreating.value ? draftAssignee.value : (item.value?.default_assignee_id ?? null),
-)
-
 function setAssignee(value: string) {
-  const next = value === NO_ASSIGNEE ? null : value
-  if (isCreating.value) {
-    draftAssignee.value = next
-    return
-  }
-  updateField('default_assignee_id', next)
+  fields.value.setAssignee(value === NO_ASSIGNEE ? null : value)
 }
 
 // --- The mark (FR-28.1/28.2) ---
 
 const pickerOpen = ref(false)
-
-/** What the editor shows and what the picker's removal offer keys off. */
-const mark = computed(() => (isCreating.value ? draftIcon.value : (item.value?.icon ?? null)))
-
-/**
- * The name the suggestion reads. While creating that is the draft, so the
- * offer follows the field as it is typed; afterwards it is the saved name.
- */
-const markName = computed(() => (isCreating.value ? draftName.value : (item.value?.name ?? '')))
-
-function setMark(next: string | null) {
-  if (isCreating.value) {
-    draftIcon.value = next
-    return
-  }
-  updateField('icon', next)
-}
-
-function onNameChange(event: CustomEvent) {
-  const val = (event.target as HTMLIonInputElement).value as string
-  if (val?.trim()) updateField('name', val.trim())
-}
-
-function onWeightChange(event: CustomEvent) {
-  const val = parseInt((event.target as HTMLIonInputElement).value as string, 10)
-  updateField('weight_grams', isNaN(val) ? null : val)
-}
-
-function onValueChange(event: CustomEvent) {
-  const val = parseFloat((event.target as HTMLIonInputElement).value as string)
-  updateField('value_cents', isNaN(val) ? null : Math.round(val * 100))
-}
 
 // --- Reference photo (Addendum 3.22, FR-22.1/22.5) ---
 
@@ -289,7 +207,7 @@ watch(
   () => item.value?.image_hash,
   async () => {
     releasePhotoUrl()
-    if (item.value) photoUrl.value = await orchestrator.itemImageUrl(item.value)
+    if (item.value) photoUrl.value = await orchestrator.images.itemImageUrl(item.value)
   },
   { immediate: true },
 )
@@ -301,7 +219,7 @@ async function onPhotoFile(event: Event) {
   if (!file || !item.value) return
   photoBusy.value = true
   try {
-    await orchestrator.setItemImage(item.value, file)
+    await orchestrator.images.setItemImage(item.value, file)
   } finally {
     photoBusy.value = false
     if (photoInput.value) photoInput.value.value = ''
@@ -312,7 +230,7 @@ async function removePhoto() {
   if (!item.value) return
   photoBusy.value = true
   try {
-    await orchestrator.deleteItemImage(item.value)
+    await orchestrator.images.deleteItemImage(item.value)
   } finally {
     photoBusy.value = false
   }
@@ -320,213 +238,30 @@ async function removePhoto() {
 
 // --- Depends on / Companions (FR-20.1/20.4) ---
 
-const dependsOn = computed(() =>
-  props.itemId ? masterStore.getItemDependencies(props.itemId) : [],
-)
-const companions = computed(() =>
-  props.itemId ? masterStore.getCompanionDependencies(props.itemId) : [],
-)
-
-const showMainPicker = ref(false)
-const mainSearch = ref('')
-const dependencyError = ref<DependencyCycleError | null>(null)
-
-const showCompanionPicker = ref(false)
-const companionSearch = ref('')
-const companionError = ref<DependencyCycleError | null>(null)
-
-/** Joins the hops of a rejected cycle for FR-20.1's error line. */
-const CYCLE_PATH_SEPARATOR = ' → '
-
-/** The domain reports the fault; this screen is what words it (NFR-4.12). */
-function dependencyFaultText(fault: DependencyCycleError | null): string {
-  if (!fault) return ''
-  return fault.reason === 'self'
-    ? t('items.editor.dependencySelf', { name: fault.names[0] ?? '' })
-    : t('items.editor.dependencyCycle', { path: fault.names.join(CYCLE_PATH_SEPARATOR) })
+const relatedSections = {
+  [DEPENDENCY_LINK_MAIN]: ref<InstanceType<typeof RelatedItemsSection> | null>(null),
+  [DEPENDENCY_LINK_COMPANION]: ref<InstanceType<typeof RelatedItemsSection> | null>(null),
 }
-
-const dependencyErrorText = computed(() => dependencyFaultText(dependencyError.value))
-const companionErrorText = computed(() => dependencyFaultText(companionError.value))
-
-const pickableMains = computed(() =>
-  dependencyOffer(
-    mainSearch.value ? masterStore.searchItems(mainSearch.value) : masterStore.activeItemList,
-    {
-      excludeId: props.itemId,
-      takenIds: new Set(dependsOn.value.map((d) => d.depends_on_item_id)),
-    },
-  ),
-)
-
-/**
- * The items this one can still be given as a companion: the same offer as
- * {@link pickableMains}, read from the other end — minus this item and minus
- * whatever already depends on it.
- */
-const pickableCompanions = computed(() =>
-  dependencyOffer(
-    companionSearch.value
-      ? masterStore.searchItems(companionSearch.value)
-      : masterStore.activeItemList,
-    {
-      excludeId: props.itemId,
-      takenIds: new Set(companions.value.map((d) => d.item_id)),
-    },
-  ),
-)
-
-function itemName(id: string): string {
-  return masterStore.getItem(id)?.name ?? t('items.editor.unknownItem')
-}
-
-/** The two dependency modes, worded by the catalogue rather than by their stored value. */
-function modeLabel(mode: DependencyMode): string {
-  return mode === 'required'
-    ? t('items.editor.dependencyRequired')
-    : t('items.editor.dependencySuggested')
-}
-
-function closeMainPicker() {
-  showMainPicker.value = false
-  mainSearch.value = ''
-}
-
-function onAddDependency(mainItemId: string) {
-  if (!props.itemId || mainRefused(mainItemId)) return
-  closeMainPicker()
-  orchestrator.addItemDependency(props.itemId, mainItemId)
-}
-
-/**
- * Reports whether depending on this main item would close a cycle, and says so
- * on screen if it would — a cycle cannot be persisted (save-time validation
- * like FR-1.5).
- */
-function mainRefused(mainItemId: string): boolean {
-  if (!props.itemId) return true
-  dependencyError.value = dependencyCycleError(
-    masterStore.dependencyList,
-    { item_id: props.itemId, depends_on_item_id: mainItemId },
-    itemName,
-  )
-  return dependencyError.value !== null
-}
-
-function onDependencyModeChange(dependencyId: string, mode: DependencyMode) {
-  const dep = dependsOn.value.find((d) => d.id === dependencyId)
-  if (dep) orchestrator.updateItemDependency(dep, { mode })
-}
-
-function onRemoveDependency(dependencyId: string) {
-  orchestrator.deleteItemDependency(dependencyId)
-}
-
-function closeCompanionPicker() {
-  showCompanionPicker.value = false
-  companionSearch.value = ''
-}
-
-/**
- * FR-20.1 written backwards: the picked item becomes the dependent and this
- * one its main item. The stored row is the same edge either way, so the
- * cycle validator is asked about that edge and not about the direction the
- * user happened to declare it from.
- */
-function onAddCompanion(companionItemId: string) {
-  if (!props.itemId || companionRefused(companionItemId)) return
-  closeCompanionPicker()
-  orchestrator.addItemDependency(companionItemId, props.itemId)
-}
-
-/** Reports whether the edge would close a cycle, and says so on screen if it would. */
-function companionRefused(companionItemId: string): boolean {
-  if (!props.itemId) return true
-  companionError.value = dependencyCycleError(
-    masterStore.dependencyList,
-    { item_id: companionItemId, depends_on_item_id: props.itemId },
-    itemName,
-  )
-  return companionError.value !== null
-}
-
-function onCompanionModeChange(dependencyId: string, mode: DependencyMode) {
-  const dep = companions.value.find((d) => d.id === dependencyId)
-  if (dep) orchestrator.updateItemDependency(dep, { mode })
-}
-
-function onRemoveCompanion(dependencyId: string) {
-  orchestrator.deleteItemDependency(dependencyId)
-}
+const mainSection = relatedSections[DEPENDENCY_LINK_MAIN]
+const companionSection = relatedSections[DEPENDENCY_LINK_COMPANION]
 
 // --- FR-20.1 + FR-24.11: a related item the inventory does not hold yet ---
 
 /**
- * Which of the two pickers the creation sheet is serving: the new item becomes
- * this one's main item, or its companion. One sheet for both, because it sits
- * outside either picker (see the template) and only one can be open.
+ * Which section the creation sheet is serving, and the name it opens with.
+ * One sheet for both, because it sits outside either picker (see the
+ * template) and only one can be open.
  */
-const CREATE_FOR_MAIN = 'main'
-const CREATE_FOR_COMPANION = 'companion'
-type CreateFor = typeof CREATE_FOR_MAIN | typeof CREATE_FOR_COMPANION
-
-/**
- * A picker's query offered as a new item, or as a retired one back — the
- * inventory search's rule, so „Ersatzbatterien" is created here exactly when
- * M9 would offer to create it. Not before the partition has arrived (ADR-033).
- */
-function pickerOffer(open: boolean, query: string) {
-  return open && orchestrator.masterDataLoaded()
-    ? searchOffer(query, masterStore.activeItemList, masterStore.retiredItemList)
-    : null
-}
-
-const mainOffer = computed(() => pickerOffer(showMainPicker.value, mainSearch.value))
-const companionOffer = computed(() => pickerOffer(showCompanionPicker.value, companionSearch.value))
-
-const createFor = ref<CreateFor | null>(null)
-const createName = computed(
-  () => (createFor.value === CREATE_FOR_MAIN ? mainOffer : companionOffer).value?.name ?? '',
-)
+const createFor = ref<{ direction: DependencyLinkDirection; name: string } | null>(null)
 
 /** This item's tags, offered first: the batteries live where the headlamp does. */
-const relatedPreferredTagIds = computed(() => assignedTags.value.map((tag) => tag.id))
-
-/**
- * Takes a picker's offer. A retired item keeps its dependency rows, so the
- * edge is checked before the restore: a refused declaration must not leave
- * the item un-retired as a side effect.
- */
-function takeOffer(target: CreateFor) {
-  const current = (target === CREATE_FOR_MAIN ? mainOffer : companionOffer).value
-  if (!current) return
-  if (current.kind === OFFER_CREATE) {
-    createFor.value = target
-    return
-  }
-  if (target === CREATE_FOR_MAIN) {
-    if (mainRefused(current.id) || !orchestrator.restoreMasterItem(current.id)) return
-    onAddDependency(current.id)
-  } else {
-    if (companionRefused(current.id) || !orchestrator.restoreMasterItem(current.id)) return
-    onAddCompanion(current.id)
-  }
-}
+const relatedPreferredTagIds = computed(() => fields.value.tags.map((tag) => tag.id))
 
 async function onRelatedCreated({ id, open }: { id: string; open: boolean }) {
   const target = createFor.value
   createFor.value = null
-  if (!props.itemId || !target) return
-  // A new item has no edges yet, so the one written here cannot close a cycle.
-  if (target === CREATE_FOR_MAIN) {
-    dependencyError.value = null
-    closeMainPicker()
-    orchestrator.addItemDependency(props.itemId, id)
-  } else {
-    companionError.value = null
-    closeCompanionPicker()
-    orchestrator.addItemDependency(id, props.itemId)
-  }
+  if (!target) return
+  relatedSections[target.direction].value?.linkCreated(id)
   if (open) await router.push(itemPath(id))
 }
 
@@ -584,7 +319,7 @@ function authorName(userId: string): string | null {
  * where this device cannot see every trip (ADR-032).
  */
 const deletionOutlook = computed(() =>
-  props.itemId ? orchestrator.masterItemDeletionOutlook(props.itemId) : null,
+  props.itemId ? orchestrator.masterData.masterItemDeletionOutlook(props.itemId) : null,
 )
 
 const deletionSentence = computed(() =>
@@ -600,7 +335,7 @@ async function onDelete() {
     confirmLabel: t('common.delete'),
   })
   if (!confirmed) return
-  orchestrator.deleteMasterItem(current.id)
+  orchestrator.masterData.deleteMasterItem(current.id)
   router.replace({ name: 'items' })
 }
 
@@ -642,28 +377,27 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
               :aria-label="t('marks.choose')"
               @click="pickerOpen = true"
             >
-              <ItemMark v-if="mark" :mark="mark" surface="plain" :size="28" />
+              <ItemMark v-if="fields.mark" :mark="fields.mark" surface="plain" :size="28" />
               <IonIcon v-else :icon="happyOutline" aria-hidden="true" />
             </button>
             <IonLabel position="stacked">{{ t('items.editor.name') }}</IonLabel>
             <IonInput
-              v-if="isCreating"
               ref="nameInput"
-              :value="draftName"
+              :value="fields.text('name')"
               data-testid="m10-name"
-              :placeholder="t('items.editor.namePlaceholder')"
-              @ionInput="(e: CustomEvent) => (draftName = (e.detail.value as string) ?? '')"
-              @keyup.enter="createItem"
+              :placeholder="isCreating ? t('items.editor.namePlaceholder') : undefined"
+              @ionInput="(e: CustomEvent) => fields.type('name', inputText(e))"
+              @ionBlur="(e: CustomEvent) => fields.settle('name', inputText(e))"
+              @keyup.enter="isCreating && createItem()"
             />
-            <IonInput v-else :value="item!.name" data-testid="m10-name" @ionBlur="onNameChange" />
           </IonItem>
         </IonList>
 
         <MarkPicker
           :is-open="pickerOpen"
-          :name="markName"
-          :current="mark"
-          @pick="setMark"
+          :name="fields.text('name')"
+          :current="fields.mark"
+          @pick="fields.setMark"
           @close="pickerOpen = false"
         />
 
@@ -677,11 +411,11 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
 
         <TagChooser
           :tags="masterStore.tagList"
-          :assigned="assignedTags"
-          @assign="assign"
-          @unassign="unassign"
-          @primary="makePrimary"
-          @create="(name: string) => assign(orchestrator.createTag(name))"
+          :assigned="fields.tags"
+          @assign="fields.assignTag"
+          @unassign="fields.unassignTag"
+          @primary="fields.makePrimary"
+          @create="(name: string) => fields.assignTag(orchestrator.masterData.createTag(name))"
         />
 
         <!-- FR-1.9: optional, and not folded away — it is the point of the
@@ -692,7 +426,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
               interface="popover"
               :label="t('items.editor.assignee')"
               label-placement="stacked"
-              :value="assignee ?? NO_ASSIGNEE"
+              :value="fields.assignee ?? NO_ASSIGNEE"
               data-testid="m10-assignee"
               @ionChange="(e: CustomEvent) => setAssignee(String(e.detail.value))"
             >
@@ -723,42 +457,25 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
           <IonItem>
             <IonLabel position="stacked">{{ t('items.editor.weight') }}</IonLabel>
             <IonInput
-              v-if="isCreating"
               type="number"
-              :value="draftWeight"
+              :value="fields.text('weight')"
               data-testid="m10-weight"
               :placeholder="t('items.editor.optional')"
-              @ionInput="(e: CustomEvent) => (draftWeight = (e.detail.value as string) ?? '')"
-            />
-            <IonInput
-              v-else
-              type="number"
-              :value="item!.weight_grams ?? ''"
-              data-testid="m10-weight"
-              :placeholder="t('items.editor.optional')"
-              @ionBlur="onWeightChange"
+              @ionInput="(e: CustomEvent) => fields.type('weight', inputText(e))"
+              @ionBlur="(e: CustomEvent) => fields.settle('weight', inputText(e))"
             />
           </IonItem>
 
           <IonItem>
             <IonLabel position="stacked">{{ t('items.editor.price') }}</IonLabel>
             <IonInput
-              v-if="isCreating"
               type="number"
               step="0.01"
-              :value="draftPrice"
+              :value="fields.text('price')"
               data-testid="m10-price"
               :placeholder="t('items.editor.optional')"
-              @ionInput="(e: CustomEvent) => (draftPrice = (e.detail.value as string) ?? '')"
-            />
-            <IonInput
-              v-else
-              type="number"
-              step="0.01"
-              :value="item!.value_cents ? (item!.value_cents / 100).toFixed(2) : ''"
-              data-testid="m10-price"
-              :placeholder="t('items.editor.optional')"
-              @ionBlur="onValueChange"
+              @ionInput="(e: CustomEvent) => fields.type('price', inputText(e))"
+              @ionBlur="(e: CustomEvent) => fields.settle('price', inputText(e))"
             />
           </IonItem>
         </IonList>
@@ -777,7 +494,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
         <!-- Everything below exists only once the item does (FR-24.5). -->
         <template v-if="!isCreating && item">
           <SectionHead :title="t('items.editor.photo')" data-testid="m10-section-photo" />
-          <p class="section-hint">{{ t('items.editor.photoHint') }}</p>
+          <p class="jp-section-hint">{{ t('items.editor.photoHint') }}</p>
 
           <div class="photo-section">
             <img
@@ -825,107 +542,13 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
             </div>
           </div>
 
-          <SectionHead :title="t('items.editor.dependsOn')" data-testid="m10-section-depends" />
-          <p class="section-hint">{{ t('items.editor.dependsOnHint') }}</p>
-
-          <IonList v-if="dependsOn.length > 0">
-            <IonItem v-for="dep in dependsOn" :key="dep.id">
-              <!-- A link on the name, not a button row: the row also holds
-                   the mode select and the remove button, and a tap on either
-                   must not navigate. -->
-              <IonLabel>
-                <RouterLink
-                  :to="itemPath(dep.depends_on_item_id)"
-                  class="dep-link"
-                  :data-testid="`m10-dependency-open-${itemName(dep.depends_on_item_id)}`"
-                >
-                  {{ itemName(dep.depends_on_item_id) }}
-                </RouterLink>
-              </IonLabel>
-              <IonSelect
-                :value="dep.mode"
-                interface="popover"
-                slot="end"
-                :data-testid="`m10-dependency-mode-${itemName(dep.depends_on_item_id)}`"
-                @ionChange="(e: CustomEvent) => onDependencyModeChange(dep.id, e.detail.value)"
-              >
-                <IonSelectOption value="required">{{ modeLabel('required') }}</IonSelectOption>
-                <IonSelectOption value="suggested">{{ modeLabel('suggested') }}</IonSelectOption>
-              </IonSelect>
-              <IonButton
-                fill="clear"
-                color="danger"
-                slot="end"
-                :aria-label="t('items.editor.dependencyRemove')"
-                @click="onRemoveDependency(dep.id)"
-              >
-                <IonIcon slot="icon-only" :icon="trashOutline" />
-              </IonButton>
-            </IonItem>
-          </IonList>
-
-          <IonNote
-            v-if="dependencyError"
-            color="danger"
-            class="field-error"
-            data-testid="m10-dependency-error"
-          >
-            <IonIcon :icon="warningOutline" />
-            {{ dependencyErrorText }}
-          </IonNote>
-
-          <IonButton
-            v-if="!showMainPicker"
-            expand="block"
-            fill="outline"
-            data-testid="m10-add-dependency"
-            @click="showMainPicker = true"
-          >
-            <IonIcon slot="start" :icon="addOutline" />
-            {{ t('items.editor.dependencyAdd') }}
-          </IonButton>
-
-          <div v-else class="main-picker">
-            <IonSearchbar
-              :value="mainSearch"
-              data-testid="m10-dependency-search"
-              :placeholder="t('items.editor.dependencySearchPlaceholder')"
-              :debounce="200"
-              @ionInput="(e: CustomEvent) => (mainSearch = e.detail.value ?? '')"
-            />
-            <!-- FR-24.11: above the hits, where the keyboard leaves it reachable. -->
-            <SearchOfferButton
-              v-if="mainOffer"
-              :offer="mainOffer"
-              testid="m10-dependency-offer"
-              :create-hint="t('items.editor.dependencyOfferCreateHint', { name: item.name })"
-              :restore-hint="t('items.editor.dependencyOfferRestoreHint')"
-              @take="takeOffer(CREATE_FOR_MAIN)"
-            />
-            <!-- The offer answers a query with no hits on its own; an empty list under it is a stray bar. -->
-            <IonList v-if="pickableMains.length > 0 || !mainOffer">
-              <IonItem
-                v-for="main in pickableMains"
-                :key="main.id"
-                button
-                :data-testid="`m10-dependency-main-${main.name}`"
-                @click="onAddDependency(main.id)"
-              >
-                <IonLabel>{{ main.name }}</IonLabel>
-              </IonItem>
-              <IonItem v-if="pickableMains.length === 0" lines="none">
-                <IonLabel color="medium">{{ t('items.editor.dependencyNoMatch') }}</IonLabel>
-              </IonItem>
-            </IonList>
-            <IonButton
-              fill="clear"
-              expand="block"
-              data-testid="m10-dependency-cancel"
-              @click="closeMainPicker()"
-            >
-              {{ t('common.cancel') }}
-            </IonButton>
-          </div>
+          <RelatedItemsSection
+            ref="mainSection"
+            :item-id="item.id"
+            :item-name="item.name"
+            :direction="DEPENDENCY_LINK_MAIN"
+            @create="(name: string) => (createFor = { direction: DEPENDENCY_LINK_MAIN, name })"
+          />
 
           <!--
             FR-20.1 from the other end: the items that depend on this one. The
@@ -933,107 +556,13 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
             side, so the pair is declared wherever the user happens to be
             standing.
           -->
-          <SectionHead :title="t('items.editor.companions')" data-testid="m10-section-companions" />
-          <p class="section-hint">
-            {{ t('items.editor.companionsHint', { name: item.name }) }}
-          </p>
-
-          <IonList v-if="companions.length > 0">
-            <IonItem v-for="dep in companions" :key="dep.id">
-              <IonLabel :data-testid="`m10-companion-${itemName(dep.item_id)}`">
-                <RouterLink
-                  :to="itemPath(dep.item_id)"
-                  class="dep-link"
-                  :data-testid="`m10-companion-open-${itemName(dep.item_id)}`"
-                >
-                  {{ itemName(dep.item_id) }}
-                </RouterLink>
-              </IonLabel>
-              <IonSelect
-                :value="dep.mode"
-                interface="popover"
-                slot="end"
-                :data-testid="`m10-companion-mode-${itemName(dep.item_id)}`"
-                @ionChange="(e: CustomEvent) => onCompanionModeChange(dep.id, e.detail.value)"
-              >
-                <IonSelectOption value="required">{{ modeLabel('required') }}</IonSelectOption>
-                <IonSelectOption value="suggested">{{ modeLabel('suggested') }}</IonSelectOption>
-              </IonSelect>
-              <IonButton
-                fill="clear"
-                color="danger"
-                slot="end"
-                :aria-label="t('items.editor.companionRemove')"
-                :data-testid="`m10-companion-remove-${itemName(dep.item_id)}`"
-                @click="onRemoveCompanion(dep.id)"
-              >
-                <IonIcon slot="icon-only" :icon="trashOutline" />
-              </IonButton>
-            </IonItem>
-          </IonList>
-
-          <IonNote
-            v-if="companionError"
-            color="danger"
-            class="field-error"
-            data-testid="m10-companion-error"
-          >
-            <IonIcon :icon="warningOutline" />
-            {{ companionErrorText }}
-          </IonNote>
-
-          <IonButton
-            v-if="!showCompanionPicker"
-            expand="block"
-            fill="outline"
-            data-testid="m10-add-companion"
-            @click="showCompanionPicker = true"
-          >
-            <IonIcon slot="start" :icon="addOutline" />
-            {{ t('items.editor.companionAdd') }}
-          </IonButton>
-
-          <div v-else class="main-picker">
-            <IonSearchbar
-              :value="companionSearch"
-              data-testid="m10-companion-search"
-              :placeholder="t('items.editor.dependencySearchPlaceholder')"
-              :debounce="200"
-              @ionInput="(e: CustomEvent) => (companionSearch = e.detail.value ?? '')"
-            />
-            <!-- FR-24.11: above the hits, where the keyboard leaves it reachable. -->
-            <SearchOfferButton
-              v-if="companionOffer"
-              :offer="companionOffer"
-              testid="m10-companion-offer"
-              :create-hint="t('items.editor.companionOfferCreateHint', { name: item.name })"
-              :restore-hint="t('items.editor.companionOfferRestoreHint')"
-              @take="takeOffer(CREATE_FOR_COMPANION)"
-            />
-            <!-- The offer answers a query with no hits on its own; an empty list under it is a stray bar. -->
-            <IonList v-if="pickableCompanions.length > 0 || !companionOffer">
-              <IonItem
-                v-for="companion in pickableCompanions"
-                :key="companion.id"
-                button
-                :data-testid="`m10-companion-pick-${companion.name}`"
-                @click="onAddCompanion(companion.id)"
-              >
-                <IonLabel>{{ companion.name }}</IonLabel>
-              </IonItem>
-              <IonItem v-if="pickableCompanions.length === 0" lines="none">
-                <IonLabel color="medium">{{ t('items.editor.dependencyNoMatch') }}</IonLabel>
-              </IonItem>
-            </IonList>
-            <IonButton
-              fill="clear"
-              expand="block"
-              data-testid="m10-companion-cancel"
-              @click="closeCompanionPicker()"
-            >
-              {{ t('common.cancel') }}
-            </IonButton>
-          </div>
+          <RelatedItemsSection
+            ref="companionSection"
+            :item-id="item.id"
+            :item-name="item.name"
+            :direction="DEPENDENCY_LINK_COMPANION"
+            @create="(name: string) => (createFor = { direction: DEPENDENCY_LINK_COMPANION, name })"
+          />
 
           <!--
             FR-27.8: which groups and Vorlagen hold this item. It sits above
@@ -1041,51 +570,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
             length, and the reader arriving to decide whether an edit is safe
             wants the names before the number.
           -->
-          <template v-if="containments.length > 0">
-            <SectionHead
-              :title="t('items.editor.containedIn')"
-              data-testid="m10-section-containment"
-            />
-            <IonList>
-              <IonItem
-                v-for="entry in containments"
-                :key="entry.templateId"
-                button
-                :detail="true"
-                :data-testid="`m10-contained-${entry.templateName}`"
-                @click="router.push(templatePath(entry.templateId))"
-              >
-                <IonLabel>
-                  <h3>{{ entry.templateName }}</h3>
-                  <p>
-                    {{ t('items.editor.containedPositions', { n: entry.positions }) }}
-                    <template v-if="entry.retired">
-                      · {{ t('items.editor.containedRetired') }}
-                    </template>
-                  </p>
-                </IonLabel>
-                <!-- The scope chip M7's rows already wear, so the two lists read alike. -->
-                <!--
-                  Both scopes wear the same chip here, unlike M7 where only a
-                  group needs one: there the two live in separate sections, so
-                  the section is the label. In one mixed list an unmarked row
-                  and a chipped one read as an inconsistency rather than as a
-                  rule — found by rendering it (G-14).
-                -->
-                <span
-                  slot="end"
-                  class="scope-chip"
-                  :data-testid="`m10-contained-${entry.kind}-${entry.templateName}`"
-                >
-                  {{
-                    entry.kind === 'group'
-                      ? t('templates.groupChip')
-                      : t('templates.scopeTemplatesShort')
-                  }}
-                </span>
-              </IonItem>
-            </IonList>
-          </template>
+          <ContainmentSection v-if="containments.length > 0" :entries="containments" />
 
           <!--
             FR-27.9: what people wrote about this item on the trips it went
@@ -1098,7 +583,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
               :title="t('items.editor.tripComments')"
               data-testid="m10-section-comments"
             />
-            <p class="section-hint">{{ t('items.editor.tripCommentsHint') }}</p>
+            <p class="jp-section-hint">{{ t('items.editor.tripCommentsHint') }}</p>
             <IonList>
               <IonItem
                 v-for="entry in itemComments"
@@ -1131,7 +616,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
             -->
             <p
               v-if="!(deletionOutlook?.certain ?? true)"
-              class="section-hint"
+              class="jp-section-hint"
               data-testid="m10-comments-partial"
             >
               {{ t('items.editor.tripCommentsPartial') }}
@@ -1140,10 +625,10 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
 
           <section class="jp-card delete-card" data-testid="m10-section-delete">
             <SectionHead :title="t('items.editor.delete')" />
-            <p class="section-hint" data-testid="m10-delete-usage">
+            <p class="jp-section-hint" data-testid="m10-delete-usage">
               {{ t('items.editor.deleteUsage', { n: deletionOutlook?.references ?? 0 }) }}
             </p>
-            <p class="section-hint" data-testid="m10-delete-outlook">{{ deletionSentence }}</p>
+            <p class="jp-section-hint" data-testid="m10-delete-outlook">{{ deletionSentence }}</p>
             <IonButton
               fill="outline"
               color="danger"
@@ -1167,7 +652,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
       <CreateItemSheet
         v-if="item"
         :is-open="createFor !== null"
-        :name="createName"
+        :name="createFor?.name ?? ''"
         :tag-ids="[]"
         :preferred-tag-ids="relatedPreferredTagIds"
         @dismiss="createFor = null"
@@ -1178,16 +663,6 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
 </template>
 
 <style scoped>
-.scope-chip {
-  align-self: center;
-  padding: 2px 8px;
-  border-radius: var(--jp-r-pill);
-  background: var(--ct-surface0);
-  color: var(--ct-subtext1);
-  font-size: var(--jp-text-xs);
-  font-weight: var(--jp-weight-semibold);
-}
-
 .comment-body {
   color: var(--ion-text-color);
 }
@@ -1224,12 +699,6 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
 .delete-card {
   margin-top: 24px;
   padding: 16px;
-}
-
-.section-hint {
-  font-size: var(--jp-text-sm);
-  color: var(--ion-color-medium);
-  margin: 0 0 8px;
 }
 
 .field-error {
@@ -1272,13 +741,6 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
   flex: 1;
 }
 
-.main-picker {
-  border: 1px solid var(--ion-color-primary);
-  border-radius: var(--jp-r-sm);
-  padding: 8px;
-  margin-top: 8px;
-}
-
 /* G-15: the same control M8 carries, so the two editors read alike. The
    empty state is an outline icon rather than a pale emoji — chrome must not
    borrow the mark's face (FR-28.5). */
@@ -1295,12 +757,5 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
   color: var(--ct-overlay0);
   font-size: var(--jp-icon-md);
   cursor: pointer;
-}
-
-/* FR-20.1: a dependency's name leads to that item. The
-   action role, so it reads as a way somewhere rather than as a label. */
-.dep-link {
-  color: var(--jp-action);
-  text-decoration: none;
 }
 </style>

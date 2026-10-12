@@ -28,7 +28,7 @@ function item(over: Partial<MasterItem> = {}): MasterItem {
 
 /** ItemThumbnail resolves its URL through the orchestrator; nothing else here does. */
 const global = {
-  provide: { [ORCHESTRATOR]: { itemImageUrl: async () => 'blob:photo' } },
+  provide: { [ORCHESTRATOR]: { images: { itemImageUrl: async () => 'blob:photo' } } },
 }
 
 beforeEach(() => setActivePinia(createPinia()))

@@ -26,8 +26,8 @@ import { describe, it, expect } from 'vitest'
  */
 const COMPLETE_LIST_READERS: Record<string, string> = {
   'src/composables/useDeviceBackup.ts': 'the NFR-4.11 device backup — fidelity, not a listing',
-  'src/composables/useSyncOrchestrator.ts':
-    'generation, the FR-27.4 refresh, FR-27.10, clone and M21 all resolve positions that may name a retired row',
+  'src/app/actions/portable.ts':
+    "the FR-18.4 import's view of the device — it matches against everything, or it duplicates a name",
   'src/app/actions/masterData.ts':
     "FR-24.3's reference count — a position inside a retired Vorlage still keeps its item alive",
   'src/app/actions/groupRefresh.ts':
@@ -53,12 +53,12 @@ const COMPLETE_LIST_READERS: Record<string, string> = {
   'src/views/trips/PackingListPage.vue':
     "FR-9.4's closing-card teaser calls the same buildReviewProposals ReviewPage does, for the same reason: a trip's rows came from positions a retired Vorlage may still hold, and matching them against the active list alone would propose nothing for exactly the history the review is about. M4 offers no master rows of its own — the quick-add is QuickAddItem.vue's, and it is listed above.",
   'src/views/trips/TemplateFromTripPage.vue': 'planTemplateFromTrip writes against every item',
-  'src/views/templates/TemplateEditorPage.vue':
-    'resolved preview lines and the quick-add name lookup (its pickers use the active list)',
+  'src/views/templates/useTemplateGroups.ts':
+    "M8's Gruppen picker — resolved preview lines of a group, retired or not (the picker's own group set is the active list)",
   'src/components/global/QuickAddItem.vue':
     'the resolved lines of a group preview (its offers use the active list)',
   'src/components/templates/GroupPeekSheet.vue': 'FR-27.12 renders what a group resolves to',
-  'src/components/trips/ExcursionSheet.vue':
+  'src/views/trips/excursion/ExcursionSheet.vue':
     "FR-31.2's group search resolves each group's items, as FR-27.13 does — a retired Vorlage inside one still contributes (the groups offered are the active list)",
   'src/components/trips/ItemDetailSheet.vue': 'FR-20 companion resolution on an existing row',
   'src/views/items/ItemEditorPage.vue':
@@ -108,12 +108,12 @@ describe('FR-24.3 — the complete master lists are read on purpose (ADR-032)', 
     // be pinned is that their offer reads exist at all — a wholesale revert
     // to the complete lists fails here, which is otherwise asserted nowhere.
     const mixed = [
-      'src/views/templates/TemplateEditorPage.vue', // pickers + FR-27.15 folds
+      'src/views/templates/useTemplateGroups.ts', // the picker (FR-27.15's own fold reads only the two sets it returns)
       'src/views/trips/wizard/useWizardComposition.ts', // M3's scope rows
       'src/views/trips/ReviewPage.vue', // the FR-27.11 retarget offer
       'src/views/trips/TemplateFromTripPage.vue', // the groups M21 offers
       'src/components/global/QuickAddItem.vue', // chips, group matches, browse door
-      'src/views/items/ItemEditorPage.vue', // dependency picker + FR-27.8's containment
+      'src/views/items/ItemEditorPage.vue', // the name check + FR-27.8's containment
     ]
     const byPath = new Map(sources.map(({ path, source }) => [path, source]))
     for (const path of mixed) {
@@ -148,12 +148,13 @@ describe('FR-24.3 — the complete master lists are read on purpose (ADR-032)', 
     const offerSurfaces = [
       // The inventory's rows are its core's, which the page and its parts read.
       'src/views/items/inventory/useInventoryCore.ts',
-      // ItemEditorPage is `mixed`: its pickers read the active lists, and
+      // ItemEditorPage is `mixed`: its name check reads the active lists, and
       // FR-27.8's containment reads the complete one for the same reason the
-      // delete card's count above it does.
+      // delete card's count above it does. Its two pickers are the section's.
+      'src/components/items/RelatedItemsSection.vue',
       'src/views/templates/TemplateListPage.vue',
       'src/components/global/InventoryBrowseSheet.vue',
-      'src/views/settings/SettingsPage.vue',
+      'src/components/settings/SettingsDataSection.vue', // M17's template YAML picker
     ]
     const byPath = new Map(sources.map(({ path, source }) => [path, source]))
     for (const path of offerSurfaces) {

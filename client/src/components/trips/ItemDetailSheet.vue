@@ -41,10 +41,7 @@ import {
   removeCircleOutline,
   timeOutline,
 } from 'ionicons/icons'
-import { computed, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
-
-import { COMMENT_QUERY_PARAM } from '@/router/paths'
+import { computed, ref } from 'vue'
 
 import ItemMark from '@/components/items/ItemMark.vue'
 import FactChip from '@/components/global/FactChip.vue'
@@ -52,7 +49,6 @@ import SaveIndicator from '@/components/global/SaveIndicator.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import QuantityEditor from '@/components/global/QuantityEditor.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
-import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 import ForWhomStrip from '@/components/trips/ForWhomStrip.vue'
 import { resolveDependencies, type SuggestedCompanion } from '@/domain/dependencies'
 import { MIN_TRAVELERS_FOR_PER_PERSON } from '@/domain/membership'
@@ -64,12 +60,19 @@ import { modeIcon, modeLabel } from '@/lib/modeLabels'
 import { t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import { isPackingClosed } from '@/lib/tripPhase'
-import { ITEM_MODE_BUY_BEFORE, ITEM_MODES, isShoppingMode } from '@/types/domain'
-import type { ItemComment, ItemMode, ItemTodo, ReviewFlag, TripParticipant } from '@/types/domain'
+import { isPackingClosed } from '@/domain/shared/tripPhase'
+import {
+  ITEM_MODE_BUY_BEFORE,
+  ITEM_MODES,
+  isShoppingMode,
+  STATE_SKIPPED,
+  TASK_STATE_RESOLVED,
+} from '@/types/domain'
+import type { ItemMode, ReviewFlag, TripMemberProfile } from '@/types/domain'
 import { lockNoteText, nameFrom, packedStampText, responsibleNote } from '@/lib/rowFacts'
 import { stateLabel as stateLabelFor } from '@/lib/stateLabels'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
+import { useItemDiscussion } from '@/composables/useItemDiscussion'
 import SheetHead from '@/components/global/SheetHead.vue'
 import type { InventoryRename } from '@/domain/inventoryNames'
 
@@ -77,7 +80,7 @@ const props = defineProps<{
   tripId: string
   itemId: string
   /** Trip members, so the packing record can name a person (FR-25.17). */
-  participants: TripParticipant[]
+  memberProfiles: TripMemberProfile[]
   /** Who I am, so a row is never offered to me (FR-25.19). Null off-server. */
   currentUserId?: string | null
   /**
@@ -105,7 +108,7 @@ const containers = computed(() => tripStore.getContainers(props.tripId))
 const active = computed(() => isActive(trip.value))
 /**
  * FR-25.19: who a row can be handed to — the trip's **members**, not every
- * account the instance knows. The `participants` prop is the directory
+ * account the instance knows. The `memberProfiles` prop is the directory
  * plus the roster, because it also has to name whoever packed a row; a
  * picker built from it would offer people who cannot open the trip at all
  * (P-3 scopes the partition to its members), and the notification would
@@ -120,7 +123,7 @@ const active = computed(() => isActive(trip.value))
  */
 const assignable = computed(() => {
   const members = new Set(tripStore.getMembers(props.tripId).map((m) => m.user_id))
-  return props.participants.filter(
+  return props.memberProfiles.filter(
     (p) => members.has(p.user_id) && p.user_id !== props.currentUserId,
   )
 })
@@ -141,7 +144,7 @@ const judgeable = computed(() => canJudgeUnused(trip.value))
  * nobody has a mental model for.
  */
 const lockedByUserId = computed(() =>
-  item.value ? orchestrator.lockHolder(props.tripId, item.value) : null,
+  item.value ? orchestrator.claims.lockHolder(props.tripId, item.value) : null,
 )
 const isLocked = computed(() => lockedByUserId.value !== null)
 // Read only while `isLocked`, so the null branch of `lockNoteText` is
@@ -186,77 +189,29 @@ const glanceSays = computed(() => {
 })
 
 function nameOf(userId: string | null): string | null {
-  return nameFrom(props.participants, userId)
+  return nameFrom(props.memberProfiles, userId)
 }
 
-// --- Preparation (FR-7.3) ---
-const itemTodos = computed(() => tripStore.getItemTodos(props.tripId, props.itemId))
-const openTodoCount = computed(() => itemTodos.value.filter((t) => t.task_state === 'open').length)
-const hasPrepWithPacked = computed(() => item.value?.state === 'packed' && openTodoCount.value > 0)
-const newTodoText = ref('')
-
-function addTodo() {
-  const body = newTodoText.value.trim()
-  if (!body || isLocked.value) return
-  orchestrator.addPrepTodo(props.tripId, props.itemId, CLIENT_ACTOR_PLACEHOLDER, body)
-  newTodoText.value = ''
-}
-
-function toggleTodo(todo: ItemTodo) {
-  if (isLocked.value) return
-  if (todo.task_state === 'open') orchestrator.resolvePrepTodo(todo)
-  else orchestrator.reopenPrepTodo(todo)
-}
-
-// --- Notes (FR-7.1/7.2) ---
-const itemComments = computed(() => tripStore.getItemComments(props.tripId, props.itemId))
-const newCommentText = ref('')
-
-// G-4: a notification deep link (?comment=) scrolls to the referenced
-// message and flashes it. The thread may still be syncing when we arrive,
-// so this watches the list and fires once the target appears.
-const route = useRoute()
-const flashedCommentId = ref<string | null>(null)
-/**
- * The same id, kept after the animation has ended.
- *
- * The flash is a 2.4 s window, so it is not something a test can assert
- * without racing it — and the arrival it reports is exactly what G-4
- * promises. This records the outcome instead: set once the referenced
- * comment has been found and scrolled to, never cleared (E2E-G4-01).
- */
-const deepLinkedCommentId = ref<string | null>(null)
-watch(
+// --- Preparation (FR-7.3) and notes (FR-7.1/7.2), including the G-4 deep link ---
+const {
+  prepTasks,
+  openPrepCount,
+  hasPrepWithPacked,
+  newPrepTaskText,
+  addPrepTask,
+  togglePrepTask,
   itemComments,
-  (comments) => {
-    const target = route.query[COMMENT_QUERY_PARAM]
-    if (typeof target !== 'string' || flashedCommentId.value === target) return
-    if (!comments.some((c) => c.id === target)) return
-    flashedCommentId.value = target
-    deepLinkedCommentId.value = target
-    requestAnimationFrame(() => {
-      document
-        .getElementById(`comment-${target}`)
-        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    })
-    setTimeout(() => {
-      if (flashedCommentId.value === target) flashedCommentId.value = null
-    }, 2400)
-  },
-  { immediate: true },
+  newCommentText,
+  flashedCommentId,
+  deepLinkedCommentId,
+  addComment,
+  flagAsTask,
+} = useItemDiscussion(
+  () => props.tripId,
+  () => props.itemId,
+  item,
+  isLocked,
 )
-
-function addComment() {
-  const body = newCommentText.value.trim()
-  if (!body) return
-  orchestrator.addComment(props.tripId, props.itemId, CLIENT_ACTOR_PLACEHOLDER, body)
-  newCommentText.value = ''
-}
-
-/** FR-7.2: promoting a note moves it into the Preparation section above. */
-function flagAsTask(comment: ItemComment) {
-  orchestrator.flagCommentAsTask(props.tripId, comment)
-}
 
 // --- FR-20.4 companions ---
 const suggestedCompanions = computed(() => {
@@ -273,7 +228,7 @@ function addCompanion(companion: SuggestedCompanion) {
   // Every field comes from the resolution rather than a second lookup: it
   // knows the category the row is filed under (FR-24.2) and the quantity
   // the dependency asked for, and the chip writes both.
-  orchestrator.quickAddItem(
+  orchestrator.packing.quickAddItem(
     props.tripId,
     companion.name,
     {
@@ -289,7 +244,7 @@ function addCompanion(companion: SuggestedCompanion) {
 
 // --- Edits (each commits on the spot, G-5) ---
 function onModeChange(mode: ItemMode) {
-  if (item.value && !isLocked.value) orchestrator.setMode(item.value, mode)
+  if (item.value && !isLocked.value) orchestrator.packing.setMode(item.value, mode)
 }
 /**
  * FR-25.28: the strip acts on every instance, and this sheet is open on one of
@@ -302,7 +257,7 @@ function onRowsRemoved(rowIds: string[]) {
 }
 
 function onContainerChange(id: string | null) {
-  if (item.value && !isLocked.value) orchestrator.assignContainer(item.value, id)
+  if (item.value && !isLocked.value) orchestrator.packing.assignContainer(item.value, id)
 }
 /** FR-9.1: the judgement is revocable, so the toggle writes both ways. */
 /**
@@ -311,15 +266,16 @@ function onContainerChange(id: string | null) {
  * placeholder invariant 3 exists to keep out.
  */
 function onAssigneeChange(value: string | null) {
-  if (item.value && !isLocked.value) orchestrator.setPacker(item.value, value ? value : null)
+  if (item.value && !isLocked.value)
+    orchestrator.packing.setPacker(item.value, value ? value : null)
 }
 
 function onReviewFlag(flag: ReviewFlag, value: boolean) {
-  if (item.value && !isLocked.value) orchestrator.setReviewFlag(item.value, flag, value)
+  if (item.value && !isLocked.value) orchestrator.packing.setReviewFlag(item.value, flag, value)
 }
 
 function onLatePacker(value: boolean) {
-  if (item.value && !isLocked.value) orchestrator.setLatePacker(item.value, value)
+  if (item.value && !isLocked.value) orchestrator.packing.setLatePacker(item.value, value)
 }
 /**
  * FR-25.24: M5's posture on the amount is the opposite of M4's. There is
@@ -341,23 +297,23 @@ const quantityChoiceList = computed(() =>
 )
 
 function onSetQuantity(quantity: number) {
-  if (item.value && !isLocked.value) orchestrator.setQuantity(item.value, quantity)
+  if (item.value && !isLocked.value) orchestrator.packing.setQuantity(item.value, quantity)
 }
 
 function onIncrement() {
-  if (item.value && !isLocked.value) orchestrator.packIncrement(item.value)
+  if (item.value && !isLocked.value) orchestrator.packing.packIncrement(item.value)
 }
 function onDecrement() {
-  if (item.value && !isLocked.value) orchestrator.packDecrement(item.value)
+  if (item.value && !isLocked.value) orchestrator.packing.packDecrement(item.value)
 }
 function onComplete() {
-  if (item.value && !isLocked.value) orchestrator.packComplete(item.value)
+  if (item.value && !isLocked.value) orchestrator.packing.packComplete(item.value)
 }
 function onZero() {
-  if (item.value && !isLocked.value) orchestrator.packZero(item.value)
+  if (item.value && !isLocked.value) orchestrator.packing.packZero(item.value)
 }
 function onToggle() {
-  if (item.value && !isLocked.value) orchestrator.packToggle(item.value)
+  if (item.value && !isLocked.value) orchestrator.packing.packToggle(item.value)
 }
 
 /**
@@ -367,13 +323,13 @@ function onToggle() {
  * hidden behind a gesture — M4's press-and-hold is the fast path, this one
  * is the one you can find without knowing it exists.
  */
-const isSkipped = computed(() => item.value?.state === 'skipped')
+const isSkipped = computed(() => item.value?.state === STATE_SKIPPED)
 
 function onSkipToggle() {
   const row = item.value
   if (!row || isLocked.value) return
-  if (row.state === 'skipped') orchestrator.unskipItem(row)
-  else orchestrator.skipItem(props.tripId, row)
+  if (row.state === STATE_SKIPPED) orchestrator.packing.unskipItem(row)
+  else orchestrator.packing.skipItem(props.tripId, row)
 }
 
 // --- Presentation helpers ---
@@ -529,7 +485,7 @@ const packedStamp = computed(() => {
       class="for-whom"
       :trip-id="tripId"
       :item-id="item.id"
-      :participants="participants"
+      :member-profiles="memberProfiles"
       :locked="isLocked"
       steppers
       test-key="m5"
@@ -568,36 +524,36 @@ const packedStamp = computed(() => {
     <section class="sec">
       <h2 class="sl">
         {{ t('packing.prepSection') }}
-        <span class="n">{{ t('packing.openPrep', { n: openTodoCount }) }}</span>
+        <span class="n">{{ t('packing.openPrep', { n: openPrepCount }) }}</span>
       </h2>
       <label
-        v-for="todo in itemTodos"
-        :key="todo.id"
-        class="todo"
-        :class="{ done: todo.task_state === 'resolved' }"
+        v-for="task in prepTasks"
+        :key="task.id"
+        class="task"
+        :class="{ done: task.task_state === TASK_STATE_RESOLVED }"
       >
-        <span class="todo-body">{{ todo.body }}</span>
+        <span class="task-body">{{ task.body }}</span>
         <!-- The tick sits at the end, where M4 puts the control it stands
              for — a task is ticked at the row's edge on both screens. -->
         <IonCheckbox
-          :checked="todo.task_state === 'resolved'"
+          :checked="task.task_state === TASK_STATE_RESOLVED"
           :disabled="isLocked"
-          :data-testid="`m5-todo-${todo.body}`"
-          @ion-change="toggleTodo(todo)"
+          :data-testid="`m5-task-${task.body}`"
+          @ion-change="togglePrepTask(task)"
         />
       </label>
       <div v-if="!isLocked" class="composer">
         <IonInput
-          v-model="newTodoText"
-          data-testid="m5-todo-input"
-          :placeholder="t('item.addPrep')"
-          @keydown.enter="addTodo"
+          v-model="newPrepTaskText"
+          data-testid="m5-task-input"
+          :placeholder="t('row.addPrep')"
+          @keydown.enter="addPrepTask"
         />
         <IonButton
           fill="outline"
-          :disabled="!newTodoText.trim()"
-          data-testid="m5-todo-add"
-          @click="addTodo"
+          :disabled="!newPrepTaskText.trim()"
+          data-testid="m5-task-add"
+          @click="addPrepTask"
         >
           {{ t('common.add') }}
         </IonButton>
@@ -607,7 +563,7 @@ const packedStamp = computed(() => {
     <!-- FR-7.1/7.2 -->
     <section class="sec">
       <h2 class="sl">
-        {{ t('item.notes') }}
+        {{ t('row.notes') }}
         <span class="n">{{ itemComments.length }}</span>
       </h2>
       <article
@@ -627,8 +583,8 @@ const packedStamp = computed(() => {
           v-if="!isLocked"
           fill="clear"
           size="small"
-          :aria-label="t('item.flagAsTask')"
-          :title="t('item.flagAsTask')"
+          :aria-label="t('row.flagAsTask')"
+          :title="t('row.flagAsTask')"
           :data-testid="`m5-note-flag-${comment.body}`"
           @click="flagAsTask(comment)"
         >
@@ -639,7 +595,7 @@ const packedStamp = computed(() => {
         <IonInput
           v-model="newCommentText"
           data-testid="m5-note-input"
-          :placeholder="t('item.addNote')"
+          :placeholder="t('row.addNote')"
           @keydown.enter="addComment"
         />
         <IonButton
@@ -659,7 +615,7 @@ const packedStamp = computed(() => {
       class="sec"
       data-testid="m5-companions"
     >
-      <h2 class="sl"><IonIcon :icon="linkOutline" /> {{ t('item.companions') }}</h2>
+      <h2 class="sl"><IonIcon :icon="linkOutline" /> {{ t('row.companions') }}</h2>
       <IonChip
         v-for="companion in suggestedCompanions"
         :key="companion.item_id"
@@ -679,8 +635,8 @@ const packedStamp = computed(() => {
       @click="detailsOpen = !detailsOpen"
     >
       <IonIcon :icon="chevronForwardOutline" class="caret" />
-      <span class="details-label">{{ t('item.details') }}</span>
-      <span v-if="!detailsOpen" class="details-hint">{{ t('item.detailsHint') }}</span>
+      <span class="details-label">{{ t('row.details') }}</span>
+      <span v-if="!detailsOpen" class="details-hint">{{ t('row.detailsHint') }}</span>
     </button>
 
     <IonList v-if="detailsOpen" class="details-body">
@@ -712,7 +668,7 @@ const packedStamp = computed(() => {
            no members, and in Single-User the sole user is already every row's
            packer. -->
       <IonItem v-if="assignable.length > 0">
-        <IonLabel>{{ t('item.assignedTo') }}</IonLabel>
+        <IonLabel>{{ t('row.assignedTo') }}</IonLabel>
         <IonSelect
           :value="item.packer_user_id"
           interface="popover"
@@ -720,7 +676,7 @@ const packedStamp = computed(() => {
           data-testid="m5-assignee"
           @ion-change="(e: CustomEvent) => onAssigneeChange(e.detail.value)"
         >
-          <IonSelectOption :value="null">{{ t('item.assignedToNobody') }}</IonSelectOption>
+          <IonSelectOption :value="null">{{ t('row.assignedToNobody') }}</IonSelectOption>
           <IonSelectOption
             v-for="member in assignable"
             :key="member.user_id"
@@ -731,7 +687,7 @@ const packedStamp = computed(() => {
         </IonSelect>
       </IonItem>
       <IonItem>
-        <IonLabel>{{ t('item.luggageOptional') }}</IonLabel>
+        <IonLabel>{{ t('row.luggageOptional') }}</IonLabel>
         <IonSelect
           :value="item.container_id"
           interface="popover"
@@ -752,7 +708,7 @@ const packedStamp = computed(() => {
       <IonItem>
         <IonLabel>
           <h3>{{ t('mode.latePacker') }}</h3>
-          <p>{{ t('item.latePackerHint') }}</p>
+          <p>{{ t('row.latePackerHint') }}</p>
         </IonLabel>
         <IonToggle
           slot="end"
@@ -769,7 +725,7 @@ const packedStamp = computed(() => {
           <IonIcon slot="start" :icon="removeCircleOutline" />
           <IonLabel>
             <h3>{{ t('facet.flagUnused') }}</h3>
-            <p>{{ t('item.flagUnusedHint') }}</p>
+            <p>{{ t('row.flagUnusedHint') }}</p>
           </IonLabel>
           <IonToggle
             slot="end"
@@ -783,7 +739,7 @@ const packedStamp = computed(() => {
           <IonIcon slot="start" :icon="alertCircleOutline" />
           <IonLabel>
             <h3>{{ t('facet.flagMissing') }}</h3>
-            <p>{{ t('item.flagMissingHint') }}</p>
+            <p>{{ t('row.flagMissingHint') }}</p>
           </IonLabel>
           <IonToggle
             slot="end"
@@ -801,7 +757,7 @@ const packedStamp = computed(() => {
   </section>
 
   <section v-else class="missing" data-testid="m5-missing">
-    <p>{{ t('item.notFound') }}</p>
+    <p>{{ t('row.notFound') }}</p>
   </section>
 </template>
 
@@ -967,19 +923,19 @@ const packedStamp = computed(() => {
   color: var(--ct-overlay0);
 }
 
-.todo {
+.task {
   display: flex;
   align-items: center;
   gap: 11px;
   padding: 7px 0;
 }
 
-.todo .todo-body {
+.task .task-body {
   flex: 1;
   min-width: 0;
 }
 
-.todo.done .todo-body {
+.task.done .task-body {
   color: var(--ct-overlay0);
   text-decoration: line-through;
 }

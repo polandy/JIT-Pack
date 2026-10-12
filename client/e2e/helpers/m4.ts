@@ -308,11 +308,11 @@ export async function setMemberInM5(page: Page, name: string, quantity: number):
  * FR-7.4: unfold M4's *Aufgaben für die Reise* section if it is closed, and
  * return it. It mounts closed, so every visit to a trip starts here.
  */
-export async function openTripTodos(page: Page): Promise<Locator> {
-  const section = visiblePage(page).getByTestId('m4-trip-todos')
-  const toggle = section.getByTestId('m4-trip-todos-toggle')
+export async function openTripTasks(page: Page): Promise<Locator> {
+  const section = visiblePage(page).getByTestId('m4-trip-tasks')
+  const toggle = section.getByTestId('m4-trip-tasks-toggle')
   if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click()
-  await expect(section.getByTestId('trip-todo-list')).toBeVisible()
+  await expect(section.getByTestId('trip-task-list')).toBeVisible()
   return section
 }
 
@@ -422,7 +422,7 @@ export async function addTripNote(page: Page, body: string, title?: string): Pro
  *
  * Ends with the write landed, so a caller may reload straight after.
  */
-export async function addTripTodo(
+export async function addOwnTask(
   page: Page,
   body: string,
   phase: 'before' | 'during' = 'before',
@@ -436,10 +436,10 @@ export async function addTripTodo(
     await chip.click()
     await expect(chip).toHaveAttribute('aria-pressed', 'true')
   }
-  const field = composer.getByTestId('trip-todo-input')
+  const field = composer.getByTestId('trip-task-input')
   await fillIonic(field, body)
   await field.locator('input').press('Enter')
-  await expect(section.getByTestId(`trip-todo-${body}`)).toBeVisible()
+  await expect(section.getByTestId(`trip-task-${body}`)).toBeVisible()
   await writesLanded(page)
   if (page.url() !== cameFrom) {
     await page.goto(cameFrom)
@@ -452,7 +452,7 @@ export async function addTripTodo(
  * sheet, since the row carries no ✕. Ends with the sheet gone.
  */
 export async function removeTaskFromSheet(page: Page, body: string): Promise<void> {
-  await visiblePage(page).getByTestId(`trip-todo-open-${body}`).click()
+  await visiblePage(page).getByTestId(`trip-task-open-${body}`).click()
   const sheet = page.getByTestId('task-sheet')
   await expect(sheet).toBeVisible()
   await sheet.getByTestId('task-sheet-remove').click()
@@ -463,11 +463,11 @@ export async function removeTaskFromSheet(page: Page, body: string): Promise<voi
  * FR-7.3: a preparation, declared where it lives — on the row's own sheet.
  * M4's task window is made of these, so most of the section's cases need one.
  */
-export async function addPrepTodo(page: Page, rowName: string, body: string): Promise<void> {
+export async function addPrepTask(page: Page, rowName: string, body: string): Promise<void> {
   await visiblePage(page).getByTestId(`m4-row-${rowName}`).click()
-  await page.getByTestId('m5-todo-input').locator('input').fill(body)
-  await page.getByTestId('m5-todo-add').click()
-  await expect(page.getByTestId(`m5-todo-${body}`)).toBeVisible()
+  await page.getByTestId('m5-task-input').locator('input').fill(body)
+  await page.getByTestId('m5-task-add').click()
+  await expect(page.getByTestId(`m5-task-${body}`)).toBeVisible()
   await page.getByTestId('m5-close').click()
   await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
   await writesLanded(page)
