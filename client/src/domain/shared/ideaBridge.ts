@@ -12,7 +12,10 @@
  *    is pre-filled with, and the title a result's „💡" line names;
  *  - **the results, read from the planner** (`IdeaResultSource`): the idea's
  *    *Daraus gemacht*, one source per kind of result, each a projection of
- *    its rows — never a list on the idea.
+ *    its rows — never a list on the idea;
+ *  - **the idea's day, written from the packing side** (`IdeaPlanWrites`):
+ *    an excursion made from an idea is its line on the day plan, so deleting
+ *    the excursion takes the idea's day with it (FR-29.15).
  */
 
 /** The three kinds of result, in the order the idea offers them. */
@@ -39,6 +42,12 @@ export interface IdeaSeed {
 export interface IdeaLookup {
   /** Undefined for an idea this device does not hold — deleted, or not arrived yet. */
   idea(tripId: string, ideaId: string): IdeaSeed | undefined
+}
+
+/** The planner's one write the packing side asks for, bound by the composition root. */
+export interface IdeaPlanWrites {
+  /** Takes the idea's day and time away (FR-29.14); nothing for an idea this device does not hold. */
+  unplan(tripId: string, ideaId: string): void
 }
 
 /** One result of an idea, as its *Daraus gemacht* shows it. */

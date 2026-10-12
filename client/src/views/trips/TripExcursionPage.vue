@@ -56,6 +56,7 @@ import ExcursionLineSheet from './excursion/ExcursionLineSheet.vue'
 import ExcursionNotes from './excursion/ExcursionNotes.vue'
 import ExcursionSheet, { type ExcursionSheetResult } from './excursion/ExcursionSheet.vue'
 import { useExcursionAdd } from './excursion/useExcursionAdd'
+import { useExcursionDelete } from './excursion/useExcursionDelete'
 import { useExcursionRowPort } from './excursion/useExcursionRowPort'
 import PackingGroupList from './packing/PackingGroupList.vue'
 import RowQuantityPopover from './packing/RowQuantityPopover.vue'
@@ -100,7 +101,7 @@ import type { RowMenuAction } from '@/domain/rowMenu'
 import { progressByTraveler, showsTravelerProgress } from '@/domain/travelerProgress'
 import { noteThreads, threadsAboutExcursion } from '@/domain/tripNotes'
 import { t } from '@/i18n'
-import { chooseAction, confirmDestructive, promptText } from '@/composables/shared/confirm'
+import { chooseAction, promptText } from '@/composables/shared/confirm'
 import { EXCURSION_CONNECTIONS } from '@/kernel/excursionConnections'
 import { excursionDays } from '@/lib/excursionText'
 import { formatDistance, tracksSummary } from '@/lib/trackFormat'
@@ -504,6 +505,8 @@ const quickAdd = ref<InstanceType<typeof QuickAddItem> | null>(null)
 const quickAddExpanded = computed(() => quickAdd.value?.expanded ?? false)
 /** M4's browse verbs over the lines — nobody holds a line, so none is locked (FR-25.13f). */
 const browse = useBrowseVerbs(port, () => null)
+/** FR-31.1: ⋮ *Löschen*, taking the day of the idea it was made from with it (FR-29.15). */
+const remove = useExcursionDelete(props.tripId)
 const adds = useExcursionAdd({
   tripId: props.tripId,
   excursionId: props.excursionId,
@@ -574,20 +577,6 @@ async function saveAsGroup() {
       await presentToast({ message: t('excursions.savedAsGroup', { name }) })
     },
   })
-}
-
-async function remove() {
-  const ex = excursion.value
-  if (!ex) return
-  const ok = await confirmDestructive({
-    header: t('excursions.delete'),
-    message: t('excursions.deleteConfirm', { name: ex.name }),
-    confirmLabel: t('common.delete'),
-    testid: 'm27-delete-confirm',
-  })
-  if (!ok) return
-  orchestrator.excursions.deleteExcursion(props.tripId, ex.id)
-  void router.replace(tripExcursionsPath(props.tripId))
 }
 
 // --- GPX tracks (FR-31.15, ADR-089) ---
@@ -721,7 +710,7 @@ setHeaderActions(() =>
           icon: trashOutline,
           label: t('excursions.delete'),
           overflow: true,
-          onClick: () => void remove(),
+          onClick: () => void remove(excursion.value),
         },
       ]
     : [],

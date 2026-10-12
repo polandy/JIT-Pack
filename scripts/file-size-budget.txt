@@ -3,7 +3,7 @@
 1493 client/src/components/global/track/TrackEditor.vue
 1428 client/src/components/global/InventoryBrowseSheet.vue
 1294 client/src/views/templates/TemplateEditorPage.vue
-1200 client/src/views/trips/TripExcursionPage.vue
+1189 client/src/views/trips/TripExcursionPage.vue
 1159 client/src/views/trips/TripListPage.vue
 816 client/src/types/domain.ts
 1057 client/src/components/trips/ItemDetailSheet.vue
