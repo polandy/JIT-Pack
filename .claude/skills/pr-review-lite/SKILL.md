@@ -21,9 +21,11 @@ Work through the sections below in order, exactly as `/pr-review` does, and fix 
 ## 0. Gather context
 
 - If a PR already exists for the branch: `gh pr view <PR> --json title,body,baseRefName,headRefName,statusCheckRollup`
-  and `gh pr diff <PR>`.
+  and `gh pr diff <PR> --name-only`.
 - If no PR exists yet: check out the branch (or its worktree under `.claude/worktrees/`), then diff against the base
-  it will merge into — `git fetch origin && git diff origin/main...<branch> --stat` for scope, full diff as needed.
+  it will merge into — `git fetch origin && git diff origin/main...<branch> --stat` for scope.
+- Then read the diff per file or per area, as `/pr-review` §0 does — never the whole diff in one read, never the
+  generated `client/src/api/{types,routes,tables}.ts`, and a `dev-docs/`/`docs/` diff through its added lines.
 - Read any linked ADR or FR/NFR id first — review the implementation *against its stated intent*, not just the diff.
 - **Load the project standard**: `CLAUDE.md` is already in your context — do not read it again. Read
   `dev-docs/CODING_PRINCIPLES.md`; the two are binding and win over this skill where they disagree. Skim
