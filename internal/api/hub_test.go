@@ -299,8 +299,15 @@ func TestHub_MultipleTrips_Isolation(t *testing.T) {
 // second socket. Both halves are here on purpose: a gate that refused
 // everybody would satisfy the first clause alone.
 func TestHub_SubscribersCountsOnlyTheStillAuthorised(t *testing.T) {
+	// The hub asks the gate from its own goroutine (sendLocationsTo after a
+	// subscribe), which may still run while the test revokes.
+	var mu sync.Mutex
 	revoked := map[string]bool{}
-	gate := func(_ context.Context, _ string, userID string) bool { return !revoked[userID] }
+	gate := func(_ context.Context, _ string, userID string) bool {
+		mu.Lock()
+		defer mu.Unlock()
+		return !revoked[userID]
+	}
 
 	hub, srv := wsTestServerGated(t, nil, gate)
 	ws1 := wsConnect(t, srv, "andy")
@@ -315,7 +322,9 @@ func TestHub_SubscribersCountsOnlyTheStillAuthorised(t *testing.T) {
 		t.Fatalf("subscribers = %d, want 2 before the revocation", n)
 	}
 
+	mu.Lock()
 	revoked["sarah"] = true
+	mu.Unlock()
 
 	if n := hub.Subscribers("trip-1"); n != 1 {
 		t.Errorf("subscribers = %d, want 1 — the hub still counts a revoked socket", n)
