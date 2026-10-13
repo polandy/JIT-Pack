@@ -56,27 +56,21 @@ if [ -n "${E2E_BACKEND:-}" ] || [ -n "${E2E_SERVER:-}" ]; then
   if [ -n "${E2E_BACKEND:-}" ]; then env_flags+=(-e E2E_BACKEND); fi
   if [ -n "${E2E_SERVER:-}" ]; then env_flags+=(-e E2E_SERVER); fi
 fi
-for port_var in E2E_PORT E2E_API_PORT E2E_SERVER_API_PORT E2E_IDP_PORT E2E_SERVER_PORT; do
-  if [ -n "${!port_var:-}" ]; then
-    env_flags+=(-e "${port_var}")
-  fi
-done
-# Every port here is a host port (--network host), so two worktrees running
-# the suite at once collide on them. Playwright's own message for that names
-# the port and not the cause ("make sure that nothing is running on the
-# port/url"), so the override has to reach the container to be usable.
-if [ -n "${E2E_PORT:-}" ]; then
-  env_flags+=(-e E2E_PORT)
-fi
-
 # --user/HOME keep the report and any trace out of root ownership, which
 # `git worktree remove` would otherwise refuse to clean up.
+#
+# The container keeps its own network namespace — never `--network host`.
+# Chromium cancels every request in flight when it sees a network interface
+# change (net::ERR_NETWORK_CHANGED), and on the host's namespace any container
+# another project starts or stops is one: a chunk lost at boot leaves a blank
+# page, one lost on a lazy route leaves the navigation undone. Every server the
+# suite drives runs in here beside the browser, so nothing needs the host's
+# ports — which also lets two worktrees run the suite at once.
 exec docker run --rm \
   --user "$(id -u):$(id -g)" \
   -e HOME=/tmp \
   -e CI=1 \
   ${env_flags[@]+"${env_flags[@]}"} \
-  --network host \
   "${mounts[@]}" \
   -w /w/client \
   "${PLAYWRIGHT_IMAGE}" \

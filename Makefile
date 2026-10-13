@@ -297,7 +297,7 @@ visual-update: client-build
 # Needs docker and a built bundle: scripts/e2e.sh runs the suite inside the
 # pinned Playwright image, so the browsers and their system libraries come
 # with the image rather than being installed. Vite preview serves client/dist
-# from inside the container (--network host).
+# from inside the container, in the container's own network namespace.
 #
 # That also makes this target usable on a NixOS host, where a downloaded
 # Chromium does not run at all.

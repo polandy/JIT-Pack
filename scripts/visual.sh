@@ -52,22 +52,15 @@ fi
 # amd64) and makes an Apple-Silicon machine emulate rather than diverge —
 # which is what lets the images be *generated* anywhere: the baselines
 # reproduce byte-identically this way.
-# The preview server's port is a *host* port (--network host), so two
-# worktrees recording or checking baselines at once collide on it — and
-# Playwright's message for that names the port and not the cause. The
-# override reaches the container for the same reason it does in e2e.sh.
-env_flags=()
-if [ -n "${E2E_PORT:-}" ]; then
-  env_flags+=(-e E2E_PORT)
-fi
-
+#
+# The container keeps its own network namespace, as in e2e.sh: on the host's,
+# another project's container starting or stopping cancels the page's chunk
+# requests (net::ERR_NETWORK_CHANGED).
 exec docker run --rm \
   --platform linux/amd64 \
-  ${env_flags[@]+"${env_flags[@]}"} \
   --user "$(id -u):$(id -g)" \
   -e HOME=/tmp \
   -e CI=1 \
-  --network host \
   "${mounts[@]}" \
   -w /w/client \
   "${PLAYWRIGHT_IMAGE}" \

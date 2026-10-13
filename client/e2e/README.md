@@ -37,11 +37,13 @@ root (CGO-free, so the container can run it off the mount) and set the
 `E2E_BACKEND` / `E2E_SERVER` flags that put those projects into the config's
 project list at all.
 
-Two worktrees cannot run the suite at once: `--network host` means the preview
-server and the backends bind **host** ports. Override with `E2E_PORT`,
-`E2E_API_PORT`, `E2E_SERVER_API_PORT`, `E2E_IDP_PORT`, `E2E_SERVER_PORT` —
-`scripts/e2e.sh` forwards each into the container when it is set, because
-Playwright's own message for a busy port names the port and not the cause.
+The container has a network namespace of its own: the preview server, the
+backends and the browser all live in it, so two worktrees can run the suite at
+once. Never give it `--network host` — Chromium would then see every interface
+another container adds or drops on the host, and cancel the page's chunk
+requests in flight with `net::ERR_NETWORK_CHANGED` (a blank start, or a lazy
+route that never opens). `E2E_PORT` and its siblings remain for a run on the
+host itself.
 
 ### The full suite runs on CI, not on the maintainer's machine
 
