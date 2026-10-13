@@ -12,7 +12,7 @@ import { API } from '@/api/routes'
 import type { PullChange } from '@/api/types'
 import type { IdeaImage } from '@/types/domain'
 import { TABLE } from '@/api/tables'
-import { createIdeaPictures } from '../ideaImages'
+import { createLocalIdeaPictures, createServerIdeaPictures } from '../ideaImages'
 import type { ImageStore } from '../images'
 import { hashBlob } from '@/sync/rows'
 import { stubClient } from './restClientStub'
@@ -46,6 +46,12 @@ function pictures(local: ImageStore | null) {
     return Promise.resolve()
   })
   const made: Blob[] = []
+  const applyChanges = (changes: PullChange[]) => void applied.push(...changes)
+  const optimize = () => Promise.resolve(JPEG)
+  const objectUrl = (blob: Blob) => {
+    made.push(blob)
+    return `blob:${made.length}`
+  }
   return {
     client,
     applied,
@@ -53,18 +59,9 @@ function pictures(local: ImageStore | null) {
     whenSent,
     order,
     made,
-    pictures: createIdeaPictures({
-      client,
-      local,
-      applyChanges: (changes) => void applied.push(...changes),
-      drainTrip,
-      whenSent,
-      optimize: () => Promise.resolve(JPEG),
-      objectUrl: (blob) => {
-        made.push(blob)
-        return `blob:${made.length}`
-      },
-    }),
+    pictures: local
+      ? createLocalIdeaPictures({ store: local, applyChanges, optimize, objectUrl })
+      : createServerIdeaPictures({ client, drainTrip, whenSent, optimize, objectUrl }),
   }
 }
 

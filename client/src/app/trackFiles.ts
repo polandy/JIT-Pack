@@ -21,18 +21,20 @@ import { excursionTrackRow, hashBlob, ideaTrackRow } from '@/sync/rows'
 /** How a track's file is kept on the device in Local Mode. */
 export const GPX_TYPE = 'application/gpx+xml'
 
-export interface TrackFileDeps {
-  client: RestClient
+export interface LocalTrackFileDeps {
   /**
-   * The device's own blob store in Local Mode — the one item photos and
-   * idea pictures use, keyed by the track's id — null wherever a server
-   * answers.
+   * The device's own blob store — the one item photos and idea pictures
+   * use, keyed by the track's id.
    */
-  local: ImageStore | null
+  store: ImageStore
   /** The funnel a pulled row passes through, for Local Mode's own row. */
   applyChanges(changes: PullChange[]): void
+}
+
+export interface ServerTrackFileDeps {
+  client: RestClient
   drainTrip(tripId: string): Promise<void>
-  /** Resolves once the writes the track stands on have reached the server (see `IdeaPictureDeps`). */
+  /** Resolves once the writes the track stands on have reached the server (see `ServerIdeaPictureDeps`). */
   whenSent(tripId: string): Promise<void>
 }
 
@@ -60,19 +62,59 @@ function fromFile(upload: TrackUpload, gpxHash: string) {
   }
 }
 
-function createTrackFiles<T extends TrackFields & { trip_id: string }>(
-  deps: TrackFileDeps,
+/** A track as it is before its file is read: what the holder and the upload decide between them. */
+function newTrack<T extends TrackFields & { trip_id: string }>(
+  place: Placed<T>,
+  upload: TrackUpload,
+): T {
+  return {
+    ...place,
+    name: upload.name,
+    kind: upload.kind,
+    with_kid: false,
+    pause_min: 0,
+    ...fromFile(upload, ''),
+  } as unknown as T
+}
+
+/** Local Mode: the file onto the device, then the row through the funnel. */
+function localTrackFiles<T extends TrackFields & { trip_id: string }>(
+  deps: LocalTrackFileDeps,
   holder: TrackHolder<T>,
 ): TrackFiles<T, Placed<T>> {
-  const { client, local, applyChanges, drainTrip, whenSent } = deps
+  const { store, applyChanges } = deps
 
-  /** Local Mode: the file onto the device, then the row through the funnel. */
   async function keep(track: T, upload: TrackUpload): Promise<void> {
     const blob = new Blob([upload.gpx], { type: GPX_TYPE })
-    await local!.putImage(track.id, blob)
+    await store.putImage(track.id, blob)
     const row = { ...track, ...fromFile(upload, await hashBlob(blob)) }
     applyChanges([localChange(holder.table, track.id, holder.row(row))])
   }
+
+  return {
+    add: (place, upload) => keep(newTrack<T>(place, upload), upload),
+    replace: (track, upload) => keep(track, upload),
+
+    async file(track) {
+      try {
+        return await store.getImage(track.id)
+      } catch {
+        return null
+      }
+    },
+
+    async forget(trackIds) {
+      await Promise.all(trackIds.map((id) => store.deleteImage(id)))
+    },
+  }
+}
+
+/** Server Mode: the upload carries what the device read, and the server writes the row. */
+function serverTrackFiles<T extends TrackFields & { trip_id: string }>(
+  deps: ServerTrackFileDeps,
+  holder: TrackHolder<T>,
+): TrackFiles<T, Placed<T>> {
+  const { client, drainTrip, whenSent } = deps
 
   async function send(track: Pick<T, 'id' | 'trip_id'> & Partial<T>, upload: TrackUpload) {
     await whenSent(track.trip_id)
@@ -81,52 +123,31 @@ function createTrackFiles<T extends TrackFields & { trip_id: string }>(
   }
 
   return {
-    async add(place, upload) {
-      const track = {
-        ...place,
-        name: upload.name,
-        kind: upload.kind,
-        with_kid: false,
-        pause_min: 0,
-        ...fromFile(upload, ''),
-      } as unknown as T
-      if (local) {
-        await keep(track, upload)
-        return
-      }
-      await send(track, upload)
-    },
-
-    async replace(track, upload) {
-      if (local) {
-        await keep(track, upload)
-        return
-      }
-      await send(track, upload)
-    },
+    add: (place, upload) => send(newTrack<T>(place, upload), upload),
+    replace: (track, upload) => send(track, upload),
 
     async file(track) {
       try {
-        return local ? await local.getImage(track.id) : await client.getBlob(holder.url(track))
+        return await client.getBlob(holder.url(track))
       } catch {
         return null
       }
     },
 
-    async forget(trackIds) {
-      if (!local) return
-      await Promise.all(trackIds.map((id) => local.deleteImage(id)))
-    },
+    async forget() {},
   }
 }
 
-/** FR-29.17: an idea's tracks. */
-export function createIdeaTracks(deps: TrackFileDeps): TrackFiles<IdeaTrack, IdeaTrackPlace> {
-  return createTrackFiles<IdeaTrack>(deps, {
-    table: TABLE.ideaTracks,
-    row: ideaTrackRow,
-    url: (track) => API.tripIdeaTrack(track.trip_id, track.idea_id!, track.id),
-  })
+const ideaHolder: TrackHolder<IdeaTrack> = {
+  table: TABLE.ideaTracks,
+  row: ideaTrackRow,
+  url: (track) => API.tripIdeaTrack(track.trip_id, track.idea_id!, track.id),
+}
+
+const excursionHolder: TrackHolder<ExcursionTrack> = {
+  table: TABLE.excursionTracks,
+  row: excursionTrackRow,
+  url: (track) => API.tripExcursionTrack(track.trip_id, track.excursion_id!, track.id),
 }
 
 /** What an excursion's new track is before its file is read. */
@@ -135,13 +156,22 @@ export type ExcursionTrackPlace = Pick<
   'id' | 'trip_id' | 'excursion_id' | 'position'
 >
 
-/** FR-31.15: an excursion's tracks (ADR-089). */
-export function createExcursionTracks(
-  deps: TrackFileDeps,
-): TrackFiles<ExcursionTrack, ExcursionTrackPlace> {
-  return createTrackFiles<ExcursionTrack>(deps, {
-    table: TABLE.excursionTracks,
-    row: excursionTrackRow,
-    url: (track) => API.tripExcursionTrack(track.trip_id, track.excursion_id!, track.id),
-  })
-}
+/** FR-29.17: an idea's tracks, kept on the device. */
+export const createLocalIdeaTracks = (
+  deps: LocalTrackFileDeps,
+): TrackFiles<IdeaTrack, IdeaTrackPlace> => localTrackFiles(deps, ideaHolder)
+
+/** FR-29.17: an idea's tracks, sent to the server. */
+export const createServerIdeaTracks = (
+  deps: ServerTrackFileDeps,
+): TrackFiles<IdeaTrack, IdeaTrackPlace> => serverTrackFiles(deps, ideaHolder)
+
+/** FR-31.15: an excursion's tracks (ADR-089), kept on the device. */
+export const createLocalExcursionTracks = (
+  deps: LocalTrackFileDeps,
+): TrackFiles<ExcursionTrack, ExcursionTrackPlace> => localTrackFiles(deps, excursionHolder)
+
+/** FR-31.15: an excursion's tracks (ADR-089), sent to the server. */
+export const createServerExcursionTracks = (
+  deps: ServerTrackFileDeps,
+): TrackFiles<ExcursionTrack, ExcursionTrackPlace> => serverTrackFiles(deps, excursionHolder)

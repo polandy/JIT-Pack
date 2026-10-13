@@ -58,10 +58,8 @@ import { createNotificationActions, NO_NOTIFICATION_ACTIONS } from '@/app/notifi
 import { createConflictActions, NO_CONFLICT_ACTIONS } from '@/app/conflicts'
 import { createActivityActions, NO_ACTIVITY_ACTIONS } from '@/app/activity'
 import { createIdentityActions, NO_IDENTITY_ACTIONS } from '@/app/identity'
-import { createIdeaPictures } from '@/app/ideaImages'
-import { createExcursionTracks, createIdeaTracks } from '@/app/trackFiles'
 import { createLinkPreview, NO_LINK_PREVIEW } from '@/app/linkPreview'
-import { createImageActions } from '@/app/images'
+import { createBlobBackend } from '@/app/blobBackend'
 import { knownTripItemsOf } from '@/app/context'
 import type { SyncContext } from '@/app/context'
 import type { LocationFrame } from '@/sync/webSocket'
@@ -449,12 +447,14 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     groupRefresh: groupRefreshActions,
   })
   const postTripActions = createPostTripActions(ctx, { masterData: masterDataActions })
-  // What a picture's or a track's file needs to reach the server, or this
-  // device's own store in Local Mode.
-  const fileDeps = {
-    client,
+  // Item photos, idea pictures and GPX files: outside the envelope (ADR-002),
+  // so neither the backend nor the stores carry them.
+  const blobs = createBlobBackend({
     local,
+    client,
+    baseUrl: config.baseUrl,
     applyChanges: onPullChanges,
+    drainMaster,
     drainTrip: (tripId: string) => drainTrip(tripId),
     // In drainTrip's order: a new trip reaches the server through the
     // master partition, and its rows are refused until it has.
@@ -462,10 +462,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       await backend.whenSent(MASTER_PARTITION)
       await backend.whenSent(tripPartition(tripId))
     },
-  }
+  })
   const excursionActions = createExcursionActions(ctx, {
     groups: masterDataActions,
-    tracks: createExcursionTracks(fileDeps),
+    tracks: blobs.excursionTracks,
   })
   const tripCreationActions = createTripCreationActions(ctx)
   const tripLifecycleActions = createTripLifecycleActions(ctx, {
@@ -535,14 +535,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return request
   }
 
-  const imageActions = createImageActions({
-    client,
-    local,
-    baseUrl: config.baseUrl,
-    applyChanges: onPullChanges,
-    drainMaster,
-  })
-
   const {
     conflicts: conflictActions,
     activity: activityActions,
@@ -562,8 +554,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     mutation: mutations.make,
     nowIso,
     write,
-    pictures: createIdeaPictures(fileDeps),
-    tracks: createIdeaTracks(fileDeps),
+    pictures: blobs.pictures,
+    tracks: blobs.ideaTracks,
     linkPreview: remote.linkPreview,
   }
 
@@ -614,7 +606,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     masterData: masterDataActions,
     series: seriesActions,
     names,
-    images: imageActions,
+    images: blobs.images,
     conflicts: conflictActions,
     activity: activityActions,
     identity: identityActions,

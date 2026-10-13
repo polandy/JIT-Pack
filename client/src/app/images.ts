@@ -24,24 +24,30 @@ export interface ImageStore {
   getImage(itemId: string): Promise<Blob | null>
 }
 
-export interface ImageDeps {
-  client: RestClient
-  /** The device's own store in Local Mode, null wherever a server answers. */
-  local: ImageStore | null
-  /** Where a Server Mode photo is fetched from, for {@link ImageActions.itemImageUrl}. */
-  baseUrl: string
-  /**
-   * The funnel every change passes through — the same one a pull uses, so a
-   * Local Mode photo is as durable as a pulled row (FR-19.2).
-   */
-  applyChanges(changes: PullChange[]): void
-  drainMaster(): Promise<void>
+interface ImageDepsBase {
   /**
    * The on-device optimizer (FR-22.2/22.3). Injected because it encodes
    * through a canvas, which is the browser's and not a rule of this group:
    * without the seam every case here would need one.
    */
   optimize?: (source: Blob) => Promise<Blob>
+}
+
+export interface LocalImageDeps extends ImageDepsBase {
+  /** The device's own store — what Local Mode has instead of the server. */
+  store: ImageStore
+  /**
+   * The funnel every change passes through — the same one a pull uses, so a
+   * Local Mode photo is as durable as a pulled row (FR-19.2).
+   */
+  applyChanges(changes: PullChange[]): void
+}
+
+export interface ServerImageDeps extends ImageDepsBase {
+  client: RestClient
+  /** Where a Server Mode photo is fetched from, for {@link ImageActions.itemImageUrl}. */
+  baseUrl: string
+  drainMaster(): Promise<void>
 }
 
 export interface ImageActions {
@@ -73,48 +79,65 @@ export interface ImageActions {
   itemImageUrl(item: MasterItem): Promise<string | null>
 }
 
-export function createImageActions(deps: ImageDeps): ImageActions {
-  const { client, local, baseUrl, applyChanges, drainMaster } = deps
+/** Local Mode: the photo goes into IndexedDB and the row gets a hash computed here. */
+export function createLocalImageActions(deps: LocalImageDeps): ImageActions {
+  const { store, applyChanges } = deps
   const optimize = deps.optimize ?? optimizeItemImage
 
   return {
     async setItemImage(item, source) {
       const optimized = await optimize(source)
-      if (local) {
-        await local.putImage(item.id, optimized)
-        const hash = await hashBlob(optimized)
-        applyChanges([
-          localChange(TABLE.items, item.id, { ...masterItemRow(item), image_hash: hash }),
-        ])
-        return
-      }
+      await store.putImage(item.id, optimized)
+      const hash = await hashBlob(optimized)
+      applyChanges([
+        localChange(TABLE.items, item.id, { ...masterItemRow(item), image_hash: hash }),
+      ])
+    },
+
+    async deleteItemImage(item) {
+      await store.deleteImage(item.id)
+      applyChanges([
+        localChange(TABLE.items, item.id, { ...masterItemRow(item), image_hash: null }),
+      ])
+    },
+
+    async copyItemImage(from, to) {
+      if (!from.image_hash || to.image_hash) return
+      const blob = await store.getImage(from.id)
+      if (!blob) return
+      await store.putImage(to.id, blob)
+      applyChanges([
+        localChange(TABLE.items, to.id, { ...masterItemRow(to), image_hash: from.image_hash }),
+      ])
+    },
+
+    async itemImageUrl(item) {
+      if (!item.image_hash) return null
+      const blob = await store.getImage(item.id)
+      return blob ? URL.createObjectURL(blob) : null
+    },
+  }
+}
+
+/** Server Mode: the photo is uploaded and a master drain brings back the hash the server stamped. */
+export function createServerImageActions(deps: ServerImageDeps): ImageActions {
+  const { client, baseUrl, drainMaster } = deps
+  const optimize = deps.optimize ?? optimizeItemImage
+
+  return {
+    async setItemImage(item, source) {
+      const optimized = await optimize(source)
       await client.putRaw(API.itemImage(item.id), optimized, 'image/jpeg')
       await drainMaster()
     },
 
     async deleteItemImage(item) {
-      if (local) {
-        await local.deleteImage(item.id)
-        applyChanges([
-          localChange(TABLE.items, item.id, { ...masterItemRow(item), image_hash: null }),
-        ])
-        return
-      }
       await client.delete(API.itemImage(item.id))
       await drainMaster()
     },
 
     async copyItemImage(from, to) {
       if (!from.image_hash || to.image_hash) return
-      if (local) {
-        const blob = await local.getImage(from.id)
-        if (!blob) return
-        await local.putImage(to.id, blob)
-        applyChanges([
-          localChange(TABLE.items, to.id, { ...masterItemRow(to), image_hash: from.image_hash }),
-        ])
-        return
-      }
       const blob = await client.getBlob(API.itemImage(from.id))
       await client.putRaw(API.itemImage(to.id), blob, 'image/jpeg')
       await drainMaster()
@@ -122,10 +145,6 @@ export function createImageActions(deps: ImageDeps): ImageActions {
 
     async itemImageUrl(item) {
       if (!item.image_hash) return null
-      if (local) {
-        const blob = await local.getImage(item.id)
-        return blob ? URL.createObjectURL(blob) : null
-      }
       return `${baseUrl}${API.itemImage(item.id)}?v=${item.image_hash}`
     },
   }

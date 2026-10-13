@@ -93,7 +93,7 @@ export interface GroupWrites {
   ): string
 }
 
-/** Where an excursion's track files go (FR-31.15) — `trackFiles.ts`'s `createExcursionTracks`. */
+/** Where an excursion's track files go (FR-31.15) — `trackFiles.ts`'s `createLocal`/`createServerExcursionTracks`. */
 export type ExcursionTrackFiles = TrackFiles<
   ExcursionTrack,
   Pick<ExcursionTrack, 'id' | 'trip_id' | 'excursion_id' | 'position'>
