@@ -8,7 +8,8 @@
   *voted* line under *Ideas*, named after Bob — the planner's own reading of its rows, bound by the composition root;
   without that binding the vote would read as a bare *added* line.
 * **E2E-M30-02** `server` (FR-32.3) — **implemented** (`server/activity.spec.ts`): an inventory item Alice creates is an
-  *added* line in the inventory's activity Bob opens from M9's ⋮, named after Alice.
+  *added* line in the inventory's activity Bob opens from M9's ⋮, named after Alice — found whether it stands alone or
+  is one part of a folded run (Alice adds three more items after it, so it is folded by construction, not by luck).
 * Local Mode offers neither entry (G-8): M4's ⋮ is asserted without it inside E2E-G12-07, on a sheet that demonstrably
   opened; M9's is `ItemInventoryPage.spec.ts`. The same case types both activity URLs and lands on M4 and M9 (UX-21);
   the guard itself is `router/__tests__/serverOnly.spec.ts`.
