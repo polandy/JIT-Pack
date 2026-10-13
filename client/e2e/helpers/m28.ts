@@ -109,6 +109,10 @@ export async function planIdea(
 ): Promise<void> {
   const ideaId = (await detail.getAttribute('data-idea')) ?? ''
   await detail.getByTestId('idea-act-plan').click()
+  // The sheet slides in over M29's own entrance; a chip tapped before it
+  // lands is aimed at a box the sheet has already left (run 38426256405:
+  // 40 px below where it came to rest), and the day stays the fallback.
+  await expect(page.getByTestId('m29-idea-plan')).toHaveAttribute('data-presented', 'true')
   const sheet = page.getByTestId('m29-idea-plan-body')
   await sheet.getByTestId(`m29-idea-plan-day-${day}`).click()
   await expect(sheet.getByTestId(`m29-idea-plan-day-${day}`)).toHaveAttribute(
