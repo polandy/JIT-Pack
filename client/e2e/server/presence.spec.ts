@@ -208,8 +208,9 @@ test.describe('G-10 — who else is on this trip @server @g10', () => {
     // the state recovers is what makes it a state rather than a latch.
     //
     // Armed before the block is lifted, so it cannot be satisfied by the
-    // all-in-sync frame from before Bob fell behind.
-    const aliceToldBobCaughtUp = aliceSocket.caughtUp()
+    // all-in-sync frame from before Bob fell behind. Alice and Bob both, on
+    // this trip: a frame without Bob says nothing about him.
+    const aliceToldBobCaughtUp = aliceSocket.caughtUp(tripPath.split('/').pop()!, 2)
     await bob.unroute('**/api/v1/trips/*/sync**')
     await quickAddItem(alice, third)
     // Bob rendering the row proves Bob's *pull* landed — and that is all it
