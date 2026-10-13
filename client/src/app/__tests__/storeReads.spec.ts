@@ -100,7 +100,7 @@ function fakeContext(): { ctx: SyncContext; queued: QueuedMutation[]; asked: str
       queue: (...writes) => queued.push(...writes.map((w) => ({ mutation: mutationOf(w) }))),
       drainPartitions: () => {},
       names: createNameGuards(masterStore),
-      local: null,
+      deviceHoldsEverything: false,
       today: () => '2026-06-01',
       nowIso: () => NOW_ISO,
       tripDataLoaded: () => true,

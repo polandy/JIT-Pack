@@ -55,6 +55,8 @@ import {
   clearMigrationPending,
   loadMigrationPending,
   migrationPending,
+  isLocalMode,
+  isServerMode,
   readMode,
   type ClientMode,
 } from '@/mode'
@@ -80,7 +82,7 @@ const mode = ref(readMode())
 const splashing = ref(claimGreeting())
 // FR-19.8: only the switch off Local Mode sets this, so only a server client
 // can have it to read.
-if (mode.value === 'server') loadMigrationPending()
+if (isServerMode(mode.value)) loadMigrationPending()
 
 /** Step 3 of the move: M18's restore branch, reached from the bar. */
 function restoreMigration() {
@@ -112,14 +114,14 @@ const clock = defaultNowMs
 // OIDC token lifecycle (Sync-API §2): the refresher renews the access
 // token shortly before expiry and after a 401; without stored tokens
 // (Single-User servers, Local Mode) it stays inert and hands out null.
-const refresher = mode.value === 'server' ? createAuthRefresher(serverBaseUrl(), clock) : null
+const refresher = isServerMode(mode.value) ? createAuthRefresher(serverBaseUrl(), clock) : null
 
 const orchestrator = mode.value
   ? useSyncOrchestrator({
       baseUrl: serverBaseUrl(),
       getToken: refresher ? () => refresher.freshToken() : () => loadTokens()?.access_token ?? null,
       onUnauthorized: refresher ? () => refresher.refresh() : undefined,
-      local: mode.value === 'local' ? new IndexedDBPersistence() : undefined,
+      local: isLocalMode(mode.value) ? new IndexedDBPersistence() : undefined,
       onNotification: showNotificationToast,
       onConflicts: showConflictToast,
       onRejections: showRejectionToast,
@@ -268,7 +270,7 @@ startNotificationMirror()
 onMounted(async () => {
   // Server Mode without a session: if the server offers OIDC, log in
   // first (Single-User/HS256 servers answer 501 → proceed without).
-  if (mode.value === 'server' && !loadTokens() && !window.location.pathname.startsWith('/auth/')) {
+  if (isServerMode(mode.value) && !loadTokens() && !window.location.pathname.startsWith('/auth/')) {
     try {
       const resp = await fetch(`${serverBaseUrl()}${API.authConfig}`)
       if (resp.ok) {
@@ -283,7 +285,7 @@ onMounted(async () => {
   // and no session — and a failure here is silent by design: the persisted
   // code from the last start is already applied, and losing every label
   // because a request timed out is worse than a stale three-letter code.
-  if (mode.value === 'server') {
+  if (isServerMode(mode.value)) {
     try {
       const resp = await fetch(`${serverBaseUrl()}${API.instanceConfig}`)
       if (resp.ok) {
@@ -376,7 +378,7 @@ const tripStore = useTripStore()
  * user has nobody to share a trip with (G-8).
  */
 const online = computed(() =>
-  mode.value === 'server' && identity.myUserId !== null && orchestrator
+  isServerMode(mode.value) && identity.myUserId !== null && orchestrator
     ? onlineRows(orchestrator.presence.getRoster(), identity.directory, tripStore.getTrip)
     : null,
 )
@@ -402,9 +404,9 @@ async function onSyncTap() {
   detailNow.value = clock()
   // The names in the roster come from the directory; a device that has not
   // opened a screen needing it yet has none.
-  if (orchestrator && mode.value === 'server') void identity.load(orchestrator.identity)
+  if (orchestrator && isServerMode(mode.value)) void identity.load(orchestrator.identity)
   lastExport.value = lastExportAt()
-  storage.value = mode.value === 'local' ? await readStorageStatus() : null
+  storage.value = isLocalMode(mode.value) ? await readStorageStatus() : null
   syncDetailOpen.value = true
 }
 
@@ -454,7 +456,7 @@ async function saveBackup() {
            paint or never — it cannot appear under a finger. A banner added
            here that can flip *during* a page load belongs in the layer above. -->
       <MigrationBanner
-        v-if="mode === 'server' && migrationPending"
+        v-if="isServerMode(mode) && migrationPending"
         @restore="restoreMigration"
         @skip="skipMigration"
       />
@@ -518,7 +520,7 @@ async function saveBackup() {
           :last-synced-at="syncStatus.lastSyncedAt.value"
           :online="online"
           :mode="mode"
-          :can-open-conflicts="mode === 'server' && tripId !== null"
+          :can-open-conflicts="isServerMode(mode) && tripId !== null"
           :storage="storage"
           :last-export-at="lastExport"
           :has-backup-content="hasBackupContent"

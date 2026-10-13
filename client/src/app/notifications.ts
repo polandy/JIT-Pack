@@ -16,11 +16,6 @@ import type { RestClient } from './restClient'
 export interface NotificationDeps {
   client: RestClient
   /**
-   * Whether this device has no server (Local Mode) — there are no
-   * notifications to fetch and no push to register.
-   */
-  localMode: boolean
-  /**
    * Invoked for each incoming notification, live ones
    * (`notification.created`) and unread ones found on connect. The callee
    * surfaces it (toast) and marks it read via `markNotificationRead`.
@@ -38,8 +33,23 @@ export interface NotificationActions {
   pushApi: PushServerAPI
 }
 
+/** Local Mode's answer: no notifications to fetch and no push to register. */
+export const NO_NOTIFICATION_ACTIONS: NotificationActions = {
+  surfaceUnread: async () => {},
+  markNotificationRead: async () => {},
+  fetchNotificationPrefs: async () => null,
+  saveNotificationPrefs: async () => {},
+  pushApi: {
+    getVapidKey: async () => {
+      throw new Error('Local Mode has no push service')
+    },
+    registerSubscription: async () => {},
+    unregisterSubscription: async () => {},
+  },
+}
+
 export function createNotificationActions(deps: NotificationDeps): NotificationActions {
-  const { client, localMode, onNotification } = deps
+  const { client, onNotification } = deps
 
   // Guards against surfacing the same notification twice when several
   // notification.created pings arrive before the first fetch settles.
@@ -47,7 +57,7 @@ export function createNotificationActions(deps: NotificationDeps): NotificationA
 
   return {
     async surfaceUnread() {
-      if (localMode || !onNotification) return
+      if (!onNotification) return
       try {
         const resp = await client.get<NotificationListResponse>(API.notifications, {
           unread: '1',

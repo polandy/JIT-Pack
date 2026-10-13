@@ -1,6 +1,6 @@
 import type { NavigationGuardWithThis } from 'vue-router'
 
-import { readMode } from '@/mode'
+import { isServerMode } from '@/mode'
 
 import { backTarget } from './backTarget'
 
@@ -12,4 +12,4 @@ import { backTarget } from './backTarget'
  * screen whose ⋮ would have held the entry.
  */
 export const serverOnly: NavigationGuardWithThis<undefined> = (to) =>
-  readMode() === 'server' || (backTarget(to) ?? false)
+  isServerMode() || (backTarget(to) ?? false)

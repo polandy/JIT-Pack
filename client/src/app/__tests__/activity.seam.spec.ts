@@ -6,12 +6,13 @@
 import { describe, it, expect } from 'vitest'
 
 import { API } from '@/api/routes'
-import { createActivityActions } from '../activity'
+import { createActivityActions, NO_ACTIVITY_ACTIONS } from '../activity'
 import { stubClient } from './restClientStub'
 
 function actions(localMode = false) {
   const client = stubClient()
-  return { client, activity: createActivityActions({ client, localMode }) }
+  const activity = localMode ? NO_ACTIVITY_ACTIONS : createActivityActions({ client })
+  return { client, activity }
 }
 
 describe('the activity log at the seam (FR-32.3)', () => {

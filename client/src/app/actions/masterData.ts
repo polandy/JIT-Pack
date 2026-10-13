@@ -119,7 +119,8 @@ export interface BulkAssigneeResult {
 
 /** createMasterDataActions binds the master-data group to one sync context. */
 export function createMasterDataActions(ctx: SyncContext) {
-  const { mutations, write, masterStore, tripStore, knownTripItems, names, local } = ctx
+  const { mutations, write, masterStore, tripStore, knownTripItems, names, deviceHoldsEverything } =
+    ctx
 
   /**
    * Create a tag by typing its name (FR-24.1), optionally with its mark
@@ -517,7 +518,7 @@ export function createMasterDataActions(ctx: SyncContext) {
 
   function outlookOf(references: number): DeletionOutlook {
     const kind = deletionKind(references)
-    return { kind, references, certain: kind === DELETION_RETIRE || local !== null }
+    return { kind, references, certain: kind === DELETION_RETIRE || deviceHoldsEverything }
   }
 
   /**

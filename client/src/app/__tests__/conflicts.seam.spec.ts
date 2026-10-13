@@ -7,7 +7,7 @@
 import { describe, it, expect, vi } from 'vitest'
 
 import { API } from '@/api/routes'
-import { createConflictActions } from '../conflicts'
+import { createConflictActions, NO_CONFLICT_ACTIONS } from '../conflicts'
 import { stubClient } from './restClientStub'
 
 function actions(localMode = false) {
@@ -18,7 +18,9 @@ function actions(localMode = false) {
     client,
     drainTrip,
     drainMaster,
-    conflicts: createConflictActions({ client, localMode, drainTrip, drainMaster }),
+    conflicts: localMode
+      ? NO_CONFLICT_ACTIONS
+      : createConflictActions({ client, drainTrip, drainMaster }),
   }
 }
 

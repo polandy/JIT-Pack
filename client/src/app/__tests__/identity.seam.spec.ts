@@ -6,7 +6,7 @@
 import { describe, it, expect, vi } from 'vitest'
 
 import { API } from '@/api/routes'
-import { createIdentityActions, type IdentityActions } from '../identity'
+import { createIdentityActions, NO_IDENTITY_ACTIONS, type IdentityActions } from '../identity'
 import type { IdentitySource } from '@/stores/identityStore'
 import { stubClient } from './restClientStub'
 
@@ -16,11 +16,9 @@ function actions(localMode = false) {
   return {
     client,
     refresh,
-    identity: createIdentityActions({
-      client,
-      localMode,
-      identityCache: () => ({ refresh }),
-    }),
+    identity: localMode
+      ? NO_IDENTITY_ACTIONS
+      : createIdentityActions({ client, identityCache: () => ({ refresh }) }),
   }
 }
 
@@ -155,6 +153,11 @@ describe('Local Mode has no accounts to administer', () => {
     ['saveDisplayName', (i) => i.saveDisplayName('user-b', 'Béatrice')],
     ['uploadAvatar', (i) => i.uploadAvatar('user-b', new Blob())],
     ['downloadExport', (i) => i.downloadExport(API.meExport)],
+    ['fetchAdminUsers', (i) => i.fetchAdminUsers()],
+    ['deactivateUser', (i) => i.deactivateUser('user-b')],
+    ['reactivateUser', (i) => i.reactivateUser('user-b')],
+    ['adminResetAvatar', (i) => i.adminResetAvatar('user-b')],
+    ['adminResetDisplayName', (i) => i.adminResetDisplayName('user-b')],
   ]
 
   for (const [name, act] of cases) {

@@ -41,7 +41,7 @@ import { addOutline, closeOutline, personOutline } from 'ionicons/icons'
 import { computed, onMounted, ref } from 'vue'
 
 import { loadTokens } from '@/auth/tokens'
-import { hasCollaborativeSession, readMode } from '@/mode'
+import { hasCollaborativeSession, isLocalMode, isServerMode, readMode } from '@/mode'
 import { serverBaseUrl } from '@/config'
 import { isValidDisplayName } from '@/domain/displayName'
 import { useMasterStore } from '@/stores/masterStore'
@@ -69,14 +69,14 @@ const mode = readMode()
  * The display name is IdP-sourced with an OIDC session, so editing it there
  * would be editing a copy (FR-17.13).
  */
-const nameEditable = mode === 'server' && !loadTokens()
+const nameEditable = isServerMode(mode) && !loadTokens()
 /**
  * The picture is not: no identity provider supplies one, so a read-only
  * profile in Server Mode means the picture can never exist in the mode a
  * multi-user instance actually runs in. Editable wherever there is a server
  * identity at all — Local Mode has none (FR-17.13).
  */
-const pictureEditable = mode === 'server'
+const pictureEditable = isServerMode(mode)
 /** Multi-user instance → notifications exist (FR-17.3/FR-19.3 hide them otherwise). */
 const collaborative = hasCollaborativeSession()
 
@@ -86,7 +86,7 @@ const collaborative = hasCollaborativeSession()
  * there too, with only the rows that can happen to one person alone, and the
  * push toggle the reminder needs to reach a closed app.
  */
-const notifiable = mode === 'server'
+const notifiable = isServerMode(mode)
 
 const nameDraft = ref('')
 const nameSaved = ref(false)
@@ -199,7 +199,7 @@ const retiredCount = computed(
 )
 
 const modeText = computed(() =>
-  mode === 'local' ? t('settings.modeLocal') : t('settings.modeServer', { url: serverBaseUrl() }),
+  isLocalMode(mode) ? t('settings.modeLocal') : t('settings.modeServer', { url: serverBaseUrl() }),
 )
 
 // Build-time constants (vite.config.ts's `define`, git describe/rev-parse or
@@ -226,7 +226,7 @@ const appVersionText = computed(() =>
 const instanceUpdate = ref<InstanceUpdateResponse | null>(null)
 
 async function loadInstanceUpdate() {
-  if (mode !== 'server') return
+  if (!isServerMode(mode)) return
   try {
     const resp = await fetch(`${serverBaseUrl()}${API.instanceUpdate}`)
     if (resp.ok) instanceUpdate.value = await resp.json()
@@ -257,7 +257,7 @@ onIonViewWillEnter(() => dataSection.value?.refreshReminder())
     <IonContent class="ion-padding">
       <!-- Profile (FR-17.13) -->
       <SectionHead :title="t('settings.profile')" data-testid="settings-section-profile" />
-      <template v-if="mode === 'local'">
+      <template v-if="isLocalMode(mode)">
         <IonNote>{{ t('settings.profileLocalNote') }}</IonNote>
       </template>
       <template v-else-if="me">
@@ -485,7 +485,7 @@ onIonViewWillEnter(() => dataSection.value?.refreshReminder())
       <IonNote>{{ t('settings.conflictLogNote') }}</IonNote>
 
       <!-- FR-19.9: Server Mode only (G-8). -->
-      <SettingsConnectionSection v-if="mode === 'server'" />
+      <SettingsConnectionSection v-if="isServerMode(mode)" />
 
       <!-- App info -->
       <SectionHead :title="t('settings.about')" data-testid="settings-section-about" />

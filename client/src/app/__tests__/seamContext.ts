@@ -11,7 +11,6 @@ import { createNameGuards } from '../names'
 import { knownTripItemsOf } from '../context'
 import type { QueuedMutation, SyncContext } from '../context'
 import type { PullChange } from '@/api/types'
-import type { IndexedDBPersistence } from '@/local/persistence'
 import { createMutations } from '@/sync/mutations'
 import { HLCGenerator } from '@/sync/hlc'
 import { useMasterStore } from '@/stores/masterStore'
@@ -35,9 +34,8 @@ export interface Recorded {
  * makeSeamContext builds the context and the log its write funnel
  * records to. Pinia must already be active.
  *
- * `local` decides the mode the group is asked in: null is Server Mode, any
- * store is Local Mode. It is only ever compared against null by the groups,
- * so a spec that needs Local Mode passes an empty stand-in.
+ * `deviceHoldsEverything` decides the mode the group is asked in: false (the
+ * default) is Server Mode, true is Local Mode.
  *
  * `today` and `tripDataLoaded` default to the two answers a group is normally
  * asked under — a fixed date, and rows that are on the device. A spec that is
@@ -68,7 +66,7 @@ export type SeamContext = SyncContext & {
 
 export function makeSeamContext(
   opts: {
-    local?: IndexedDBPersistence | null
+    deviceHoldsEverything?: boolean
     today?: string
     tripDataLoaded?: (tripId: string) => boolean
   } = {},
@@ -130,7 +128,7 @@ export function makeSeamContext(
       drains.push([...tripIds])
     },
     names: createNameGuards(masterStore),
-    local: opts.local ?? null,
+    deviceHoldsEverything: opts.deviceHoldsEverything ?? false,
     today: () => opts.today ?? SEAM_TODAY,
     nowIso: () => SEAM_NOW_ISO,
     tripDataLoaded: opts.tripDataLoaded ?? (() => true),

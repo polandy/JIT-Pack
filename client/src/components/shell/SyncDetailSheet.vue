@@ -35,6 +35,7 @@ import { SYNC_GLYPHS } from './syncGlyphs'
 import type { RequestFailure } from '@/sync/apiClient'
 import { intlLocale, formatNumber, t } from '@/i18n'
 import { reminderState } from '@/local/exportReminder'
+import { isLocalMode } from '@/mode'
 import { evictionRisk, type StorageStatus } from '@/local/storageStatus'
 import { rejectionReasonKey } from '@/sync/rejectionReasons'
 import { SYNC_EXPLAIN_KEYS, SYNC_LABEL_KEYS, type SyncState } from '@/composables/useSyncStatus'
@@ -138,7 +139,7 @@ const emit = defineEmits<{
   openTrip: [tripId: string]
 }>()
 
-const isLocal = computed(() => props.mode === 'local')
+const isLocal = computed(() => isLocalMode(props.mode))
 
 const title = computed(() => t(SYNC_LABEL_KEYS[props.state]))
 const explanation = computed(() => t(SYNC_EXPLAIN_KEYS[props.state]))

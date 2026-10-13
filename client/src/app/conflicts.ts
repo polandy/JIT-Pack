@@ -13,11 +13,6 @@ import type { RestClient } from './restClient'
 
 export interface ConflictDeps {
   client: RestClient
-  /**
-   * Whether this device has no server (Local Mode). It has one writer and
-   * therefore no conflicts at all (FR-19.6) — not an empty log, no log.
-   */
-  localMode: boolean
   /** Pull the partition the revert was written into, so the row arrives. */
   drainTrip(tripId: string): Promise<void>
   drainMaster(): Promise<void>
@@ -42,24 +37,31 @@ export interface ConflictActions {
   revertConflict(conflictId: string, tripId?: string): Promise<void>
 }
 
+/**
+ * Local Mode's answer: one writer, so no conflicts at all (FR-19.6) — not an
+ * empty log, no log.
+ */
+export const NO_CONFLICT_ACTIONS: ConflictActions = {
+  fetchConflicts: async () => [],
+  fetchMasterConflicts: async () => [],
+  revertConflict: async () => {},
+}
+
 export function createConflictActions(deps: ConflictDeps): ConflictActions {
-  const { client, localMode, drainTrip, drainMaster } = deps
+  const { client, drainTrip, drainMaster } = deps
 
   return {
     async fetchConflicts(tripId) {
-      if (localMode) return []
       const resp = await client.get<ConflictListResponse>(API.tripConflicts(tripId), {})
       return resp.conflicts
     },
 
     async fetchMasterConflicts() {
-      if (localMode) return []
       const resp = await client.get<ConflictListResponse>(API.masterConflicts, {})
       return resp.conflicts
     },
 
     async revertConflict(conflictId, tripId) {
-      if (localMode) return
       if (tripId !== undefined) {
         await client.post(API.tripConflictRevert(tripId, conflictId))
         await drainTrip(tripId)

@@ -42,6 +42,20 @@ export function readMode(): ClientMode | null {
 }
 
 /**
+ * Whether a server answers: the one place a view or a route asks the mode
+ * question, so no caller compares the raw `'server'` string (§4a). Defaults
+ * to the stored mode; App.vue's reactive copy passes its own.
+ */
+export function isServerMode(mode: ClientMode | null = readMode()): boolean {
+  return mode === 'server'
+}
+
+/** Whether this device runs without a server: Local Mode, once M19 has been answered. */
+export function isLocalMode(mode: ClientMode | null = readMode()): boolean {
+  return mode === 'local'
+}
+
+/**
  * Persists the M19 choice. A `server` choice carries its URL; a `local` one
  * leaves whatever URL was stored, since nothing reads it in Local Mode. The
  * caller reloads afterwards — the orchestrator is built once per app start.
@@ -129,7 +143,7 @@ export function deviceId(): string {
  * delegation and takeover per G-8 (FR-17.3, FR-19.3).
  */
 export function hasCollaborativeSession(): boolean {
-  return readMode() === 'server' && loadTokens() !== null
+  return isServerMode() && loadTokens() !== null
 }
 
 /**
