@@ -116,10 +116,16 @@ test.describe('Aktivität (M30) @server @m30', () => {
   test("E2E-M30-02: another account's new inventory item is in the inventory's activity", async ({
     browser,
   }) => {
-    const item = `Kompass-${uniq()}`
+    const id = uniq()
+    const item = `Kompass-${id}`
     const ctxAlice = await browser.newContext()
     const alice = await loginAs(ctxAlice, 'alice')
     await createMasterItem(alice, item)
+    // The log folds Alice's consecutive adds into one line that names three —
+    // what any other case of hers writing meanwhile does to this item by luck.
+    for (const follower of ['Seil', 'Pickel', 'Steigeisen']) {
+      await createMasterItem(alice, `${follower}-${id}`)
+    }
 
     const ctxBob = await browser.newContext()
     const bob = await loginAs(ctxBob, 'bob')
@@ -128,9 +134,22 @@ test.describe('Aktivität (M30) @server @m30', () => {
     await bob.locator('ion-action-sheet').getByTestId('m9-activity').click()
 
     await expect(bob.getByTestId('header-title')).toHaveText('Activity · inventory')
-    const row = visiblePage(bob)
-      .getByTestId('activity-row')
-      .filter({ has: bob.getByTestId('activity-title').getByText(item) })
+    const page = visiblePage(bob)
+    await expect(page.getByTestId('activity-row').first()).toBeVisible()
+    const folded = page.locator('[data-testid="activity-row"][aria-expanded="false"]')
+    while ((await folded.count()) > 0) await folded.first().click()
+
+    // The item is either a line of its own or one part of a folded run; the
+    // run's row is the one just above its parts.
+    const alone = page
+      .getByTestId('activity-title')
+      .getByText(item)
+      .locator('xpath=ancestor::ion-item[@data-testid="activity-row"]')
+    const part = page
+      .getByTestId('activity-member')
+      .getByText(item)
+      .locator('xpath=preceding::ion-item[@data-testid="activity-row"][1]')
+    const row = alone.or(part)
     await expect(row).toHaveAttribute('data-kind', 'added')
     await expect(row.getByTestId('activity-meta')).toContainText(ACCOUNT_NAMES.alice)
 
