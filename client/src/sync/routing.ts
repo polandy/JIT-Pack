@@ -13,37 +13,16 @@
  * funnel, which routed by partition until a group started painting rows of
  * both (`tripLifecycle.deleteTrip`, C-3a).
  */
-import { TABLE, TABLE_PARTITION, type SyncTable } from '@/api/tables'
+import { TABLE_PARTITION, type SyncTable } from '@/api/tables'
 import type { PartitionType } from './partition'
 import { KERNEL_TABLE_SPECS, type StoreOwner, type TableSpec } from './tableRegistry'
 
-/** Every syncable table. */
-export const ALL_SYNC_TABLES: readonly SyncTable[] = Object.values(TABLE)
-
 const KERNEL_SPECS: Partial<Record<SyncTable, TableSpec>> = KERNEL_TABLE_SPECS
-
-function tablesOwnedBy(owner: StoreOwner): ReadonlySet<string> {
-  return new Set<string>(ALL_SYNC_TABLES.filter((t) => ownerOf(t) === owner))
-}
 
 /** A kernel table's store, and `feature` for every table the kernel does not specify. */
 function ownerOf(table: SyncTable): StoreOwner {
   return KERNEL_SPECS[table]?.owner ?? 'feature'
 }
-
-/** The tables `useTripStore` holds. */
-export const TRIP_STORE_TABLES = tablesOwnedBy('trip')
-
-/** The tables `useMasterStore` holds. */
-export const MASTER_STORE_TABLES = tablesOwnedBy('master')
-
-/**
- * The tables a feature module's own store holds (FR-30.3, ADR-066). The
- * *store* holding the rows is the module's, and reaches the orchestrator as
- * a `FeatureStore` (`sync/featureModule.ts`) through the composition root,
- * never by an import from this side.
- */
-export const FEATURE_STORE_TABLES = tablesOwnedBy('feature')
 
 function isSyncTable(table: string): table is SyncTable {
   return Object.hasOwn(TABLE_PARTITION, table)

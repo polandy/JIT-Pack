@@ -4,32 +4,15 @@
  * These are the assertions that would have to fail instead.
  */
 import { describe, it, expect } from 'vitest'
-import {
-  ALL_SYNC_TABLES,
-  FEATURE_STORE_TABLES,
-  MASTER_STORE_TABLES,
-  TRIP_STORE_TABLES,
-  partitionOf,
-  storeFor,
-} from '../routing'
+import { partitionOf, storeFor } from '../routing'
 import { TABLE, type SyncTable } from '@/api/tables'
+
+const ALL_SYNC_TABLES: readonly SyncTable[] = Object.values(TABLE)
 
 describe('pull routing', () => {
   it('routes every syncable table to exactly one store', () => {
     const unrouted = ALL_SYNC_TABLES.filter((t) => storeFor(t) === null)
     expect(unrouted).toEqual([])
-
-    const sets = [TRIP_STORE_TABLES, MASTER_STORE_TABLES, FEATURE_STORE_TABLES]
-    const twice = ALL_SYNC_TABLES.filter((t) => sets.filter((set) => set.has(t)).length > 1)
-    expect(twice).toEqual([])
-  })
-
-  it('names no table that is not syncable', () => {
-    const known = new Set<string>(ALL_SYNC_TABLES)
-    const strays = [...TRIP_STORE_TABLES, ...MASTER_STORE_TABLES, ...FEATURE_STORE_TABLES].filter(
-      (t) => !known.has(t),
-    )
-    expect(strays).toEqual([])
   })
 
   it('routes the master partition per-trip tables to the trip store (spec P-3)', () => {

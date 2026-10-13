@@ -13,7 +13,7 @@ import { TABLE } from '@/api/tables'
 import { mealsModule } from '@/meals'
 import { plannerModule } from '@/planner'
 import { shoppingModule } from '@/shopping'
-import { FEATURE_STORE_TABLES } from '@/sync/routing'
+import { storeFor } from '@/sync/routing'
 import { KERNEL_TABLE_SPECS } from '@/sync/tableRegistry'
 
 const kernelTables = Object.keys(KERNEL_TABLE_SPECS)
@@ -29,7 +29,9 @@ describe('the composed table specs (ADR-066 amendment 2)', () => {
   })
 
   it('route to a feature store exactly the tables a module specifies', () => {
-    expect(new Set(moduleTables)).toEqual(FEATURE_STORE_TABLES)
+    expect(new Set(moduleTables)).toEqual(
+      new Set(Object.values(TABLE).filter((t) => storeFor(t) === 'feature')),
+    )
   })
 
   it.each([
