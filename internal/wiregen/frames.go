@@ -55,10 +55,13 @@ func (u frameUnions) allWritten() error {
 	return nil
 }
 
+// enumConst is one typed string constant: the enum it belongs to and its value.
+type enumConst struct{ enum, value string }
+
 // collectFrameUnions reads every `…Payloads` table. A table must name every
 // value of its enum, and only those: a frame type without a declared payload
 // is exactly the loose end the union exists to close.
-func collectFrameUnions(files []*ast.File, enums map[string][]string, consts map[string]string) (frameUnions, error) {
+func collectFrameUnions(files []*ast.File, enums map[string][]string, consts map[string]enumConst) (frameUnions, error) {
 	out := frameUnions{}
 	for _, file := range files {
 		for _, decl := range file.Decls {
@@ -86,7 +89,7 @@ func collectFrameUnions(files []*ast.File, enums map[string][]string, consts map
 	return out, nil
 }
 
-func readFrameTable(name string, value ast.Expr, enums map[string][]string, consts map[string]string) (*frameUnion, error) {
+func readFrameTable(name string, value ast.Expr, enums map[string][]string, consts map[string]enumConst) (*frameUnion, error) {
 	lit, ok := value.(*ast.CompositeLit)
 	if !ok {
 		return nil, fmt.Errorf("%s: want a map literal", name)
@@ -109,15 +112,15 @@ func readFrameTable(name string, value ast.Expr, enums map[string][]string, cons
 		if !ok {
 			return nil, fmt.Errorf("%s: a key must be one of %s's constants", name, enum.Name)
 		}
-		v, known := consts[key.Name]
-		if !known {
+		c, known := consts[key.Name]
+		if !known || c.enum != enum.Name {
 			return nil, fmt.Errorf("%s: %s is not a constant of %s", name, key.Name, enum.Name)
 		}
 		payload, err := payloadType(kv.Value)
 		if err != nil {
 			return nil, fmt.Errorf("%s[%s]: %w", name, key.Name, err)
 		}
-		fu.payloads[v] = payload
+		fu.payloads[c.value] = payload
 	}
 	for _, v := range enums[enum.Name] {
 		if _, ok := fu.payloads[v]; !ok {

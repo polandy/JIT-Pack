@@ -62,7 +62,7 @@ func GenerateFiles(sources []Source) (string, error) {
 	}
 
 	enums := map[string][]string{}
-	consts := map[string]string{}
+	consts := map[string]enumConst{}
 	for _, file := range files {
 		collectEnums(file, enums, consts)
 	}
@@ -119,9 +119,9 @@ func writeHeader(b *strings.Builder, filenames []string) {
 // collectEnums maps a named string type to the constant values declared for it,
 // in source order — the order is part of the emitted union and must not depend
 // on map iteration.
-// consts receives each typed string constant's value by name, so a table keyed
-// by the constants can be read back as values.
-func collectEnums(file *ast.File, enums map[string][]string, consts map[string]string) {
+// consts receives each typed string constant's type and value by name, so a
+// table keyed by the constants can be read back as values of its own enum.
+func collectEnums(file *ast.File, enums map[string][]string, consts map[string]enumConst) {
 	for _, decl := range file.Decls {
 		gen, ok := decl.(*ast.GenDecl)
 		if !ok || gen.Tok != token.CONST {
@@ -146,7 +146,7 @@ func collectEnums(file *ast.File, enums map[string][]string, consts map[string]s
 			}
 			enums[typeName.Name] = append(enums[typeName.Name], value)
 			if len(vs.Names) == 1 {
-				consts[vs.Names[0].Name] = value
+				consts[vs.Names[0].Name] = enumConst{enum: typeName.Name, value: value}
 			}
 		}
 	}
