@@ -72,12 +72,19 @@ The write path is the `SyncBackend` port, selected once by the orchestrator; a s
 - Local Mode cannot reach a socket or an outbox by construction, not by guard.
 
 **Negative / accepted costs**
-- The two image-store paths (`app/images.ts`, `ideaImages.ts`, `trackFiles.ts`) still branch on `local: ImageStore |
-  null`; that is the next port (ARCH-14c).
 - `orchestrator.outbox` is `SyncOutbox | null`.
 
 **Neutral**
 - Single-User Mode is the server backend with no tokens, as before.
+
+## Addendum — the bytes outside the envelope (ARCH-14c)
+
+Item photos, idea pictures and GPX files (ADR-002) are not in `SyncBackend`: its verbs are the envelope's, and a
+blob verb there would put the bytes back on the path they were kept off. They get a sibling, `app/blobBackend.ts`,
+which picks a Local or a Server factory per group once (`createLocal*`/`createServer*` in `images.ts`,
+`ideaImages.ts`, `trackFiles.ts`), behind the existing `ImageActions`, `IdeaPictures` and `TrackFiles`. A primitive
+store port was rejected: the row write (a funnel change with a local hash against an upload and a drain) differs per
+mode too, so the guards would only have moved. No behaviour changes.
 
 ## Revisit Trigger
 

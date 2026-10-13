@@ -11,7 +11,13 @@ import { API } from '@/api/routes'
 import type { TrackUpload, PullChange } from '@/api/types'
 import type { IdeaTrack } from '@/types/domain'
 import { TABLE } from '@/api/tables'
-import { createExcursionTracks, createIdeaTracks, GPX_TYPE } from '../trackFiles'
+import {
+  createLocalExcursionTracks,
+  createLocalIdeaTracks,
+  createServerExcursionTracks,
+  createServerIdeaTracks,
+  GPX_TYPE,
+} from '../trackFiles'
 import type { ImageStore } from '../images'
 import { hashBlob } from '@/sync/rows'
 import { stubClient } from './restClientStub'
@@ -68,6 +74,7 @@ function tracks(local: ImageStore | null) {
   const applied: PullChange[] = []
   const drainTrip = vi.fn((_tripId: string) => Promise.resolve())
   const order: string[] = []
+  const applyChanges = (changes: PullChange[]) => void applied.push(...changes)
   const whenSent = vi.fn((_tripId: string) => {
     order.push('whenSent')
     return Promise.resolve()
@@ -78,13 +85,9 @@ function tracks(local: ImageStore | null) {
     drainTrip,
     whenSent,
     order,
-    files: createIdeaTracks({
-      client,
-      local,
-      applyChanges: (changes) => void applied.push(...changes),
-      drainTrip,
-      whenSent,
-    }),
+    files: local
+      ? createLocalIdeaTracks({ store: local, applyChanges })
+      : createServerIdeaTracks({ client, drainTrip, whenSent }),
   }
 }
 
@@ -210,15 +213,16 @@ describe('an excursion’s track — FR-31.15', () => {
   const EXCURSION_PLACE = { id: 'et-1', trip_id: 'trip-1', excursion_id: 'exc-1', position: 0 }
   const deps = (client: ReturnType<typeof stubClient>, local: ImageStore | null) => {
     const applied: PullChange[] = []
+    const applyChanges = (changes: PullChange[]) => void applied.push(...changes)
     return {
       applied,
-      files: createExcursionTracks({
-        client,
-        local,
-        applyChanges: (changes) => void applied.push(...changes),
-        drainTrip: () => Promise.resolve(),
-        whenSent: () => Promise.resolve(),
-      }),
+      files: local
+        ? createLocalExcursionTracks({ store: local, applyChanges })
+        : createServerExcursionTracks({
+            client,
+            drainTrip: () => Promise.resolve(),
+            whenSent: () => Promise.resolve(),
+          }),
     }
   }
 

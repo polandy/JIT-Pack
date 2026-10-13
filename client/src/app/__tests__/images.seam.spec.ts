@@ -9,7 +9,7 @@ import { describe, it, expect, vi } from 'vitest'
 
 import { API } from '@/api/routes'
 import { TABLE } from '@/api/tables'
-import { createImageActions, type ImageStore } from '../images'
+import { createLocalImageActions, createServerImageActions, type ImageStore } from '../images'
 import { stubClient } from './restClientStub'
 import type { PullChange } from '@/api/types'
 import type { MasterItem } from '@/types/domain'
@@ -39,20 +39,17 @@ function actions(local: ImageStore | null) {
   const client = stubClient()
   const applied: PullChange[] = []
   const drainMaster = vi.fn(() => Promise.resolve())
+  const applyChanges = (changes: PullChange[]) => void applied.push(...changes)
+  // The source is never read here: what the optimizer does is
+  // `lib/imageResize`'s promise, that it runs first is this group's.
+  const optimize = () => Promise.resolve(JPEG)
   return {
     client,
     applied,
     drainMaster,
-    images: createImageActions({
-      client,
-      local,
-      baseUrl: 'http://localhost',
-      applyChanges: (changes) => void applied.push(...changes),
-      drainMaster,
-      // The source is never read here: what the optimizer does is
-      // `lib/imageResize`'s promise, that it runs first is this group's.
-      optimize: () => Promise.resolve(JPEG),
-    }),
+    images: local
+      ? createLocalImageActions({ store: local, applyChanges, optimize })
+      : createServerImageActions({ client, baseUrl: 'http://localhost', drainMaster, optimize }),
   }
 }
 
