@@ -106,21 +106,26 @@ export function watchSubscribed(page: Page): Promise<void> {
 }
 
 /**
- * A presence frame in which every connected device reports the head.
+ * A presence frame of `tripId` listing `people` users, every one at the head.
  *
  * Parsed rather than matched as a substring: `"in_sync":false` and
  * `"in_sync": false` are the same fact and a different string, and a frame
  * that merely *mentions* presence proves nothing about who is behind.
+ *
+ * The trip and the head count are part of the fact. A socket follows every
+ * active trip its dashboard listed, so other trips' frames arrive on it too;
+ * and when a device's connection drops, the server's next frame lists
+ * everyone *but* that person — all in sync, and about nobody the wait was for.
  */
-function everyoneInSync(payload: string): boolean {
+function everyoneInSync(payload: string, tripId: string, people: number): boolean {
   try {
     const frame = JSON.parse(payload) as {
       type?: string
-      payload?: { users?: { in_sync?: boolean }[] }
+      payload?: { trip_id?: string; users?: { in_sync?: boolean }[] }
     }
-    if (frame.type !== 'presence') return false
-    const users = frame.payload?.users
-    return Array.isArray(users) && users.length > 0 && users.every((u) => u.in_sync === true)
+    if (frame.type !== 'presence' || frame.payload?.trip_id !== tripId) return false
+    const users = frame.payload.users
+    return Array.isArray(users) && users.length === people && users.every((u) => u.in_sync === true)
   } catch {
     return false
   }
@@ -128,8 +133,8 @@ function everyoneInSync(payload: string): boolean {
 
 /** What {@link trackSocket} hands back: a wait armed at a point in time. */
 export interface SocketWatch {
-  /** Resolves on the next presence frame reporting every device at the head. */
-  caughtUp(): Promise<void>
+  /** Resolves on the next presence frame of `tripId` with all `people` users at the head. */
+  caughtUp(tripId: string, people: number): Promise<void>
 }
 
 /**
@@ -165,10 +170,10 @@ export function trackSocket(page: Page): SocketWatch {
   })
 
   return {
-    async caughtUp() {
+    async caughtUp(tripId, people) {
       const ws = current ?? (await first)
       await ws.waitForEvent('framereceived', {
-        predicate: (frame) => everyoneInSync(String(frame.payload)),
+        predicate: (frame) => everyoneInSync(String(frame.payload), tripId, people),
       })
     },
   }
