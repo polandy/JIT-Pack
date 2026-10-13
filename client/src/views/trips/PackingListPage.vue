@@ -70,7 +70,7 @@ import SheetModal from '@/components/global/SheetModal.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import { SWITCH_KEYS, onlyOthersHidden as isOnlyOthersHidden } from '@/lib/packingFilterPanel'
-import { isServerMode } from '@/mode'
+import { capabilitiesOf } from '@/mode'
 import { presentToast } from '@/composables/shared/toast'
 import { setHeaderActions, type HeaderAction } from '@/composables/shared/useHeaderActions'
 import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
@@ -462,7 +462,7 @@ setHeaderActions(() => {
   // act, last because it is the rarest — and here, on the trip's home, rather
   // than on every view: the other views keep a ⋮ only for their own context
   // (ADR-051 amendment 2). Only where a server recorded a log (G-8).
-  if (isServerMode()) {
+  if (capabilitiesOf().activityLog) {
     items.push({
       id: 'm4-activity',
       icon: timeOutline,

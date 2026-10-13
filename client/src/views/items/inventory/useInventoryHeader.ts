@@ -10,7 +10,7 @@ import { setHeaderActions, type HeaderAction } from '@/composables/shared/useHea
 import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
 import { offerSelection } from '@/composables/shared/useRowSelection'
 import { t } from '@/i18n'
-import { isServerMode } from '@/mode'
+import { capabilitiesOf } from '@/mode'
 import { PATH } from '@/router/paths'
 import { useMasterStore } from '@/stores/masterStore'
 
@@ -63,7 +63,7 @@ export function useInventoryHeader(core: InventoryCore) {
      * FR-32.2. Who changed the inventory. Only where a server recorded it:
      * Local Mode has no log to show (G-8).
      */
-    const activity: HeaderAction[] = isServerMode()
+    const activity: HeaderAction[] = capabilitiesOf().activityLog
       ? [
           {
             id: 'm9-activity',
