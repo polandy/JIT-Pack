@@ -32,8 +32,6 @@ export interface IdentityCache {
 
 export interface IdentityDeps {
   client: RestClient
-  /** Whether this device has no server (Local Mode): no accounts, no admin. */
-  localMode: boolean
   /**
    * Read lazily, because the pinia store behind it in the app does not exist
    * until a pinia is active.
@@ -69,11 +67,25 @@ export interface IdentityActions {
   downloadExport(path: string): Promise<Blob | null>
 }
 
+/** Local Mode's answer: no accounts and no admin, so nothing is read and nothing written. */
+export const NO_IDENTITY_ACTIONS: IdentityActions = {
+  fetchMe: async () => null,
+  fetchUsers: async () => [],
+  fetchAdminUsers: async () => [],
+  deactivateUser: async () => {},
+  reactivateUser: async () => {},
+  adminResetAvatar: async () => {},
+  adminResetDisplayName: async () => {},
+  createAPIToken: async () => null,
+  saveDisplayName: async () => {},
+  uploadAvatar: async () => {},
+  downloadExport: async () => null,
+}
+
 export function createIdentityActions(deps: IdentityDeps): IdentityActions {
-  const { client, localMode, identityCache } = deps
+  const { client, identityCache } = deps
 
   async function fetchMe(): Promise<MeResponse | null> {
-    if (localMode) return null
     try {
       return await client.get<MeResponse>(API.me, {})
     } catch {
@@ -82,7 +94,6 @@ export function createIdentityActions(deps: IdentityDeps): IdentityActions {
   }
 
   async function fetchUsers(): Promise<DirectoryUser[]> {
-    if (localMode) return []
     try {
       const resp = await client.get<UserListResponse>(API.users, {})
       return resp.users ?? []
@@ -102,7 +113,6 @@ export function createIdentityActions(deps: IdentityDeps): IdentityActions {
    * by URL with a cache-busting version, and the directory carries no image.
    */
   function refreshIdentity(): Promise<void> {
-    if (localMode) return Promise.resolve()
     return identityCache().refresh({ fetchUsers, fetchMe })
   }
 
@@ -135,23 +145,19 @@ export function createIdentityActions(deps: IdentityDeps): IdentityActions {
     },
 
     async createAPIToken(name, expiry) {
-      if (localMode) return null
       return client.post<APITokenResponse>(API.meTokens, { name, expiry })
     },
 
     async saveDisplayName(userId, name) {
-      if (localMode) return
       await client.put(API.userDisplayName(userId), { display_name: name })
       await refreshIdentity()
     },
 
     async uploadAvatar(userId, jpeg) {
-      if (localMode) return
       await client.putRaw(API.userAvatar(userId), jpeg, 'image/jpeg')
     },
 
     async downloadExport(path) {
-      if (localMode) return null
       return client.getBlob(path)
     },
   }

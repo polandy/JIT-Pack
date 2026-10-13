@@ -18,6 +18,8 @@ import {
   hasCollaborativeSession,
   isValidServerUrl,
   readMode,
+  isServerMode,
+  isLocalMode,
 } from '@/mode'
 
 /**
@@ -40,6 +42,38 @@ describe('readMode', () => {
   it('treats a value that is neither mode as unanswered rather than trusting the cast', () => {
     localStorage.setItem(MODE_KEY, 'demo')
     expect(readMode()).toBeNull()
+  })
+})
+
+describe('isServerMode (FR-19.1)', () => {
+  beforeEach(() => localStorage.clear())
+
+  it('is true only where the persisted mode is server', () => {
+    expect(isServerMode()).toBe(false)
+    localStorage.setItem(MODE_KEY, 'local')
+    expect(isServerMode()).toBe(false)
+    localStorage.setItem(MODE_KEY, 'server')
+    expect(isServerMode()).toBe(true)
+  })
+
+  it('answers for a mode handed in, as App.vue holds it', () => {
+    localStorage.setItem(MODE_KEY, 'server')
+    expect(isServerMode('local')).toBe(false)
+    expect(isServerMode(null)).toBe(false)
+    expect(isServerMode('server')).toBe(true)
+  })
+})
+
+describe('isLocalMode (FR-19.1)', () => {
+  beforeEach(() => localStorage.clear())
+
+  it('is true only where the persisted mode is local, not before M19 is answered', () => {
+    expect(isLocalMode()).toBe(false)
+    localStorage.setItem(MODE_KEY, 'server')
+    expect(isLocalMode()).toBe(false)
+    localStorage.setItem(MODE_KEY, 'local')
+    expect(isLocalMode()).toBe(true)
+    expect(isLocalMode('server')).toBe(false)
   })
 })
 

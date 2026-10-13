@@ -6,18 +6,19 @@
 import { describe, it, expect } from 'vitest'
 
 import { API } from '@/api/routes'
-import { createNotificationActions } from '../notifications'
+import { createNotificationActions, NO_NOTIFICATION_ACTIONS } from '../notifications'
 import { stubClient } from './restClientStub'
 import type { ServerNotification } from '@/notifications/format'
 
 function actions(opts: { localMode?: boolean; silent?: boolean } = {}) {
   const client = stubClient()
   const surfaced: ServerNotification[] = []
-  const notifications = createNotificationActions({
-    client,
-    localMode: opts.localMode ?? false,
-    onNotification: opts.silent ? undefined : (n) => void surfaced.push(n),
-  })
+  const notifications = opts.localMode
+    ? NO_NOTIFICATION_ACTIONS
+    : createNotificationActions({
+        client,
+        onNotification: opts.silent ? undefined : (n) => void surfaced.push(n),
+      })
   return { client, surfaced, notifications }
 }
 
@@ -68,6 +69,9 @@ describe('surfaceUnread', () => {
     const { client, surfaced, notifications } = actions({ localMode: true })
 
     await notifications.surfaceUnread()
+    await notifications.markNotificationRead('n1')
+    await notifications.saveNotificationPrefs({} as never)
+    expect(await notifications.fetchNotificationPrefs()).toBeNull()
 
     expect(client.calls).toEqual([])
     expect(surfaced).toEqual([])

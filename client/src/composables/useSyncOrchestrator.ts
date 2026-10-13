@@ -53,13 +53,13 @@ export type { DeletionOutlook } from '@/app/actions/masterData'
 export type { CloneDraft, TripWizardDraft } from '@/app/actions/tripCreation'
 import { createNameGuards } from '@/app/names'
 import { createLockState } from '@/app/locks'
-import { createNotificationActions } from '@/app/notifications'
-import { createConflictActions } from '@/app/conflicts'
-import { createActivityActions } from '@/app/activity'
-import { createIdentityActions } from '@/app/identity'
+import { createNotificationActions, NO_NOTIFICATION_ACTIONS } from '@/app/notifications'
+import { createConflictActions, NO_CONFLICT_ACTIONS } from '@/app/conflicts'
+import { createActivityActions, NO_ACTIVITY_ACTIONS } from '@/app/activity'
+import { createIdentityActions, NO_IDENTITY_ACTIONS } from '@/app/identity'
 import { createIdeaPictures } from '@/app/ideaImages'
 import { createExcursionTracks, createIdeaTracks } from '@/app/trackFiles'
-import { createLinkPreview } from '@/app/linkPreview'
+import { createLinkPreview, NO_LINK_PREVIEW } from '@/app/linkPreview'
 import { createImageActions } from '@/app/images'
 import { knownTripItemsOf } from '@/app/context'
 import type { SyncContext } from '@/app/context'
@@ -425,11 +425,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     })
   }
 
-  const notificationActions = createNotificationActions({
-    client,
-    localMode: !!local,
-    onNotification: config.onNotification,
-  })
+  const notificationActions = local
+    ? NO_NOTIFICATION_ACTIONS
+    : createNotificationActions({ client, onNotification: config.onNotification })
 
   // --- Drain operations ---
 
@@ -573,7 +571,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     mutations,
     write,
     names,
-    local,
+    deviceHoldsEverything: local !== null,
     today,
     nowIso,
     tripDataLoaded,
@@ -686,22 +684,24 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     drainMaster,
   })
 
-  const conflictActions = createConflictActions({
-    client,
-    localMode: !!local,
-    drainTrip: (tripId) => drainTrip(tripId),
-    drainMaster,
-  })
+  const conflictActions = local
+    ? NO_CONFLICT_ACTIONS
+    : createConflictActions({
+        client,
+        drainTrip: (tripId) => drainTrip(tripId),
+        drainMaster,
+      })
 
-  const activityActions = createActivityActions({ client, localMode: !!local })
+  const activityActions = local ? NO_ACTIVITY_ACTIONS : createActivityActions({ client })
 
-  const identityActions = createIdentityActions({
-    client,
-    localMode: !!local,
-    // Read here rather than held: the pinia store does not exist until a
-    // pinia is active, and the orchestrator is built before one is in a test.
-    identityCache: () => useIdentityStore(),
-  })
+  const identityActions = local
+    ? NO_IDENTITY_ACTIONS
+    : createIdentityActions({
+        client,
+        // Read here rather than held: the pinia store does not exist until a
+        // pinia is active, and the orchestrator is built before one is in a test.
+        identityCache: () => useIdentityStore(),
+      })
 
   // --- Lifecycle ---
 
@@ -769,7 +769,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     write,
     pictures: createIdeaPictures(fileDeps),
     tracks: createIdeaTracks(fileDeps),
-    linkPreview: createLinkPreview({ client, localMode: !!local }),
+    linkPreview: local ? NO_LINK_PREVIEW : createLinkPreview({ client }),
   }
 
   return {

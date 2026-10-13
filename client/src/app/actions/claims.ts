@@ -20,7 +20,7 @@ export interface ClaimDeps {
 
 /** createClaimActions binds the claim group to one sync context. */
 export function createClaimActions(ctx: SyncContext, deps: ClaimDeps) {
-  const { mutations, write, local } = ctx
+  const { mutations, write, deviceHoldsEverything } = ctx
   const { locks, client, drainTrip } = deps
 
   /** Claim an item for packing (FR-5.2); locks it for others (G-3). */
@@ -48,7 +48,7 @@ export function createClaimActions(ctx: SyncContext, deps: ClaimDeps) {
    * second person, so the surface never reaches here (G-8).
    */
   async function takeOverClaim(tripId: string, item: TripItem): Promise<string> {
-    if (local) return ''
+    if (deviceHoldsEverything) return ''
     const resp = await client.post<TakeoverResponse>(API.tripItemTakeover(tripId, item.id))
     // The claim is mine from here: without it the row I just took would
     // render as locked against me.
@@ -64,7 +64,7 @@ export function createClaimActions(ctx: SyncContext, deps: ClaimDeps) {
    * being readable (ADR-028).
    */
   async function fetchLockEvents(tripId: string): Promise<LockEvent[]> {
-    if (local) return []
+    if (deviceHoldsEverything) return []
     const resp = await client.get<LockEventListResponse>(API.tripLockEvents(tripId), {})
     return resp.lock_events
   }

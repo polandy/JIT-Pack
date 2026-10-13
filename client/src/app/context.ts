@@ -10,7 +10,6 @@
 import type { createMutations } from '@/sync/mutations'
 import type { Write } from '@/sync/writeFunnel'
 import type { NameGuards } from './names'
-import type { IndexedDBPersistence } from '@/local/persistence'
 import type { NowIso } from '@/lib/clock'
 import type { RowSinks } from '@/sync/sinks'
 import type { FeatureStore } from '@/sync/featureModule'
@@ -141,11 +140,11 @@ export interface SyncContext {
   drainPartitions: DrainPartitions
   names: NameGuards
   /**
-   * The device's own store in Local Mode, null wherever a server answers.
-   * A group reads it to know whether what this device holds is the whole
-   * picture — FR-24.3's reference count is exact only where it is (ADR-032).
+   * True in Local Mode, false wherever a server answers. A group reads it to
+   * know whether what this device holds is the whole picture — FR-24.3's
+   * reference count is exact only where it is (ADR-032).
    */
-  local: IndexedDBPersistence | null
+  deviceHoldsEverything: boolean
   /**
    * Today, as the device reckons it. Injected rather than read from the
    * clock so a group that decides by date — FR-27.4 only offers a group's

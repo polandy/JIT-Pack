@@ -23,16 +23,12 @@ import {
 import { TABLE } from '@/api/tables'
 import { DELETION_REMOVE, DELETION_RETIRE, RETIRED_FIELD } from '@/domain/masterDeletion'
 import { RESTORE_NAME_TAKEN } from '@/domain/masterRestore'
-import type { IndexedDBPersistence } from '@/local/persistence'
 import type { MasterItem, Template } from '@/types/domain'
 
 const TRIP_ID = 'trip-1'
 const ITEM_ID = 'item-1'
 const TEMPLATE_ID = 'tpl-1'
 const RETIRED_AT = '2026-08-01T00:00:00.000Z'
-
-/** Local Mode is only ever asked whether it exists, so an empty stand-in answers it. */
-const LOCAL_STORE = {} as IndexedDBPersistence
 
 let queued: Recorded[]
 let ctx: SeamContext
@@ -174,7 +170,7 @@ describe('createMasterDataActions without an orchestrator', () => {
     const server = createMasterDataActions(ctx).masterItemDeletionOutlook(ITEM_ID)
 
     setActivePinia(createPinia())
-    const localCtx = makeSeamContext({ local: LOCAL_STORE }).ctx
+    const localCtx = makeSeamContext({ deviceHoldsEverything: true }).ctx
     ctx = localCtx
     seedItem(ITEM_ID)
     const device = createMasterDataActions(localCtx).masterItemDeletionOutlook(ITEM_ID)

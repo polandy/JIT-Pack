@@ -13,7 +13,7 @@ import type { SyncContext } from '../context'
 
 /** createPortableActions binds the portable group to one sync context. */
 export function createPortableActions(ctx: SyncContext) {
-  const { tripStore, masterStore, mutations, queue, drainPartitions, local } = ctx
+  const { tripStore, masterStore, mutations, queue, drainPartitions, deviceHoldsEverything } = ctx
 
   /**
    * The device's own stores, this session's mutation builders, and a write
@@ -72,7 +72,7 @@ export function createPortableActions(ctx: SyncContext) {
     const imported = importPortableBackup(docs, portableImportEnv())
     // FR-19.8: a restore onto a server is the third step of the move; in
     // Local Mode there is no move to finish.
-    if (!local) clearMigrationPending()
+    if (!deviceHoldsEverything) clearMigrationPending()
     // Every trip the file brought, not none of them: a restore is the whole
     // device, and its rows live in one partition per trip (FR-19.5).
     drainPartitions(imported.filter((r) => r.kind === 'trip').map((r) => r.id))

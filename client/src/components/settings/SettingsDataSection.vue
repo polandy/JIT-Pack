@@ -29,7 +29,7 @@ import {
   lastLocalWriteAt,
   reminderState,
 } from '@/local/exportReminder'
-import { readMode, switchToServer } from '@/mode'
+import { isLocalMode, readMode, switchToServer } from '@/mode'
 import { defaultServerBaseUrl } from '@/config'
 import { compositionFrom, serializeTemplate } from '@/domain/portable'
 import { safeFilename, saveBlob, saveText } from '@/lib/download'
@@ -167,7 +167,7 @@ async function exportTripCSV() {
 
 <template>
   <SectionHead :title="t('settings.data')" data-testid="settings-section-data" />
-  <template v-if="mode === 'local'">
+  <template v-if="isLocalMode(mode)">
     <div v-if="exportReminder.due" class="export-reminder" data-testid="settings-backup-reminder">
       <IonIcon :icon="warningOutline" />
       <span>{{ backupReminderText }}</span>

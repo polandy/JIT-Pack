@@ -14,7 +14,6 @@ import type { RestClient } from './restClient'
 
 export interface ActivityDeps {
   client: RestClient
-  localMode: boolean
 }
 
 export interface ActivityActions {
@@ -26,19 +25,23 @@ export interface ActivityActions {
 
 const NO_ACTIVITY: ActivityListResponse = { entries: [], before: 0 }
 
+/** Local Mode's answer: no server recorded anything, so every page is empty. */
+export const NO_ACTIVITY_ACTIONS: ActivityActions = {
+  fetchTripActivity: async () => NO_ACTIVITY,
+  fetchInventoryActivity: async () => NO_ACTIVITY,
+}
+
 export function createActivityActions(deps: ActivityDeps): ActivityActions {
-  const { client, localMode } = deps
+  const { client } = deps
   const page = (before?: number): Record<string, string> =>
     before ? { before: String(before) } : {}
 
   return {
     async fetchTripActivity(tripId, before) {
-      if (localMode) return NO_ACTIVITY
       return client.get<ActivityListResponse>(API.tripActivity(tripId), page(before))
     },
 
     async fetchInventoryActivity(before) {
-      if (localMode) return NO_ACTIVITY
       return client.get<ActivityListResponse>(API.masterActivity, page(before))
     },
   }

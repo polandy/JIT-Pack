@@ -21,12 +21,17 @@ import type { RestClient } from './restClient'
 
 export interface LinkPreviewDeps {
   client: RestClient
-  /** Local Mode: no server, so no preview. */
-  localMode: boolean
+}
+
+/** Local Mode's answer: no preview is offered, and every ask answers null. */
+export const NO_LINK_PREVIEW: LinkPreviews = {
+  offered: () => false,
+  read: async () => null,
+  picture: async () => null,
 }
 
 export function createLinkPreview(deps: LinkPreviewDeps): LinkPreviews {
-  let off = deps.localMode
+  let off = false
 
   /** Asks the server, and answers null for anything but an answer. */
   async function ask<T>(path: string, url: string): Promise<T | null> {

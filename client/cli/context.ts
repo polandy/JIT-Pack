@@ -111,7 +111,7 @@ export function createCommandContext(hlc: HLCGenerator, now: () => number): Comm
     names: createNameGuards(master),
     // Local Mode is a device, never a command line: what this run can see is
     // what it pulled, so FR-24.3's exact reference count is not claimed here.
-    local: null,
+    deviceHoldsEverything: false,
     // The app's own reckoning of today, from the injected clock: UTC would
     // put a trip a day out for anyone far enough east or west of it.
     today: () => localIsoDate(now()),

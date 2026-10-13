@@ -21,7 +21,7 @@ export interface RemovalPruneDeps {
 
 /** createRemovalPruneActions binds the prune to one sync context. */
 export function createRemovalPruneActions(ctx: SyncContext, deps: RemovalPruneDeps) {
-  const { local } = ctx
+  const { deviceHoldsEverything } = ctx
 
   /**
    * Asked again here rather than trusted from the removal — the row may have
@@ -37,7 +37,7 @@ export function createRemovalPruneActions(ctx: SyncContext, deps: RemovalPruneDe
    */
   async function pruneItemLeftByRemoval(tripId: string, itemId: string) {
     if (deps.itemStillUsed(itemId)) return
-    if (local) {
+    if (deviceHoldsEverything) {
       deps.deleteMasterItem(itemId)
       return
     }
