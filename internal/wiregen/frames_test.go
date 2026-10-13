@@ -142,6 +142,12 @@ func TestGenerate_MalformedFrameTableIsRefused(t *testing.T) {
 			"EventTripGone is not a constant of WSEventType",
 		},
 		{
+			"a key that is a constant of another enum",
+			frameEnum + "type Other string\n\nconst EventOther Other = \"other\"\n\nvar wsEventPayloads = map[WSEventType]any{\n" +
+				complete + "\tEventOther: nil,\n}",
+			"EventOther is not a constant of WSEventType",
+		},
+		{
 			"a payload that is neither a struct's zero value nor nil",
 			frameEnum + "var wsEventPayloads = map[WSEventType]any{\n\tEventTripChanged: 7,\n\tEventPong: nil,\n}",
 			"wsEventPayloads[EventTripChanged]: want a struct's zero value or nil",
