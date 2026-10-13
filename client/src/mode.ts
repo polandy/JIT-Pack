@@ -56,6 +56,66 @@ export function isLocalMode(mode: ClientMode | null = readMode()): boolean {
 }
 
 /**
+ * What a mode lets a screen show (G-8), named by the surface rather than by
+ * the mode, so a view asks "is there an activity log?" and the one table below
+ * answers. Single-User Mode is a `server` client (invariant 5): it has every
+ * server surface a lone person can use, and the views that need a session
+ * ask `hasCollaborativeSession` on top.
+ */
+export interface Capabilities {
+  /** FR-32.2: a server recorded who changed what. */
+  activityLog: boolean
+  /** FR-5.x conflict inbox: a second writer exists to conflict with. */
+  conflictInbox: boolean
+  /** G-10 / FR-4.9: others' presence and roster arrive over the socket. */
+  presence: boolean
+  /** FR-17.13: a server identity to hold a name and a picture. */
+  profile: boolean
+  /** FR-7.11: the server sends notifications and reminders. */
+  notifications: boolean
+  /** The server's address, its config and its update notice. */
+  serverConnection: boolean
+  /** FR-19.6: an outbox whose pending, parked and failed counts mean something. */
+  syncQueue: boolean
+  /** FR-19.8: everything lives on this device, so backup and storage status matter. */
+  deviceBackup: boolean
+}
+
+const SERVER_CAPABILITIES: Capabilities = {
+  activityLog: true,
+  conflictInbox: true,
+  presence: true,
+  profile: true,
+  notifications: true,
+  serverConnection: true,
+  syncQueue: true,
+  deviceBackup: false,
+}
+
+const LOCAL_CAPABILITIES: Capabilities = {
+  activityLog: false,
+  conflictInbox: false,
+  presence: false,
+  profile: false,
+  notifications: false,
+  serverConnection: false,
+  syncQueue: false,
+  deviceBackup: true,
+}
+
+const NO_CAPABILITIES: Capabilities = {
+  ...LOCAL_CAPABILITIES,
+  deviceBackup: false,
+}
+
+/** The surfaces `mode` has; defaults to the stored mode, App.vue's reactive copy passes its own. */
+export function capabilitiesOf(mode: ClientMode | null = readMode()): Capabilities {
+  if (mode === 'server') return SERVER_CAPABILITIES
+  if (mode === 'local') return LOCAL_CAPABILITIES
+  return NO_CAPABILITIES
+}
+
+/**
  * Persists the M19 choice. A `server` choice carries its URL; a `local` one
  * leaves whatever URL was stored, since nothing reads it in Local Mode. The
  * caller reloads afterwards — the orchestrator is built once per app start.

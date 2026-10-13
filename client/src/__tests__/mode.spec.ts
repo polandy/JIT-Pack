@@ -20,6 +20,7 @@ import {
   readMode,
   isServerMode,
   isLocalMode,
+  capabilitiesOf,
 } from '@/mode'
 
 /**
@@ -74,6 +75,35 @@ describe('isLocalMode (FR-19.1)', () => {
     localStorage.setItem(MODE_KEY, 'local')
     expect(isLocalMode()).toBe(true)
     expect(isLocalMode('server')).toBe(false)
+  })
+})
+
+describe('capabilitiesOf (G-8)', () => {
+  beforeEach(() => localStorage.clear())
+
+  it('gives a server client every surface a server fills and none of the device-held ones', () => {
+    expect(capabilitiesOf('server')).toEqual({
+      activityLog: true,
+      conflictInbox: true,
+      presence: true,
+      profile: true,
+      notifications: true,
+      serverConnection: true,
+      syncQueue: true,
+      deviceBackup: false,
+    })
+  })
+
+  it('gives Local Mode only the device-held surface', () => {
+    const local = capabilitiesOf('local')
+    expect(local.deviceBackup).toBe(true)
+    expect(Object.entries(local).filter(([, on]) => on)).toEqual([['deviceBackup', true]])
+  })
+
+  it('shows nothing before M19 is answered, and reads the stored mode by default', () => {
+    expect(Object.values(capabilitiesOf(null)).some(Boolean)).toBe(false)
+    localStorage.setItem(MODE_KEY, 'server')
+    expect(capabilitiesOf().activityLog).toBe(true)
   })
 })
 

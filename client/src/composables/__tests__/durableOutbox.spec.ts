@@ -240,10 +240,10 @@ describe('durable outbox on boot', () => {
       packed_count: 0,
       state: 'open',
     } as Parameters<typeof orch.packing.packComplete>[0])
-    await orch.outbox.whenPersisted()
+    await orch.outbox!.whenPersisted()
 
     expect(orch.syncStatus.queueDurable.value).toBe(false)
     // The mutation is not lost, only undurable: it is still queued.
-    expect(orch.outbox.totalPending() + orch.syncStatus.pendingCount.value).toBeGreaterThan(0)
+    expect(orch.outbox!.totalPending() + orch.syncStatus.pendingCount.value).toBeGreaterThan(0)
   })
 })

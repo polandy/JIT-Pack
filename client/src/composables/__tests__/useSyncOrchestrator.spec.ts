@@ -495,7 +495,7 @@ describe('useSyncOrchestrator', () => {
     orch.packing.quickAddItem('t1', 'B', {}, false)
 
     // Pending count is set (may be 0 if drain already completed, but totalPending was called)
-    expect(orch.outbox.totalPending()).toBeGreaterThanOrEqual(0)
+    expect(orch.outbox!.totalPending()).toBeGreaterThanOrEqual(0)
   })
 
   describe('container pairing (FR-10.3, M11)', () => {

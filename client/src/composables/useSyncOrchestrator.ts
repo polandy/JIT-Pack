@@ -20,12 +20,13 @@
 
 import { markLocalWrite } from '@/local/exportReminder'
 import { deviceId } from '@/mode'
-import { computed, reactive, ref } from 'vue'
+import { ref } from 'vue'
 
 import { APIClient, type TokenProvider } from '@/sync/apiClient'
 import { loadTokens, subjectOf } from '@/auth/tokens'
 import { HLCGenerator } from '@/sync/hlc'
-import { SyncOutbox, type ConflictReport, type RejectionReport } from '@/sync/outbox'
+import type { ConflictReport, RejectionReport } from '@/sync/outbox'
+import { MASTER_PARTITION, tripPartition } from '@/sync/partition'
 import { createWriteFunnel, type PartitionBatch, type Write } from '@/sync/writeFunnel'
 import { TABLE } from '@/api/tables'
 import { storeFor } from '@/sync/routing'
@@ -63,7 +64,7 @@ import { createLinkPreview, NO_LINK_PREVIEW } from '@/app/linkPreview'
 import { createImageActions } from '@/app/images'
 import { knownTripItemsOf } from '@/app/context'
 import type { SyncContext } from '@/app/context'
-import { createWebSocket, type LocationFrame } from '@/sync/webSocket'
+import type { LocationFrame } from '@/sync/webSocket'
 import { applyLocation, type PeopleFixes } from '@/lib/liveLocation'
 import { createMutations } from '@/sync/mutations'
 import { useSyncStatus } from './useSyncStatus'
@@ -78,13 +79,15 @@ import type {
   PullChange,
   WSEvent,
 } from '@/api/types'
-import { WS_CHANNEL_TRIP_PREFIX } from '@/api/types'
 import { routeWSEvent } from '@/sync/wsRouting'
 import { localIsoDate } from '@/domain/trips'
 import { isoFrom, type NowMs } from '@/lib/clock'
 import type { ServerNotification } from '@/notifications/format'
 import type { IndexedDBPersistence } from '@/local/persistence'
-import { IndexedDBOutboxStore, type OutboxStore } from '@/sync/outboxStore'
+import type { OutboxStore } from '@/sync/outboxStore'
+import type { SyncBackend } from './backend/port'
+import { createLocalBackend } from './backend/local'
+import { createServerBackend } from './backend/server'
 
 /** One entry of a trip's presence facepile (G-10, Sync-API §7). */
 // Both shapes come from the contract now (NFR-4.14). The names are kept as
@@ -207,7 +210,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   const now = config.now
   const nowIso = isoFrom(now)
   const today = config.today ?? (() => localIsoDate(now()))
-  if (local) syncStatus.setLocal()
 
   // G-10: per-trip presence, fed by the WS presence event.
   const presence = ref<Map<string, PresenceUser[]>>(new Map())
@@ -235,7 +237,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   /** Shares this device's position on a trip, `null` to stop. Local Mode has nobody to tell. */
   function shareLocation(tripId: string, fix: LocationFrame | null) {
-    if (!local) ws.shareLocation(tripId, fix)
+    backend.shareLocation(tripId, fix)
   }
 
   // G-3 locking, and the takeover rule an `item.locked` frame carries
@@ -254,94 +256,41 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   const hlc = new HLCGenerator(now, config.deviceId ?? deviceId())
   const mutations = createMutations(hlc, nowIso)
 
-  // Local Mode never pushes, so it never queues — building a store there
-  // would create a database that nothing ever writes to.
-  const outboxStore = local ? null : (config.outboxStore ?? new IndexedDBOutboxStore())
   const onLocalWrite = config.onLocalWrite ?? markLocalWrite
 
-  const outbox = new SyncOutbox(client, hlc, onPullChanges, {
-    store: outboxStore ?? undefined,
-    onParked: (entry) => syncStatus.setParked(outbox.parkedCount(), entry.reason),
-    onCaptureChanged: (uncaptured) => (outboxUncaptured.value = uncaptured),
-    onConflicts: (report) => {
-      syncStatus.addConflicts(report.count)
-      config.onConflicts?.(report)
-    },
-    onRejections: (report) => config.onRejections?.(report),
-    onDurabilityChanged: (durable) => syncStatus.setQueueDurable(durable),
-    now,
-  })
-
-  /** Trips this device has asked the hub about — the set every new socket is told. */
-  const subscribedTrips = new Set<string>()
-
-  const ws = createWebSocket({
-    baseUrl: config.baseUrl,
-    getToken: config.getToken,
-    onEvent: onWSEvent,
-    onLive: (live) => {
-      if (!live) {
-        roster.value = []
-        // A dead socket hears no more positions, and nothing says the last
-        // ones still hold; the next socket is given them afresh.
-        liveLocations.value = new Map()
-      }
-      syncStatus.setLive(live)
-    },
-    onOpen: ({ reconnect }) => {
-      // The first open is covered by the boot pull App.vue runs; every later
-      // one follows a gap the hub cannot replay (P-1), so the gap is pulled.
-      if (reconnect) void catchUp()
-    },
-  })
-
-  /**
-   * Pull everything this device is watching. The socket only ever says
-   * *that* something changed; after a gap nobody said anything, so the
-   * master partition and every subscribed trip are asked directly.
-   * Background: this is the app catching up, not the user doing something,
-   * and eight trips flickering the glyph through *syncing* would be noise.
-   */
-  async function catchUp(): Promise<void> {
-    if (local) return
-    await drainMaster()
-    for (const tripId of subscribedTrips) {
-      await drainTrip(tripId, { background: true })
-    }
-  }
-
-  /**
-   * Which trips' rows are actually on this device (FR-27.4). Server Mode
-   * pulls a trip's partition only when the trip is opened, and Local Mode
-   * hydrates from IndexedDB asynchronously — refreshing a trip before its
-   * rows are here would read an empty trip and re-add every position it
-   * already has. The refresh needs a *settled* signal, not a hopeful one.
-   */
-  /*
-   * Reactive, both of them: since ADR-033 a *screen* reads them — M2's ring
-   * asks whether a trip's rows are here — and a plain Set is a value Vue
-   * cannot see change. The row loaded correctly and went on saying it was
-   * still loading.
-   */
-  const loadedTripPartitions = reactive(new Set<string>())
-  const localHydrated = ref(false)
-  const masterPulled = ref(false)
-
-  /** Whether another save has been queued behind the one just finished. */
-  let localWrites = 0
-  function localWritesPending(): boolean {
-    return localWrites > 0
-  }
-
-  // FR-25.15: "captured on this device" — the signal the sheets' save
-  // indicator renders. It is deliberately not `syncStatus.state`, whose
-  // job is the server: that state answers `offline` before `syncing`, so
-  // reading it made an open write offline look settled, which is the one
-  // case the requirement exists for. Two writers, one per mode: the
-  // Local Mode save below, and the outbox's own append.
-  const localUncaptured = ref(0)
-  const outboxUncaptured = ref(0)
-  const capturePending = computed(() => localUncaptured.value > 0 || outboxUncaptured.value > 0)
+  // The one place the mode is asked about the write path (ARCH-14b): every
+  // drain, queue, socket and save below goes through the port.
+  const backend: SyncBackend = local
+    ? createLocalBackend({
+        persistence: local,
+        syncStatus,
+        apply: onPullChanges,
+        onLocalWrite,
+      })
+    : createServerBackend({
+        client,
+        hlc,
+        baseUrl: config.baseUrl,
+        getToken: config.getToken,
+        syncStatus,
+        now,
+        apply: onPullChanges,
+        onEvent: onWSEvent,
+        onLive: (live) => {
+          if (live) return
+          roster.value = []
+          // A dead socket hears no more positions, and nothing says the last
+          // ones still hold; the next socket is given them afresh.
+          liveLocations.value = new Map()
+        },
+        onMasterPulled: () => groupRefreshActions.proposeRefreshForLoadedTrips(),
+        // FR-6.2: notifications that arrived while this device was away.
+        onConnected: () => void remote.notifications.surfaceUnread(),
+        onConflicts: config.onConflicts,
+        onRejections: config.onRejections,
+        outboxStore: config.outboxStore,
+      })
+  const { outbox, capturePending } = backend
 
   // --- Pull change routing ---
 
@@ -376,30 +325,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       }
     }
 
-    // FR-19.2: in Local Mode every applied change is durable — this is
-    // the single funnel all mutations and startup loads pass through.
-    // The indicator follows the write rather than the tap, so "on this
-    // device" means the row is *on* the device: a fire-and-forget save
-    // told the user it was safe while the transaction was still open,
-    // and a reload in that window lost the row.
-    if (local && changes.length > 0) {
-      // FR-19.8: the startup load passes through here too, and re-saving what
-      // was already on the device is not a change the backup could miss.
-      if (localHydrated.value) onLocalWrite()
-      localWrites += 1
-      localUncaptured.value += 1
-      syncStatus.setSyncing()
-      local
-        .save(changes)
-        .finally(() => {
-          localWrites -= 1
-          localUncaptured.value -= 1
-        })
-        .then(() => {
-          if (!localWritesPending()) syncStatus.setLocal()
-        })
-        .catch(() => syncStatus.setOffline())
-    }
+    // FR-19.2: in Local Mode every applied change is durable — this is the
+    // single funnel all mutations and startup loads pass through.
+    backend.applied(changes)
   }
 
   // --- WebSocket event handling ---
@@ -425,78 +353,41 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     })
   }
 
-  const notificationActions = local
-    ? NO_NOTIFICATION_ACTIONS
-    : createNotificationActions({ client, onNotification: config.onNotification })
-
   // --- Drain operations ---
 
+  const { drainTrip, drainMaster, drainAll, drainPartitions } = backend
+
   /**
-   * `background` is a drain nobody asked for — since ADR-033 a list loads the
-   * rows it is showing. It leaves the G-2 glyph alone: that glyph answers for
-   * what the *user* did, and a row that fails (a trip they were removed from
-   * answers 403 while the network is fine) would otherwise announce an outage
-   * nobody caused, and eight rows appearing at once would flicker it through
-   * *syncing* on every visit to the list.
+   * The groups that only talk to a server: Local Mode has no one to ask, so
+   * it gets their null objects (ARCH-14), chosen here once.
    */
-  async function drainTrip(
-    tripId: string,
-    { background = false }: { background?: boolean } = {},
-  ): Promise<void> {
-    if (local) return
-    if (!background) syncStatus.setSyncing()
-    try {
-      // A trip row may name a master row written just before it — FR-24.11's
-      // composer creates the item and adds it in one act. Pushed alongside
-      // the master write, the row reaches a server that does not have its
-      // item yet, is refused, and is undone (ADR-031). So a master write that
-      // is queued or on the wire goes first, as `drainPartitions` does for a
-      // cascade.
-      await outbox.whenSent('master', null)
-      await outbox.drain('trip', tripId)
-      loadedTripPartitions.add(tripId)
-      if (!background) {
-        syncStatus.setPendingCount(outbox.totalPending())
-        syncStatus.setSynced()
+  const remote = local
+    ? {
+        notifications: NO_NOTIFICATION_ACTIONS,
+        conflicts: NO_CONFLICT_ACTIONS,
+        activity: NO_ACTIVITY_ACTIONS,
+        identity: NO_IDENTITY_ACTIONS,
+        linkPreview: NO_LINK_PREVIEW,
       }
-      // Report the new cursor so the server recomputes in_sync (§7).
-      ws.sendCursor(tripId, outbox.getCursor('trip', tripId))
-    } catch {
-      if (!background) syncStatus.setOffline()
-    }
-  }
-
-  async function drainMaster(): Promise<void> {
-    if (local) return
-    syncStatus.setSyncing()
-    try {
-      await outbox.drain('master', null)
-      masterPulled.value = true
-      syncStatus.setPendingCount(outbox.totalPending())
-      syncStatus.setSynced()
-      // FR-27.4: a group edited on another device arrives with this pull, and
-      // the trips that follow it work out what it would mean for them here —
-      // the device does not have to be on any particular screen. Local Mode
-      // returns above, and App.vue sweeps once after its hydration instead.
-      groupRefreshActions.proposeRefreshForLoadedTrips()
-    } catch {
-      syncStatus.setOffline()
-    }
-  }
-
-  async function drainAll(tripIds: string[]): Promise<void> {
-    if (local) return
-    syncStatus.setSyncing()
-    try {
-      await drainMaster()
-      for (const id of tripIds) {
-        await drainTrip(id)
+    : {
+        notifications: createNotificationActions({
+          client,
+          onNotification: config.onNotification,
+        }),
+        conflicts: createConflictActions({
+          client,
+          drainTrip: (tripId) => drainTrip(tripId),
+          drainMaster,
+        }),
+        activity: createActivityActions({ client }),
+        identity: createIdentityActions({
+          client,
+          // Read here rather than held: the pinia store does not exist until a
+          // pinia is active, and the orchestrator is built before one is in a test.
+          identityCache: () => useIdentityStore(),
+        }),
+        linkPreview: createLinkPreview({ client }),
       }
-      syncStatus.setSynced()
-    } catch {
-      syncStatus.setOffline()
-    }
-  }
 
   // --- High-level actions (optimistic + queue) ---
 
@@ -519,47 +410,15 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       return feature && currentRowIn(feature.sinks, table, id)
     },
     paint: onPullChanges,
-    queue: ({ partition, muts }) => {
-      if (local) return
-      for (const m of muts) outbox.enqueue(partition.type, partition.id, m.mutation)
-    },
+    queue: ({ partition, muts }) => backend.enqueue(partition, muts),
   })
 
   function queue(...writes: Write[]): PartitionBatch[] {
-    const batches = funnel.queueWrites(...writes)
-    if (!local) syncStatus.setPendingCount(outbox.totalPending())
-    return batches
-  }
-
-  /**
-   * drainPartitions pushes what a cascade queued: the master partition
-   * first, then one trip at a time. The order is the server's foreign keys —
-   * a trip's rows are refused until the trips row and the creator's
-   * membership exist in the master partition.
-   *
-   * Fire-and-forget, like the drain in `write`: the write is already on the
-   * device and in the queue, and a failed push is the outbox's business, not
-   * the caller's.
-   */
-  function drainPartitions(tripIds: string[]): void {
-    if (local) return
-    syncStatus.setPendingCount(outbox.totalPending())
-    drainMaster()
-      .then(async () => {
-        for (const id of tripIds) await drainTrip(id)
-      })
-      .catch(() => {})
+    return funnel.queueWrites(...writes)
   }
 
   function write(...writes: Write[]): void {
-    const batches = queue(...writes)
-    if (local) return
-    const trips = batches.flatMap((b) => (b.partition.id === null ? [] : [b.partition.id]))
-    if (batches.some((b) => b.partition.type === 'master')) {
-      drainPartitions(trips)
-      return
-    }
-    for (const id of trips) drainTrip(id).catch(() => {})
+    backend.push(queue(...writes))
   }
 
   /** The spine the extracted action groups are bound to (R-4). */
@@ -571,7 +430,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     mutations,
     write,
     names,
-    deviceHoldsEverything: local !== null,
+    deviceHoldsEverything: backend.deviceHoldsEverything,
     today,
     nowIso,
     tripDataLoaded,
@@ -600,8 +459,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     // In drainTrip's order: a new trip reaches the server through the
     // master partition, and its rows are refused until it has.
     whenSent: async (tripId: string) => {
-      await outbox.whenSent('master', null)
-      await outbox.whenSent('trip', tripId)
+      await backend.whenSent(MASTER_PARTITION)
+      await backend.whenSent(tripPartition(tripId))
     },
   }
   const excursionActions = createExcursionActions(ctx, {
@@ -625,7 +484,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     itemStillUsed: packingActions.itemStillUsed,
     deleteMasterItem: masterDataActions.deleteMasterItem,
     client,
-    whenTripSent: (tripId) => outbox.whenSent('trip', tripId),
+    whenTripSent: (tripId) => backend.whenSent(tripPartition(tripId)),
     drainMaster,
   })
 
@@ -636,7 +495,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * it exists to keep right.
    */
   function tripDataLoaded(tripId: string): boolean {
-    return local ? localHydrated.value : loadedTripPartitions.has(tripId)
+    return backend.tripDataLoaded(tripId)
   }
 
   /**
@@ -649,7 +508,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * archive. Same doctrine as the ring above (ADR-033), one partition up.
    */
   function masterDataLoaded(): boolean {
-    return local ? localHydrated.value : masterPulled.value
+    return backend.masterDataLoaded()
   }
 
   /** One in-flight `ensureTripData` per trip, so callers share a request. */
@@ -684,80 +543,16 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     drainMaster,
   })
 
-  const conflictActions = local
-    ? NO_CONFLICT_ACTIONS
-    : createConflictActions({
-        client,
-        drainTrip: (tripId) => drainTrip(tripId),
-        drainMaster,
-      })
-
-  const activityActions = local ? NO_ACTIVITY_ACTIONS : createActivityActions({ client })
-
-  const identityActions = local
-    ? NO_IDENTITY_ACTIONS
-    : createIdentityActions({
-        client,
-        // Read here rather than held: the pinia store does not exist until a
-        // pinia is active, and the orchestrator is built before one is in a test.
-        identityCache: () => useIdentityStore(),
-      })
+  const {
+    conflicts: conflictActions,
+    activity: activityActions,
+    identity: identityActions,
+  } = remote
+  const notificationActions = remote.notifications
 
   // --- Lifecycle ---
 
-  async function connect(): Promise<void> {
-    if (local) {
-      // FR-19.2: startup load goes through the same applyChanges path
-      // as a server pull; NFR-4.11: ask for storage durability.
-      onPullChanges(await local.load())
-      localHydrated.value = true
-      void local.requestDurability()
-      return
-    }
-    // B2: whatever an earlier session could not send is replayed *before*
-    // the first pull, so a server change never overwrites a local one that
-    // simply had not left the device yet. Awaited rather than fired off:
-    // App.vue's own drainMaster follows this call, and two overlapping
-    // drains of the same partition would push the same chunk twice.
-    const restored = await outbox.restore()
-    syncStatus.setPendingCount(outbox.totalPending())
-    syncStatus.setParked(outbox.parkedCount(), outbox.lastParkedReason())
-    for (const partition of restored) {
-      await (partition.type === 'master' ? drainMaster() : drainTrip(partition.id!))
-    }
-    ws.connect()
-    // FR-6.2: notifications that arrived while this device was away.
-    void notificationActions.surfaceUnread()
-  }
-
-  /** FR-4.9: the trip whose packing list is open on this device, `null` once it is not. */
-  function setViewing(tripId: string | null) {
-    if (local) return
-    ws.setViewing(tripId)
-  }
-
-  function subscribeTrip(tripId: string) {
-    if (local) return
-    subscribedTrips.add(tripId)
-    ws.subscribe([`${WS_CHANNEL_TRIP_PREFIX}${tripId}`])
-  }
-
-  /**
-   * The app is back in view or back online. Makes sure a socket exists — a
-   * frozen tab's backoff never fired, and its socket may be dead without a
-   * close — and pulls what was missed meanwhile, without waiting for the
-   * socket, since the pull is the recovery and the socket only the notice.
-   */
-  function resume() {
-    if (local) return
-    ws.ensureConnected()
-    void catchUp()
-  }
-
-  function disconnect() {
-    if (local) return
-    ws.disconnect()
-  }
+  const { connect, resume, disconnect, setViewing, subscribeTrip } = backend
 
   /**
    * A feature module's write path (FR-30.3): its own rows into a trip's
@@ -769,7 +564,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     write,
     pictures: createIdeaPictures(fileDeps),
     tracks: createIdeaTracks(fileDeps),
-    linkPreview: local ? NO_LINK_PREVIEW : createLinkPreview({ client }),
+    linkPreview: remote.linkPreview,
   }
 
   return {

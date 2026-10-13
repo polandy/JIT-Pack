@@ -35,7 +35,7 @@ import { SYNC_GLYPHS } from './syncGlyphs'
 import type { RequestFailure } from '@/sync/apiClient'
 import { intlLocale, formatNumber, t } from '@/i18n'
 import { reminderState } from '@/local/exportReminder'
-import { isLocalMode } from '@/mode'
+import { capabilitiesOf } from '@/mode'
 import { evictionRisk, type StorageStatus } from '@/local/storageStatus'
 import { rejectionReasonKey } from '@/sync/rejectionReasons'
 import { SYNC_EXPLAIN_KEYS, SYNC_LABEL_KEYS, type SyncState } from '@/composables/useSyncStatus'
@@ -139,19 +139,19 @@ const emit = defineEmits<{
   openTrip: [tripId: string]
 }>()
 
-const isLocal = computed(() => isLocalMode(props.mode))
+const hasQueue = computed(() => capabilitiesOf(props.mode).syncQueue)
 
 const title = computed(() => t(SYNC_LABEL_KEYS[props.state]))
 const explanation = computed(() => t(SYNC_EXPLAIN_KEYS[props.state]))
 
 /** The queue is only a story while something is in it. */
-const showPending = computed(() => !isLocal.value && props.pendingCount > 0)
+const showPending = computed(() => hasQueue.value && props.pendingCount > 0)
 
 /**
  * A refusal is Server Mode's story too: Local Mode has no server to refuse
  * anything, so the line would describe a mode the user is not in.
  */
-const showParked = computed(() => !isLocal.value && (props.parkedCount ?? 0) > 0)
+const showParked = computed(() => hasQueue.value && (props.parkedCount ?? 0) > 0)
 
 /**
  * The refusal in words, or null when the server sent something this build
@@ -161,7 +161,7 @@ const parkedReasonText = computed(() => {
   const key = rejectionReasonKey(props.parkedReason)
   return key === null ? null : t(key)
 })
-const showConflicted = computed(() => !isLocal.value && (props.conflictCount ?? 0) > 0)
+const showConflicted = computed(() => hasQueue.value && (props.conflictCount ?? 0) > 0)
 
 /**
  * The failed request in one sentence. Status, method and path stay as the
@@ -171,7 +171,7 @@ const showConflicted = computed(() => !isLocal.value && (props.conflictCount ?? 
  */
 const lastFailureText = computed(() => {
   const failure = props.lastFailure
-  if (!failure || isLocal.value) return null
+  if (!failure || !hasQueue.value) return null
   const when = new Date(failure.at).toLocaleTimeString(intlLocale())
   const { method, path, status } = failure
   return status === null
@@ -186,7 +186,7 @@ const lastFailureText = computed(() => {
  */
 const lastSyncedText = computed(() => {
   const at = props.lastSyncedAt
-  if (at == null || isLocal.value) return null
+  if (at == null || !hasQueue.value) return null
   const sameDay = new Date(at).toDateString() === new Date(props.now).toDateString()
   const when = sameDay
     ? new Date(at).toLocaleTimeString(intlLocale(), { timeStyle: 'short' })
@@ -274,18 +274,18 @@ const backupAge = computed(() => {
     <!-- Sync-API §7/§9: whether *other* devices' changes are reaching this
          one right now. Both lines render on purpose — an absence needs a
          positive signal to be asserted against. -->
-    <p v-if="!isLocal && live" class="note" data-testid="sync-detail-live">
+    <p v-if="hasQueue && live" class="note" data-testid="sync-detail-live">
       <IonIcon :icon="flashOutline" />
       <span>{{ t('sync.detail.live') }}</span>
     </p>
-    <p v-else-if="!isLocal" class="warn" data-testid="sync-detail-live-gap">
+    <p v-else-if="hasQueue" class="warn" data-testid="sync-detail-live-gap">
       <IonIcon :icon="warningOutline" />
       <span>{{ t('sync.detail.liveGap') }}</span>
     </p>
 
     <!-- FR-4.9: who else is at work on a trip this account shares. An empty
          list is an answer and says so, so the sheet never looks unfinished. -->
-    <section v-if="!isLocal && online" class="block" data-testid="sync-detail-online">
+    <section v-if="hasQueue && online" class="block" data-testid="sync-detail-online">
       <SectionHead :title="t('sync.detail.online')" :count="online.length || null" />
       <p v-if="online.length === 0" class="note" data-testid="sync-detail-online-nobody">
         {{ t('sync.detail.onlineNobody') }}
@@ -347,7 +347,7 @@ const backupAge = computed(() => {
       always, because it belongs to no trip and was reachable through
       nothing while the sheet only knew about the trip-scoped one.
     -->
-    <template v-if="!isLocal">
+    <template v-if="hasQueue">
       <button
         v-if="canOpenConflicts"
         class="action"
