@@ -31,7 +31,11 @@ const (
 	StatePackingNow = "packing_now"
 )
 
-// FieldState is the trip_items column the state machine lives on.
+// FieldState names the `state` column. Merge keys its rules by field name,
+// not by table, so they apply to every table that carries it: trip_items and
+// excursion_items (the packing states), and ideas (an unrelated vocabulary,
+// which is why its values must stay disjoint from StatePacked and
+// StatePackingNow — pinned by store's merge_fields_test.go).
 const FieldState = "state"
 
 // Mutation is one client-side change from the push envelope.
@@ -94,7 +98,8 @@ type MergeResult struct {
 
 // stateGroup couples packed_count and state: they encode one logical fact
 // (FR-5.4) and must win or lose together, so they share one clock — the
-// newest of the two.
+// newest of the two. Only trip_items and excursion_items carry packed_count;
+// ideas carry state alone, so for them the group is just the state.
 var stateGroup = map[string]bool{FieldState: true, "packed_count": true}
 
 // stateRecord names the columns that describe the state group rather than
