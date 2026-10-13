@@ -6,7 +6,6 @@
 **Decision Drivers (in priority order):**
 1. Invariant 5 answered once: every feature owes "what happens in Single-User and in Local?", and the answer
    should not be re-derived at each call site.
-   re-derived at each call site.
 2. A change in what a mode shows (the next Local-only or server-only surface) touches one table, not a grep.
 3. `useSyncOrchestrator` stays the facade the screens already hold (ADR-098); no call site outside it changes shape.
 
@@ -24,7 +23,6 @@ siblings instead of comparing the mode.
 **Pros**
 - About twenty `if (local)` guards in the orchestrator became one selection; Local's side is a file that can be
   read as "does nothing" and is tested as such.
-  nothing" and is tested as such.
 - A surface's rule is named where it is asked (`conflictInbox`, `presence`), so G-8 is greppable per surface.
 
 **Cons**
