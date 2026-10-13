@@ -11,7 +11,6 @@ export const MEAL_SLOTS = COLUMN_ENUMS.meals.slot
 export type MealSlot = (typeof MEAL_SLOTS)[number]
 export const MEAL_SLOT_BREAKFAST = 'breakfast' as const satisfies MealSlot
 export const MEAL_SLOT_LUNCH = 'lunch' as const satisfies MealSlot
-export const MEAL_SLOT_SNACK = 'snack' as const satisfies MealSlot
 export const MEAL_SLOT_DINNER = 'dinner' as const satisfies MealSlot
 
 /** FR-33.1: cooked by the travellers, with ingredients, or eaten out. */

@@ -13,11 +13,12 @@ import { kernelPorts, type KernelPortDeps } from '@/kernel/kernelPorts'
 import { composeModules, type Composition } from '@/kernel/moduleContribution'
 import { useTripStore } from '@/stores/tripStore'
 import type { ModuleHost } from '@/sync/featureModule'
-import { FEATURE_STORE_TABLES } from '@/sync/routing'
+import { storeFor } from '@/sync/routing'
 import { TABLE } from '@/api/tables'
 import { installHarness } from './harness'
 
 let composition: Composition
+const featureTables = new Set<string>(Object.values(TABLE).filter((t) => storeFor(t) === 'feature'))
 
 beforeEach(() => {
   installHarness()
@@ -44,12 +45,12 @@ beforeEach(() => {
 
 describe('module contributions wiring (FR-32.2, ADR-066)', () => {
   it('gives every module table a reader, and no table two', () => {
-    expect(new Set(Object.keys(composition.activityReaders))).toEqual(FEATURE_STORE_TABLES)
+    expect(new Set(Object.keys(composition.activityReaders))).toEqual(featureTables)
   })
 
   it('leaves the kernel naming exactly the tables no module owns', () => {
     const kernel = new Set(Object.keys(KERNEL_ACTIVITY_AREAS))
-    const owned = Object.values(TABLE).filter((t) => !FEATURE_STORE_TABLES.has(t))
+    const owned = Object.values(TABLE).filter((t) => !featureTables.has(t))
     expect(kernel).toEqual(new Set(owned))
   })
 
