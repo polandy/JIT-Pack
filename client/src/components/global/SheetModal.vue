@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * The app's bottom-sheet chrome, once (§3.25 consistency directive): the
- * modal variables, the scroll box and the grab handle every sheet presents.
+ * modal variables, the scroll box, the grab handle and the body's inset
+ * (`--jp-sheet-inset`, G-14) every sheet presents.
  *
  * The body is a plain box rather than an `IonContent` on purpose: inside an
  * auto-height modal an `IonContent` has no intrinsic height to give, so the
@@ -86,7 +87,8 @@ function onDismiss() {
   >
     <div class="sheet-box" :class="{ sized: height !== 'auto' }">
       <div class="grab" :class="{ wide: grab === 'wide' }" />
-      <slot />
+      <slot v-if="height !== 'auto'" />
+      <div v-else class="sheet-inset"><slot /></div>
     </div>
   </IonModal>
 </template>
@@ -117,6 +119,12 @@ function onDismiss() {
   height: 100%;
   max-height: none;
   overflow: visible;
+}
+
+/* G-14: the chrome sets the body in, so no sheet picks its own inset. A
+   sized sheet's `IonContent` pads itself and is left alone. */
+.sheet-inset {
+  padding: var(--jp-sheet-inset);
 }
 
 .grab {

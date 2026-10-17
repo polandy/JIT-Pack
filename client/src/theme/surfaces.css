@@ -77,6 +77,17 @@
    */
   --jp-card-list-inset: 8px;
 
+  /* --- Sheet inset ---------------------------------------------------
+   * How far a bottom sheet sets its body in from its edges, applied once by
+   * `SheetModal` and by the desktop panel that shows the same body (G-9).
+   * Forty-one sheets once padded their own bodies and had arrived at ten
+   * values, so two sheets opened one after the other started their titles
+   * on different lines. The side inset is named apart for a row that bleeds
+   * to the sheet edge and scrolls sideways: it cancels exactly this much.
+   */
+  --jp-sheet-inset-x: 18px;
+  --jp-sheet-inset: 4px var(--jp-sheet-inset-x) 22px;
+
   /* --- Round controls -------------------------------------------------
    * The diameter of a round control in a sheet header. One value because
    * the header holds a *pair* of them — the save indicator beside the ✕ —
