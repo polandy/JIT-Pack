@@ -514,6 +514,10 @@ These patterns apply to every screen and are specified once.
     on the sunken plane with a rim, at the round-control size. No sheet draws its own — two designs for one control
     leave nothing recording which was meant. The search field's ✕ (G-12) is the same control (`RoundClose`): a bare
     12 px glyph beside a field is a target a thumb misses.
+  * **Every sheet sets its body in by one inset** (`--jp-sheet-inset`). The sheet chrome applies it, not the sheet, and
+    the desktop pane that shows a sheet's body beside the list (G-9) takes the same; only M4's sized filter sheet, whose
+    own scroll area pads itself, is exempt. A row that scrolls sideways to the sheet's edge cancels the side inset by
+    name, never by a number of its own.
   * **A row menu is a sheet.** Every hold/right-click menu is an `ion-action-sheet`, and it wears the bottom sheet's
     shape: the sheet radius on its top corners, the handle, the sheet plane and cast, and its header in the sheet
     title's type. Told once in the theme files rather than per call site, so a new menu cannot miss it; Material's flat,
