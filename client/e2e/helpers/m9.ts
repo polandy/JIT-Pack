@@ -143,3 +143,20 @@ export async function openViewSheet(page: Page): Promise<Locator> {
   await expect(sheet).toHaveAttribute('data-presented', 'true')
   return sheet
 }
+
+/**
+ * Close the tag manager (FR-24.13) and wait until it has *gone*, not only
+ * been asked to go.
+ *
+ * Until its dismissal ends, Ionic's overlay focus trap still treats the
+ * sheet as the top overlay and pulls every focus outside it back in. A
+ * `fill()` into M9's search started in that window loses its focus to the
+ * sheet and types into nothing — the field stays empty, the list never
+ * enters search, and the failure surfaces at the next assertion on the
+ * search's rows. `data-presented` clears on `didDismiss`, after the trap
+ * has let go.
+ */
+export async function closeTagManager(page: Page): Promise<void> {
+  await page.getByTestId('m9-tags-close').click()
+  await expect(page.getByTestId('m9-tags-sheet')).not.toHaveAttribute('data-presented', 'true')
+}

@@ -1,6 +1,12 @@
 import { test, expect, visiblePage } from './fixtures'
 import type { Locator, Page } from '@playwright/test'
-import { backToInventory, createItem, groupHeadings, openViewSheet } from './helpers/m9'
+import {
+  backToInventory,
+  closeTagManager,
+  createItem,
+  groupHeadings,
+  openViewSheet,
+} from './helpers/m9'
 import { writesLanded } from './helpers/page'
 import { PATH } from './routes'
 
@@ -109,7 +115,7 @@ test.describe('M9 — tags are marked, and created where they are given @local @
     await expect(page.getByTestId('mark-picker')).toHaveCount(0)
     await expect(page.getByTestId('m9-tag-mark-Camping')).toContainText(mark)
     await writesLanded(page)
-    await page.getByTestId('m9-tags-close').click()
+    await closeTagManager(page)
 
     const list = visiblePage(page)
     await expect(list.getByTestId('m9-group-head')).toContainText(mark)
@@ -145,7 +151,7 @@ test.describe('M9 — tags are marked, and created where they are given @local @
     await page.getByTestId('mark-tile').filter({ hasText: '🔌' }).click()
     await expect(page.getByTestId('m9-tag-mark-Technik')).toContainText('🔌')
     await writesLanded(page)
-    await page.getByTestId('m9-tags-close').click()
+    await closeTagManager(page)
 
     const list = visiblePage(page)
     // The positive signal that the tag's mark reached the list at all.
