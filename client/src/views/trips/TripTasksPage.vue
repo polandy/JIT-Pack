@@ -745,10 +745,6 @@ function onSheetRemove() {
   margin: 4px 18px 8px;
 }
 
-.bulk-sheet {
-  padding: 4px 18px 22px;
-}
-
 .bulk-done {
   color: var(--jp-done);
 }

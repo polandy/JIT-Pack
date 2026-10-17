@@ -932,8 +932,4 @@ setHeaderTitle(
   color: var(--ct-subtext0);
   font-size: var(--jp-text-xs);
 }
-
-.entry-sheet {
-  padding: 4px 18px 22px;
-}
 </style>

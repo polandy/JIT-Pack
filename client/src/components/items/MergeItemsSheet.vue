@@ -114,10 +114,6 @@ function facts(candidate: MergeCandidate): string[] {
 </template>
 
 <style scoped>
-.sheet-body {
-  padding: 4px 18px 22px;
-}
-
 .hint {
   margin: 2px 0 10px;
   color: var(--ct-overlay2);

@@ -209,6 +209,24 @@ ion-list:has(.jp-card) {
   background: transparent;
 }
 
+/* --- The sheet pane ---------------------------------------------------
+ * A sheet's body shown beside the list on a desktop (G-9: M5, M27's line,
+ * M28's idea) rather than in a sheet. The pane is the frame's second pane,
+ * teleported into it, so it is laid out beside the list rather than over it
+ * and the column re-centres in what is left. Nothing here positions it:
+ * being a flex sibling of the column is what puts it at the window's edge,
+ * and the frame's own row is what gives it the height. It sets the body in
+ * by the sheet's own inset, so one body reads the same in both places.
+ */
+.jp-sheet-pane {
+  width: var(--jp-panel-w);
+  padding: var(--jp-sheet-inset);
+  overflow-y: auto;
+  background: var(--ct-mantle);
+  border-left: 1px solid var(--ct-surface1);
+  box-shadow: var(--jp-shadow-panel);
+}
+
 /* --- The controls Ionic would shape itself (ADR-049) ----------------- */
 
 /*

@@ -295,10 +295,6 @@ function onModeChange(mode: ExcursionLineMode) {
 
 <style scoped>
 /* M5's own blocks (ItemDetailSheet.vue), so the two sheets read as one. */
-.sheet-body {
-  padding: 4px 16px 24px;
-}
-
 .thumb {
   flex: none;
   border-radius: var(--jp-r-sm);

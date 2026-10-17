@@ -754,7 +754,6 @@ function save() {
 .sheet {
   display: flex;
   flex-direction: column;
-  padding: 4px 16px 18px;
 }
 
 .sub {

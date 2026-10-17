@@ -691,10 +691,6 @@ async function onRemove() {
   cursor: pointer;
 }
 
-.pool-sheet {
-  padding: 4px 16px 18px;
-}
-
 .pool-row {
   padding: 10px 0;
   border-bottom: 1px solid var(--jp-surface-border);

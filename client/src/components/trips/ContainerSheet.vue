@@ -221,10 +221,6 @@ function onDelete() {
 </template>
 
 <style scoped>
-.sheet-body {
-  padding: 4px 16px 24px;
-}
-
 .load.over {
   color: var(--ct-ember);
 }

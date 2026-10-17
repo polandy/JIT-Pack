@@ -222,6 +222,54 @@ test('E2E-G14-04: two sheets present the same way out @local @g14', async ({ pag
   expect(fromSync.background).not.toBe('rgba(0, 0, 0, 0)')
 })
 
+// E2E-G14-07 (G-14, ARCH-30): every sheet sets its body in by the same
+// inset. Forty-one sheets once padded their own bodies at ten values, so two
+// sheets opened one after the other put their heads on different lines. Two
+// sheets from different families are compared — the sync sheet stood at 18 px
+// and M5's at 16 px — and both against the token, because two sheets that
+// drifted together would still agree with each other.
+test('E2E-G14-07: two sheets set their body in by the same inset @local @g14', async ({
+  page,
+  seedMode,
+}) => {
+  await seedMode({ mode: 'local' })
+  await page.setViewportSize(MOBILE)
+
+  await page.goto(PATH.trips)
+  await page.getByTestId('sync-indicator').click()
+  const fromSync = await bodyInset(page, 'sync-detail-close')
+  await page.getByTestId('sync-detail-close').click()
+
+  await createTripViaWizard(page, { name: 'Samedan 2026', travelers: ['Andy'] })
+  await openQuickAdd(page)
+  await addInComposer(page, 'Schlafsack')
+  await page.getByTestId('m4-row-Schlafsack').click()
+  const fromItem = await bodyInset(page, 'm5-close')
+
+  // The drift first: two sheets that disagree are the defect, whatever the
+  // token says.
+  expect(fromItem).toEqual(fromSync)
+  const token = await page.evaluate(() =>
+    parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--jp-sheet-inset-x')),
+  )
+  expect(fromSync).toEqual({ left: token, right: token })
+})
+
+/**
+ * How far a sheet's head stands in from the sheet's edges, read from its
+ * close control: the head spans the body, and the ✕ ends it on the right.
+ */
+async function bodyInset(page: Page, closeTestid: string) {
+  const close = page.getByTestId(closeTestid)
+  await expect(close).toBeVisible()
+  return close.evaluate((n) => {
+    const sheet = n.closest('.sheet-box')!.getBoundingClientRect()
+    const head = n.closest('header')!.getBoundingClientRect()
+    const own = n.getBoundingClientRect()
+    return { left: Math.round(head.left - sheet.left), right: Math.round(sheet.right - own.right) }
+  })
+}
+
 /** The rendered geometry and fill of a sheet's way out. */
 async function closeControl(page: Page, testid: string) {
   const el = page.getByTestId(testid)

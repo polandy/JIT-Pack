@@ -208,4 +208,8 @@ describe('a sheet sets its body in by one inset (G-14)', () => {
     const modal = read('src/components/global/SheetModal.vue')
     expect(rule(modal, '.sheet-inset')).toContain('padding: var(--jp-sheet-inset)')
   })
+
+  it('sets a sheet body shown in the desktop pane in by the same inset (G-9)', () => {
+    expect(rule(surfaces, '.jp-sheet-pane')).toContain('padding: var(--jp-sheet-inset)')
+  })
 })

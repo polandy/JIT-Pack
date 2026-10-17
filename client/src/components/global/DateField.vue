@@ -76,7 +76,7 @@ function onPicked(picked: string | string[] | null | undefined) {
     @keyup.enter="!props.readonly && (open = true)"
   />
   <SheetModal :is-open="open" @dismiss="open = false" @present="presented++">
-    <div class="picker ion-padding">
+    <div class="picker">
       <IonDatetime
         :key="presented"
         presentation="date"
