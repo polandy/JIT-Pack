@@ -55,6 +55,7 @@ describe('presence handling (G-10)', () => {
         type: 'presence',
         payload: {
           trip_id: 't1',
+          head_seq: 7,
           users: [
             { user_id: 'u1', device_count: 2, in_sync: true },
             { user_id: 'u2', device_count: 1, in_sync: false },

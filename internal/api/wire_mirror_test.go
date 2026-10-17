@@ -179,7 +179,7 @@ func TestWSEventPayloads_EveryFrameCarriesItsDeclaredPayload(t *testing.T) {
 		masterChangedEvent(1),
 		itemLockEvent(EventItemLocked, "t1", "i1", "u1", "Zelt"),
 		itemLockEvent(EventItemUnlocked, "t1", "i1", "u1", "Zelt"),
-		presenceEvent("t1", nil),
+		presenceEvent("t1", 0, nil),
 		rosterEvent(nil),
 		notificationCreatedEvent("n1"),
 		locationEvent(LiveLocation{}),

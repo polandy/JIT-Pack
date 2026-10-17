@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -246,6 +247,42 @@ func TestHub_InSync_Computation(t *testing.T) {
 	m = members[0].(map[string]any)
 	if m["in_sync"] != true {
 		t.Error("expected in_sync=true when cursor >= head")
+	}
+}
+
+// Sync-API §7 (G-10): a presence frame names the head its in_sync verdicts
+// were judged against. Without it, "everyone is at the head" from before a
+// write and from after it are the same frame, and a reader waiting for the
+// group to catch up to that write cannot tell them apart.
+func TestHub_Presence_NamesTheHeadInSyncWasJudgedAgainst(t *testing.T) {
+	var head atomic.Int64
+	head.Store(10)
+	headFn := func(context.Context, string) (int64, error) { return head.Load(), nil }
+
+	_, srv := wsTestServer(t, headFn)
+	ws := wsConnect(t, srv, "andy")
+
+	wsSend(t, ws, map[string]string{"action": "subscribe", "trip_id": "trip-1"})
+	wsRead(t, ws)
+	wsSend(t, ws, map[string]any{"action": "cursor", "trip_id": "trip-1", "cursor": 10})
+	evt := wsRead(t, ws)
+	if evt.Payload["head_seq"] != float64(10) {
+		t.Errorf("head_seq = %v, want 10", evt.Payload["head_seq"])
+	}
+	if m := evt.Payload["users"].([]any)[0].(map[string]any); m["in_sync"] != true {
+		t.Fatal("expected in_sync=true when cursor == head")
+	}
+
+	// The trip moves on; the same cursor is now behind, and the frame says
+	// which head made it so.
+	head.Store(12)
+	wsSend(t, ws, map[string]any{"action": "cursor", "trip_id": "trip-1", "cursor": 10})
+	evt = wsRead(t, ws)
+	if evt.Payload["head_seq"] != float64(12) {
+		t.Errorf("head_seq = %v, want 12", evt.Payload["head_seq"])
+	}
+	if m := evt.Payload["users"].([]any)[0].(map[string]any); m["in_sync"] != false {
+		t.Error("expected in_sync=false when cursor < head")
 	}
 }
 

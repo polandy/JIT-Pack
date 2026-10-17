@@ -806,6 +806,10 @@ export interface ItemLockPayload {
  */
 export interface PresencePayload {
   trip_id: string
+  // HeadSeq is the trip head every member's in-sync verdict was judged
+  // against (0: no head known, everyone counts as in sync). It is what tells
+  // "everyone has caught up to this write" from the same verdict before it.
+  head_seq: number
   users: PresenceMember[]
 }
 

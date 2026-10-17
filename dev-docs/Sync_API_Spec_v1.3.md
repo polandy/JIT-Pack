@@ -775,10 +775,10 @@ make this possible.
 
 | Event | Payload | Client reaction |
 |---|---|---|
-| `trip.changed` | `{trip_id, seq}` | pull if `seq > local_cursor` |
+| `trip.changed` | `{trip_id, head_seq}` | pull if `head_seq > local_cursor` |
 | `master.changed` | `{seq}` | pull master partition |
 | `item.locked` / `item.unlocked` | `{trip_id, item_id, by_user, name}` | render lock overlay (G-3) — ephemeral, not persisted |
-| `presence` | `{trip_id, users:[{user_id, device_count, in_sync}]}` | avatars + group-sync badge in M4 header (UI-Spec G-10) |
+| `presence` | `{trip_id, head_seq, users:[{user_id, device_count, in_sync}]}` | avatars + group-sync badge in M4 header (UI-Spec G-10) |
 | `roster` | `{users:[{user_id, trip_ids}]}` | the G-2 sheet's "Packing right now" section (FR-4.9) — sent to **every** connection, not only a trip's subscribers; whole state each time, never a delta, and never older than the last one that connection was sent; a newcomer gets it on connect only when it is non-empty |
 | `notification.created` | `{notification_id}` | fetch via `GET /notifications` + toast/OS notification (FR-6.2) |
 | `location` | `{trip_id, user_id, lat, lon, accuracy_m, at, gone}` | a trip member's live position, or its end (`gone`, the rest empty) — FR-29.19, ADR-087. Sent to the trip's subscribers **but the sharer's own connections**; `user_id` and `at` are the server's, never the client's. The hub keeps the newest fix per connection **in memory only** and gives the live ones to a connection that subscribes later; a stop, an unsubscribe or the socket closing sends `gone` — unless another device of the person still shares, whose fix is sent instead. Never stored, logged or pulled |
@@ -803,7 +803,11 @@ make this possible.
   server tracks the connection's last client-reported pull cursor (the `cursor` frame above). `in_sync` is `true` when
   that cursor is at or beyond the trip's current `change_log` head sequence. This is necessarily best-effort: it
   reflects only devices currently connected via WebSocket, says nothing about a fully offline device's local outbox, and
-  is advisory UI signal only (UI-Spec G-10) — it never gates any mutation or pull.
+  is advisory UI signal only (UI-Spec G-10) — it never gates any mutation or pull. `head_seq` is the head every
+  `in_sync` of that frame was judged against (`0`: no head known, everyone counts as in sync), read *after* the cursors,
+  so `in_sync: true` means the cursor had reached at least `head_seq`. Without it, "everyone at the head" before a write
+  and after it are the same frame: a reader waiting for the group to catch up to a write it knows the head of (its
+  `trip.changed`) compares the two.
 
 ## 8. Non-Synced Operations (RPC-style REST)
 

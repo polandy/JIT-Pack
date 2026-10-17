@@ -371,11 +371,11 @@ func (h *Hub) broadcastPresence(tripID string) {
 		})
 	}
 
-	h.send(targets, presenceEvent(tripID, members))
+	h.send(targets, presenceEvent(tripID, headSeq, members))
 }
 
-func presenceEvent(tripID string, members []PresenceMember) WSEvent {
-	return WSEvent{Type: EventPresence, Payload: PresencePayload{TripID: tripID, Users: members}}
+func presenceEvent(tripID string, headSeq int64, members []PresenceMember) WSEvent {
+	return WSEvent{Type: EventPresence, Payload: PresencePayload{TripID: tripID, HeadSeq: headSeq, Users: members}}
 }
 
 func rosterEvent(members []RosterMember) WSEvent {
