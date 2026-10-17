@@ -1,6 +1,6 @@
 import { test, expect, visiblePage } from './fixtures'
 import type { Page } from '@playwright/test'
-import { backToInventory, createItem, groupHeadings } from './helpers/m9'
+import { backToInventory, closeTagManager, createItem, groupHeadings } from './helpers/m9'
 import { writesLanded } from './helpers/page'
 import { PATH } from './routes'
 
@@ -72,7 +72,7 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await writesLanded(page)
 
     // The heading, not the sheet row: this is the write being observable.
-    await page.getByTestId('m9-tags-close').click()
+    await closeTagManager(page)
     expect(await groupHeadings(list)).toEqual(['kleidung', 'technik'])
 
     // And the refusal. „Technik" is taken, so the alert stays up with the
@@ -84,7 +84,7 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await page.getByRole('button', { name: 'Rename' }).click()
     await expect(page.getByTestId('m9-tag-rename-prompt')).toBeVisible()
     await page.getByRole('button', { name: 'Cancel' }).click()
-    await page.getByTestId('m9-tags-close').click()
+    await closeTagManager(page)
     expect(await groupHeadings(list)).toEqual(['kleidung', 'technik'])
   })
 
@@ -113,7 +113,7 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await expect(refusal.getByRole('button', { name: 'Merge' })).toBeVisible()
 
     await page.getByRole('button', { name: 'Cancel' }).click()
-    await page.getByTestId('m9-tags-close').click()
+    await closeTagManager(page)
     // A delete that had gone through would have taken the heading with it.
     expect(await groupHeadings(list)).toEqual(['kleidung'])
   })
@@ -146,7 +146,7 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await expect(page.locator('ion-toast')).toContainText('is now filed under')
     await writesLanded(page)
 
-    await page.getByTestId('m9-tags-close').click()
+    await closeTagManager(page)
     // One row, under the target — and „Sommer" heads nothing, because the
     // merge deleted it once nothing carried it.
     await expect(list.getByTestId('m9-row')).toHaveCount(1)
@@ -205,7 +205,7 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await expect(page.locator('ion-toast')).toContainText('One item is now filed under')
     await writesLanded(page)
 
-    await page.getByTestId('m9-tags-close').click()
+    await closeTagManager(page)
     // One heading for all three items: the two misspellings are gone, and the
     // item that carried both of them is filed under the survivor exactly once.
     expect(await groupHeadings(list)).toEqual(['sommer'])
@@ -297,7 +297,7 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     await expect(host).toHaveAttribute('data-drag', 'idle')
     await writesLanded(page)
 
-    await page.getByTestId('m9-tags-close').click()
+    await closeTagManager(page)
     await expect.poll(() => groupHeadings(list)).toEqual(['navigation', 'foto', 'camping'])
   })
 })
