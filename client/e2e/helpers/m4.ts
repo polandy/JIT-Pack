@@ -20,10 +20,14 @@ import { openListComposer } from './composer'
 import { visiblePage, writesLanded } from './page'
 import { chooseInSelect, fillIonic } from './ionic'
 
-/** The trip M4's own cases are written against (name, end date, two travelers). */
+/**
+ * The trip M4's own cases are written against (name, two travelers). Open-ended
+ * on purpose: an end date would be compared with the real today by every rule
+ * that asks whether a trip is over (`followsGroups`), so a fixed one is a case
+ * that goes red on its own the day after.
+ */
 export const M4_TRIP = {
   name: 'Samedan Sommer',
-  endDate: '2026-12-31',
   travelers: ['Andy', 'Sia'],
 }
 

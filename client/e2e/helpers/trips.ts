@@ -580,7 +580,8 @@ export async function tripRowMenuActions(page: Page, trip: string): Promise<stri
  * each, a Sonnenhut for two of them, a row of Andy's alone and rows for the
  * whole trip — the rows that read identically wherever a screen drops the
  * person. Imported, because the seed is a portable document too and spec §2.4
- * builds a world through the UI, never by injection.
+ * builds a world through the UI, never by injection. A year rather than dates
+ * (FR-2.1b): a date would be compared with the real today, like `M4_TRIP`'s.
  */
 export const PER_PERSON_TRIP = {
   name: 'Samedan Sommer',
@@ -589,7 +590,7 @@ export const PER_PERSON_TRIP = {
     'kind: trip',
     'schema_version: 1',
     'name: Samedan Sommer',
-    'end_date: "2026-12-31"',
+    'year: 2026',
     'travelers:',
     '  - name: Andy',
     '  - name: Sia',

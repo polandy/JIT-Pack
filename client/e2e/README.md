@@ -165,6 +165,13 @@ them.
   (`BASELINE_NOW`); a picture holding today's date is a picture that goes stale
   by itself. Unit specs inject the clock (`lib/clock.ts`, `orchestrator.now`/`today`),
   which every screen reads (`clockSeam.spec.ts`).
+  Two rules read today without showing it, so a fixed date is green until the
+  day it passes: an excursion whose last day is gone folds behind the past
+  toggle (FR-31.10), and a trip whose end date is gone stops following its
+  groups (`followsGroups` — no offer, no FR-27.4 consequence). A case on
+  either path sets the clock; a shared fixture carries no date at all
+  (`M4_TRIP`, `PER_PERSON_TRIP`). A date nothing compares with today — a
+  label, an import's year — needs neither.
 - **Navigation waits for the outbox, and you get that for free.** `page.goto`
   and `page.reload` are wrapped by the `page` fixture: they settle the device's
   writes before leaving the screen. A write is on the device once the outbox
