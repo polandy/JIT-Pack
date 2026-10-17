@@ -58,7 +58,11 @@ describe('routeWSEvent (Sync-API §7)', () => {
       'presence replaces the trip’s facepile',
       {
         type: 'presence',
-        payload: { trip_id: 't1', users: [{ user_id: 'u1', device_count: 2, in_sync: true }] },
+        payload: {
+          trip_id: 't1',
+          head_seq: 4,
+          users: [{ user_id: 'u1', device_count: 2, in_sync: true }],
+        },
       },
       { setPresence: ['t1', [{ user_id: 'u1', device_count: 2, in_sync: true }]] },
     ],
@@ -103,7 +107,10 @@ describe('routeWSEvent (Sync-API §7)', () => {
       'a trip.changed with no trip',
       { type: 'trip.changed', payload: { trip_id: '', head_seq: 7 } },
     ],
-    ['a presence with no trip', { type: 'presence', payload: { trip_id: '', users: [] } }],
+    [
+      'a presence with no trip',
+      { type: 'presence', payload: { trip_id: '', head_seq: 0, users: [] } },
+    ],
     ['a location with no person', { type: 'location', payload: { ...location, user_id: '' } }],
     [
       'a lock with no row',

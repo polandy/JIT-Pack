@@ -77,8 +77,12 @@ type ItemLockPayload struct {
 
 // PresencePayload is the facepile of one trip: every user connected to it.
 type PresencePayload struct {
-	TripID string           `json:"trip_id"`
-	Users  []PresenceMember `json:"users"`
+	TripID string `json:"trip_id"`
+	// HeadSeq is the trip head every member's in-sync verdict was judged
+	// against (0: no head known, everyone counts as in sync). It is what tells
+	// "everyone has caught up to this write" from the same verdict before it.
+	HeadSeq int64            `json:"head_seq"`
+	Users   []PresenceMember `json:"users"`
 }
 
 // RosterPayload is everyone the receiver shares a trip with who has one open

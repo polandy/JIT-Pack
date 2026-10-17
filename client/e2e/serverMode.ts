@@ -10,8 +10,9 @@
  * reinvented: its whole point is that it does not wait for a duration.
  */
 
-import { expect, type BrowserContext, type Page, type WebSocket } from '@playwright/test'
+import { expect, type BrowserContext, type Page } from '@playwright/test'
 
+import { WS_EVENT_TYPE, type PresencePayload, type TripChangedPayload } from '../src/api/types'
 import { addInComposer, seed, visiblePage } from './fixtures'
 import { writesLanded } from './helpers/page'
 
@@ -106,7 +107,25 @@ export function watchSubscribed(page: Page): Promise<void> {
 }
 
 /**
- * A presence frame of `tripId` listing `people` users, every one at the head.
+ * A server frame as it came off the wire: runtime data, so its payload is
+ * read as the generated type its `type` names only after that is checked.
+ */
+interface Frame {
+  type?: string
+  payload?: unknown
+}
+
+function parseFrame(payload: string): Frame | null {
+  try {
+    return JSON.parse(payload) as Frame
+  } catch {
+    return null
+  }
+}
+
+/**
+ * A presence frame of `tripId` listing `people` users, every one at the head
+ * — and that head at least `head`.
  *
  * Parsed rather than matched as a substring: `"in_sync":false` and
  * `"in_sync": false` are the same fact and a different string, and a frame
@@ -116,25 +135,38 @@ export function watchSubscribed(page: Page): Promise<void> {
  * active trip its dashboard listed, so other trips' frames arrive on it too;
  * and when a device's connection drops, the server's next frame lists
  * everyone *but* that person — all in sync, and about nobody the wait was for.
+ *
+ * So is the head. `in_sync` is a verdict against whatever head the server
+ * read while building the frame, so "everyone is there" from before a write
+ * and from after it read alike. The frame names that head (`head_seq`,
+ * Sync-API §7), and only a frame judged against the write's own head says
+ * anybody has reached the write.
  */
-function everyoneInSync(payload: string, tripId: string, people: number): boolean {
-  try {
-    const frame = JSON.parse(payload) as {
-      type?: string
-      payload?: { trip_id?: string; users?: { in_sync?: boolean }[] }
-    }
-    if (frame.type !== 'presence' || frame.payload?.trip_id !== tripId) return false
-    const users = frame.payload.users
-    return Array.isArray(users) && users.length === people && users.every((u) => u.in_sync === true)
-  } catch {
-    return false
-  }
+function everyoneAt(frame: Frame, tripId: string, people: number, head: number): boolean {
+  if (frame.type !== WS_EVENT_TYPE.presence) return false
+  const { trip_id, head_seq, users } = frame.payload as PresencePayload
+  return (
+    trip_id === tripId &&
+    head_seq >= head &&
+    Array.isArray(users) &&
+    users.length === people &&
+    users.every((u) => u.in_sync === true)
+  )
 }
 
-/** What {@link trackSocket} hands back: a wait armed at a point in time. */
+/** What {@link trackSocket} hands back. */
 export interface SocketWatch {
-  /** Resolves on the next presence frame of `tripId` with all `people` users at the head. */
-  caughtUp(tripId: string, people: number): Promise<void>
+  /**
+   * The head of the next `trip.changed` of `tripId`: where the write this
+   * page is about to make lands. Arm it before the write.
+   */
+  nextHead(tripId: string): Promise<number>
+  /**
+   * Resolves once a presence frame of `tripId` has listed all `people` users
+   * at `head` or beyond. A frame that already arrived counts: none judged
+   * against `head` can be older than the write that made it the head.
+   */
+  caughtUp(tripId: string, people: number, head: number): Promise<void>
 }
 
 /**
@@ -149,32 +181,44 @@ export interface SocketWatch {
  * **Call this before the page navigates.** Playwright delivers no socket
  * that opened before the listener existed, so a tracker armed after `goto`
  * follows nothing.
- *
- * **And call `caughtUp()` before the thing that should cause it.** It
- * resolves on the next matching frame, not on one already delivered, which
- * is the whole point: both accounts are in sync at the start of a presence
- * test, so a wait that accepted an earlier frame would be satisfied by the
- * state the test is about to disturb.
  */
 export function trackSocket(page: Page): SocketWatch {
-  let current: WebSocket | null = null
-  let resolveFirst: (ws: WebSocket) => void
-  const first = new Promise<WebSocket>((r) => {
-    resolveFirst = r
-  })
+  const seen: Frame[] = []
+  const waiters = new Set<(frame: Frame) => boolean>()
   // Every socket, not only the first: a reconnect replaces the object, and a
-  // watch held against the dead one would wait for ever.
+  // frame on the new one is as much an answer as one on the old.
   page.on('websocket', (ws) => {
-    current = ws
-    resolveFirst(ws)
+    ws.on('framereceived', ({ payload }) => {
+      const frame = parseFrame(String(payload))
+      if (!frame) return
+      seen.push(frame)
+      for (const settle of waiters) if (settle(frame)) waiters.delete(settle)
+    })
   })
 
-  return {
-    async caughtUp(tripId, people) {
-      const ws = current ?? (await first)
-      await ws.waitForEvent('framereceived', {
-        predicate: (frame) => everyoneInSync(String(frame.payload), tripId, people),
+  function next(match: (frame: Frame) => boolean): Promise<Frame> {
+    return new Promise((resolve) => {
+      waiters.add((frame) => {
+        if (!match(frame)) return false
+        resolve(frame)
+        return true
       })
+    })
+  }
+
+  return {
+    async nextHead(tripId) {
+      const frame = await next(
+        (f) =>
+          f.type === WS_EVENT_TYPE['trip.changed'] &&
+          (f.payload as TripChangedPayload).trip_id === tripId,
+      )
+      return (frame.payload as TripChangedPayload).head_seq
+    },
+    async caughtUp(tripId, people, head) {
+      const match = (f: Frame) => everyoneAt(f, tripId, people, head)
+      if (seen.some(match)) return
+      await next(match)
     },
   }
 }

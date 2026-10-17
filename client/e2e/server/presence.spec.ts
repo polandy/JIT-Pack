@@ -207,10 +207,18 @@ test.describe('G-10 — who else is on this trip @server @g10', () => {
     // his pull returns, he reports the head, and the badge flips back. That
     // the state recovers is what makes it a state rather than a latch.
     //
-    // Armed before the block is lifted, so it cannot be satisfied by the
-    // all-in-sync frame from before Bob fell behind. Alice and Bob both, on
-    // this trip: a frame without Bob says nothing about him.
-    const aliceToldBobCaughtUp = aliceSocket.caughtUp(tripPath.split('/').pop()!, 2)
+    // "Settled" has to mean settled *after the third item*. Bob can reach
+    // the second one the moment the block lifts — a reconnect's catch-up is
+    // already on its way — and the server then reports both of them at the
+    // head: the head from before Alice's write. A wait that took any
+    // all-in-sync frame took that one, and left Alice's screen to Bob's next
+    // catch-up (runs 34163387665, 35289725004, 37764993790). The write's own
+    // trip.changed names the head it made, and a presence frame names the
+    // head it was judged against, so only a frame at the third item's head
+    // says Bob is there. Alice and Bob both, on this trip: a frame without
+    // Bob says nothing about him.
+    const tripId = tripPath.split('/').pop()!
+    const thirdHead = aliceSocket.nextHead(tripId)
     await bob.unroute('**/api/v1/trips/*/sync**')
     await quickAddItem(alice, third)
     // Bob rendering the row proves Bob's *pull* landed — and that is all it
@@ -227,7 +235,7 @@ test.describe('G-10 — who else is on this trip @server @g10', () => {
     // So the frame Alice must have received is waited for directly, and the
     // DOM is then asserted with nothing left to race.
     await expect(visiblePage(bob).getByTestId(`m4-row-${third}`)).toBeVisible()
-    await aliceToldBobCaughtUp
+    await aliceSocket.caughtUp(tripId, 2, await thirdHead)
     await expect(visiblePage(alice).getByTestId('presence-in-sync')).toBeVisible()
     await expect(visiblePage(alice).getByTestId('presence-behind')).toHaveCount(0)
 
