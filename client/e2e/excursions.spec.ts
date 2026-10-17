@@ -23,7 +23,7 @@ import {
   undoFromSnackbar,
 } from './helpers/m27'
 import { holdOpensOneMenu, packRow, startTrip, tripWithRows } from './helpers/m4'
-import { writesLanded } from './helpers/page'
+import { setClock, writesLanded } from './helpers/page'
 import { PATH } from './routes'
 
 /**
@@ -236,6 +236,10 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
   test('E2E-M27-14: an excursion’s days are picked as one range, inside the trip’s', async ({
     page,
   }) => {
+    // Before the trip, so the excursion lands among the upcoming rows, which
+    // carry its dates: once its last day is past it folds behind the past
+    // toggle (FR-31.10), and on the real clock that happened on 14 October.
+    await setClock(page, '2026-10-01T09:00:00+02:00')
     await createTripViaWizard(page, {
       name: 'Engadin',
       startDate: '2026-10-09',
