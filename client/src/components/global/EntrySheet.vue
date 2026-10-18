@@ -95,10 +95,6 @@ const emit = defineEmits<{
 </template>
 
 <style scoped>
-.entry-sheet {
-  padding: 4px 18px 22px;
-}
-
 .due {
   margin-top: 12px;
 }

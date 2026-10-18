@@ -348,11 +348,6 @@ function toggleAll(): void {
 </template>
 
 <style scoped>
-/* The sheet's own inset, like every other sheet body (§3.25). */
-.sheet-body {
-  padding: 4px 18px 22px;
-}
-
 .search {
   display: flex;
   align-items: center;

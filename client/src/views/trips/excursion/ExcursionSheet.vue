@@ -233,10 +233,6 @@ function save() {
 </template>
 
 <style scoped>
-.sheet {
-  padding: 4px 16px 18px;
-}
-
 .field {
   --background: var(--jp-surface-sunken);
   --padding-start: 12px;

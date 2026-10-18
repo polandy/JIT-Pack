@@ -350,10 +350,6 @@ function save() {
 </template>
 
 <style scoped>
-.sheet {
-  padding: 4px 16px 18px;
-}
-
 .sheet ion-input,
 .sheet ion-textarea {
   --background: var(--jp-surface-sunken);

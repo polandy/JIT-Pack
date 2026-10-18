@@ -616,10 +616,6 @@ ion-segment {
 }
 
 /* --- The create chooser, in the app's sheet grammar (see FilterSheet) --- */
-.sheet {
-  padding: 0 16px 24px;
-}
-
 .head h2 {
   margin: 8px 0 2px;
 }

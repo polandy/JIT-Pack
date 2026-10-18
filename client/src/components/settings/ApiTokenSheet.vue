@@ -73,7 +73,6 @@ function expirySentence(): string {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 4px 20px 20px;
 }
 
 /*

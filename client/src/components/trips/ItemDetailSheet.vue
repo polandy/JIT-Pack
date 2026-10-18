@@ -766,7 +766,6 @@ const packedStamp = computed(() => {
   /* One height for a composer's field and its button, named once because
      two sections build the same pair (FR-21.25). */
   --composer-height: 40px;
-  padding: 4px 16px 24px;
 }
 
 /* --- header --- */

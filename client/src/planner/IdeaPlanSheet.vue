@@ -124,7 +124,6 @@ function save() {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 4px 16px 18px;
 }
 
 .chosen {
@@ -144,8 +143,8 @@ function save() {
 .days {
   display: flex;
   gap: 6px;
-  margin: 0 -16px 6px;
-  padding: 0 16px 4px;
+  margin: 0 calc(-1 * var(--jp-sheet-inset-x)) 6px;
+  padding: 0 var(--jp-sheet-inset-x) 4px;
   overflow-x: auto;
   scrollbar-width: none;
 }

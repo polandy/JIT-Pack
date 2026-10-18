@@ -1011,7 +1011,7 @@ setHeaderTitle(
         />
       </SheetModal>
       <Teleport v-if="isDesktop && openLineId" defer :to="PANEL_HOST_SELECTOR">
-        <aside class="item-panel" data-testid="m27-line-panel">
+        <aside class="jp-sheet-pane" data-testid="m27-line-panel">
           <ExcursionLineSheet
             :trip-id="tripId"
             :line-id="openLineId"
@@ -1160,15 +1160,6 @@ ion-content.excursion-content::part(scroll) {
 
 .list-head + .grouped-by {
   margin-inline-start: auto;
-}
-
-/* M5's side panel (G-9), as M4 lays it out in the frame's second pane. */
-.item-panel {
-  width: var(--jp-panel-w);
-  overflow-y: auto;
-  background: var(--ct-mantle);
-  border-left: 1px solid var(--ct-surface1);
-  box-shadow: var(--jp-shadow-panel);
 }
 
 /* M4's list body (`packing/PackingGroupList.vue`) sits on the page's own ground. */

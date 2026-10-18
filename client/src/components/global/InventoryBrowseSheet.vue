@@ -1122,10 +1122,6 @@ function groupLabel(key: string): string {
 </template>
 
 <style scoped>
-.sheet-body {
-  padding: 4px 18px 26px;
-}
-
 .tag-axis {
   display: flex;
   gap: 6px;

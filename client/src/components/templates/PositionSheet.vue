@@ -331,10 +331,6 @@ function removeTask(taskId: string) {
 </template>
 
 <style scoped>
-.sheet-body {
-  padding: 4px 16px 24px;
-}
-
 /* --- glance (M5 grammar) --- */
 .glance {
   display: flex;

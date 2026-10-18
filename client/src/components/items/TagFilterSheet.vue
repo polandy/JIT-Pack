@@ -204,12 +204,6 @@ const modeUseful = computed(() => props.selection.filter((id) => id !== UNTAGGED
 </template>
 
 <style scoped>
-/* The sheet's own inset, like every other sheet body (§3.25). Without it the
-   counts sit flush against the screen edge and the widest one is clipped. */
-.sheet-body {
-  padding: 4px 18px 22px;
-}
-
 .search {
   display: flex;
   align-items: center;

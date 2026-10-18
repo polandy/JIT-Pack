@@ -142,10 +142,6 @@ const facts = () =>
 </template>
 
 <style scoped>
-.sheet {
-  padding: 4px 16px 18px;
-}
-
 .lead {
   margin: 6px 2px 0;
   font-size: var(--jp-text-md);

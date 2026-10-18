@@ -62,11 +62,6 @@ const total = computed(() => props.groups.reduce((sum, group) => sum + group.cou
 </template>
 
 <style scoped>
-/* The sheet's own inset, like every other sheet body (§3.25). */
-.sheet-body {
-  padding: 4px 18px 22px;
-}
-
 .groups {
   list-style: none;
   margin: 0;

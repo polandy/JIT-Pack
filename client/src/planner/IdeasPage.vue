@@ -504,7 +504,7 @@ const EMPTY_KEYS = {
         />
       </SheetModal>
       <Teleport v-if="isDesktop && entered && openIdea" defer :to="PANEL_HOST_SELECTOR">
-        <aside class="idea-panel" data-testid="m28-idea-panel">
+        <aside class="jp-sheet-pane" data-testid="m28-idea-panel">
           <IdeaDetail
             :idea-id="openIdea.id"
             :others-shown="othersShown"
@@ -595,14 +595,5 @@ ion-segment-button {
 
 .hint-wide {
   margin: 4px 18px 12px;
-}
-
-/* M5's side panel (G-9), as M4 lays it out in the frame's second pane. */
-.idea-panel {
-  width: var(--jp-panel-w);
-  overflow-y: auto;
-  background: var(--ct-mantle);
-  border-left: 1px solid var(--ct-surface1);
-  box-shadow: var(--jp-shadow-panel);
 }
 </style>
