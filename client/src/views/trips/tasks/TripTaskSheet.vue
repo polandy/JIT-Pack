@@ -280,10 +280,6 @@ function factLine(key: string, icon: string, text: string | null) {
 </template>
 
 <style scoped>
-.sheet {
-  padding: 4px 16px 18px;
-}
-
 /* The facts sit on the sunken plane: they are what is known about the task
    rather than what can be done to it, and the block says so at a glance. */
 .facts {

@@ -28,6 +28,12 @@ function value(css: string, prop: string): string | undefined {
   return new RegExp(`^\\s*${prop}:\\s*([^;]+);`, 'm').exec(css)?.[1]?.trim()
 }
 
+/** The rule body for `selector` in `css`, or undefined. */
+const rule = (css: string, selector: string) =>
+  new RegExp(`^${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`, 'm').exec(
+    css,
+  )?.[1]
+
 /** The body of the `:root` rule that also sets `marker`. */
 function block(css: string, selector: string, marker: string): string | undefined {
   const re = new RegExp(`${selector}\\s*\\{[^}]*--${marker}:[^}]*\\}`)
@@ -138,12 +144,6 @@ describe('the radius scale replaced the nine magic numbers (FR-21.8)', () => {
 })
 
 describe('the controls Material would shape are told once (ADR-049)', () => {
-  /** The rule body for `selector` in `css`, or undefined. */
-  const rule = (css: string, selector: string) =>
-    new RegExp(`^${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`, 'm').exec(
-      css,
-    )?.[1]
-
   it('makes every button a pill that casts no shadow', () => {
     const button = rule(surfaces, 'ion-button')
     expect(button, 'no ion-button rule in surfaces.css').toBeDefined()
@@ -190,5 +190,26 @@ describe('the controls Material would shape are told once (ADR-049)', () => {
     expect(rule(palette, 'ion-router-outlet > .ion-page > ion-content')).toContain(
       '--background: transparent',
     )
+  })
+})
+
+/*
+ * ARCH-30, G-14. Every sheet's body was padded by the sheet itself, and
+ * forty-one of them had arrived at ten values; the chrome now sets the body
+ * in once, and a desktop panel that shows the same body takes the same inset.
+ */
+describe('a sheet sets its body in by one inset (G-14)', () => {
+  it('names the side inset apart, for a row that bleeds to the sheet edge', () => {
+    expect(value(surfaces, '--jp-sheet-inset-x')).toBe('18px')
+    expect(value(surfaces, '--jp-sheet-inset')).toBe('4px var(--jp-sheet-inset-x) 22px')
+  })
+
+  it('is applied by SheetModal, not by the sheets', () => {
+    const modal = read('src/components/global/SheetModal.vue')
+    expect(rule(modal, '.sheet-inset')).toContain('padding: var(--jp-sheet-inset)')
+  })
+
+  it('sets a sheet body shown in the desktop pane in by the same inset (G-9)', () => {
+    expect(rule(surfaces, '.jp-sheet-pane')).toContain('padding: var(--jp-sheet-inset)')
   })
 })

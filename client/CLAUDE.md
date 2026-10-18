@@ -18,14 +18,14 @@ FR-21.5/21.6).
 
 ## Invariant 9b — shape comes from a third table, enforced by a gate
 
-`client/src/theme/surfaces.css` (`--jp-r*` radius scale, three elevation casts, `.jp-card`). Depth is a role: **page →
-card → sunken**, `--jp-surface-*`; Ionic's background variables resolve through them. Elevation is one geometry cast
-in the flavour's ink (offsets in `surfaces.css`, ink in `palette.css`). `scripts/design-tokens-gate.mjs` rejects a raw
-colour (in every notation), raw type declaration, raw `border-radius` length or raw `box-shadow` in `client/src`
-outside the three theme files. Five carve-outs, by rule not allowlist: a `color-mix()` whose colour arguments are all
-`var(--…)`/`transparent`/`currentColor`; `50%`; a `0 0 0 <n>px` ring; `letter-spacing: 0`/`normal`; SVG text
-(font-size is an attribute in the template). **Why this exists:** a card can pass every colour rule and still be the
-colour of the page behind it — only a rendered pixel can tell you (G-14, FR-21.8).
+`client/src/theme/surfaces.css` (`--jp-r*` radius scale, three elevation casts, `.jp-card`, `--jp-sheet-inset` applied
+by `SheetModal`). Depth is a role: **page → card → sunken**, `--jp-surface-*`; Ionic's background variables resolve
+through them. Elevation is one geometry cast in the flavour's ink (offsets in `surfaces.css`, ink in `palette.css`).
+`scripts/design-tokens-gate.mjs` rejects a raw colour (in every notation), raw type declaration, raw `border-radius`
+length or raw `box-shadow` in `client/src` outside the three theme files. Five carve-outs, by rule not allowlist: a
+`color-mix()` whose colour arguments are all `var(--…)`/`transparent`/`currentColor`; `50%`; a `0 0 0 <n>px` ring;
+`letter-spacing: 0`/`normal`; SVG text (font-size is an attribute in the template). **Why this exists:** a card can pass
+every colour rule and still be the colour of the page behind it — only a rendered pixel can tell you (G-14, FR-21.8).
 
 ## The kernel's catalogue is split by area
 

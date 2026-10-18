@@ -165,10 +165,6 @@ function facts(rename: InventoryRename): string[] {
 </template>
 
 <style scoped>
-.sheet {
-  padding: 4px 16px 16px;
-}
-
 .list {
   list-style: none;
   margin: 0;

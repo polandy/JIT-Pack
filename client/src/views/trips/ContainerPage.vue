@@ -473,10 +473,6 @@ setHeaderTitle(
 /* --- empty state (G-7) --- */
 
 /* --- assign picker --- */
-.picker {
-  padding: 4px 16px 24px;
-}
-
 .picker h1 {
   margin: 0;
 }

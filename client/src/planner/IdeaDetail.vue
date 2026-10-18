@@ -745,7 +745,6 @@ async function openCommentMenu(comment: IdeaComment) {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 4px 16px 18px;
 }
 
 .idea-detail.dropped :deep(.jp-sheet-title) {

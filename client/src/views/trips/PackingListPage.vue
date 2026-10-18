@@ -837,7 +837,7 @@ setHeaderTitle(
            link opens the item on the same tick the screen mounts, before
            the host exists. -->
       <Teleport v-if="isDesktop && openItemId" defer :to="PANEL_HOST_SELECTOR">
-        <aside class="item-panel" data-testid="m5-panel">
+        <aside class="jp-sheet-pane" data-testid="m5-panel">
           <ItemDetailSheet
             :trip-id="tripId"
             :item-id="openItemId"
@@ -924,19 +924,6 @@ setHeaderTitle(
 </template>
 
 <style scoped>
-/* M5 as a sheet (phone) or a panel (desktop, G-9). The panel is the frame's
-   second pane, teleported into it, so it is laid out beside the list rather
-   than over it and the column re-centres in what is left. Nothing here
-   positions it: being a flex sibling of the column is what puts it at the
-   window's edge, and the frame's own row is what gives it the height. */
-.item-panel {
-  width: var(--jp-panel-w);
-  overflow-y: auto;
-  background: var(--ct-mantle);
-  border-left: 1px solid var(--ct-surface1);
-  box-shadow: var(--jp-shadow-panel);
-}
-
 /* The header line collapses by giving up its own height in the scrolled
    content, and the browser answers that with a scroll-anchoring adjustment
    of the same size. Read back through @ion-scroll it is an upward scroll,

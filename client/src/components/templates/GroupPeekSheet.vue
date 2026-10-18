@@ -100,10 +100,6 @@ function marksOf(line: ResolvedLine): string[] {
 </template>
 
 <style scoped>
-.sheet-body {
-  padding: 4px 18px 26px;
-}
-
 .head-mark {
   padding-top: 2px;
 }

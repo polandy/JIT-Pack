@@ -412,10 +412,6 @@ const backupAge = computed(() => {
 </template>
 
 <style scoped>
-.sheet-body {
-  padding: 4px 18px 26px;
-}
-
 .glyph {
   display: grid;
   place-items: center;
