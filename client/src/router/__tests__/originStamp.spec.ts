@@ -4,7 +4,7 @@ import { stampOrigin, type StampableRoute } from '@/router/originStamp'
 import { routes } from '@/router'
 
 /**
- * ADR-011 amendment. The gear is on every screen and the import flows
+ * ADR-011. The gear is on every screen and the import flows
  * are entered from five places, so the origin is recorded by the router
  * rather than by each link — the symptom that started this was a chevron
  * inside a trip that went to the dashboard (Navigation_Concept §7).

@@ -51,12 +51,8 @@ actions through the router meta and a small slot API.
 - The conflict log stays reachable inside a trip, which is the only place it exists (driver 3).
 - Deletes seventeen duplicated header blocks; the back-target rule lives in one place instead of being restated per
   screen.
-- M4's collapsing header (§1.2 — trip name and presence migrate *into the top bar* on scroll) becomes unambiguous: there
-  is only one bar to migrate into. **Overtaken 2026-08-19**, without touching this ADR's decision: the migration was
-  never built, and M4's G-12 cluster left the bar 54 px for a title. ~~M4 now names itself in its own header line and~~
-  ~~registers no app-bar title~~ — **overtaken again 2026-09-06 by ADR-050**, which generalised the case rather than
-  keeping M4 as the exception: no screen's name is in the bar, every screen registers a title, and the G-9 page head
-  renders it. The one bar is still one bar; what changed is that it now names no page at all.
+- No screen has to decide which bar its name belongs in: there is only one, and it names no page (ADR-050 — the G-9
+  page head under it does).
 
 **Cons**
 
@@ -114,13 +110,44 @@ Add `position: relative` to `.app-content` and nothing else.
 ## Decision
 
 There is exactly one header bar, rendered by `App.vue` on every screen. Its right-hand group — sync glyph and
-settings/avatar — is unconditional. Its left slot carries the logo on the four tab roots and `‹ back` plus the page
-title on every other screen. The seventeen per-screen `IonHeader` blocks are removed, and `.app-content` gets the
-`position: relative` it was missing so the outlet stops escaping its container.
+settings/avatar — is unconditional. Its left slot carries the logo on the four tab roots and `‹ back` on every other
+screen; the page's name is not in the bar but in the G-9 page head (ADR-050). The per-screen `IonHeader` blocks are
+removed, and `.app-content` has the `position: relative` it was missing so the outlet stays inside its container.
 
-Because the logo is no longer present on drill-downs, **G-9's "home from anywhere" promise moves to the back-target
-contract**: every non-root route declares a parent, so `‹ back` always leads somewhere real, and a cold-start deep link
+**A page describes its actions; the header renders them.** The slot API is a registry, not a `<Teleport>`: a page
+registers `{ id, icon, label, onClick, badge, active }` through `useHeaderActions`, keyed by route path exactly as
+`useHeaderTitle` is, and the header builds its own DOM from that. Ionic's web components relocate slotted DOM after
+mount, so a teleported subtree is patched by Vue in a container that has moved — on a cold boot into a drill-down that
+aborts the render and the screen comes up empty. Keying by path also means one screen's actions never linger in the
+bar of the next.
+
+Because the logo is not present on drill-downs, **G-9's "home from anywhere" promise moves to the back-target
+contract**: back is *declared*, never derived from history, because a cold-start deep link has no history to read.
+Every non-root route declares a `meta.parent`, so `‹ back` always leads somewhere real, and a cold-start deep link
 synthesises its parent chain rather than relying on the logo being on screen.
+
+**A screen entered from anywhere carries its origin.** One static parent is right for a drill-down (M5's parent is its
+trip whichever way the user arrived) and wrong for a screen with several entries: the gear is unconditional, so
+`/tabs/settings` has no one true parent, and `/portable-import` (from M2, M7 and Settings) and `/import` (from M2 and
+M9) have the same shape. Such a route declares `meta.acceptsFrom`; the router stamps the path it was entered from into
+`?from=` (`router/originStamp.ts` — the router, not each link, because the next link would forget), and
+`router/backTarget.ts` answers with that origin, falling back to `meta.parent` when there is none — a notification deep
+link, a pasted URL. The origin is stored encoded so a chain of origins unwinds hop by hop. The table of route classes
+is Navigation_Concept §7.
+
+| | A — the route carries its origin *(accepted)* | B — Settings becomes modal-ish |
+|---|---|---|
+| Back is correct from anywhere | yes, for every route that declares the class | yes, by construction — a sheet returns to what is under it |
+| Covers the multi-entry flows | yes, the same mechanism | no — M15/M18 are not sheets, so they stay broken |
+| Cold-start deep link | no origin, so `meta.parent` answers | a sheet has nothing under it on a cold start |
+| Blast radius | one guard, one branch in `backTarget`, five route entries | M17's sub-routes (admin, file import, gallery) all declare `/tabs/settings` as parent and would need re-homing |
+| Cost | the origin is visible in the URL, and it is attacker-controlled input | a large screen inside a sheet on a phone |
+
+B is the cleaner story for Settings alone and does nothing for the two import flows. The cost of A is paid by
+validating `?from=` rather than trusting it: only a path inside this app is accepted (`//host` and a backslash both
+look internal and are not), a path that matches no route is replaced rather than kept — `‹` would otherwise land on a
+screen that renders nothing — and a route without `meta.acceptsFrom` ignores the parameter entirely, so no drill-down
+can be redirected by a crafted link.
 
 ## Consequences
 
@@ -136,78 +163,15 @@ synthesises its parent chain rather than relying on the logo being on screen.
 - G-9 is rewritten: the logo is a home affordance *on the tab roots*, not from anywhere. Reaching the dashboard from
   three levels deep is now several taps, or the tab bar / rail.
 - Seventeen screens change in one PR. Mechanical, but wide, and each needs its title and actions re-homed.
-- Screens lose the freedom to compose an arbitrary toolbar; page-level actions go through a defined slot. M4's G-12
-  cluster is the demanding case and sets the shape of that API.
+- Screens lose the freedom to compose an arbitrary toolbar; page-level actions go through the registry. M4's G-12
+  cluster is the demanding case and sets its shape.
+- `?from=` is part of some URLs and reaches the app from outside, so it is input to validate (above).
 
 **Neutral**
 
 - Desktop is unaffected in structure: the rail keeps the four anchors, and `‹ back` appears in the same slot at both
   breakpoints.
 - The Local/Single-User gating of the right-hand group is unchanged (G-8): what is hidden today stays hidden.
-
-## Amendment (2026-08-14): the "small slot API" is a registry, not a `<Teleport>`
-
-The first implementation teleported a page's buttons into a
-`<span id="header-actions">` inside the header's `ion-buttons`. Ionic's web
-components relocate slotted DOM after mount, so on a cold boot straight into a
-drill-down Vue patched a teleported subtree whose container had moved and threw
-`Cannot read properties of null (reading 'emitsOptions')` mid-patch — which
-aborts the render. The screen came up empty, and it was reported as lost data.
-
-Pages now **describe** their actions (`useHeaderActions`:
-`{ id, icon, label, onClick, badge, active }`) and the header renders its own
-DOM from that, keyed by route path exactly as `useHeaderTitle` already was. The
-decision of this ADR is unchanged; only the mechanism behind "a small slot API"
-is. It settled a second defect on the way: actions belong to a path, so one
-screen's search icon can no longer linger in the bar of the next.
-
-## Amendment (2026-08-21): a screen reachable from anywhere carries its origin
-
-This ADR replaced the history stack with a **declared** back target, because a
-cold-start deep link has no history to read. The declaration is one static
-`meta.parent` per route, and for a drill-down that is exactly right: M5's parent
-is its trip whichever way the user arrived.
-
-It is wrong for a screen that can be entered from anywhere. The owner hit it in
-the obvious place: inside a trip, tap the gear, tap `‹`, land on the dashboard.
-The gear is unconditional on every screen — that is a decision of this ADR, and
-it is what keeps the conflict log reachable from inside a trip — so
-`/tabs/settings` has no one true parent to declare. Two neighbours had the same
-shape: `/portable-import` is entered from M2, M7 and Settings, `/import` from M2
-and M9. And Navigation_Concept §7's *flows* row promised "the origin the flow was
-entered from" while nothing in the router implemented it — the promise was four
-words in a table with no mechanism behind them.
-
-**What was weighed.**
-
-| | A — the route carries its origin | B — Settings becomes modal-ish |
-|---|---|---|
-| Back is correct from anywhere | yes, for every route that declares the class | yes, by construction — a sheet returns to what is under it |
-| Gives the flows row its missing mechanism | yes, the same one | no — M15/M18 are not sheets, so they stay broken |
-| Cold-start deep link | unchanged: no origin, so `meta.parent` answers | a sheet has nothing under it on a cold start |
-| Blast radius | one guard, one branch in `backTarget`, five route entries | M17's sub-routes (admin, file import, gallery) all declare `/tabs/settings` as parent and would need re-homing |
-| Cost | the origin is visible in the URL, and it is attacker-controlled input | a large screen inside a sheet on a phone |
-
-**A, accepted.** B is the cleaner story for Settings alone and does nothing for
-the two import flows, which is half the defect.
-
-**The cost, stated plainly.** `?from=` is now part of some URLs and reaches the
-app from outside, so it is validated rather than trusted: only a path inside this
-app is accepted (`//host` and a backslash both look internal and are not), a path
-that matches no route is replaced rather than kept — `‹` would otherwise land on
-a screen that renders nothing — and a route that does not declare
-`meta.acceptsFrom` ignores the parameter entirely, so no drill-down can be
-redirected by a crafted link. The origin is stored encoded
-so a chain of origins unwinds hop by hop.
-
-**What did not change.** Back is still declared rather than derived from history.
-An entry with no origin — a notification deep link, a pasted URL — falls back to
-`meta.parent` exactly as before, and E2E-G1-05 is the case that holds that half
-in place.
-
-Mechanism: `router/originStamp.ts` (the stamp, applied by the router rather than
-by each link, because the next link would forget) and `router/backTarget.ts`.
-Table: Navigation_Concept §7.
 
 ## Revisit Trigger
 

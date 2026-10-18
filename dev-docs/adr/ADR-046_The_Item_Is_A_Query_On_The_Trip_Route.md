@@ -1,10 +1,8 @@
 # ADR-046: The item over the packing list is a query on the trip's route — vs. a path alias vs. local state
 
 **Status:** Accepted
-**Revises:** ADR-012's amendment of 2026-08-14 (the item path as an alias of the trip route) and its amendment of
-2026-08-21 (the scroll memory that compensated the remount the alias caused)
-**Related:** ADR-011 (one header bar, the overlay's back), ADR-012 (one outlet, one live page), UI-Spec M4 / M5, G-4
-(deep links), `Navigation_Concept_v1.0.md` §7 case 4, E2E-M5-12, E2E-M4-45, E2E-G4-01, E2E-M5-13
+**Related:** ADR-011 (one header bar, the overlay's back), ADR-012 (one outlet, one live page, an overlay replaces),
+UI-Spec M4 / M5, G-4 (deep links), `Navigation_Concept_v1.0.md` §7 case 4, E2E-M5-12, E2E-M4-45, E2E-G4-01, E2E-M5-13
 
 **Context.** E2E-M5-12 (the desktop panel) went red on the WebKit shard three times in twenty-four hours — twice on
 PR #374, once on `main` at `9561ec69` — and never once on an idle machine: fifteen runs on 2026-08-31, eight more
@@ -12,7 +10,7 @@ on 2026-09-05, all green. Each failure was the same line: the visible-page locat
 elements for over five seconds. The failed run's screenshot and ARIA snapshot show one M4 painted and a second one in
 the DOM, `ion-page-invisible`, not `ion-page-hidden`. The cause is in `@ionic/vue-router`'s `findViewItemByPath`: a
 route record whose path carries a parameter matches an existing page only when the *pathname* is identical, so
-`/trips/t1/items/i2` — the alias the trip route carried since ADR-012's 2026-08-14 amendment — was a **second page**
+`/trips/t1/items/i2` — the item path as an alias of the trip route — was a **second page**
 to Ionic, mounted fresh on every open. The swap between the two is a `replace`, so it runs with duration 0, which is
 why nothing showed on an idle machine; but the outlet's `commit()` waits for every Ionic child of the entering page to
 report ready, and on a loaded runner that wait exceeded the assertion's five seconds while both pages stood unhidden.

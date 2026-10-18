@@ -112,7 +112,7 @@ export default defineConfig({
      * loader fetches anyway, and a start that loses the preload to an abort
      * waits on it for good: no error, main.ts never runs, the page stays
      * blank. The worker's cache is the speed-up the hints were for. See
-     * ADR-019, amendment 1.
+     * ADR-019.
      */
     modulePreload: false,
   },

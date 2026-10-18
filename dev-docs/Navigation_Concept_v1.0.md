@@ -350,7 +350,7 @@ it rather than from history alone, which is what makes a cold-start deep link su
 The declaration lives with the route in `router/index.ts` (a `meta.parent`), so adding a screen without a back target is
 a visible omission rather than a silent one.
 
-**The fifth class, and why it exists** (ADR-011 amendment). The gear is offered on *every* screen (G-1, deliberately —
+**The fifth class, and why it exists** (ADR-011). The gear is offered on *every* screen (G-1, deliberately —
 it is what keeps the conflict log reachable from inside a trip), so no single static parent is true for Settings: with
 `/tabs/settings` declaring `/tabs/dashboard`, the gear tapped inside a trip and then `‹` would land on the dashboard.
 The flows row's promise — "the origin the flow was entered from" — needs a mechanism for the same reason; without one,

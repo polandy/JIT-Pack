@@ -8,7 +8,7 @@
  * get no service worker, and therefore no offline shell. Push later
  * re-registers the same URL, which the browser treats as a no-op.
  *
- * Update policy (ADR-019, amended by ADR-044): a new worker installs in the
+ * Update policy (ADR-019, ADR-044): a new worker installs in the
  * background and activates on the next launch — never an *unprompted* reload.
  * The running app flips `swUpdateReady`, which the G-2 detail sheet and the
  * FR-19.7 banner read; `applyUpdate()` is the only thing that shortens the

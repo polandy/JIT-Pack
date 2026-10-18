@@ -89,6 +89,28 @@ symptom of having two outlets while keeping two outlets.
 
 ---
 
+## Decision
+
+There is one `IonRouterOutlet`, in `App.vue`. `TabsLayout` is gone, the four anchors are top-level routes, and the
+bottom bar is a sibling of the outlet, as `NavRail` is on the desktop side; both render the one list in
+`router/anchors.ts`.
+
+**An anchor is a root navigation, not a push.** The anchors are siblings with no back edge between them, so a
+`<router-link>` push stacks a page on every switch that nothing ever pops. It shows only when a switch is interrupted:
+Ionic transitions a push over several frames, and tapping the next anchor before it finishes leaves both pages live,
+the old one painted over the one the URL names, catching every tap. An anchor therefore calls
+`useIonRouter().navigate(href, 'root', 'replace')` in both presentations. The element stays a real `<a>` with its
+`href`, so a middle click still opens a tab and assistive technology still reads a link; only the default action is
+taken over, and modified clicks are left to the browser. The rule is about the destination, not the control: landing
+on a tab root is a root navigation wherever it happens, so M15's and M18's commits navigate the same way.
+
+**An overlay is a state of the screen beneath it, and it replaces.** M5's sheet sits over the packing list, so its URL
+must render both — with one outlet, Ionic keeps one page per matched pathname, and a route of the overlay's own would
+mount a second live list behind the sheet. The overlay is a query on its screen's route (ADR-046: `?item=` on the
+trip's route), opened and closed with `replace`, and the route declares `meta.overlayQuery` so that `‹ back` closes the
+overlay before it leaves the screen. On a phone the sheet's backdrop covers the app bar, so ✕ or a swipe is the way out
+and the rule governs the desktop panel and the browser's own back button (`router/overlayBackGuard.ts`).
+
 ## Consequences
 
 - Per-tab navigation stacks are gone. The cost is small **because ADR-011 already decided back is declared by the
@@ -97,88 +119,11 @@ symptom of having two outlets while keeping two outlets.
   because a screen you cannot leave is worse than a short list.
 - The `classList` transition error is gone, and `navigation.spec.ts` no longer exempts it — an exemption would now only
   hide the next one.
-- `client/src/router/anchors.ts` becomes the single list of anchors, and `isAnchorActive` matches exactly: the old
-  substring test lit *Items* while the user was inside a trip.
-
-## Amendment (2026-08-14): an overlay is an alias, and it replaces
-
-**Revised by ADR-046 (2026-09-05).** The alias was itself a second page to Ionic — a record whose path carries a
-parameter is matched per *pathname* — so every open mounted a second list, seen as two live M4s on a loaded WebKit
-runner (E2E-M5-12). The item is now `?item=` on the trip's route, the page reads it itself, and the scroll memory of the
-2026-08-21 amendment below is deleted with the remount it compensated. The overlay rule (`meta.overlayQuery`, formerly
-`overlayParam`) and the replace stand. What follows is kept as the history of how the alias was reasoned about.
-
-M5 is a sheet *over* the packing list (UI-Spec M5), so its URL has to render
-both. As its own route record it mounted a **second copy of the list** behind
-the sheet, because with one outlet Ionic keeps a page per matched *path*. The
-item path is therefore an **alias** of the trip route, and opening or closing
-the sheet uses `replace`, not `push`.
-
-**What it costs:** replacing re-renders the list, so opening an item returns it
-to the top. Pushing would preserve the scroll offset and mount a second live
-list — two subscriptions, and the list you were reading hidden under its own
-twin. The cheaper repair is on the other side: remember M4's offset per trip.
-Recorded here rather than left to be rediscovered.
-
-**Second consequence:** `‹ back` now means two things on one screen, so the
-route declares which via `meta.overlayParam` — close the overlay, then leave
-the screen. On a phone the sheet's backdrop covers the app bar, so ✕ or a swipe
-is the way out and back never comes into it; the rule governs the desktop panel
-and the browser's own back button.
-
-## Amendment (2026-08-21): the carried cost is paid
-
-The repair the amendment above named — *"remember M4's offset per trip"* — is
-built: `client/src/lib/scrollMemory.ts` holds the position across the replace,
-M4 writes it on the way into the sheet and puts it back on the way out
-(E2E-M4-45). The decision itself is untouched; only its cost is settled.
-
-Two things the implementation found, both worth stating because neither is
-obvious from this document:
-
-- **The position is more than a number.** M4's header line occupies 84 px of
-  the *scrolled* content, so restoring the offset under a re-opened line shows
-  different rows. The collapsed state therefore travels with the offset, and
-  is applied during setup so the first frame after the sheet is already right.
-- **The list's own re-render reports its way back from the top.** Those scroll
-  events, read as the user's, both re-open the header and overwrite the offset
-  about to be re-applied — so the screen stops listening to itself between
-  opening the sheet and finishing the restore.
-
-## Amendment (2026-08-31): plain links, but not a plain push
-
-Option A said the anchors become **plain links**, and they were taken literally: four
-`<router-link>`s beside the outlet. That is one word short. A `<router-link>` is a *push*,
-and with one outlet a push between the anchors is wrong in a way the second outlet used to
-hide — the four anchors are siblings, nothing is inside anything, and there is no back edge
-between them, yet each switch stacked a page that nothing ever popped.
-
-The stack only became visible when a switch was **interrupted**. Ionic transitions a push
-over some frames; tapping the next anchor before that finishes leaves *both* pages live, and
-from there the outlet shows two pages at once — measured 2026-08-31: tapping items → trips →
-templates → items → trips without waiting leaves M7's page at z-index 101 over M2's at 100,
-while the URL reads `/tabs/trips`. Every tap on the screen the user is looking at goes to the
-page two anchors ago. Waiting between taps hides it completely, which is why the two cases
-that existed (E2E-G9-09, E2E-G1-01) could not see it: **one settled switch each.**
-
-An anchor is therefore a **root navigation** — `useIonRouter().navigate(href, 'root',
-'replace')` — in both presentations. The element stays a real `<a>` with its `href`, so a
-middle click still opens a tab and assistive technology still reads a link; only the default
-action is taken over, and modified clicks are left to the browser. The stack now holds one
-page per anchor switch instead of one more each time, which is what Option A meant.
-
-**The rule is about the destination, not about the anchor.** Landing on a tab root is a root
-navigation wherever it happens, so M15's and M18's commits navigate the same way — they were the
-other two plain `replace`s onto a tab root, and leaving them would have kept one instance of the
-class alive after finding it.
-
-**Two things this also settled.** M15's *„the wizard opens only once per session"* (found
-2026-08-30, E2E-M15-03) was the same defect wearing a different symptom: the case reaches the
-wizard through the rail, and the commit's own `replace` collided with the page the rail had
-stacked. The case runs without its reload workaround now, and it is the proof for this
-amendment rather than for one of its own. And the cost Option A accepted — no per-tab
-stacks — is unchanged: a root navigation does not remember a position either, and ADR-011
-already made back a declared route rather than a history entry.
+- `client/src/router/anchors.ts` is the single list of anchors, and `isAnchorActive` matches exactly — a substring test
+  lights *Items* while the user is inside a trip.
+- A root navigation does not remember a position either, so the per-tab cost above is the whole cost.
+- A replaced entry is gone from history, so a browser pop with an overlay open would skip the screen beneath it;
+  `overlayBackGuard` gives the browser's back the chevron's meaning instead.
 
 ## Revisit trigger
 

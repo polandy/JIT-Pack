@@ -160,7 +160,7 @@ export function tripIdeasPath(tripId: string, ideaId?: string): string {
   return `${path}?${query.toString()}`
 }
 
-/** Query key naming the path a screen was entered from (ADR-011 amendment; `backTarget.ts`). */
+/** Query key naming the path a screen was entered from (ADR-011; `backTarget.ts`). */
 export const ORIGIN_QUERY_PARAM = 'from'
 
 /** Query key naming the idea a screen's creator opens pre-filled from (FR-29.13). */

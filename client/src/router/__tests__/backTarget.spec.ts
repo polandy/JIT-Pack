@@ -133,13 +133,13 @@ describe('an overlay on the same route (UI-Spec M5)', () => {
 })
 
 /**
- * The fifth route class (Navigation_Concept §7, ADR-011 amendment): a
+ * The fifth route class (Navigation_Concept §7, ADR-011): a
  * screen reachable from anywhere — the settings gear, the two import
  * flows — cannot name one parent truthfully, so it is entered with the
  * path it was entered from and returns there. The declared parent stays
  * as the fallback for a cold-start deep link, which carries no origin.
  */
-describe('a route that carries its origin (ADR-011 amendment)', () => {
+describe('a route that carries its origin (ADR-011)', () => {
   const settings = { meta: { parent: '/tabs/dashboard', acceptsFrom: true }, params: {} }
 
   it('returns to the origin it was entered from rather than the declared parent', () => {
