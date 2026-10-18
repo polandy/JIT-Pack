@@ -17,7 +17,7 @@ verschieben" mockup (owner's choice of 2026-10-05)
 
 ---
 
-## Considered Options
+## Considered Options — what is carried
 
 ### Option A — a chip above the fingertip that says where the drop lands *(accepted)*
 
@@ -66,7 +66,7 @@ The clone kept, but floated above the fingertip.
 
 ---
 
-## Decision Matrix
+## Decision Matrix — what is carried
 
 | Driver | Weight | A: chip above | B: row under | C: row above |
 |---|---|---|---|---|
@@ -76,13 +76,26 @@ The clone kept, but floated above the fingertip.
 | No screen draws its own | 1 | 2 — the screens supply words | 3 | 3 |
 | **Total** | | **29** | **12** | **26** |
 
+## Considered Options — a second choice made by the same drag
+
+M31 lets a drag change the meal's slot as well as its day.
+
+- **Fields laid over the target day** *(rejected)*. Tried in the mockup first: the finger covered the very field it
+  was on, and the owner found them hard to hit.
+- **The choice rides in the chip** *(accepted)*. The chip grows as wide as the row, its fields over the list's own
+  columns, the one over the finger lit — driver 1 applied to the choice: nothing the finger decides is under the
+  finger. A finger dragged straight down from the grip stays over the field that keeps, so a drag that only meant the
+  day still changes only the day.
+
 ---
 
 ## Decision
 
 `useDragToGroup` carries a chip, built from the screen's `DragCarry` words, above the fingertip: grip, title, tag, and
 *„→ <place>"* or the screen's *stays* line. A place whose `target` is null — a drop there would change nothing — is
-neither framed nor dropped on. M6, M25, M9's tag manager and M31 all supply their words; G-21 states the gesture.
+neither framed nor dropped on. Where a screen offers a second choice (`DragCarry.choices`, M31's slot), the chip is as
+wide as the row and carries the choice as fields over the list's columns, the one over the finger lit. M6, M25, M9's
+tag manager and M31 all supply their words; G-21 states the gesture.
 
 ## Consequences
 
@@ -93,19 +106,12 @@ neither framed nor dropped on. M6, M25, M9's tag manager and M31 all supply thei
 **Negative / accepted costs**
 - Four screens carry a `carry` block; the composable owns a little hand-built DOM.
 - The carried row's own detail is gone from the drag; the chip says only what and where.
+- A chip with choices is two shapes of one chip: wide and lit by the finger's column where a screen offers a choice,
+  compact everywhere else.
 
 **Neutral**
 - The tests' handles stay: `data-drag-ghost` is the chip, `data-drag` the state; the chip adds `data-carry-title` and
   `data-carry-where`.
-
-## Amendment (2026-10-05): a second choice rides in the chip
-
-M31 lets a drag change the slot as well as the day. Fields laid over the target day were tried in the mockup first:
-the finger covered the very field it was on, and the owner found them hard to hit. So the choice rides in the chip
-too — as wide as the row, its fields over the list's own columns, the one over the finger lit — which is this ADR's
-driver 1 applied to the choice: nothing the finger decides is under the finger. A finger dragged straight down from
-the grip stays over the field that keeps, so a drag that only meant the day still changes only the day. The chip is
-wide only where a screen offers a choice (`DragCarry.choices`).
 
 ## Revisit Trigger
 

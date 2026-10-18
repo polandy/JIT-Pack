@@ -72,7 +72,7 @@ publish/fork ownership model. Each carries a revisit trigger in its stub.
     dated rows reaching it through `kernel/dayPlanSources.ts` — 2026-10-01; its connections, a pasted SBB link read on
     the device and its short link followed through the page read (FR-29.18, ADR-086) — 2026-10-01. Where a trip opens,
     decided by date, and M1's *Heute* card (FR-29.7) — 2026-10-02. The bridge to the packing side, an idea made an
-    excursion, a task or a shopping entry on the screen that makes it (FR-29.13, ADR-078 amendment 1) — 2026-10-02. Not
+    excursion, a task or a shopping entry on the screen that makes it (FR-29.13, ADR-078) — 2026-10-02. Not
     in the portable backup either.
 32. §3.32 the activity log — who changed what, recorded by the server with each write (ADR-084), read per trip from M4's
     ⋮ and for the inventory from M9's ⋮ on M30 — 2026-09-30. Starts empty; none in Local Mode; not in the portable
