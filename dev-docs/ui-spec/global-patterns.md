@@ -381,8 +381,8 @@ These patterns apply to every screen and are specified once.
   then renders and responds to every tap while being absent from the accessibility tree.
   * **Placement — the app bar, over the column's right edge.** On any screen reached with the back chevron (M4, M6, …)
     the cluster occupies the app bar's right side: beside the sync glyph and the gear on a phone, and from 900 px up
-    ending where the content column ends, so on a 1920 px window it is not 530 px from the list it acts on (G-9, ADR-050).
-    E2E-M4-71 measures it at 1280 and 1920 px, with and without M5's pane. The gear stays on every
+    ending where the content column ends, so on a 1920 px window it is not 530 px from the list it acts on
+    (G-9, ADR-050). E2E-M4-71 measures it at 1280 and 1920 px, with and without M5's pane. The gear stays on every
     screen except M17 itself, because G-9's "back returns to where the gear was tapped" only works if the gear can be
     tapped anywhere. The cost — M4's bar carrying the cluster
     *and* the gear — is a known crowding finding (UX-13) and is decided there, not here. A tab root shows the magnifier
