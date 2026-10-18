@@ -49,12 +49,16 @@
  * `--grep "@<module>|@smoke"` (ADR-079), and an untagged case there would drop
  * out of that run without a sound. The same holds for a case *outside* those
  * directories that works a module's surface (`MODULE_E2E_MARKERS`): the case,
- * or the top-level `describe` around it, carries the module's tag too.
+ * or the top-level `describe` around it, carries the module's tag too. And a
+ * module's own e2e helpers live in `client/e2e/<module>/helpers/`, inside the
+ * module, so a diff to them is module-only: **every case in a spec elsewhere
+ * that imports them** — the kernel's or another module's — carries the tag, or
+ * the run that a change to those helpers gets would skip it.
  *
  * Node built-ins only; wired into `make client` and the CI client job.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join, relative, resolve } from 'node:path'
+import { dirname, join, relative, resolve } from 'node:path'
 
 import { MODULE_E2E_MARKERS, MODULES } from './modules.mjs'
 
@@ -302,6 +306,36 @@ for (const file of specFiles(E2E)) {
   }
 }
 
+/** The e2e paths a spec imports, resolved against its own directory. */
+const IMPORT_FROM = /^\s*(?:import|export)\b[^'"]*?from\s+['"](\.[^'"]+)['"]/gm
+const importedPaths = (file, source) =>
+  [...source.matchAll(IMPORT_FROM)].map((m) => resolve(dirname(file), m[1]))
+
+let moduleHelperImports = 0
+for (const file of specFiles(E2E)) {
+  const source = readFileSync(file, 'utf8')
+  const lines = source.split('\n')
+  const imported = importedPaths(file, source)
+  for (const [module, dir] of MODULES.map((m, i) => [m, moduleDirs[i]])) {
+    if (file.startsWith(`${dir}/`)) continue
+    const helper = imported.find((p) => p.startsWith(`${dir}/`))
+    if (!helper) continue
+    moduleHelperImports += 1
+    let describe = -1
+    lines.forEach((line, i) => {
+      const start = TEST_START.exec(line)
+      if (!start) return
+      if (start[1] === '') describe = i
+      if (/^\s*test\.describe/.test(line)) return
+      if (tagged(titleAt(lines, i), module) || tagged(titleAt(lines, describe), module)) return
+      untagged.push(
+        `${relative(root, file)}: \`${titleAt(lines, i)}\` imports ${relative(root, helper)} and is not ` +
+          `tagged \`@${module}\` — a diff to that helper is ${module}-only and its run would skip it (ADR-079)`,
+      )
+    })
+  }
+}
+
 /*
  * A gate that measures nothing passes silently for the rest of its life. If a
  * module moved, this says so instead of reporting ok over an empty walk.
@@ -344,5 +378,6 @@ if (untagged.length > 0) {
 
 console.log(
   `module-boundary-gate: ok — ${MODULES.length} module(s), ${moduleFiles} module files, ` +
-    `${files} files checked, no import across the boundary; ${moduleSpecs} module e2e spec(s) tagged`,
+    `${files} files checked, no import across the boundary; ${moduleSpecs} module e2e spec(s) tagged, ` +
+    `${moduleHelperImports} spec(s) importing another module's helpers tagged`,
 )

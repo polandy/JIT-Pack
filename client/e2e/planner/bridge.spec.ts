@@ -10,7 +10,7 @@ import {
   openIdeas,
   planIdea,
   showSegment,
-} from '../helpers/m28'
+} from './helpers/m28'
 import {
   chooseDay,
   dayFromToday,
@@ -18,7 +18,7 @@ import {
   openDayPlan,
   timelineLines,
   wayByHand,
-} from '../helpers/m29'
+} from './helpers/m29'
 import { openTripView } from '../helpers/trips'
 import { openListComposer } from '../helpers/composer'
 import { excursionMenu } from '../helpers/m27'

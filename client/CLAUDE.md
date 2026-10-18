@@ -121,6 +121,9 @@ areas; an excursion's parts live in `views/trips/excursion/` beside its pages, i
 - **A module's words live in the module** — `client/src/<m>/i18n/en.ts`/`de.ts`, read by `t()` through
   `i18n/index.ts`, so a copy change stays a module-only diff (ADR-079 amendment). A key only the module reads goes
   there; one the kernel reads too stays in `i18n/messages/`. The boundary gate holds it.
+- **A module's e2e lives in the module** — its cases in `client/e2e/<m>/`, its helpers in `client/e2e/<m>/helpers/`
+  (`planner/helpers/m28.ts`, `meals/helpers/m31.ts`), so a change to either stays a module-only diff (ADR-079). A spec
+  elsewhere that imports them tags every case `@<m>`; the boundary gate holds it.
 
 ## Invariant 4 in full — generation runs client-side
 

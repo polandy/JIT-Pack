@@ -13,7 +13,7 @@ import {
   openIdeas,
   planIdea,
   showSegment,
-} from '../helpers/m28'
+} from './helpers/m28'
 import {
   addDayEntry,
   chooseDay,
@@ -22,8 +22,8 @@ import {
   openDayPlan,
   timeline,
   timelineLines,
-} from '../helpers/m29'
-import { addMeal, mealSheet, openMeals } from '../helpers/m31'
+} from './helpers/m29'
+import { addMeal, mealSheet, openMeals } from '../meals/helpers/m31'
 import { setClock, switchToGerman } from '../helpers/page'
 
 /**
@@ -44,7 +44,7 @@ const LAST = dayFromToday(33)
 const TODAY = '2026-07-14'
 const TOMORROW = '2026-07-15'
 
-test.describe('M29 day plan @local @planner', () => {
+test.describe('M29 day plan @local @planner @meals', () => {
   test.beforeEach(async ({ seedMode }) => {
     await seedMode({ mode: 'local' })
   })
@@ -362,7 +362,7 @@ test.describe('M29 day plan @local @planner', () => {
   })
 })
 
-test.describe('M29 day plan — the ＋ opens the day’s sheet (FR-21.24) @local @planner', () => {
+test.describe('M29 day plan — the ＋ opens the day’s sheet (FR-21.24) @local @planner @meals', () => {
   test.beforeEach(async ({ seedMode }) => {
     await seedMode({ mode: 'local' })
   })

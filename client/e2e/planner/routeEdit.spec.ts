@@ -15,7 +15,7 @@ import {
   tapMap,
   trackAction,
   trackViewer,
-} from '../helpers/m28'
+} from './helpers/m28'
 
 /**
  * M28 — editing a track's route and drawing one (UI-Test-Spec §28,

@@ -272,6 +272,10 @@ neighbouring cases before copying a number.
 - `fixtures.ts` — `test`/`expect`, `seedMode`, `oneLivePage`, and the re-exports
   above.
 - `helpers/` — one module per seam; the table above is the catalogue.
+- `planner/`, `meals/`, `shopping/` — a feature module's cases, and in `<module>/helpers/` the helpers only its
+  surface needs (`planner/helpers/m28.ts`, `m29.ts`, `timetable.ts`; `meals/helpers/m31.ts`). A spec outside the
+  module that imports one tags every case `@<module>` (`module-boundary-gate.mjs`), because CI runs a diff to those
+  helpers on the module's leg alone (ADR-079).
 - `serverMode.ts`, `server/` — the `server` project: a real `jitpackd` in OIDC
   mode against the mock IdP in `server/mockIdp.mjs`, two browser contexts logged
   in as two accounts.

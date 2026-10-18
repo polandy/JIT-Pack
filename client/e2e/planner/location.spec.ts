@@ -7,7 +7,7 @@ import {
   openIdeas,
   stubTiles,
   trackViewer,
-} from '../helpers/m28'
+} from './helpers/m28'
 
 /**
  * FR-29.19 on one device: the 📍 on the full-screen map shows where the

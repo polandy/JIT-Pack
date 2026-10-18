@@ -1,9 +1,9 @@
 import type { Locator, Page } from '@playwright/test'
 import { expect } from '@playwright/test'
 
-import { fillIonic } from './ionic'
-import { visiblePage, writesLanded } from './page'
-import { openTripView } from './trips'
+import { fillIonic } from '../../helpers/ionic'
+import { visiblePage, writesLanded } from '../../helpers/page'
+import { openTripView } from '../../helpers/trips'
 
 /**
  * M31 — the trip's meal plan (§3.33), the meals module's screen, and its one

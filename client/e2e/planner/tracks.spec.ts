@@ -12,7 +12,7 @@ import {
   tilesFrom,
   trackAction,
   trackViewer,
-} from '../helpers/m28'
+} from './helpers/m28'
 
 /**
  * M28 — GPX tracks on an idea (UI-Test-Spec §28, FR-29.17, ADR-085). Local

@@ -1,6 +1,6 @@
 import { test, expect, createTripViaWizard, writesLanded } from '../../fixtures'
-import { addMeal, mealRow, mealSheet, openMeals } from '../../helpers/m31'
-import { openDayPlan, chooseDay, timelineLines } from '../../helpers/m29'
+import { addMeal, mealRow, mealSheet, openMeals } from '../helpers/m31'
+import { openDayPlan, chooseDay, timelineLines } from '../../planner/helpers/m29'
 import { browserDay } from '../../helpers/page'
 import { uniq } from '../../serverMode'
 
@@ -11,7 +11,7 @@ import { ACCOUNT_NAMES, loginAs, shareWith } from '../../server/fixtures'
  * than one; and a bought ingredient names its buyer, the server's stamp
  * (FR-33.3, FR-30.4).
  */
-test.describe('Who cooks (FR-33.8) @server @meals', () => {
+test.describe('Who cooks (FR-33.8) @server @meals @planner', () => {
   test.slow()
 
   /**

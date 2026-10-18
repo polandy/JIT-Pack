@@ -8,7 +8,7 @@ import {
   openLinkStep,
   pasteLink,
   timelineLines,
-} from '../../helpers/m29'
+} from '../helpers/m29'
 import { uniq } from '../../serverMode'
 import { SBB_SHORT_LINK, SBB_TRIP_LINK } from '../../../src/planner/domain/__tests__/sbbFixture'
 
