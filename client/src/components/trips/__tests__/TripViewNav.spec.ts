@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * The trip's views under the page's name (FR-21.21, ADR-051 amendment 1).
+ * The trip's views under the page's name (FR-21.21, ADR-051).
  *
  * Three things live here that no screen test can see: which views the row
  * offers, in order; the one you are standing on is the one marked; and the
@@ -141,7 +141,7 @@ describe('TripViewNav', () => {
   })
 
   /*
-   * ADR-051 amendment 1: the luggage and the analytics left the row, but the
+   * ADR-051: the luggage and the analytics left the row, but the
    * row still has to say where you are — so the view being looked at stands
    * in it while you are there, and leaves again when you go.
    */
@@ -236,7 +236,7 @@ describe('TripViewNav', () => {
   })
 
   /*
-   * ADR-051 amendment 3: the word stays where you stand, every other view is
+   * ADR-051: the word stays where you stand, every other view is
    * its glyph — and a glyph's number is a badge, since there is no word left
    * to put it in.
    */

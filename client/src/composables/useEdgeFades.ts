@@ -1,5 +1,5 @@
 /**
- * The one rule for a row that scrolls sideways (G-13, ADR-051 amendment 5):
+ * The one rule for a row that scrolls sideways (G-13, ADR-051):
  * it fades out on each side that has more, a swipe comes to rest on a whole
  * item, and the item you stand on is scrolled to the row's centre. A chip or
  * pill cut at a hard edge reads as a layout bug, not as "there is more".

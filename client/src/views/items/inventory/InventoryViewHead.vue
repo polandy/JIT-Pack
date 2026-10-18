@@ -6,7 +6,7 @@
  * Both are about the list's *shape*, which is why they sit above the tag
  * filter rather than as glyphs in the app bar — an eye and a ↕ have no
  * literal reading, and a tab root carries nothing before the ⋮ but search
- * (G-12, ADR-050 amendment 1). The properties are chips here rather than a
+ * (G-12, ADR-050). The properties are chips here rather than a
  * sheet of their own: three or four switches do not earn a second overlay.
  *
  * Every tap is in force at once, like the tags below it.

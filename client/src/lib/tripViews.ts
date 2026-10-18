@@ -50,34 +50,18 @@ export type TripViewId = (typeof TRIP_VIEW_IDS)[number]
 export type TripViewCounts = Partial<Record<TripViewId, (tripId: string) => number>>
 
 /**
- * The views that earn a pill under the page's name (ADR-051 amendment 1).
+ * The views that earn a pill under the page's name (ADR-051): the ones a
+ * trip is *worked* in, returned to across it. The luggage and the analytics
+ * are read once a trip, so they are words in the bar's ⋮ rather than pills
+ * as loud as the list being packed.
  *
- * A pill each for the luggage and the analytics would fill a 390 px line to
- * within six pixels: destinations all equally loud, two of which are read once
- * a trip. So the row keeps the views a trip is *worked* in, and those two are
- * words in the bar's ⋮, where the once-per-trip actions already are.
- *
- * FR-7.7 adds the third worked-in view by that same rule: the tasks are
- * returned to across a trip, not read once. It re-opens the measurement the
- * amendment made — three words against the four that did not fit — so the
- * row is measured again at 360 px rather than assumed (UI-Test-Spec, M25).
- *
- * FR-7.13 adds the fourth: the trip's notes, a place people write in. Four
- * words did not fit a phone; four glyphs and one word do (amendment 3).
- *
- * FR-31 adds the fifth: a trip's excursions are packed during the trip, more
- * often then than the suitcase is (ADR-077). The row is laid out for the
- * Pixel 9 Pro's 410 px (ADR-051) and scrolls on anything narrower; E2E-G12-07
- * measures its widest shape, the sixth pill a ⋮ view adds.
- *
- * §3.29 adds the sixth, first in the row: the ideas a trip is planned from,
- * before the packing begins (ADR-051 amendment 4). E2E-G12-07 measures the
- * row again with it, and with a ⋮ view as the seventh.
- *
- * FR-29.15 adds the day plan, last in the row and only while the trip has
- * both dates (`absentViews`): it is where the trip is lived day by day.
- * §3.33 adds the meal plan after it, on the same condition (ADR-092): the
- * row scrolls sideways, and a meal plan one tap deeper would not be used.
+ * The ideas come first, because a trip is planned before it is packed
+ * (§3.29). The tasks (FR-7.7), the notes (FR-7.13) and the excursions
+ * (FR-31, ADR-077) follow the shopping list; the day plan (FR-29.15) and the
+ * meal plan (§3.33, ADR-092) close the row, and only while the trip has both
+ * dates (`absentViews`). The row is laid out for the Pixel 9 Pro's 410 px and
+ * scrolls sideways where the pills do not fit; E2E-G12-07 measures its widest
+ * shape, with a ⋮ view joining it.
  */
 export const TRIP_VIEW_PILLS: readonly TripViewId[] = [
   'ideas',
@@ -182,7 +166,7 @@ export interface TripViewEntry {
   label: string
   /**
    * The number the label carries, or 0 — the icon-only pill wears it as a
-   * badge beside a glyph that has no word to put it in (ADR-051 amendment 3).
+   * badge beside a glyph that has no word to put it in (ADR-051).
    */
   count: number
   /** The count says what is new (FR-7.13's notes), not how much there is. */
@@ -233,7 +217,7 @@ export function tripViewEntry(
  *
  * Standing in a view the row does not otherwise show has to be visible: a row
  * that marks nothing as current is a row that has stopped saying where you are
- * (ADR-051 amendment 1), which is half of what the switcher is for.
+ * (ADR-051), which is half of what the switcher is for.
  */
 export function tripViewPills(
   current: TripViewId,

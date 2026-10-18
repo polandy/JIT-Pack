@@ -27,7 +27,7 @@
  *
  * FR-7.9's notes are not here: they have a view of their own (M26, FR-7.13),
  * because a note is not work, and a place people write in earns its own pill
- * (ADR-051 amendment 3).
+ * (ADR-051).
  */
 import { IonChip, IonContent, IonFab, IonFabButton, IonIcon, IonLabel, IonPage } from '@ionic/vue'
 import {

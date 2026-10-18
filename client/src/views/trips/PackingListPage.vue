@@ -461,7 +461,7 @@ setHeaderActions(() => {
   // FR-32.2: who changed what in this trip. A place to go rather than an
   // act, last because it is the rarest — and here, on the trip's home, rather
   // than on every view: the other views keep a ⋮ only for their own context
-  // (ADR-051 amendment 2). Only where a server recorded a log (G-8).
+  // (ADR-051). Only where a server recorded a log (G-8).
   if (capabilitiesOf().activityLog) {
     items.push({
       id: 'm4-activity',

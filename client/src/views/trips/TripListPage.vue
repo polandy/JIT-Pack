@@ -183,8 +183,8 @@ setHeaderTitle(() => t('trips.title'))
 
 // The two import entries are screen-level actions, so they belong in the one
 // place a screen states those (G-12); the name is the frame's (ADR-050).
-// G-12: a tab root carries search and the ⋮, nothing else (ADR-050
-// amendment 1). Both imports are done a few times a year at most, so they
+// G-12: a tab root carries search and the ⋮, nothing else (ADR-050).
+// Both imports are done a few times a year at most, so they
 // are words — M18's own title and M15's — rather than glyphs to be guessed.
 setHeaderActions(() => [
   action(),

@@ -1,6 +1,6 @@
 /**
  * Which of a trip's four views stands in the page and which stands in the
- * bar's ⋮ (FR-21.21, ADR-051 amendment 1).
+ * bar's ⋮ (FR-21.21, ADR-051).
  *
  * The split is a rule rather than two lists, and this is where the rule is
  * readable: two screens render from it — the switcher under the page's name

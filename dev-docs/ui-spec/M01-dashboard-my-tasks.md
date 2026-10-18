@@ -28,7 +28,7 @@
   in use** — FR-19.7's update offer, flipped by a worker that finished installing — renders in the frame's own layer
   **over** the content (`.app-banner-layer`), never in the column: a bar inserted into the column shifts every target
   below it out from under the finger already reaching for one, and the press then lands beside the control while the
-  app reports nothing at all. **The layer is the column's, not the window's (ADR-060 amendment 1):** it begins at the
+  app reports nothing at all. **The layer is the column's, not the window's (ADR-060):** it begins at the
   page head's last pixel and is the width of the content column, because it is a child of that column contributing no
   height to it. What it costs is stated rather than avoided — the layer covers the top band of the content while it is
   up, and a press aimed at that band during its arrival hits the banner, which is visible under the pointer when it is

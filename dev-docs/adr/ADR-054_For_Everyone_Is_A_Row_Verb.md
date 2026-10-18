@@ -130,19 +130,14 @@ that renders no verbs at all (M6, M8).
   Accepted rather than solved: the alternative is a round trip through the caller for every tap.
 
 **Neutral**
-- `offerPerPerson` on the composer became `travelerCount`, because two controls now ask the same question of the same
-  number and a second boolean would have been the same rule written twice.
+- Two controls — the composer's per-person mode and this verb — ask the same question of the same roster, so both take
+  one `BrowseScope` (`domain/browseRows.ts`: what the list carries, its packing states, its travelers), and
+  `browseOffer()` derives from it which verbs a line may offer: the decision verbs where the scope reports states,
+  *für alle* from two travelers on. A count passed beside the roster, or a boolean per control, would have been the
+  same rule written twice, with room for two answers.
 
 ## Revisit Trigger
 
 A request for a *subset* in the sheet — „these two, not the third". That is option C, and it is the point at which the
 roster has to unfold somewhere; the answer then is not a fourth verb but a decision about whether the sheet still is a
 run surface at all.
-
-## Amendment (2026-10-10): the number is the scope's roster
-
-`travelerCount` was the roster's length passed beside the roster itself, so the composer and the sheet could be handed
-two answers to one question. Both now take one `BrowseScope` (`domain/browseRows.ts`: what the list carries, its
-packing states, its travelers), and `browseOffer()` derives from it which verbs a line may offer — the decision verbs
-where the scope reports states, „für alle" from two travelers on. The rule above is unchanged: one input decides both
-controls, and it is now the only one there is.

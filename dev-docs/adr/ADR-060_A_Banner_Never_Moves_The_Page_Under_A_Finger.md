@@ -2,8 +2,8 @@
 
 **Status:** Accepted
 **Related:** FR-19.7 (the one-press update offer), FR-19.8 (the migration bar), ADR-044 (the update is
-applied from a press), G-19 (UI-Spec), `dev-docs/e2e-ledger/` — *„Owed: a WebKit case lost its click to
-the FR-19.7 banner (2026-09-09)"*
+applied from a press), G-19 (UI-Spec), M1, M4, E2E-PWA-06, `dev-docs/e2e-ledger/` — *„Owed: a WebKit
+case lost its click to the FR-19.7 banner (2026-09-09)"*
 
 **Decision Drivers (in priority order):**
 1. **A control must not move between the moment it is aimed at and the moment it is pressed.** This is
@@ -21,11 +21,19 @@ the FR-19.7 banner (2026-09-09)"*
 
 ### Option A — the banner gets its own layer, over the content *(recommended, accepted)*
 
-`UpdateBanner` moves out of the app's flex column into `.app-banner-layer`, a fixed layer pinned to the
-line where the body column starts (`--jp-app-bar-h`) and inset past the desktop rail
-(`--jp-nav-rail-w`). Appearing and disappearing changes no other element's box. It is the decision M5's
+`UpdateBanner` moves out of the flow into `.app-banner-layer`, a box that contributes no height and that
+the banner overflows. Appearing and disappearing changes no other element's box. It is the decision M5's
 desktop panel already made for the same reason — *„fixed to the right edge rather than squeezing the
 list, so opening a detail never re-flows the rows underneath the finger that opened it"*.
+
+Where that layer hangs was weighed on its own. Fixed to the window — at the line where the body starts
+(`--jp-app-bar-h`) and inset past the desktop rail (`--jp-nav-rail-w`) — it starts at the *head's* line,
+not the content's: at 390 px over M4 the banner (y 64 → 120.78) hid the page title outright and 13.1 px
+of the view switcher's 25. A control cut in half still reads as a control, so the sliver invites the
+press the banner then takes, and "visible under the pointer when it is hit" is a weaker defence for half
+a chip than for a row. And it is not the width of the column it covers: at 1280 px it was 1176 px over a
+600 px column. Rendered over six rows at 390, 820 and 1280 px, that was refused for a zero-height
+`position: sticky` child of the content column (`.app-content`), placed after `PageHead`.
 
 **Pros**
 - Nothing below it moves, ever — an invariant a test can state as an equality rather than a tolerance.
@@ -97,25 +105,11 @@ The FR-19.7 banner renders in `.app-banner-layer`, a layer over the content that
 to the column. Its arrival and its dismissal change no other element's geometry, which `E2E-PWA-06`
 asserts as an equality of the content box before and after.
 
-**Amendment 1 (2026-09-16) — the layer belongs to the column, not to the window.** As accepted, the
-layer was `position: fixed` and took its geometry from the viewport: `top: var(--jp-app-bar-h)`, and
-`left`/`right` at the frame's edges (past G-9's breakpoint, inset by `--jp-nav-rail-w`). It is now a
-zero-height `position: sticky` child of `.app-content`, placed **after** `PageHead`. Nothing about the
-decision changes — the banner still overlays, still moves nothing — but two things stop being true that
-the original geometry made true only at one viewport:
-
-- **It started at the head's line rather than the content's.** `--jp-app-bar-h` is where the *head*
-  begins, not the outlet, so the layer covered the page's own name and the first half of whatever the
-  screen hangs beside it. The Consequences below measured that at 390 px and left the judgement open;
-  made against the rendered picture 2026-09-16, the judgement is that a screen keeps its name and its
-  switcher. Placed after the head, the layer starts at the head's last pixel, and when a screen
-  collapses its head (M4, scrolled) it rises with it to the app bar — which is the case the accepted
-  cost was always describing.
-- **It was not the width of the column it covered.** `.app-content` is capped at `--jp-measure`; the
-  fixed layer was not, so at 1280 px the banner was 1176 px over a 600 px column, and the code comment
-  claiming it "reads exactly where it read when it was a sibling of it" was out by 576 px. As a child
-  of the column it takes the measure and the rail inset from the column itself — not from a second copy
-  of the two tokens, which is the form of this fix that would have drifted again.
+**The layer belongs to the column, not to the window.** It is a zero-height `position: sticky` child of
+`.app-content`, placed **after** `PageHead`, so it starts at the head's last pixel: a screen keeps its
+name and its switcher. When a screen collapses its head (M4, scrolled) the layer rises with it to the
+app bar. As a child of the column it takes the measure and the rail inset from the column itself — not
+from a second copy of the two tokens, which would drift.
 
 FR-19.8's migration bar deliberately stays **in** the column: `switchToServer` reloads, and the flag is
 read at boot, so that bar is either present from the first paint or never — it cannot appear under a
@@ -134,26 +128,7 @@ the frame beside the two of them (G-19).
 - The banner covers the top band of the content while it is up, and a press aimed there during its
   arrival hits it. Bounded by what it can do: *Update* reloads onto the waiting build with unsent
   changes kept (they live in the outbox), and *Später* dismisses.
-- **What „the top band" is, measured** (2026-09-16, M4 with six rows at 390 × 844; the PR's own
-  screenshots were all empty states and forms, so the band it covers was never in one). The banner
-  occupies y 64 → 120.78. It therefore hides **the page title outright** (`header-title`, y 62 →
-  97.69) and **13.1 px of the view switcher's 25** (`trip-views`, y 107.69 → 132.69) — just over half
-  of a live control row. The progress figure at y 155.81 is clear, and so is every row.
-  Two things the same run settles: **nothing moves** — head, switcher, figure and scroll geometry are
-  identical to the hundredth of a pixel before and after, which is what this ADR bought and what
-  E2E-PWA-06 pins one box lower — and **the layer swallows no taps**: `elementFromPoint` at the
-  switcher's own top edge returns the chip's `BUTTON.view` both before and after, so the failure mode
-  the desktop rail had at `left: 0` does not repeat on the chips.
-  Whether hiding the page's name for the life of the announcement is acceptable is a judgement to make
-  against the rendered picture rather than against the phrase; it is recorded here so the next reader
-  inherits the pixels instead of re-measuring them.
-  **Judged 2026-09-16, and the answer was no** — see Amendment 1. Rendered over six rows at 390, 820
-  and 1280 rather than measured at one width, the half-covered switcher is the part that decides it: a
-  control cut in half still reads as a control, so the sliver invites the press the banner then takes,
-  and "visible under the pointer when it is hit" is a weaker defence for half a chip than for a row.
-  The same three renders added what one viewport could not show — the layer was 1176 px wide over a
-  600 px column at 1280 — which is the half of this nobody had measured. What the banner covers now is
-  what this bullet always claimed: the top band of the *content*, the M4 progress figure first.
+- What it covers is the top band of the *content*, below the head: over M4, the progress figure first.
 - A future banner added to that slot has to decide which of the two it is. The template comment beside
   both says so, and G-19 is the written rule; neither is a type.
 
@@ -165,6 +140,5 @@ the frame beside the two of them (G-19).
 
 A **second** surface that arrives unbidden over a screen in use — a global error bar, a presence toast
 from another device — or a viewport where the banner's band overlaps a control that has no other way to
-be reached. That last clause fired once already: the view switcher was overlapped by half its height,
-which Amendment 1 answered by moving the layer below the head rather than by re-deciding the placement.
-A second occupant still makes this a layout with two of them, and the placement worth re-deciding as one.
+be reached — the clause that put the layer below the head rather than at the window's line. A second
+occupant makes this a layout with two of them, and the placement worth re-deciding as one.

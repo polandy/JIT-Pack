@@ -198,7 +198,7 @@ These patterns apply to every screen and are specified once.
   wordmark from the desktop breakpoint up, a link/tap-target to M1; no build string beside it — M17's About names the
   build, UX-21) or **`‹ back` alone on every other screen**, and on the right the page's G-12 cluster, the ⋮, the sync
   glyph (G-2) and the avatar/settings control (G-1). The way out of a drill-down is the back-target contract rather than
-  the logo (ADR-011). **The bar's two ends are the frame's, its cluster is the page's (ADR-050 amendment 2, UX-14):**
+  the logo (ADR-011). **The bar's two ends are the frame's, its cluster is the page's (ADR-050, UX-14):**
   from the desktop breakpoint up the cluster and its ⋮ end at the content column's right edge — following the column
   when a detail pane re-centres it — while back or the logo keep the left corner and the sync glyph and the gear the
   right one. Below the breakpoint the column is the window and the cluster stands beside the sync glyph. **The bar is
@@ -220,7 +220,7 @@ These patterns apply to every screen and are specified once.
   Sommer" as "S…" at 390 px beside M4's cluster, and an `h1` each screen writes into its own content by hand drifts from
   the others. Accepted cost: the head is a fixed band rather than part of the scroller, so it does not scroll away; the
   revisit trigger is in ADR-050.
-* **A trip's screen names the trip's other screens (FR-21.21, ADR-051 and its amendments 1, 3 and 4).** Under the page
+* **A trip's screen names the trip's other screens (FR-21.21, ADR-051).** Under the page
   head, and inside it — so it yields with the name where a screen collapses its head (FR-21.17) — the views a trip is
   *worked* in are a row of pills: *Ideen (n)* (§3.29), *Packliste*, *Einkaufen (n)*, *Aufgaben (n)*, *Notizen*
   (FR-7.13), *Ausflüge (n)* (FR-31), *Tagesplan* (FR-29.15) and *Essen* (§3.33) — the last two only while the trip has
@@ -239,7 +239,7 @@ These patterns apply to every screen and are specified once.
   sideways-row rule, which every scrolling row of chips shares. **The notes'
   badge counts what is new for me, never the total, in the action colour** (`count-new`) where every other badge is
   grey.
-* **The bar's cluster is capped at three glyphs, one on a tab root (ADR-050 and its amendment 1).** A page describes its
+* **The bar's cluster is capped at three glyphs, one on a tab root (ADR-050).** A page describes its
   actions in registration order (G-12); the bar renders the first three that are not marked for the ⋮ and puts
   everything after them into the menu, ahead of the actions the page marked itself. Without a cap a screen gathers
   glyphs one at a time, because nothing says what full looks like. The right-hand group — ⋮ where anything is behind it,
@@ -361,17 +361,17 @@ These patterns apply to every screen and are specified once.
   M4's *Suchen*, *Filter* and *Zuklappen* stay on the bar because they are tapped while packing.
   **The cluster has a size (ADR-050):** the bar renders at most **three** glyphs from a page's list and puts the rest
   into the ⋮ in registration order, ahead of the entries the page marked itself. The page chooses which three, by
-  writing them first; what it cannot do is add a fourth without noticing. **On a tab root the size is one (ADR-050
-  amendment 1, UX-05):** M1, M2, M7 and M9 show at most the magnifier and the ⋮ before the sync glyph. The roots are the
+  writing them first; what it cannot do is add a fourth without noticing. **On a tab root the size is one (ADR-050,
+  UX-05):** M1, M2, M7 and M9 show at most the magnifier and the ⋮ before the sync glyph. The roots are the
   family's first row on every visit, and what else stood there — the two imports, done a few times a year, and M9's eye,
   ↕ and ✓✓, none of which reads literally — is a word in the ⋮ (*Datei importieren*, *Tabelle importieren*) or moved
   into the screen (M9's sort and shown properties head its *Ansicht & Filter* sheet; its selection starts on a row's
   hold). `AppHeader` holds the root budget itself, so a root action added later becomes a word without its page
   remembering the rule. E2E-G12-02 reads the bar at 412 and 360 px. The trip's views are the switcher under the page
-  head (FR-21.21, ADR-051), except *Gepäck* and *Auswertung* (ADR-051 amendment 1): they are ⋮ entries, contributed by
+  head (FR-21.21, ADR-051), except *Gepäck* and *Auswertung* (ADR-051): they are ⋮ entries, contributed by
   the frame rather than by the page, and they **head** the sheet — where you can go first, what you do after. The page's
   own entries keep their order among themselves.
-  **A ⋮ holds its own context and nothing else (ADR-051 amendment 2).** *Gepäck* and *Auswertung* are packing's, so the
+  **A ⋮ holds its own context and nothing else (ADR-051).** *Gepäck* and *Auswertung* are packing's, so the
   frame offers them only on packing's views (M4, M11, M12) — **M6 and M25 have no ⋮ at all**, and the packing pill is
   the way from there. What changes the whole trip rather than the packing — *„Reise-Eigenschaften"*, *„Reise starten"*
   and *„Reise abschliessen"* — is **M2's alone** (the row's hold menu and the hero's buttons). M4's ⋮ holds packing's:
@@ -381,8 +381,8 @@ These patterns apply to every screen and are specified once.
   then renders and responds to every tap while being absent from the accessibility tree.
   * **Placement — the app bar, over the column's right edge.** On any screen reached with the back chevron (M4, M6, …)
     the cluster occupies the app bar's right side: beside the sync glyph and the gear on a phone, and from 900 px up
-    ending where the content column ends, so on a 1920 px window it is not 530 px from the list it acts on (G-9, ADR-050
-    amendment 2). E2E-M4-71 measures it at 1280 and 1920 px, with and without M5's pane. The gear stays on every
+    ending where the content column ends, so on a 1920 px window it is not 530 px from the list it acts on (G-9, ADR-050).
+    E2E-M4-71 measures it at 1280 and 1920 px, with and without M5's pane. The gear stays on every
     screen except M17 itself, because G-9's "back returns to where the gear was tapped" only works if the gear can be
     tapped anywhere. The cost — M4's bar carrying the cluster
     *and* the gear — is a known crowding finding (UX-13) and is decided there, not here. A tab root shows the magnifier
@@ -418,7 +418,7 @@ These patterns apply to every screen and are specified once.
     `overflow` and rendered behind the ⋮ **as a word**. A bubble would be a second, weaker answer — and a *third*
     meaning for a gesture the app already spends twice (FR-5.5's row menu, G-6's stepper holds), where colliding
     meanings are a defect. **Revisit trigger:** a bar glyph that turns out to be unlearnable moves behind the ⋮; if one
-    ever cannot, the bubble is back on the table. **It has fired once (ADR-051 amendment 3):** the trip switcher's
+    ever cannot, the bubble is back on the table. **It has fired once (ADR-051):** the trip switcher's
     glyphs are destinations that are not in the ⋮, so a held glyph there shows its name (E2E-G12-08). The rule stands
     everywhere else; a switcher pill carries no other hold for the gesture to collide with. Note also that the *four
     navigation anchors* are not subject to the naming rule at all: both the rail and the tab bar render a visible label.
@@ -432,7 +432,7 @@ These patterns apply to every screen and are specified once.
     means buying, a suitcase means luggage, and one glyph for two destinations defeats the point of shrinking labels
     away.
   * **Budget.** The cluster holds at most **three glyphs** (ADR-050, `MAX_BAR_ACTIONS` in `AppHeader.vue`), and **one**
-    on a tab root (amendment 1, `MAX_ROOT_BAR_ACTIONS`); a screen needing more has the surplus rendered behind the ⋮ as
+    on a tab root (`MAX_ROOT_BAR_ACTIONS`); a screen needing more has the surplus rendered behind the ⋮ as
     words rather than widening the cluster. M4 fills the three with search, filter and fold-all.
 * **G-13 (Typography):** The app has two faces, and which one a piece of text takes is decided by its **role**, never by
   the screen it happens to be on (Addendum FR-21.5). This is the counterpart to G-11: G-11 says where colour comes from,

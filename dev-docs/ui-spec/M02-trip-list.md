@@ -55,7 +55,7 @@
   tap that ends a hold does not also open the trip. The hero card (FR-21.15) opens the same menu on a hold or
   right-click, and from its ⋮ where the pointer is a mouse. There is no swipe: a hold opens a row's actions
   on every list (M4 FR-5.5, M7 FR-18.2), one gesture across the app. *Datei importieren* → M18 and the legacy
-  spreadsheet importer *Tabelle importieren* → M15 are **words behind the app bar's ⋮** (G-12, ADR-050 amendment 1): a
+  spreadsheet importer *Tabelle importieren* → M15 are **words behind the app bar's ⋮** (G-12, ADR-050): a
   tab root carries the magnifier and the ⋮ alone, and an import done a few times a year does not earn a glyph to be
   guessed at (UX-05). **The list opens on the segment a caller names** (`?status=active|planned|archived`) — M18 uses it
   to land a restore where its own result is; an absent or unknown value never resets the segment the user last chose.
