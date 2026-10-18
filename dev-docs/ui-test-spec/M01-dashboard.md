@@ -98,7 +98,7 @@
   so the card drops the row — asserted on the card itself, since an emptied card must not stay behind with nothing in
   it. A reply brings the thread back, quoting the reply, and the words open **that thread's own view**, named by its
   title.
-* **E2E-M1-28** `local` (FR-7.10, ADR-074 amendment 1) — **implemented** (`dashboard.spec.ts`): a trip on its third
+* **E2E-M1-28** `local` (FR-7.10, ADR-074) — **implemented** (`dashboard.spec.ts`): a trip on its third
   day with half its packing open opens on the day — *On site*, no ring; the blocks stand *Heute*, shopping, tasks from
   top to bottom (read off their boxes); the *Aufgaben* card above leaves the trip out; the foot carries *„1/2 packed"*
   with *„1 open"* and leads onto the packing list.

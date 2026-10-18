@@ -1,8 +1,8 @@
 # ADR-077: An excursion is its own list that borrows from the trip — own lines vs. a view on the trip's list vs. a container
 
 **Status:** Accepted
-**Related:** PRD Addendum §3.31 (FR-31.1–FR-31.12), §3.10 containers (FR-10), §3.11 Repack (removed), §3.27 Gruppen
-(FR-27.10, FR-27.13), ADR-073 (a row per person), ADR-066 (shopping sources), UI-Spec M27, schema `excursions`,
+**Related:** PRD Addendum §3.31 (FR-31.1–FR-31.12, FR-31.14), §3.10 containers (FR-10), §3.11 Repack (removed), §3.27
+Gruppen (FR-27.10, FR-27.13), ADR-073 (a row per person), ADR-066 (shopping sources), UI-Spec M27, schema `excursions`,
 `excursion_travelers`, `excursion_items`; `dev-docs/excursions-concept.md`
 
 **Decision Drivers (in priority order):**
@@ -14,7 +14,7 @@
 
 ---
 
-## Considered Options
+## Considered Options — where the excursion's lines live
 
 ### Option A — Own lines with their own tick, optionally linked to a trip row *(recommended, accepted)*
 
@@ -58,9 +58,19 @@ Trip rows get an „also for the hut tour" marker; the excursion is a filter on 
 - A row is in **exactly one** container — suitcase *or* rucksack, never the suitcase now and the rucksack on Tuesday.
 - Containers are per trip and not reusable (driver 2); one tick again (driver 1).
 
+## Considered Options — a new name in the quick-add
+
+A chocolate bar or a bottle of water is bought for one outing and planned with by nobody.
+
+- **A line that names no item** (`source_item_id` null) *(accepted)* — costs nothing in the schema, since the column
+  is already nullable for group positions without an item; *Nur für diesen Ausflug* stands first in the quick-add.
+- **Always the inventory** (M4's rule, and the first cut's) *(rejected)* — every new name goes through the inventory's
+  create sheet and floods it with provisions.
+- **A throw-away flag on the item** *(rejected)* — keeps the flood and adds a filter to every inventory read.
+
 ---
 
-## Decision Matrix
+## Decision Matrix — where the excursion's lines live
 
 | Driver | Weight | A — own lines | B — filtered view | C — container |
 |---|---|---|---|---|
@@ -76,7 +86,8 @@ Trip rows get an „also for the hut tour" marker; the excursion is a filter on 
 
 An excursion owns its lines and their tick (`excursion_items`), names its people in a row each
 (`excursion_travelers`, none meaning everybody), borrows trip rows through a link that shares no tick, writes into the
-trip's list only while *before* is not over, and is started from and saved as a Gruppe.
+trip's list only while *before* is not over, and is started from and saved as a Gruppe. A line may name no item, for
+what is bought for the outing alone (FR-31.14).
 
 ## Consequences
 
@@ -87,6 +98,9 @@ trip's list only while *before* is not over, and is started from and saved as a 
 **Negative / accepted costs**
 - The second packed state Repack's removal ruled out, for a smaller set on a different day.
 - A per-person set has to be remembered as *für alle* (`for_all_participants`) so it can follow a change of people.
+- A line that names no item is never linked into the suitcase — there is no item to match a row by — so before the
+  trip it is not carried onto the packing list; *Ins Inventar* is the way back, and *Als Gruppe speichern* asks rather
+  than creating those items silently.
 - Not in the portable backup, like the tasks and the notes; the Gruppe is.
 
 **Neutral**
@@ -97,14 +111,3 @@ trip's list only while *before* is not over, and is started from and saved as a 
 A request for a **return tick** — *is everything back from the hut?* That is Repack's second half coming back, and a
 third packed state on the same line would reopen whether an excursion's line should instead be a trip row's move
 between bags.
-
-## Amendment 1 — a line for the excursion alone (FR-31.14)
-
-Owner review showed the inventory is the wrong home for a chocolate bar or a bottle of water: the first cut put every
-new name through the inventory's create sheet, as M4 does. Three shapes were weighed. **Always the inventory** (M4's
-rule) floods it with provisions nobody plans with. **A throw-away flag on the item** keeps the flood and adds a filter
-to every inventory read. **A line that names no item** (`source_item_id` null) costs nothing in the schema — the column
-was already nullable for group positions without an item — and was chosen, with *Nur für diesen Ausflug* first in the
-quick-add. The cost: such a line is never linked into the suitcase (there is no item to match a row by), so before the
-trip it is not carried onto the packing list; *Ins Inventar* is the way back, and *Als Gruppe speichern* asks rather
-than creating those items silently.

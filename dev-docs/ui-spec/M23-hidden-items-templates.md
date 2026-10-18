@@ -43,7 +43,7 @@
   button is absent and the usage count says why, rather than a control that silently re-retires. The bin stands
   **before** *Wiederherstellen*, so the restore button ends at the same edge on every row. The confirm
   carries M10's three-form outcome sentence unchanged, including the Server-Mode hedge.
-* **Several at once (FR-24.3, ADR-075 amended):** M23 selects the way M6, M25, M9 and M11 do. A **hold** on
+* **Several at once (FR-24.3, ADR-075):** M23 selects the way M6, M25, M9 and M11 do. A **hold** on
   a row (500 ms, or a right-click) starts the mode with that row picked, as does the app bar's checkbox glyph — offered
   while the segment shown has a row. While selecting, the app bar carries ✕, the count and *„Alle N"* over the segment
   shown (G-20), each row carries a `SelectBox` and **its own two buttons step aside**, a tap picks, and a

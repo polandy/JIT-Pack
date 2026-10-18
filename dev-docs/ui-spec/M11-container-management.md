@@ -30,7 +30,7 @@
 * **Assigning:** tapping an unassigned row opens the same sheet as a **container picker**, each option showing its
   current load — so "which bag?" is answered where the load is visible. Assignment stays optional and never blocks
   packing (FR-25.5).
-* **Several at once (FR-10.2, ADR-075 amended):** the bucket selects the way M6, M25 and M9 do. A **hold**
+* **Several at once (FR-10.2, ADR-075):** the bucket selects the way M6, M25 and M9 do. A **hold**
   on an unassigned row (500 ms, or a right-click) starts the mode with that row picked, as does the app bar's checkbox
   glyph — offered only while the bucket holds a row. While selecting, the app bar carries ✕, the count and *„Alle N"*
   over the bucket (G-20), each row carries a `SelectBox` in place of its chevron, a tap picks, and the

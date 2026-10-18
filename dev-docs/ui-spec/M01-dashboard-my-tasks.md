@@ -51,7 +51,7 @@
   space: the trip's tasks become the card's one figure at the lone ring size (FR-7.4), and the shopping card under it
   opens on *Vor Ort* (FR-30.8). The open-rows preview needs no rule — it lists open rows, of which a finished list has
   none, and a row added afterwards belongs there. (E2E-M1-25)
-* **On the road the hero works the day (FR-7.10, ADR-074 amendment 1).** From the trip's first day the hero takes the
+* **On the road the hero works the day (FR-7.10, ADR-074).** From the trip's first day the hero takes the
   layout below whether or not the packing has been declared finished (`pastPacking`): the day leads, and a family that
   never taps *Packen abschliessen* would otherwise see a packing ring first for the whole stay. With the packing still
   unfinished, its figure stands in the foot control — *„10/26 gepackt"* over *„13 offen · Packliste"*, onto M4 — instead
