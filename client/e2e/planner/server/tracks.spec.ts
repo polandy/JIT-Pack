@@ -10,7 +10,7 @@ import {
   openIdeas,
   stubTiles,
   trackAction,
-} from '../../helpers/m28'
+} from '../helpers/m28'
 import { uniq } from '../../serverMode'
 
 import { ACCOUNT_NAMES, loginAs, shareWith } from '../../server/fixtures'

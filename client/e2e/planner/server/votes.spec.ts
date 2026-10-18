@@ -1,5 +1,5 @@
 import { test, expect, createTripViaWizard, writesLanded } from '../../fixtures'
-import { addIdea, ideaCard, openIdea, openIdeas } from '../../helpers/m28'
+import { addIdea, ideaCard, openIdea, openIdeas } from '../helpers/m28'
 import { uniq } from '../../serverMode'
 
 import { ACCOUNT_NAMES, loginAs, shareWith } from '../../server/fixtures'

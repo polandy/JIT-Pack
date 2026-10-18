@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test'
 
 import { test, expect, createTripViaWizard, visiblePage, writesLanded } from '../fixtures'
-import { addIngredient, addMeal, mealRow, mealSheet, openMeals, openNewMeal } from '../helpers/m31'
+import { addIngredient, addMeal, mealRow, mealSheet, openMeals, openNewMeal } from './helpers/m31'
 import { browserDay } from '../helpers/page'
 import { fillIonic } from '../helpers/ionic'
 import { openTripView } from '../helpers/trips'

@@ -28,6 +28,11 @@ const cases = [
     want: { appUntouched: false, module: 'shopping' },
   },
   {
+    name: "a change to the planner's own e2e helpers alone runs the planner alone",
+    paths: ['client/e2e/planner/helpers/m29.ts', 'client/e2e/planner/dayplan.spec.ts'],
+    want: { appUntouched: false, module: 'planner' },
+  },
+  {
     name: "a change to the planner's words alone runs the planner alone",
     paths: ['client/src/planner/i18n/en.ts', 'client/src/planner/i18n/de.ts', 'client/src/planner/IdeaCard.vue'],
     want: { appUntouched: false, module: 'planner' },
@@ -48,7 +53,7 @@ const cases = [
     'client/src/i18n/messages/de.ts',
     'client/package-lock.json',
     '.github/workflows/ci.yml',
-    'client/e2e/helpers/m28.ts',
+    'client/e2e/helpers/page.ts',
     'client/e2e/global-nav.spec.ts',
     'scripts/modules.mjs',
     'scripts/diff-scope.mjs',

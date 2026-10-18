@@ -7,7 +7,7 @@
  * that did the packing could have claimed.
  */
 import { test, expect, createTripViaWizard, visiblePage } from '../fixtures'
-import { addIdea, openIdea, openIdeas } from '../helpers/m28'
+import { addIdea, openIdea, openIdeas } from '../planner/helpers/m28'
 import { createMasterItem } from '../helpers/templates'
 import { writesLanded } from '../helpers/page'
 import { packItem, quickAddItem, uniq } from '../serverMode'
@@ -15,7 +15,7 @@ import { PATH } from '../routes'
 
 import { ACCOUNT_NAMES, loginAs, shareWith } from './fixtures'
 
-test.describe('Aktivität (M30) @server @m30', () => {
+test.describe('Aktivität (M30) @server @m30 @planner', () => {
   /**
    * E2E-M30-01 (FR-32.1/32.2): Bob packs two things on Alice's trip; Alice
    * opens the trip's activity from the ⋮ and reads one line for the two

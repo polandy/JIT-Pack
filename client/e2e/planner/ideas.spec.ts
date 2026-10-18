@@ -20,7 +20,7 @@ import {
   openIdeas,
   pictureViewer,
   showSegment,
-} from '../helpers/m28'
+} from './helpers/m28'
 
 /**
  * M28 — a trip's ideas (UI-Test-Spec §28, §3.29 FR-29.1–29.6, FR-29.10,

@@ -1,7 +1,7 @@
 import type { Locator, Page } from '@playwright/test'
 
 import { test, expect, createTripViaWizard, fillIonic, writesLanded } from '../fixtures'
-import { stubTiles } from '../helpers/m28'
+import { stubTiles } from './helpers/m28'
 import {
   addDayEntry,
   chooseDay,
@@ -15,8 +15,8 @@ import {
   timelineLines,
   typeStop,
   wayByHand,
-} from '../helpers/m29'
-import { stubTimetable, type StubRun, type StubStop } from '../helpers/timetable'
+} from './helpers/m29'
+import { stubTimetable, type StubRun, type StubStop } from './helpers/timetable'
 import { SBB_TRIP_LINK } from '../../src/planner/domain/__tests__/sbbFixture'
 
 /**

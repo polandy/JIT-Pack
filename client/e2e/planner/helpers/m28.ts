@@ -1,9 +1,9 @@
 import type { Locator, Page } from '@playwright/test'
 import { expect } from '@playwright/test'
 
-import { fillIonic } from './ionic'
-import { itemDetail, visiblePage } from './page'
-import { openTripView } from './trips'
+import { fillIonic } from '../../helpers/ionic'
+import { itemDetail, visiblePage } from '../../helpers/page'
+import { openTripView } from '../../helpers/trips'
 
 /**
  * M28 — the trip's ideas (§3.29), the planner module's board. The one

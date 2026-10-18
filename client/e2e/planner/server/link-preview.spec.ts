@@ -2,7 +2,7 @@ import type { Page, Route } from '@playwright/test'
 
 import { test, expect, createTripViaWizard, fillIonic, writesLanded } from '../../fixtures'
 import { WIDE_PNG, WIDE_PNG_WIDTH } from '../../helpers/images'
-import { ideaCard, openIdeas } from '../../helpers/m28'
+import { ideaCard, openIdeas } from '../helpers/m28'
 import { uniq } from '../../serverMode'
 
 import { loginAs } from '../../server/fixtures'

@@ -1,6 +1,6 @@
 import { test, expect, createTripViaWizard, writesLanded } from '../../fixtures'
 import { fillIonic } from '../../helpers/ionic'
-import { addIdea, ideaDetail, moveIdea, openIdea, openIdeas } from '../../helpers/m28'
+import { addIdea, ideaDetail, moveIdea, openIdea, openIdeas } from '../helpers/m28'
 import { uniq, watchSubscribed } from '../../serverMode'
 
 import { ACCOUNT_NAMES, loginAs, shareWith } from '../../server/fixtures'

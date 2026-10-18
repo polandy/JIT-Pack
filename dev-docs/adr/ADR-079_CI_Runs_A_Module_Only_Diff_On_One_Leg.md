@@ -24,7 +24,8 @@ module — `client/src/<m>/`, `client/e2e/<m>/`, `internal/{store,api}/<m>*.go`,
 specs, unit tests) — its `module` output names it. `e2e` then runs one leg with `--grep "@<m>|@smoke"`, and
 `e2e-single`/`e2e-server` run `--grep @<m>`. The tag is held by `module-boundary-gate.mjs`: every case under
 `client/e2e/<m>/` carries it, and so does every case elsewhere that works the module's surface (its trip view,
-its switcher entry, its dashboard card — `MODULE_E2E_MARKERS` in `scripts/modules.mjs`). Anything else in the
+its switcher entry, its dashboard card — `MODULE_E2E_MARKERS` in `scripts/modules.mjs`) or imports the module's
+e2e helpers (`client/e2e/<m>/helpers/`, inside the module, so a diff to them is module-only). Anything else in the
 diff — the schema, a migration, `wire.go`, `App.vue`, the router, `lib/`, `sync/`, the i18n catalogues, the
 lockfile, a workflow — makes it a full run.
 

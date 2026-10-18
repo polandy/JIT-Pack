@@ -19,7 +19,7 @@ import {
   stubTiles,
   tapMap,
   trackViewer,
-} from './helpers/m28'
+} from './planner/helpers/m28'
 import { writesLanded } from './helpers/page'
 
 /**
@@ -57,7 +57,7 @@ const PIENZA = gpxFile(
   { name: 'Pienza – Monticchiello', type: 'cycling' },
 )
 
-test.describe('M27 — an excursion’s GPX tracks (FR-31.15) @local @m27', () => {
+test.describe('M27 — an excursion’s GPX tracks (FR-31.15) @local @m27 @planner', () => {
   test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
     await stubTiles(page)

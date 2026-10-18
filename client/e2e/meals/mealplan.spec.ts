@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test'
 import { test, expect, createTripViaWizard, visiblePage, writesLanded } from '../fixtures'
 import { PATH } from '../routes'
 import { createExcursion, openExcursions, undoFromSnackbar } from '../helpers/m27'
-import { addDayEntry, chooseDay, openDayPlan, timelineLines } from '../helpers/m29'
+import { addDayEntry, chooseDay, openDayPlan, timelineLines } from '../planner/helpers/m29'
 import {
   addIngredient,
   addMeal,
@@ -17,8 +17,8 @@ import {
   mealsOfDay,
   openMeals,
   openNewMeal,
-} from '../helpers/m31'
-import { addIdea, ideaDetail, moveIdea, openIdea, openIdeas } from '../helpers/m28'
+} from './helpers/m31'
+import { addIdea, ideaDetail, moveIdea, openIdea, openIdeas } from '../planner/helpers/m28'
 import { browserDay, switchToGerman } from '../helpers/page'
 import { brokenWords, CUE_PHONES, cutLabels, rowCue } from '../helpers/rows'
 import { fillIonic } from '../helpers/ionic'
@@ -50,7 +50,7 @@ function m6(page: Page) {
   return visiblePage(page).getByTestId('m6-page')
 }
 
-test.describe('M31 meal plan @local @meals', () => {
+test.describe('M31 meal plan @local @meals @planner', () => {
   test.beforeEach(async ({ seedMode }) => {
     await seedMode({ mode: 'local' })
   })
@@ -808,7 +808,7 @@ test.describe('M31 meal plan @local @meals', () => {
   })
 })
 
-test.describe('M31 meal plan — the ＋ opens the meal sheet (FR-21.24) @local @meals', () => {
+test.describe('M31 meal plan — the ＋ opens the meal sheet (FR-21.24) @local @meals @planner', () => {
   test.beforeEach(async ({ seedMode }) => {
     await seedMode({ mode: 'local' })
   })
@@ -843,7 +843,7 @@ test.describe('M31 meal plan — the ＋ opens the meal sheet (FR-21.24) @local 
  * chosen day — when the sheet opens on a saved meal and whenever another day
  * is chosen; the shortlist's long idea names wrap whole.
  */
-test.describe('M31 meal sheet — every chip whole (G-13, UX-08) @local @meals', () => {
+test.describe('M31 meal sheet — every chip whole (G-13, UX-08) @local @meals @planner', () => {
   test.beforeEach(async ({ seedMode }) => {
     await seedMode({ mode: 'local' })
   })
@@ -932,7 +932,7 @@ test.describe('M31 meal sheet — every chip whole (G-13, UX-08) @local @meals',
  * *Znüni/Zvieri* breaks only at its slash — on the rows, on the drag chip's
  * fields and in M1's block; never inside a word, never past its box.
  */
-test.describe('M31 slot names — whole where a slot is a label (G-13, UX-08) @local @meals', () => {
+test.describe('M31 slot names — whole where a slot is a label (G-13, UX-08) @local @meals @planner', () => {
   test.beforeEach(async ({ seedMode }) => {
     await seedMode({ mode: 'local' })
   })

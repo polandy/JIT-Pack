@@ -1,9 +1,9 @@
 import type { Locator, Page } from '@playwright/test'
 import { expect } from '@playwright/test'
 
-import { fillIonic } from './ionic'
-import { visiblePage } from './page'
-import { openTripView } from './trips'
+import { fillIonic } from '../../helpers/ionic'
+import { visiblePage } from '../../helpers/page'
+import { openTripView } from '../../helpers/trips'
 
 /**
  * M29 — the trip's day plan (FR-29.14, FR-29.15), the planner module's

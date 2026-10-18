@@ -3,7 +3,7 @@ import type { Locator, Page } from '@playwright/test'
 import { test, expect, createTripViaWizard, visiblePage } from './fixtures'
 import { fillIonic } from './helpers/ionic'
 import { addExcursionTrack, createExcursion, openExcursions } from './helpers/m27'
-import { gpxFile, stubTiles } from './helpers/m28'
+import { gpxFile, stubTiles } from './planner/helpers/m28'
 import {
   chooseDay,
   connectionTaken,
@@ -12,9 +12,9 @@ import {
   timelineLines,
   typeStop,
   wayByHand,
-} from './helpers/m29'
+} from './planner/helpers/m29'
 import { writesLanded } from './helpers/page'
-import { stubTimetable } from './helpers/timetable'
+import { stubTimetable } from './planner/helpers/timetable'
 
 /**
  * M27 — an excursion's way there and back (FR-29.18), in Local Mode: two
@@ -64,7 +64,7 @@ function slot(page: Page, role: 'out' | 'back'): Locator {
   return visiblePage(page).getByTestId(`m27-journey-${role}`)
 }
 
-test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m27', () => {
+test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m27 @planner', () => {
   test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
     await stubTiles(page)
