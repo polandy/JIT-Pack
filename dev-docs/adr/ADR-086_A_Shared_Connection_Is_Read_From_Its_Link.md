@@ -1,7 +1,8 @@
 # ADR-086: A shared connection — read from its link vs. from its picture vs. searched for vs. typed
 
 **Status:** Accepted
-**Related:** ADR-082 (the server reads a link's page), FR-29.15, FR-29.16, FR-29.18, invariant 4, invariant 5,
+**Related:** ADR-082 (the server reads a link's page), ADR-085 (the device asks swisstopo), ADR-022 (field-level LWW),
+FR-29.15, FR-29.16, FR-29.18, FR-29.19, invariant 4, invariant 5, `docs/configuration.md` (`JITPACK_TIMETABLE`),
 `dev-docs/planner-concept.md` §3
 
 **Decision Drivers (in priority order):**
@@ -14,7 +15,7 @@
 
 ---
 
-## Considered Options
+## Considered Options — how a connection gets its legs
 
 ### Option A — read the link the SBB app shares *(accepted)*
 
@@ -46,14 +47,18 @@ also returns the page's links, so it learns nothing about the SBB.
 - Several megabytes of recogniser and language data for one field set (NFR-4.3), and it reads a layout the SBB
   redesigns more often than an id. The link beside the picture carries the same data exactly.
 
-### Option C — search the connection inside the app (transport.opendata.ch)
+### Option C — search the connection inside the app (transport.opendata.ch) *(accepted in front of A, not instead)*
 
 **Pros**
 - Exact data without any sharing; no unpublished format.
+- The family's excursions are mostly Swiss, and even a paste costs a trip to another app; inside Switzerland the search
+  costs neither.
+- An excursion seeds it from what it knows — the stop nearest the track's start, the way back reversed from the
+  arrival and the route — which a bare search in another app cannot.
 
 **Cons**
-- Swiss public transport only — useless on the trip itself (driver 2).
-- An outbound service on every search, and a second planner beside the one the family already uses.
+- Swiss public transport only — useless on the trip itself (driver 2), so it cannot be *the* path.
+- A second outbound service, which sees the stops searched for and the device's address.
 
 ### Option D — hand fields only
 
@@ -65,7 +70,7 @@ also returns the page's links, so it learns nothing about the SBB.
 
 ---
 
-## Decision Matrix
+## Decision Matrix — how a connection gets its legs
 
 | Driver | Weight | A — link | B — picture | C — search | D — by hand |
 |---|---|---|---|---|---|
@@ -75,13 +80,41 @@ also returns the page's links, so it learns nothing about the SBB.
 | Local Mode | 1 | 2 — full links only | 3 | 0 | 3 |
 | **Total** | | **24** | **21** | **10** | **17** |
 
+The matrix scores each option as the only path, and as that C loses on driver 2. Standing in front of A, with the link
+and the hand fields beneath it, it gives Switzerland driver 1 without a paste and takes nothing from a trip abroad.
+
+## Considered Options — what a connection is to an entry
+
+One writes *Glasi Hergiswil besuchen* and then wants the train there; an entry written without a connection must be able
+to gain one.
+
+- **An entry of its own kind** *(rejected)*. The sheet asks for the kind first, which reads backwards, and an entry
+  written as a note can never gain a connection.
+- **Two kinds, convertible** *(rejected)*. A note can be turned into a connection and back, but the plan still shows
+  two lines for one plan — the visit and the train to it — and the sheet still asks for the kind first.
+- **A connection linked to an entry** *(rejected)*. Two rows, one pointing at the other: the kinds stay apart, at a
+  column, a migration and two rows to keep in step across devices that edit them apart.
+- **An entry carries a connection** *(accepted)*. The legs are a field of the entry: added, changed or taken off like
+  any other field, under the same field-level LWW. `kind` stays and is written with the legs, so nothing older reads a
+  row wrongly.
+
 ---
 
 ## Decision
 
-A connection is a day-plan entry of its own kind whose legs are stored. A pasted link is read at once by the reader
-that knows it — the SBB's first, in `client/src/planner/domain/` — and a link nobody knows, or a format that changed,
-leaves the hand fields with the link kept. The server only returns a page's links beside its preview.
+A day-plan entry carries a connection as a field of stored legs. The connection is found, in this order:
+
+1. **The Swiss timetable**, searched by the **device** at transport.opendata.ch, as it asks swisstopo for tiles
+   (ADR-085): Local Mode keeps it, the server gains no outbound call, and `JITPACK_TIMETABLE=false` (on by default)
+   switches it off for the instance. *📍 Mein Standort* sends the device's position for the stops near it — on a tap,
+   never on its own.
+2. **A pasted link**, read at once by the reader that knows it — the SBB's first, in `client/src/planner/domain/`. The
+   server only returns a page's links beside its preview.
+3. **The hand fields**, for a link nobody knows, a format that changed, a stop the search does not find, and every
+   journey abroad — the link kept where there was one.
+
+The legs keep their stops' positions where the search answers them or the SBB link carries them (`@X=…@Y=…` per
+stop), as optional keys of the legs' JSON, and a connection with positions is drawn on a map.
 
 ## Consequences
 
@@ -92,48 +125,18 @@ leaves the hand fields with the link kept. The server only returns a page's link
 **Negative / accepted costs**
 - The SBB reader follows a format the SBB does not promise; a fixture of a real link pins it in a unit test, and the
   day it breaks is a red test only against a new fixture — in the field it is a polite fallback.
+- transport.opendata.ch is a second outbound service: it sees the stops searched for and the device's address, and on
+  *Mein Standort* where the device is at that moment, as swisstopo learns roughly where a map is looked at. A changed
+  answer is a red unit test against a fresh fixture, and in the field a polite "no connection found" with the hand
+  fields.
+- The entry's title is the person's, not *first → last stop*; an entry left without one takes *„Nach …"* from the
+  connection.
+- A leg entered by hand has no positions and draws no map; looking its stops up by name afterwards was rejected as a
+  second lookup that guesses.
 
 **Neutral**
 - The day the reader stops finding legs costs nothing stored; only new pastes fall back.
-
-## Amendment (2026-10-03) — the search joins the link
-
-Option C was rejected as *the* path: Switzerland only, so useless abroad (driver 2). The family's excursions are
-mostly Swiss, though, and a paste still costs a trip to another app. The search is therefore added **in front of** the
-link and the hand fields, which stay the way for everything it cannot find:
-
-- The **device** asks transport.opendata.ch, as it asks swisstopo for tiles (ADR-085): Local Mode keeps it, the server
-  gains no outbound call, and the instance can switch it off with `JITPACK_TIMETABLE=false` (on by default, named in
-  `docs/configuration.md`).
-- The cost is a second outbound service that sees the stops searched for and the device's address; a changed answer
-  is a red unit test against a fresh fixture, and in the field a polite "no connection found" with the hand fields.
-- An excursion seeds the search from what it knows — the stop nearest the track's start, the way back reversed from
-  the arrival and the route — which a bare search cannot.
-
-## Amendment (2026-10-04) — an entry carries its connection
-
-The Decision made a connection a day-plan entry *of its own kind*, and the sheet asked for the kind first. In use that
-reads backwards: one writes *Glasi Hergiswil besuchen* and then wants the train there, and an entry written without a
-connection could never gain one. Three ways were weighed:
-
-- **Two kinds, convertible.** A note could be turned into a connection and back. The plan would still show two lines
-  for one plan — the visit and the train to it — and the sheet would still ask for the kind first.
-- **A connection linked to an entry.** Two rows, one pointing at the other. It keeps the kinds apart but costs a
-  column, a migration and two rows to keep in step across devices that edit them apart.
-- **An entry carries a connection** *(accepted)*. The legs are a field of the entry: added, changed or taken off like
-  any other field, under the same field-level LWW. `kind` stays and is written with the legs, so nothing older reads
-  a row wrongly. The cost: the title is the person's now, not *first → last stop*; an entry left without one takes
-  *„Nach …"* from the connection.
-
-Two further additions, each a cost taken knowingly:
-
-- **The start from where one is.** *📍 Mein Standort* sends the device's position to transport.opendata.ch for the
-  stops near it — on a tap, never on its own. The service learns where the device is at that moment, as swisstopo
-  learns roughly where a map is looked at (ADR-085). Nothing goes through the server, and `JITPACK_TIMETABLE=false`
-  removes the button with the search.
-- **The map.** The legs keep their stops' positions, which the search answers and the SBB link carries anyway
-  (`@X=…@Y=…` per stop), as optional keys of the legs' JSON — no migration. A leg by hand has none and draws no map;
-  looking its stops up by name afterwards was rejected as a second lookup that guesses.
+- The positions need no migration: they are optional keys of the legs' JSON.
 
 ## Revisit Trigger
 

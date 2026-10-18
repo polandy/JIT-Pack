@@ -2,7 +2,8 @@
 
 **Status:** Accepted
 **Related:** ADR-066 (feature modules), ADR-078 (the planner), ADR-013 (visual baselines), FR-29.9, FR-30.3,
-`dev-docs/planner-concept.md` §5a (decision #12), `scripts/diff-scope.mjs`, `scripts/module-boundary-gate.mjs`
+`dev-docs/planner-concept.md` §5a (decision #12), `scripts/diff-scope.mjs`, `scripts/module-boundary-gate.mjs`,
+`client/src/i18n/index.ts`
 
 **Decision Drivers (in priority order):**
 1. **No regression slips through unseen.** Whatever is skipped on a pull request must be something the diff
@@ -89,6 +90,16 @@ which is what makes it the backstop the accepted cost below leans on. On a modul
 it saves no wall-clock. `go`, `go-lint`, `client`, `format` and `docker-build` are unchanged. Locally,
 `make e2e-module M=<module>` runs the same selection.
 
+So that a copy change stays a module-only diff, each module carries its own catalogue, `client/src/<m>/i18n/en.ts`
+and `de.ts`, inside the paths `diff-scope.mjs` counts as the module's. `t()` reads the parts as one: `i18n/index.ts`
+names each module's catalogue — the one reach into a module the boundary gate admits besides the composition root —
+and looks a key up part by part, so the English fallback stays per key. A key belongs to a module's catalogue when
+only that module reads it; a key the kernel reads too — a trip view's name in the switcher, a count M1 shows — stays
+in the kernel's catalogue, even when it carries the module's prefix. Two checks hold the split:
+`module-boundary-gate.mjs` refuses kernel code naming a module catalogue's key, and the catalogue-integrity spec
+refuses a key defined in two parts, which the merged lookup would otherwise resolve silently by order. German parity,
+placeholders and plural forms are checked per part.
+
 ## Consequences
 
 **Positive**
@@ -101,6 +112,8 @@ it saves no wall-clock. `go`, `go-lint`, `client`, `format` and `docker-build` a
   towards running more — an unlisted path is a full run — except a marker that is missing, which the gate cannot
   know about.
 - Every module case title carries one more tag.
+- A new string has to be placed by who reads it, and a key that later gains a kernel reader moves across — the gate
+  names it when that happens.
 
 **Neutral**
 - Shopping gets the rule at the same time as the planner, since the rule is per module rather than per feature.
@@ -108,22 +121,6 @@ it saves no wall-clock. `go`, `go-lint`, `client`, `format` and `docker-build` a
 ## Revisit Trigger
 
 A regression found by `main`'s full run after a PR that ran as module-only, whose cause the smoke set could have
-seen — then the smoke set grows, or the module's paths shrink. Or: the i18n catalogues become the usual reason a
-module diff is a full run, which argues for a catalogue per module.
+seen — then the smoke set grows, or the module's paths shrink. Or a module's PRs keep running in full because of a
+kernel path they cannot avoid — then that path is split per module, as the i18n catalogues are.
 
-## Amendment 1 — a catalogue per module
-
-The revisit trigger's second half fired: every planner PR since the day plan changed screen copy, and the copy lived
-in the kernel's `i18n/messages/`, so none of them ran as module-only. Each module now carries its own catalogue,
-`client/src/<m>/i18n/en.ts` and `de.ts`, inside the paths `diff-scope.mjs` already counts as the module's. `t()`
-reads the parts as one: `i18n/index.ts` names each module's catalogue, the one reach into a module the boundary gate
-admits besides the composition root, and looks a key up part by part, so the English fallback stays per key.
-
-A key belongs to a module's catalogue when only that module reads it. A key the kernel reads too — a trip view's
-name in the switcher, a count M1 shows — stays in the kernel's catalogue, even when it carries the module's prefix.
-Two checks hold the split: `module-boundary-gate.mjs` refuses kernel code naming a module catalogue's key, and the
-catalogue-integrity spec refuses a key defined in two parts, which the merged lookup would otherwise resolve
-silently by order. German parity, placeholders and plural forms are checked per part.
-
-Accepted cost: a new string has to be placed by who reads it, and a key that later gains a kernel reader moves
-across — the gate names it when that happens.

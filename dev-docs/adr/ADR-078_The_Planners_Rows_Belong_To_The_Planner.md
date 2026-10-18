@@ -2,8 +2,8 @@
 
 **Status:** Accepted
 **Related:** PRD Addendum §3.29 (FR-29.1–29.4, FR-29.9, FR-29.13), ADR-066 (feature modules), ADR-073 (a row per
-person), ADR-022 (field-level LWW), UI-Spec M28, schema `ideas`, `idea_votes`, `idea_comments`;
-`dev-docs/planner-concept.md` §3, §5a
+person), ADR-022 (field-level LWW), ADR-011 (a view's declared parent), UI-Spec M28, schema `ideas`, `idea_votes`,
+`idea_comments`; `dev-docs/planner-concept.md` §3, §5a; `dev-docs/Navigation_Concept_v1.0.md` (the sixth route class)
 
 **Decision Drivers (in priority order):**
 1. **A hard module boundary** (FR-29.9, ADR-066): the planner holds every row it shows, and nothing the packing side
@@ -15,7 +15,7 @@ person), ADR-022 (field-level LWW), UI-Spec M28, schema `ideas`, `idea_votes`, `
 
 ---
 
-## Considered Options
+## Considered Options — where the planner's rows live
 
 Two questions, decided together because they are the same question — where does a row the planner owns live.
 
@@ -23,8 +23,8 @@ Two questions, decided together because they are the same question — where doe
 
 `ideas`, `idea_votes` (a row per idea and account, `UNIQUE (idea_id, user_id)`) and `idea_comments` — a discussion table
 of the planner's own — all in the trip partition, routed to the planner's store through the `FeatureStore` the
-composition root hands the orchestrator. When the bridge is built (FR-29.13), an excursion, a task or a shopping entry
-made from an idea carries a nullable `idea_id` **on the result**, `ON DELETE SET NULL`; the idea's *Daraus gemacht* is a
+composition root hands the orchestrator. Through the bridge (FR-29.13), an excursion, a task or a shopping entry made
+from an idea carries a nullable `idea_id` **on the result**, `ON DELETE SET NULL`; the idea's *Daraus gemacht* is a
 read over those three tables, never a stored list.
 
 **Pros**
@@ -67,7 +67,7 @@ A `results` column on `ideas` naming the excursion, task and shopping entry made
 
 ---
 
-## Decision Matrix
+## Decision Matrix — where the planner's rows live
 
 | Driver | Weight | A — own tables, link on the result | B — `comments.idea_id` | C — list on the idea |
 |---|---|---|---|---|
@@ -79,11 +79,27 @@ A `results` column on `ideas` naming the excursion, task and shopping entry made
 
 ---
 
+## Considered Options — where a result is made
+
+FR-29.13 makes a result „through the existing creator, pre-filled"; the question is where that creator stands.
+
+- **The target screen** *(accepted, the owner's choice)*. The chip opens M27, M25 or M6 with its creator open and
+  pre-filled; the result is seen where it lives, and `‹ back` returns to the idea. The three screens stay exactly as
+  they are, the planner imports none of them, and what crosses the boundary is a path (`ideaBridgePath`) and a lookup
+  (`IDEA_LOOKUP`). The cost is the way back: a trip's view returns to the trip (ADR-011's declared parent), and here it
+  has to return to the idea.
+- **A sheet over the idea** *(rejected)*. The creator opens over M28 and the reader never leaves the idea, which is
+  quicker for several results in a row. But M27's sheet and M25's composer would have to be handed to the planner
+  through a new kernel contract carrying components, and M6's composer is not a component of its own at all.
+
+---
+
 ## Decision
 
 The planner's rows live in the planner's own tables and store: `ideas`, `idea_votes` (a row per idea and account, the
-voter stamped and alone allowed to change it) and `idea_comments`. A result made from an idea will name it in a nullable
-`idea_id` of its own row, `ON DELETE SET NULL`.
+voter stamped and alone allowed to change it) and `idea_comments`. A result made from an idea names it in a nullable
+`idea_id` of its own row, `ON DELETE SET NULL`, and is made on the screen it lives on — M27, M25 or M6, its creator
+opened pre-filled — from which `‹ back` returns to the idea.
 
 ## Consequences
 
@@ -96,6 +112,15 @@ voter stamped and alone allowed to change it) and `idea_comments`. A result made
 **Negative**
 - Two comment shapes; a later feature that searches *all* words of a trip reads two tables.
 - An idea's delete leaves what came of it standing without an origin (FR-29.13's cost, chosen in the concept).
+- A sixth route class, `meta.acceptsLinkedFrom`: a trip view returns to the idea when **a link carried** the origin,
+  never because the origin was stamped on the way in, so switching between the views keeps returning to the trip.
+  M27's excursion page has the class too, since a new excursion opens its list.
+
+**Neutral**
+- An idea's sheet opens once the board has entered (`ionViewDidEnter`): opened during the page transition into M28,
+  a panel teleported into the frame or a presented modal leaves the page it came from unhidden in the outlet.
+- The phone's sheet, dismissed because the route moved on to a result's screen, closes the idea only while the route
+  still has one open — otherwise its dismissal would navigate back to the board.
 
 ## Revisit Trigger
 
@@ -104,24 +129,3 @@ third time. Or a reader outside the planner needs an idea's discussion (a search
 it): then decide whether it reads the planner's table through a kernel contract or the discussion moves into `comments`
 after all.
 
-## Amendment 1, 2026-10-02: where a result is made — the screen that makes it, not a sheet over the idea
-
-FR-29.13 said "through the existing creator, pre-filled" without saying where that creator stands. Two shapes were
-weighed:
-
-- **A — the target screen.** The chip opens M27, M25 or M6 with its creator open and pre-filled; the result is seen
-  where it lives, and `‹ back` returns to the idea. The three screens stay exactly as they are, the planner imports
-  none of them, and what crosses the boundary is a path (`ideaBridgePath`) and a lookup (`IDEA_LOOKUP`).
-- **B — a sheet over the idea.** The creator opens over M28 and the reader never leaves the idea, which is quicker for
-  several results in a row. But M27's sheet and M25's composer would have to be handed to the planner through a new
-  kernel contract carrying components, and M6's composer is not a component of its own at all.
-
-**A, by the owner's choice.** Its cost is the way back: a trip's view returns to the trip (ADR-011's declared parent),
-and here it has to return to the idea. That is a sixth route class, `meta.acceptsLinkedFrom` — the origin is honoured
-when **a link carried it**, never stamped on the way in, so switching between the views keeps returning to the trip.
-M27's excursion page has the class too, since a new excursion opens its list.
-
-Two traps the shape walked into, both fixed at their cause: an idea's sheet opened **during** the page transition into
-M28 (a panel teleported into the frame, a modal presented) left the page it came from unhidden in the outlet, so the
-idea opens once the board has entered (`ionViewDidEnter`); and the phone's sheet, dismissed because the route moved
-on, navigated back to the board — its dismissal closes the idea only while the route still has one open.
