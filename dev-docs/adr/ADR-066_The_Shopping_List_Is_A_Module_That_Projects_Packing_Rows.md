@@ -166,8 +166,8 @@ rides the sink.
 
 **Positive**
 - Groceries leave every packing figure, and a *bought* entry is a bought entry rather than a packed one.
-- The planner (§3.29) and the meal plan (§3.33) arrived as directories in `MODULES`, a store in `features` and a
-  contribution, with no edit to `App.vue`.
+- A new module — the planner (§3.29) and the meal plan (§3.33) followed the shopping list — is a directory in
+  `MODULES`, a store in `features` and a contribution in `featureModules.ts`, with no edit to `App.vue`.
 - The M6 screen no longer knows what a `TripItem` is.
 
 **Negative / accepted costs**
