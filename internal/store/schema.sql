@@ -49,7 +49,7 @@ CREATE TABLE sessions (
     expires_at        TEXT NOT NULL
 );
 
--- The level this database stands at (ADR-067 and its amendment).
+-- The level this database stands at (ADR-067).
 -- One row, written by the loader: a fresh database gets the current level with
 -- schema.sql, an existing one gets it from the migration that last ran.
 --

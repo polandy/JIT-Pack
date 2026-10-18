@@ -9,7 +9,7 @@
  * with it (`removeCascading`), and a write reads its base row back out
  * (`currentRowIn`). A module store is its sinks; it restates neither the
  * switch over its tables nor its cascade, and the kernel names none of its
- * tables (FR-30.3, ADR-066 amendment 2).
+ * tables (FR-30.3, ADR-066).
  */
 import type { PullChange } from '@/api/types'
 import type { SyncTable } from '@/api/tables'

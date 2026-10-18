@@ -22,7 +22,7 @@ export { usePlannerStore }
 export { createPlannerActions }
 export { voteTally } from './domain/ideas'
 
-/** The module's registration (ADR-066 amendment 3), folded by the composition root. */
+/** The module's registration (ADR-066), folded by the composition root. */
 export const plannerModule: FeatureModule = {
   featureStore: plannerFeatureStore,
   contribute(host) {

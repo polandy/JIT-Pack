@@ -1,5 +1,5 @@
 /**
- * The one shape a feature module registers in (ADR-066 amendment 3).
+ * The one shape a feature module registers in (ADR-066).
  *
  * A module hands the kernel two things: its store, which the orchestrator is
  * built with, and a `contribute(host)` that names everything else it offers

@@ -94,8 +94,8 @@ const publicFace = (rest) => rest === '' || rest === 'index' || rest === 'index.
 
 /**
  * The composition root, and what of a module it may name: `featureModules.ts`
- * the module's public face — the one list `App.vue` folds (ADR-066 amendment
- * 3) — the router a page it loads lazily. The dev seed
+ * the module's public face — the one list `App.vue` folds (ADR-066) — the
+ * router a page it loads lazily. The dev seed
  * (`dev/`, stripped from production by `dev-code-gate.mjs`) writes sample
  * data through a module's own actions, so it may name the public face too.
  */

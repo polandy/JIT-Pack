@@ -19,7 +19,7 @@ import { mealFeatureStore, useMealStore } from './store'
 export { createMealActions, type MealActions } from './actions'
 export { useMealStore }
 
-/** The module's registration (ADR-066 amendment 3), folded by the composition root. */
+/** The module's registration (ADR-066), folded by the composition root. */
 export const mealsModule: FeatureModule = {
   featureStore: mealFeatureStore,
   contribute(host) {

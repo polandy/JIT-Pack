@@ -113,11 +113,11 @@ areas; an excursion's parts live in `views/trips/excursion/` beside its pages, i
 - **A module's rows live in the module** — its entity types in `<m>/types.ts` (vocabulary, so its rules read them),
   its codecs and `RowSpec`s in `<m>/rows.ts`, handed to the kernel on its store's sinks (`specifiedSinks`). The
   kernel's `KERNEL_TABLE_SPECS` names none of a module's tables; `src/__tests__/moduleRows.spec.ts` holds every
-  `TABLE.*` specified exactly once across both (ADR-066 amendment 2).
+  `TABLE.*` specified exactly once across both (ADR-066).
 - **A module registers in one shape** — `<m>/index.ts` exports a `FeatureModule`: its `featureStore` and a
   `contribute(host)` naming its share of every kernel contract (`kernel/moduleContribution.ts`). `featureModules.ts`
   lists the modules; `App.vue` folds them with the kernel's own adapters (`kernel/kernelPorts.ts`) and names no module.
-  A list every contributor adds to is read from the host lazily, never from another module (ADR-066 amendment 3).
+  A list every contributor adds to is read from the host lazily, never from another module (ADR-066).
 - **A module's words live in the module** — `client/src/<m>/i18n/en.ts`/`de.ts`, read by `t()` through
   `i18n/index.ts`, so a copy change stays a module-only diff (ADR-079 amendment). A key only the module reads goes
   there; one the kernel reads too stays in `i18n/messages/`. The boundary gate holds it.

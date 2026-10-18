@@ -1,5 +1,5 @@
 /**
- * The shopping module's rows on the wire (FR-30.1, ADR-066 amendment 2): how
+ * The shopping module's rows on the wire (FR-30.1, ADR-066): how
  * an entry is read from a pulled row and rebuilt for an optimistic one, and
  * what its delete follows. The store hands these specs to the kernel on its
  * sinks, so no kernel file names the table's codec.

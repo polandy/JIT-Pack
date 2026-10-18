@@ -11,7 +11,7 @@
  * read by a parser that no writer, client or server, has ever filled.
  *
  * `KERNEL_TABLE_SPECS` holds the kernel's tables; a feature module's live in
- * its own `<m>/rows.ts` (FR-30.3, ADR-066 amendment 2). Each store hands its
+ * its own `<m>/rows.ts` (FR-30.3, ADR-066). Each store hands its
  * sinks over with their specs (`specifiedSinks`, `sinks.ts`), so a pulled row
  * is parsed, and a delete cascaded, by whatever the stores the orchestrator
  * holds declare — and a module's table never has to be named here.

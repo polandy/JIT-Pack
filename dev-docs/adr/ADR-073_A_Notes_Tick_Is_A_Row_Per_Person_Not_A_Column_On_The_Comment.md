@@ -1,9 +1,10 @@
 # ADR-073: A note's tick is a row per person, not a column on the comment — vs. an `acked_by` column, vs. a device-local set
 
 **Status:** Accepted
-**Related:** FR-7.9, FR-7.1, FR-7.3, FR-7.4, ADR-022 (NFR-4.2a field-level LWW), ADR-067, ADR-068,
-`dev-docs/trip-notes-concept.md`, `internal/store/schema.sql` (`note_acks`),
-`internal/store/migrations/004_note_acks.sql`, `client/src/domain/tripNotes.ts`, `internal/api/server.go` (`stampActor`)
+**Related:** FR-7.9, FR-7.13, FR-7.1, FR-7.3, FR-7.4, ADR-022 (NFR-4.2a field-level LWW), ADR-067, ADR-068,
+`dev-docs/trip-notes-concept.md`, `dev-docs/trip-note-threads-concept.md`, `internal/store/schema.sql` (`note_acks`),
+`internal/store/migrations/004_note_acks.sql`, `006_note_threads.sql`, `client/src/domain/tripNotes.ts`,
+`internal/store/tables.go` (`serverOwned`)
 
 **Context.** The owner asked on 2026-09-21 for notes a traveller writes that every co-traveller can read — a key-box
 code, a courier's phone number — which can be ticked off, where *„die Deklaration hat den State im Bezug auf den
@@ -24,7 +25,7 @@ write at once.
 3. **The tick follows the person, not the device.** A traveller who ticks a note on their phone and opens the trip on
    a tablet must not see it as new again.
 4. **Nothing the client writes as an identity claim is trusted** (invariant 3) — whichever shape is chosen has to
-   go through `stampActor` the way `comments.author_id` already does.
+   be stamped by the server the way `comments.author_id` already is.
 5. **Un-ticking must not look like the note was never read** — the history of who has seen a note is worth keeping,
    not just the current state.
 
@@ -37,7 +38,7 @@ write at once.
 A JSON array or a set-valued column of user ids who have ticked the note, merged as one field like every other
 column on the row.
 
-* **Pro:** no new table, no new migration, no new `stampActor` case.
+* **Pro:** no new table, no new migration, no new server-stamped column.
 * **Con, decisive:** NFR-4.2a merges a field **whole** — the later HLC wins the entire value. Anna and Ben both
   ticking the same note while offline is exactly two concurrent writes to one field; whichever syncs second silently
   discards the other's tick, and neither device is told. Driver 1 fails outright. This is the same reason FR-7.4's
@@ -51,7 +52,7 @@ column on the row.
 A local set of ticked note ids, the shape `dashboard.ts`'s existing `delegationSeen` already uses for "have I shown
 this before" (`client/src/local/delegationSeen.ts`).
 
-* **Pro:** the simplest possible implementation — no schema change, no migration, no `stampActor` case, works
+* **Pro:** the simplest possible implementation — no schema change, no migration, no server stamp, works
   identically in all three modes because nothing about it needs an account.
 * **Con, decisive against driver 3:** it does not follow the *person*, only the *device*. Ticking a note on a phone
   and opening the trip on a tablet shows it as new again — the opposite of what "declared seen" is supposed to mean,
@@ -69,13 +70,14 @@ sets `acked` back to `0` rather than deleting the row, so field-level LWW never 
 later re-tick came first — the row's own history stays legible instead of disappearing and reappearing.
 
 * **Pro:** driver 1 by construction — a row per person is immune to the exact collision Option A loses to.
-* **Pro:** driver 2 — "new for me" (`isNoteNewForMe` in `client/src/domain/tripNotes.ts`) is `author ≠ me` and no
-  `acked` row of mine, entirely over rows the device already has; no server round-trip.
+* **Pro:** driver 2 — "new for me" (`noteThreads` in `client/src/domain/tripNotes.ts`) is decided entirely over
+  rows the device already has; no server round-trip.
 * **Pro:** driver 3 — the row is keyed by `user_id`, a synced fact, not a device.
 * **Pro:** driver 5 — un-ticking is a fact of its own (`acked: false`), not an erasure.
-* **Con, accepted:** a second table and a second migration (`004_note_acks.sql`), and a second `stampActor` case
-  (`store.TableNoteAcks`, stamped on insert only — the same shape as `comments.author_id`, and for the same reason:
-  an upsert must flip `acked` on a row that already names its person, never reassign the row to someone else's tick).
+* **Con, accepted:** a second table and a second migration (`004_note_acks.sql`), and a second server-stamped
+  actor column (`note_acks.user_id`, stamped on insert only — the same shape as `comments.author_id`, and for the
+  same reason: an upsert must flip `acked` on a row that already names its person, never reassign the row to someone
+  else's tick).
 * **Con, accepted:** in Local Mode no `note_acks` row is written at all (there is no `user_id` to write, and the
   screen still works as a scratchpad) — one more table `client/src/domain/portable.ts`'s exporter never has to
   serialise, on the same footing as FR-7.4's own tasks and FR-30's shopping entries (NFR-4.11).
@@ -95,44 +97,46 @@ later re-tick came first — the row's own history stays legible instead of disa
 
 ---
 
+## Decision
+
+**Option C.** A note's tick is a `note_acks` row per (note, person), its `user_id` stamped by the server.
+
+**The tick is the thread's, and says how far it reached** (FR-7.13). A note is a thread — a reply names its first
+note — and the tick is one row per (first note, person). A nullable **`seen_through`** records the stamp of the
+thread's newest entry at the moment of the tick, so an entry by somebody else created or edited after it makes the
+thread new again, compared data against data rather than clock against clock. A row without a reach reads as covering
+the first note as it was when ticked. `noteThreads` decides "new for me" from the author, my row and its reach, and
+also treats the reader's own latest entry as read: replying is not ticking, but what one answered is behind one. The
+per-person row is what makes a per-person reach possible at all, where a column on the comment could have held
+neither. Reasoning: `dev-docs/trip-note-threads-concept.md` §3.
+
 ## Consequences
 
-* **Two schema edits, no reseed.** `note_acks` is in `schema.sql` and in `migrations/004_note_acks.sql`;
-  `TestSchemaChain_EndsWhereSchemaSQLDoes` holds the two together (ADR-067).
+* **Two schema edits per change, no reseed.** `note_acks` is in `schema.sql` and in `migrations/004_note_acks.sql`,
+  `seen_through` in `006_note_threads.sql`; `TestSchemaChain_EndsWhereSchemaSQLDoes` holds the two together (ADR-067).
 * **`trip_id` is carried directly on `note_acks`**, not only reachable through `comment_id` — the trip partition's
   own scoping (`internal/store/pipeline.go`'s `belongsToTrip`, `internal/store/partition.go`'s `feed.where()`) reads a
   row's `trip_id` column, the same as every other trip-partition table (`containers`, `comments` themselves). A row
   that only named its comment would need a join the sync layer does not do.
-* **`stampActor`'s `TableNoteAcks` case mirrors `TableComments`'s `author_id` exactly**: `delete(m.Fields,
-  "user_id")`, then `m.Set("user_id", userID)` **only on insert**. Stamping unconditionally, on every op, was tried
-  first and rejected during review — it would let a second user's *upsert* on someone else's ack row silently
-  reassign whose tick the row is, where the `UNIQUE (comment_id, user_id)` constraint should instead refuse the
-  attempt as a fresh insert. `TestStampActor_NoteAckUpsertCannotStealAnotherUsersRow` holds this.
-* **Deleting a note cascades to its acks.** `comments`' `tableSpec.cascades` now names `note_acks`
-  (`comment_id`-scoped), and `trip_items`' does too, flattened — the FK graph test
+* **`note_acks.user_id` is `stampedOnInsert`, exactly as `comments.author_id` is** (`tableSpec.serverOwned`): the
+  client's value is dropped and the server's written, on insert only. Stamping on every op would let a second user's
+  *upsert* on someone else's ack row silently reassign whose tick the row is, where the `UNIQUE (comment_id, user_id)`
+  constraint should instead refuse the attempt as a fresh insert.
+  `TestStampActor_NoteAckUpsertCannotStealAnotherUsersRow` holds this.
+* **Deleting a note cascades to its acks.** `comments`' `tableSpec.cascades` names `note_acks` (`comment_id`-scoped),
+  and `trip_items`' does too, flattened — the FK graph test
   (`TestTableSpecs_CascadesAreTheFKGraphMinusTheDocumentedExceptions`) walks transitively but a `tableSpec`'s own
   list does not, so a table reachable two hops down still needs its own entry. `trips → note_acks` is excused the
   same way every other trip-partition child is: the whole feed is deleted with the trip, so no tombstone reaches a
   feed that no longer exists.
-* **The client mirrors the cascade optimistically.** `tripStore.ts`'s comment sink removal now also drops any
-  `note_acks` rows for the deleted comment, scanning every trip's bucket the way `bucketedRows.remove` already does
-  for a row's own id — a comment's `trip_id` is not known once the comment itself is gone from the store.
-* **M1's tick is the same table, reached through `useOrchestrator`'s `toggleNoteTick`**, which decides insert vs.
-  upsert from the caller's own `note_acks` lookup (`myAckFor`) rather than duplicating that choice at each call
-  site — M25's list and M1's card both call it the same way.
+* **The client mirrors the cascade optimistically** through the one cascade every store goes through (ADR-066):
+  `note_acks`' spec declares it goes with its comment (`cascadeParents`), and `cascadeOf` walks that edge.
+* **M26's thread and M1's card tick through the same action**, `toggleNoteTick` (`app/actions/comments.ts`), which
+  decides insert vs. upsert from the caller's own `note_acks` lookup (`myAckFor`) rather than duplicating that choice
+  at each call site.
 * **The portable backup stays silent about notes and their ticks**, like every task and shopping entry (NFR-4.11):
   `client/src/domain/portable.ts` never names `ItemComment` or `NoteAck` among what it serialises, so there is
   nothing to add or omit deliberately — the absence is inherited from FR-7.3/7.4's own todos, not decided here again.
-
-**Amendment note (2026-09-25, FR-7.13) — the tick is the thread's, and says how far it reached.** Notes became threads:
-a reply names its first note, and the tick stays exactly this table — one row per (first note, person) — read one way
-further. A nullable **`seen_through`** records the stamp of the thread's newest entry at the moment of the tick, so an
-entry by somebody else created or edited after it makes the thread new again, compared data against data rather than
-clock against clock. Nothing here is re-decided: the per-person row is what makes a per-person reach possible at all,
-where a column on the comment could have held neither. A row written before the column has no reach and reads as
-covering the first note as it was, which is what it was given for. `isNoteNewForMe` became `noteThreads`, which also
-treats the reader's own latest entry as read — replying is not ticking, but what one answered is behind one. Reasoning:
-`dev-docs/trip-note-threads-concept.md` §3; no new tradeoff, so no new ADR.
 
 ## Revisit trigger
 

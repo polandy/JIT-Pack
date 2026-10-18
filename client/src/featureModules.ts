@@ -1,5 +1,5 @@
 /**
- * The feature modules this build composes (ADR-066 amendment 3) — the one
+ * The feature modules this build composes (ADR-066) — the one
  * list `App.vue` folds and the wiring specs fold the same way. A constant,
  * never a registry filled at start-up: a spec that reads it sees every module.
  *

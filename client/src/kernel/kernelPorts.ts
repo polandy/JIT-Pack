@@ -1,5 +1,5 @@
 /**
- * The kernel's own side of the module contracts (ADR-066 amendment 3): the
+ * The kernel's own side of the module contracts (ADR-066): the
  * packing and excursion lines on the shopping list (FR-30.2, FR-31.8), the
  * excursions and tasks on the day plan (FR-29.15), what came of an idea on
  * the packing side (FR-29.13), the switcher's kernel counts, and what the

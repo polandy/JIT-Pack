@@ -1,6 +1,6 @@
 /**
  * The modules' contributions, folded as `App.vue` folds them (FR-32.2,
- * ADR-066 amendment 3): every table is read by exactly one side — the kernel
+ * ADR-066): every table is read by exactly one side — the kernel
  * or the module that owns it — so a new module table without a reader fails
  * here rather than reading as „trip" in the log; and the fold itself, which
  * refuses a reader or a single answer given twice, holds over the real list.

@@ -221,7 +221,7 @@ if (liveLocation) {
 }
 
 /*
- * FR-30.3 (ADR-066 amendment 3): the composition root folds the kernel's
+ * FR-30.3 (ADR-066): the composition root folds the kernel's
  * ports and every module's contribution into one composition and provides
  * it, so neither the packing side nor a module imports the other — and the
  * root names no module.

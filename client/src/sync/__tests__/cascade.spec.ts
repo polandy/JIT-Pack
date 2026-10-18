@@ -262,7 +262,7 @@ describe('cascadeOf', () => {
     expect(taken).toEqual([{ table: TABLE.dayEntryTravelers, id: 'det1' }])
   })
 
-  it("follows a module's edges as its store declares them, the kernel naming none (ADR-066 amendment 2)", () => {
+  it("follows a module's edges as its store declares them, the kernel naming none (ADR-066)", () => {
     const planner = usePlannerStore()
     planner.applyChanges([
       row(TABLE.ideas, 'idea1', { trip_id: 't1', title: 'Klettersteig' }),

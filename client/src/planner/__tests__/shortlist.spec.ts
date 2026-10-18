@@ -1,5 +1,5 @@
 /**
- * M31's shortlist as the planner contributes it (§3.33, ADR-066 amendment 3):
+ * M31's shortlist as the planner contributes it (§3.33, ADR-066):
  * the trip's shortlisted ideas, by id and title — no idea in another state,
  * and none of another trip.
  */
