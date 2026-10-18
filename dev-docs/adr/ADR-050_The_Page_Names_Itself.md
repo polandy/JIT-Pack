@@ -150,7 +150,7 @@ that hides the pane host.
 
 **Negative / accepted costs**
 - ~60 px of fixed head on every screen; a long list gets that much less of the viewport. The revisit trigger below is
-  written for exactly this.
+  written for exactly this, and M4 — the longest list — already lets its head yield on downward scroll (FR-21.17).
 - Every action a tab root registers past the magnifier is one tap further away, and M9's selection has a single,
   gestural entrance. E2E-G12-02 reads the bar of every root at both widths and finds each moved action as its ⋮ word.
 - On a desktop screen whose cluster is only a ⋮ (M9), that ⋮ stands alone mid-bar.
