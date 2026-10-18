@@ -1,6 +1,6 @@
 # ADR-025: One Implementation of the Portable Format — Delete the Server's, or Keep Two in Agreement
 
-**Status:** Accepted (owner decision, 2026-08-23)
+**Status:** Accepted
 **Related:** ADR-008 (generation and import run on the client — this ADR enforces its second driver), ADR-015 (local
 backup file shape), ADR-017 (portable composition), ADR-024 (portable restores what it saved), FR-18.1–18.7, FR-19.5,
 NFR-4.3 (footprint), NFR-4.11 (serverless backup)

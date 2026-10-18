@@ -1,6 +1,6 @@
 # ADR-045: Leaving Local Mode goes through the backup file, on the same device
 
-**Status:** Accepted (2026-09-02)
+**Status:** Accepted
 **Amends:** nothing — it *discharges* the open decision FR-19.5 and E2E-FLOW-07 carried since 2026-08-31
 **Related:** FR-19.1 (mode selection is not a toggle), FR-19.5 (the migration path), FR-19.6 / NFR-4.11 (the
 whole-device backup), FR-19.8 (the surfaces this decides), ADR-015 (the backup file), ADR-025 (one importer), UI-Spec

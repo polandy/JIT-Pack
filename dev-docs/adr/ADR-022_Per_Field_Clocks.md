@@ -1,6 +1,6 @@
 # ADR-022: A clock per field, stored beside the row — JSON column vs. side table vs. the row-level clock the code had
 
-**Status:** Accepted (2026-08-22)
+**Status:** Accepted
 **Related:** NFR-4.2a, Sync-API Spec §6, `internal/sync/merge.go`, `internal/store/schema.sql` (`field_hlcs`,
 `conflict_log.mutation_id`/`actor_user_id`), ADR-018 (no migrations in the development phase), CLAUDE.md backlog item 14
 (a)

@@ -98,11 +98,8 @@ identity across instances**, because it is the only field that survives the trip
 entry are the same group, so both go through the same link-or-create step. Applying it to the nested case alone made the
 result depend on document order — a backup is written in `templateList` order, which in Local Mode comes from IndexedDB
 keyed by a random id and is re-rolled on every reload, so a Vorlage listed before its group restored *two* groups, the
-second one included by nothing. The rule was deliberately **not** extended to Ferien-Vorlagen: two of one name are two
-different plans, and merging them would lose one, so that path kept its `(import)` suffix. **Superseded 2026-08-24 by
-ADR-030**, which extends it after all — measured on a real backup, the second run of a file left the trips alone and
-turned three Vorlagen into six. The premise was not wrong about *shared* files; it was wrong about which file gets
-re-imported, which is the user's own backup.
+second one included by nothing. How a Ferien-Vorlage or a trip of an existing name is told apart from a second copy is
+[ADR-030](ADR-030_Trip_Identity_On_Import.md)'s decision, not this one's.
 
 The second half is the one that matters. The file may be older than the group, may come from a stranger, and the group
 may be included by other Vorlagen and followed by other people's trips (FR-27.4). Import is not the place to edit shared

@@ -1,6 +1,6 @@
 # ADR-051: The trip's views are a switcher in the page — vs. entries behind the bar's ⋮
 
-**Status:** Accepted (2026-09-08); amended 2026-09-20, twice on 2026-09-25, 2026-09-27 and 2026-10-06
+**Status:** Accepted
 **Related:** ADR-050 (the page names itself, the bar's three-glyph budget), ADR-011 (one header bar, the back-target
 contract), ADR-046 (one live page per route), UI-Spec G-9, G-12, M4, M6, M11, M12, PRD §3.25, FR-21.17, FR-21.18,
 FR-21.21, FR-25.6, E2E-G12-05, E2E-G12-06, E2E-G12-07, E2E-G12-08, E2E-M4-11, E2E-M6-04,

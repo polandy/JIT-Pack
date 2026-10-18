@@ -26,7 +26,7 @@ var storeSentinelsWithoutAnHTTPAnswer = map[string]string{
 	"ErrUnknownTable":     "a push refuses the single mutation, not the request: it becomes a rejected MutationResult in the envelope (Sync-API §5)",
 	"ErrUnknownColumn":    "same as ErrUnknownTable — per-mutation rejection, not a status",
 	"ErrUserRefAmbiguous": "resolved by the CLI (FR-18.8), which prints it; no handler can produce it",
-	"ErrSchemaStale":      "start-up refusal in cmd/jitpackd (ADR-018); the server never starts, so there is nothing to answer with",
+	"ErrSchemaStale":      "start-up refusal in cmd/jitpackd (ADR-067); the server never starts, so there is nothing to answer with",
 }
 
 // storeErrorNames maps the table's rows back to the identifiers the guard

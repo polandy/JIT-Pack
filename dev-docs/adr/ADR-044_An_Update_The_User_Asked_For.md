@@ -1,6 +1,6 @@
 # ADR-044: A waiting version is applied on a press — not on a clock, and not on its own
 
-**Status:** Accepted (2026-09-02)
+**Status:** Accepted
 **Amends:** ADR-019 (App-shell caching — its decision line "No `skipWaiting()`")
 **Related:** NFR-4.13 (update policy), FR-19.7 (the two surfaces), NFR-4.1 (the durable outbox this leans on), UI-Spec
 G-2, `client/public/sw.js`, `client/src/pwa/register.ts`, E2E-PWA-04/05

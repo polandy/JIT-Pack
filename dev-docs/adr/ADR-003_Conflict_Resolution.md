@@ -1,6 +1,6 @@
 # ADR-003: Conflict Resolution Strategy — Field-Level LWW+HLC vs. CRDT vs. Whole-Row LWW
 
-**Status:** Accepted (already implemented — `internal/sync/merge.go`, Sync-API Spec v1.2 §6, Addendum NFR-4.2a)
+**Status:** Accepted
 **Related:** NFR-4.2a, Sync-API Spec §3/§6, Schema v0.3 (`updated_hlc`, `conflict_log`, `change_log`), ADR-001 v2,
 CODING_PRINCIPLES §5 (footprint-guarded dependencies)
 

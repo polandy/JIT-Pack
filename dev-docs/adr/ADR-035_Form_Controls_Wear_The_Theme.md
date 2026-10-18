@@ -1,6 +1,6 @@
 # ADR-035: Browser-rendered form controls — themed Ionic controls vs. deliberately native
 
-**Status:** Accepted (2026-08-26)
+**Status:** Accepted
 **Related:** UX-6 (UX review 2026-08-25), NFR-4.12 (localization), invariants 9/9b (token system), ADR-006 (Capacitor
 shell planned), G-3 (lock), UI-Spec G-17
 

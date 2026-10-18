@@ -31,7 +31,7 @@ Every result is re-read, and paid for, on each later turn.
 | What do the screens look like? | `dev-docs/ui-spec/` — `Mnn-*.md` per screen, `global-patterns.md` (G-n) |
 | What should packing feel like? | `dev-docs/UI_Concept_Prototype.html`; **`node dev-docs/UI_Concept_Prototype.verify.mjs` must stay green** |
 | Wire protocol? | `dev-docs/Sync_API_Spec_v1.3.md` |
-| DB schema? | `internal/store/schema.sql` — **single source of truth, never duplicated into docs** (ADR-018) |
+| DB schema? | `internal/store/schema.sql` — **single source of truth, never duplicated into docs** (ADR-067) |
 | Why X over Y? | `dev-docs/adr/` |
 | How do I write code here? | `dev-docs/CODING_PRINCIPLES.md` — **binding**, read before writing anything |
 | What must the UI suite cover, and what does it? | `dev-docs/ui-test-spec/`; `dev-docs/e2e-ledger/status.md` (read and update it) |

@@ -1,6 +1,6 @@
 # ADR-050: The page names itself, and the bar carries at most three glyphs — vs. a title in the app bar
 
-**Status:** Accepted (2026-09-06)
+**Status:** Accepted
 **Related:** ADR-011 (one header bar, the back-target contract), ADR-012 (the four anchors), ADR-049 (one Ionic mode),
 UI-Spec G-9, G-12, G-13, M4, PRD §3.25, FR-21.2, FR-25.20, invariant 9, the design concept *Bergluft* (step 4 of five),
 E2E-M4-44, E2E-G12-04, E2E-G12-05, E2E-G12-06, E2E-G12-07, E2E-G9-11

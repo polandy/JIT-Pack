@@ -25,7 +25,7 @@
   the same way it is on the packing list. **Grouped by tag, a row stops before the two tag rungs** — the heading above
   it names that tag — and keeps an empty slot of the same width (G-15); the untagged bucket, the alphabetical run and
   the search results keep the whole ladder.
-* **The tag controls (FR-24.8, ADR-061).** Three chips for the tags holding the most items, each with its count; **„Alle
+* **The tag controls (FR-24.8, ADR-101).** Three chips for the tags holding the most items, each with its count; **„Alle
   N Tags"** opening the *Ansicht & Filter* sheet (under the sort and properties: every tag with its count, searchable,
   several at once under *irgendeiner* / *alle*, plus the **„Ohne Tag"** bucket) — with no tag at all the chip reads
   **„Ansicht"** and the sheet is its head alone, so the sort and the properties never depend on a tag existing; and a

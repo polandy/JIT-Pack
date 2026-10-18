@@ -1,6 +1,6 @@
 # ADR-048: The app paints its own palette, *Bergluft* — vs. keeping Catppuccin and fixing everything around it
 
-**Status:** Accepted (2026-09-06)
+**Status:** Accepted
 **Related:** FR-21.2 (one palette, one token table), FR-21.3 (the light flavour), FR-21.7 (the three anchors),
 FR-21.8 (planes and elevation), UI-Spec G-11, invariant 9, `dev-docs/design-foundation-plan.md`, the design concept
 *Bergluft* presented 2026-09-06, E2E-G11-01…05, E2E-VIS-01…06

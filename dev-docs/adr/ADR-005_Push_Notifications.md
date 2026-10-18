@@ -1,6 +1,6 @@
 # ADR-005: Push Notification Architecture — Self-Hosted Web Push + UnifiedPush vs. FCM/APNs vs. WebSocket-Only
 
-**Status:** Accepted (already specified — NFR-4.6, FR-6.2, reflected in ADR-001 v2's stack table)
+**Status:** Accepted
 **Related:** ADR-001 v2, Sync-API Spec §7 (WebSocket event catalog), CODING_PRINCIPLES §5
 
 **Decision Drivers (in priority order):**

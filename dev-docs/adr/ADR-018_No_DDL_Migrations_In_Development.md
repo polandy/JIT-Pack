@@ -1,8 +1,6 @@
 # ADR-018: No DDL migrations during the development phase — one always-current schema vs. a numbered migration chain
 
-**Status:** Accepted (2026-08-19) — revisit trigger fired 2026-09-20, superseded in intent by
-[ADR-067](ADR-067_The_Store_Gets_A_Migration_Path_Inside_0x.md). Still describes what the code does until that
-mechanism lands.
+**Status:** Superseded by ADR-067
 **Related:** CLAUDE.md invariant 2 (rewritten by this ADR), ADR-001 (SQLite as the store), `internal/store/schema.sql`,
 `PRAGMA user_version`
 

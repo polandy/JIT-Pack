@@ -50,7 +50,7 @@ internal/sync/               HLC, merge algorithm, change-log semantics — zero
 internal/wiregen/            the wire contract turned into the client's TypeScript — zero I/O deps
 internal/linkpreview/        what a web page says about itself (FR-29.16, FR-29.18) — imports nothing internal
 internal/store/              SQLite repositories; the only package importing database/sql
-internal/store/schema.sql    the whole schema, always current (//go:embed, ADR-018)
+internal/store/schema.sql    the whole schema, always current (//go:embed, ADR-067)
 internal/notify/             who is notified of what (FR-6.2, FR-7.11), the rows, Web Push delivery (ADR-099)
 internal/api/                HTTP handlers, WebSocket hub, auth middleware; wire*.go is the contract
 internal/webui/              serves the built client beside the API on one origin (ADR-043) — stdlib only

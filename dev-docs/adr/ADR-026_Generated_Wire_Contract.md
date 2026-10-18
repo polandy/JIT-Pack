@@ -1,6 +1,6 @@
 # ADR-026: Where the Client/Server Contract Lives — Generate the Client from Go, or Hand-Keep a Description Beside Both
 
-**Status:** Accepted (owner decision, 2026-08-23)
+**Status:** Accepted
 **Related:** NFR-4.14 (the requirement this decides the mechanism for), NFR-4.2a (the merge vocabulary the outcome words
 are shared with), ADR-022 (per-field clocks, whose two new conflict fields the client never received), ADR-008 /
 invariant 4 (generation stays client-side — this ADR does **not** touch it), NFR-4.3 (footprint), CODING_PRINCIPLES §4a

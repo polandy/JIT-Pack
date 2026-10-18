@@ -1,6 +1,6 @@
 # ADR-054: „Für alle" is a third verb on the line — vs. a mode, an inline roster, or an offer after the add
 
-**Status:** Accepted (2026-09-09)
+**Status:** Accepted
 **Related:** ADR-036 (membership is keep-and-repoint), FR-25.8 (the composer's per-person mode), FR-25.13d/e/f (the
 browse-sheet and its two verbs), FR-25.21/25.21c (the membership editor and its *Alle Reisenden* shortcut), FR-2.5b /
 ADR-053 (a per-person position with an empty roster), UI-Spec M4, G-8, G-11, E2E-M4-78, E2E-M4-79

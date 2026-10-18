@@ -1,7 +1,6 @@
 # ADR-004: Authentication Strategy — OIDC+PKCE with a Single-User Bypass
 
-**Status:** Accepted (already specified — Addendum v2.7 FR-17.1/17.2/17.11, Schema v0.3 `is_local_singleuser`,
-implemented in `internal/api`)
+**Status:** Accepted
 **Note (2026-07-09):** Demo Mode (incl. its optional passphrase, FR-17.12) was removed in Addendum v2.10. Mentions of it
 below are part of the historical analysis and stand as written; the decision itself is unaffected — public exposure of
 Single-User Mode is handled by NFR-4.9 operator documentation alone.

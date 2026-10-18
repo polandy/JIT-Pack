@@ -1,6 +1,6 @@
 # ADR-037: How the service worker learns the language — an IndexedDB mirror vs. a message vs. a server-rendered payload
 
-**Status:** Accepted (2026-08-29)
+**Status:** Accepted
 **Related:** NFR-4.12 (English-only notifications), NFR-4.6 (Web Push), FR-6.2/6.3, ADR-019 (the worker's update model),
 `client/public/sw.js`, `client/src/notifications/`
 
