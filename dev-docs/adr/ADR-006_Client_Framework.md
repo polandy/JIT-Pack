@@ -1,6 +1,6 @@
 # ADR-006: Client Framework — Vue 3 vs. React vs. Svelte (within the PRD-Mandated Capacitor Shell)
 
-**Status:** Accepted (already the ADR-001 v2 stack choice; this ADR supplies the comparison ADR-001 left implicit)
+**Status:** Accepted
 **Related:** Base PRD Section 2 (Capacitor iOS/Android mandated for native apps — a given constraint, not itself decided
 here), ADR-001 v2, UI-Spec v1.7, CODING_PRINCIPLES
 

@@ -1,8 +1,6 @@
 # ADR-019: App-shell caching — a hand-rolled service worker vs. vite-plugin-pwa
 
-**Status:** Accepted (2026-08-20); update policy amended by ADR-044 (2026-09-02) — `skipWaiting()` is reachable, but
-only from an explicit press, never from `install`; the build emits no `modulepreload` hints (amendment
-1, 2026-10-02)
+**Status:** Accepted
 **Related:** NFR-4.13 (installable PWA, app shell), NFR-4.6 (Web Push — the same worker script), NFR-4.3 (footprint),
 NFR-4.2a (why `/api`, `/ws`, `/health` are never cached), invariant 8 (pinning), ADR-005 (push), `client/public/sw.js`,
 `client/vite.config.ts` (`jitpack-sw-precache`), `client/src/pwa/register.ts`

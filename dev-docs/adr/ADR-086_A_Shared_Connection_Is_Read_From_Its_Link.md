@@ -1,7 +1,6 @@
 # ADR-086: A shared connection — read from its link vs. from its picture vs. searched for vs. typed
 
-**Status:** Accepted — amended 2026-10-03: option C is added beside the link, not instead of it; amended 2026-10-04:
-an entry carries its connection, which may start where the device is and is drawn on a map
+**Status:** Accepted
 **Related:** ADR-082 (the server reads a link's page), FR-29.15, FR-29.16, FR-29.18, invariant 4, invariant 5,
 `dev-docs/planner-concept.md` §3
 

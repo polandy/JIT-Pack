@@ -3,7 +3,7 @@
 JIT-Pack is developed with agent CLIs, and two of them are supported: **Claude Code** and
 **GitHub Copilot CLI**. The rule is that the *configuration* is written once and both read it —
 there is no Copilot copy of a Claude document that can drift, for the same reason there is no second
-copy of the schema (ADR-018) or of the wire contract (ADR-026).
+copy of the schema (ADR-067) or of the wire contract (ADR-026).
 
 What follows is what each tool actually reads, verified by running it rather than by reading its
 documentation — the two disagreed on one point that mattered, and the disagreement is the whole

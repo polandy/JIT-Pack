@@ -1,7 +1,6 @@
 # ADR-008: Generation and Import Run on the Client, Not the Server
 
-**Status:** Accepted (recorded retroactively — the decision was taken during client implementation and had only been
-written down as prose in the implementation log)
+**Status:** Accepted
 
 > **Enforced 2026-08-23 by ADR-025.** Driver 2 ("one implementation, not two") was true of everything on this list
 *except* portable import, where `internal/store` carried a second, silently divergent implementation. It had no caller

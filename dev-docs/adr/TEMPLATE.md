@@ -1,6 +1,6 @@
 # ADR-00N: <Decision> — <Option A> vs. <Option B>
 
-**Status:** Proposed | Accepted | Superseded by ADR-00M
+**Status:** Accepted
 **Related:** <other ADRs, FR/NFR ids, spec sections, schema objects>
 
 **Decision Drivers (in priority order):**

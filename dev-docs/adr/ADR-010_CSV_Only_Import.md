@@ -1,6 +1,6 @@
 # ADR-010: Spreadsheet Import Accepts CSV Only, Not XLSX
 
-**Status:** Accepted (recorded retroactively — the cut was documented as a struck-through line in Sync API Spec §8)
+**Status:** Accepted
 **Related:** ADR-008 (import runs client-side), FR-16.1–16.3 (spreadsheet import), NFR-4.3 (dependency footprint)
 
 **Decision Drivers (in priority order):**

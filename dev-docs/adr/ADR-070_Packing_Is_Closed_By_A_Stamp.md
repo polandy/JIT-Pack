@@ -1,6 +1,6 @@
 # ADR-070: Finishing the packing is a stamp on the trip — and a half-packed row keeps what is in the bag
 
-**Status:** Accepted (2026-09-20)
+**Status:** Accepted
 **Related:** FR-5.10, FR-5.5 (the skip this writes), FR-30.8 (which reads the stamp), FR-25.31 (the one undo),
 ADR-033 (an absence is not an answer), ADR-067 (the schema change this costs), `internal/store/schema.sql`,
 `client/src/domain/closePacking.ts`, `client/src/lib/tripPhase.ts`

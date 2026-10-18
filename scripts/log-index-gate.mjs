@@ -16,11 +16,18 @@
  * its README's table is how a reader finds the file, so a file the README
  * does not name is unreachable in the same way.
  *
+ * The ADRs are a split document too, and their index carries one more claim:
+ * each decision's status. That column is how a reader learns that ADR-018 no
+ * longer holds without opening it, so the status is a fixed value — Accepted,
+ * or Superseded by ADR-NNN — and the index must repeat the file's. A date or
+ * an amendment note on that line is history, and the history is in git.
+ *
  * Node built-ins only, so it needs no install; wired into `make ci` and the CI
  * client job beside the other two node gates.
  */
 import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 /*
  * `make ci` runs this from the repository root and the CI client job runs it
@@ -148,15 +155,98 @@ function checkReadme(dir) {
   return null
 }
 
-const results = DOCUMENTS.map((doc) => [doc.path, check(doc)])
-const readmes = SPLIT.map((dir) => [dir, checkReadme(dir)])
-if (results.some(([, n]) => n === null) || readmes.some(([, n]) => n === null)) {
-  console.error('The index is read instead of the document; a section missing from it is unreachable.')
-  process.exit(1)
+/** Where the decisions live; every `ADR-NNN_*.md` in it is one. */
+const ADR_DIR = 'dev-docs/adr'
+
+/** An ADR's file name, capturing its number. */
+const ADR_FILE = /^(ADR-\d{3})_.*\.md$/
+
+/** The one line that says whether a decision still holds. */
+const STATUS_LINE = '**Status:** '
+
+/** The whole status vocabulary: a decision holds, or a named later one replaced it. */
+const STATUS = /^(Accepted|Superseded by (ADR-\d{3}))$/
+
+/**
+ * Checks the ADRs' statuses against the vocabulary and against the README's
+ * index. Takes the files as `{ name, text }` and the README's text, and returns
+ * one message per disagreement — none when they agree.
+ */
+export function checkAdrs(files, readme) {
+  const errors = []
+  const byNumber = new Map()
+  for (const { name } of files) {
+    const number = ADR_FILE.exec(name)[1]
+    byNumber.set(number, [...(byNumber.get(number) ?? []), name])
+  }
+  for (const [number, names] of byNumber) {
+    if (names.length > 1) {
+      errors.push(`${number} is taken by two files, so a reference to it names neither: ${names.join(', ')}`)
+    }
+  }
+
+  const indexed = new Map()
+  for (const line of readme.split('\n')) {
+    const cells = line.split('|').map((c) => c.trim())
+    const link = /^\[\d{3}\]\(([^)]+)\)$/.exec(cells[1] ?? '')
+    if (link) indexed.set(link[1], cells.at(-2))
+  }
+
+  for (const { name, text } of files) {
+    const number = ADR_FILE.exec(name)[1]
+    const line = text.split('\n').find((l) => l.startsWith(STATUS_LINE.trimEnd()))
+    if (line === undefined) {
+      errors.push(`${name} has no "${STATUS_LINE.trim()}" line`)
+      continue
+    }
+    const status = line.slice(STATUS_LINE.length).trim()
+    const match = STATUS.exec(status)
+    if (!match) {
+      errors.push(`${name}: status "${status}" is not "Accepted" or "Superseded by ADR-NNN"`)
+      continue
+    }
+    const successor = match[2]
+    if (successor === number || (successor && !byNumber.has(successor))) {
+      errors.push(`${name} is superseded by ${successor}, which is not another ADR in ${ADR_DIR}`)
+      continue
+    }
+    if (!indexed.has(name)) {
+      errors.push(`${name} has no row in ${ADR_DIR}/README.md's index`)
+    } else if (indexed.get(name) !== status) {
+      errors.push(`${name}: the index says "${indexed.get(name)}", the file says "${status}"`)
+    }
+  }
+  return errors
 }
 
-const sections = results.reduce((sum, [, n]) => sum + n, 0)
-console.log(
-  `log-index-gate: ok (${results.length} ledger files, ${sections} sections, all indexed; ` +
-    `${readmes.length} split documents, every file linked from its README)`,
-)
+/** Reads the ADR directory and reports what `checkAdrs` finds. Returns the number of ADRs, or null. */
+function checkAdrDir() {
+  const files = readdirSync(resolve(root, ADR_DIR))
+    .filter((name) => ADR_FILE.test(name))
+    .map((name) => ({ name, text: readFileSync(resolve(root, ADR_DIR, name), 'utf8') }))
+  const errors = checkAdrs(files, readFileSync(resolve(root, ADR_DIR, 'README.md'), 'utf8'))
+  if (!errors.length) return files.length
+  console.error(`log-index-gate: the ADRs' statuses and their index disagree.\n`)
+  for (const e of errors) console.error(`  ${e}`)
+  console.error('')
+  return null
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) main()
+
+function main() {
+  const results = DOCUMENTS.map((doc) => [doc.path, check(doc)])
+  const readmes = SPLIT.map((dir) => [dir, checkReadme(dir)])
+  const adrs = checkAdrDir()
+  if (results.some(([, n]) => n === null) || readmes.some(([, n]) => n === null) || adrs === null) {
+    console.error('The index is read instead of the document; a section missing from it is unreachable.')
+    process.exit(1)
+  }
+
+  const sections = results.reduce((sum, [, n]) => sum + n, 0)
+  console.log(
+    `log-index-gate: ok (${results.length} ledger files, ${sections} sections, all indexed; ` +
+      `${readmes.length} split documents, every file linked from its README; ` +
+      `${adrs} ADRs, each status in the vocabulary and in the index)`,
+  )
+}

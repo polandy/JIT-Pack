@@ -54,8 +54,10 @@ pins:
 
 # Beside it for the same reason: the implementation log's index is read
 # instead of the log, so a section missing from it is unreachable — and
-# nothing else can see that.
+# nothing else can see that. The same gate holds the ADRs' status
+# vocabulary, whose rules have a test of their own.
 log-index:
+	@$(RUN) node --test scripts/log-index-gate.test.mjs
 	@$(RUN) node scripts/log-index-gate.mjs
 
 # And beside it: the specification documents are read with `grep -n` and with a

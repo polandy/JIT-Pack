@@ -1,6 +1,6 @@
 # ADR-078: The planner's rows belong to the planner — its own discussion table vs. a column on `comments`; results named on the result vs. a list on the idea
 
-**Status:** Accepted — amended 2026-10-02 (amendment 1: where a result is made)
+**Status:** Accepted
 **Related:** PRD Addendum §3.29 (FR-29.1–29.4, FR-29.9, FR-29.13), ADR-066 (feature modules), ADR-073 (a row per
 person), ADR-022 (field-level LWW), UI-Spec M28, schema `ideas`, `idea_votes`, `idea_comments`;
 `dev-docs/planner-concept.md` §3, §5a

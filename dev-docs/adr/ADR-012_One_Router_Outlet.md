@@ -1,6 +1,6 @@
 # ADR-012: One router outlet — vs. Ionic's `IonTabs` nested outlet
 
-**Status:** Accepted (2026-08-13)
+**Status:** Accepted
 **Related:** ADR-011 (one header bar), UI-Spec G-1/G-9/G-12, `Navigation_Concept_v1.0.md` §1.2/§7, Addendum §3.25 (M4
 full-screen)
 

@@ -1,6 +1,6 @@
 # ADR-059: A refused refresh ends the session — retry only what was never answered
 
-**Status:** Accepted (2026-09-13)
+**Status:** Accepted
 **Related:** FR-19.6, FR-19.9, FR-23.3, NFR-4.4, Sync-API §2, `client/src/auth/refresh.ts`,
 `client/src/api/status.ts`, ADR-007 (the OIDC broker)
 

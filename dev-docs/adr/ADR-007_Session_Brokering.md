@@ -1,7 +1,6 @@
 # ADR-007: First-Party Sessions Brokered from the IdP
 
-**Status:** Accepted (2026-08-08, owner decision: "JIT-Pack targets Authelia; where Authelia prescribes something,
-JIT-Pack conforms")
+**Status:** Accepted
 **Related:** ADR-004 (OIDC+PKCE with Single-User bypass — untouched by this decision), Sync-API §2, FR-23.1/23.3,
 NFR-4.4, PRD Section 2
 

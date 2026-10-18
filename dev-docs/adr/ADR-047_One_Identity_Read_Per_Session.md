@@ -1,6 +1,6 @@
 # ADR-047: The user directory is read once per session and refreshed by its writers — vs. once per screen
 
-**Status:** Accepted (2026-09-05)
+**Status:** Accepted
 **Related:** ADR-033 (a partition that has not arrived is not an empty one), ADR-007 (session auth), FR-4.5 (the
 sharing picker), FR-23.3 (deactivation), FR-25.19/25.20 (who a row names), FR-27.9 (the author line), U-10 of the
 2026-09-02 design review, E2E-M20-07

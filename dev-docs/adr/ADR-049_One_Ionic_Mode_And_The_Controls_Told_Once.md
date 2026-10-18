@@ -1,6 +1,6 @@
 # ADR-049: One Ionic mode on every platform, and the controls Material shaped are told once — vs. per-platform chrome
 
-**Status:** Accepted (2026-09-06)
+**Status:** Accepted
 **Related:** ADR-048 (the palette), ADR-006 (client framework), ADR-011 (one header bar), FR-21.7, FR-21.8, UI-Spec
 G-9, G-11, G-13, G-14, invariant 9/9b, the design concept *Bergluft* (step 2 of five), E2E-VIS-01…06
 

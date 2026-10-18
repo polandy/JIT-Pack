@@ -1,6 +1,6 @@
 # ADR-020: Touch-first adding to templates — chips in the composer vs. inventory browse-sheet vs. tag tiles
 
-**Status:** Accepted (2026-08-21)
+**Status:** Accepted
 **Related:** FR-25.13/13a/13c/13d, FR-25.7, FR-24.2, FR-5.5, §3.28 (mark slot in offers), UI-Spec M4/M8,
 E2E-M8-21/E2E-M4-46
 

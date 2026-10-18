@@ -1,6 +1,6 @@
 # ADR-021: One emoji per item as the packing row's scan aid — emoji vs. an icon library vs. photo-only
 
-**Status:** Accepted (2026-08-22)
+**Status:** Accepted
 **Related:** PRD Addendum §3.28 (FR-28.1–28.11), UI-Spec G-15, ADR-002 (photo BLOBs outside the sync envelope), ADR-013
 (visual baselines), ADR-014 (the tag initial tile), CLAUDE.md invariants 9/9b, `client/src/domain/itemMarks.ts`,
 `client/src/theme/typography.css`

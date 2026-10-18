@@ -1,6 +1,6 @@
 # ADR-001 (v2): Tech Stack & Offline-Sync Strategy — „JIT-Pack"
 
-**Status:** Accepted (revises v1: adds Option A2, changes recommendation)
+**Status:** Accepted
 **Decision Drivers (in priority order):**
 1. **Minimal footprint** (NFR-4.3): NAS/mini-PC; the smaller, the better.
 2. Offline-first with multi-user conflict handling (NFR-4.1/4.2/4.2a).

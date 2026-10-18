@@ -1,4 +1,4 @@
-# ADR-061: The inventory's tag axis was navigation, not a filter — chips + sheet + jump vs. cloud vs. dropdown
+# ADR-101: The inventory's tag axis was navigation, not a filter — chips + sheet + jump vs. cloud vs. dropdown
 
 **Status:** Accepted
 **Related:** FR-24.8 (the tag controls), FR-24.2 (filter reaches wider than the grouping), FR-24.6 (the

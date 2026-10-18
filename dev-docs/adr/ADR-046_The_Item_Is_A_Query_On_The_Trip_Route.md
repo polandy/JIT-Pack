@@ -1,6 +1,6 @@
 # ADR-046: The item over the packing list is a query on the trip's route — vs. a path alias vs. local state
 
-**Status:** Accepted (2026-09-05)
+**Status:** Accepted
 **Revises:** ADR-012's amendment of 2026-08-14 (the item path as an alias of the trip route) and its amendment of
 2026-08-21 (the scroll memory that compensated the remount the alias caused)
 **Related:** ADR-011 (one header bar, the overlay's back), ADR-012 (one outlet, one live page), UI-Spec M4 / M5, G-4

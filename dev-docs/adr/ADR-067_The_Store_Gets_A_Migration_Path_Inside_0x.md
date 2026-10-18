@@ -1,6 +1,6 @@
 # ADR-067: The store gets a migration path inside the 0.x line — a baseline plus an additive chain, over waiting for 1.0
 
-**Status:** Accepted (2026-09-20), **built 2026-09-21** with the amendment below
+**Status:** Accepted
 **Related:** ADR-018 (whose revisit trigger this fires), CLAUDE.md invariant 2, `internal/store/schema.sql`,
 `internal/store/migrate.go` (`ensureSchema`, `schemaFingerprint`, `ErrSchemaStale`), `docs/upgrades.md`, NFR-4.11
 
@@ -138,10 +138,6 @@ invented.
 applied level again, and a CI gate proves after every change that replaying the chain and applying `schema.sql` produce
 the same database. This happens inside the 0.x line — it is not gated on 1.0, on a major, or on the packing concept
 closing.
-
-**The mechanism is not built yet.** Until it is, ADR-018 describes what the code does: a database at any other
-fingerprint is refused with `ErrSchemaStale`, and the live instance is carried across by hand. That interim procedure
-is written down in `dev-docs/implementation-log/` so it stops being tribal knowledge.
 
 ## Consequences
 

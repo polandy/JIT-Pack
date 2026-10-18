@@ -1,7 +1,6 @@
 # ADR-009: Three Run Modes from One Artifact
 
-**Status:** Accepted (recorded retroactively — the mode model grew across FR-17.3, FR-19.x and G-8 without a single
-record naming it)
+**Status:** Accepted
 **Related:** ADR-008 (client-side generation), ADR-004 (auth strategy), FR-17.3 (Single-User Mode), FR-19.1–19.6 (Local
 Mode), FR-23.x (instance admin), G-8 (hide what a mode cannot do)
 

@@ -1,6 +1,6 @@
 # ADR-027: What Shape a Route Has — Scope First Everywhere, or a Rule With the Sync Channel Exempted
 
-**Status:** Accepted (owner decision, 2026-08-24)
+**Status:** Accepted
 **Related:** NFR-4.14 (its third point — the route shapes — is what this decides), ADR-026 (the mechanism, which
 deliberately left this out), ADR-025 (removed the two endpoints that made the export family a three-way disagreement),
 ADR-023 (the revert endpoints, one per partition), CODING_PRINCIPLES §4a (a value repeated across files is named once)

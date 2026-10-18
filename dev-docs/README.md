@@ -84,10 +84,9 @@ Which tier a document belongs to is decided by **who reads it**, never by what i
   each opening with its own index.
 
 The database schema has no spec file on purpose: `internal/store/schema.sql` is its
-single source of truth and is never duplicated into prose. While the project is pre-1.0
-it is one always-current file with no migration chain behind it — see
-[ADR-018](adr/ADR-018_No_DDL_Migrations_In_Development.md) for why, and for when
-migrations come back.
+single source of truth and is never duplicated into prose. It is the readable baseline,
+and an additive chain under `internal/store/migrations/` carries an existing database to
+it — see [ADR-067](adr/ADR-067_The_Store_Gets_A_Migration_Path_Inside_0x.md).
 
 ## Concept prototype
 
