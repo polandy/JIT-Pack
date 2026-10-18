@@ -89,6 +89,16 @@ every trip of the device with packing progress included. The app's own importer 
 documents and importing them together, matching master items **per document as each is imported**. The server's
 single-document import endpoints are deliberately left as they are.
 
+**A trip document carries how the trip follows its groups** (FR-27.4): `follows:` (the templates it follows),
+`generated:` (the generation ledger) and `applied_changes:` (the log), all by name, all optional. Without the ledger a
+restored device keeps every trip and every Vorlage and starts following them from zero — it re-asks every proposal
+the user already answered and offers every position they refused as new, a restore that looks complete and quietly
+undoes their decisions. None of the three needs anything the portable shape cannot express: their references are a
+template, a master item and a traveler, all carried **by name**. The restore re-keys rather than copies ids — a ledger
+entry's id is derived from (trip, master item, traveler), and its row is found by that identity rather than by name, so
+a row the user renamed still matches. A file without the three sections restores as a trip that starts following its
+groups afresh.
+
 ## Consequences
 
 **Positive**
@@ -103,6 +113,10 @@ single-document import endpoints are deliberately left as they are.
 - The file is a data backup, not a device image: unused master items, images, tags and dependencies stay behind.
 - Per-document matching is more work than matching once, and it is the behaviour a test has to pin — matching up front
   would create one copy of a shared item per mention.
+- A follow reference this device cannot resolve is **dropped**, not restored half-resolved: a source pointing at no
+  template would never propose anything, and a ledger entry keyed on the wrong position would detach one nobody asked
+  to detach. The log is the exception — its group name is denormalised so the record outlives the group.
+- The follow sections make a **restore** correct, not a cross-instance clone (FR-18.4/FR-18.5).
 
 **Neutral**
 - The server keeps its single-document contract, so nothing about cross-instance sharing of one template changes
@@ -110,43 +124,6 @@ single-document import endpoints are deliberately left as they are.
 - The file is written as `application/yaml` (RFC 9512) with a `.yaml` extension, and M18's picker also accepts the
   plain-text types a mobile file manager hands a YAML file back as — what decides the media type here is whether the
   round trip works on the device, not correctness in the abstract.
-
-## Amendment 2026-08-21 — the file carries the FR-27.4 refresh state
-
-The decision above is unchanged; what a document contains grew. A trip document
-now also carries **how the trip follows its groups**: `follows:` (the templates
-it follows), `generated:` (the generation ledger) and `applied_changes:` (the
-log), all by name, all optional.
-
-Why it was owed: a restored device kept every trip and every Vorlage and then
-started following them from zero. The ledger is what tells a group's change
-from the user's own edit, so without it the new device re-asked every FR-27.4
-proposal the user had already answered and offered every position they had
-refused as if it were new — a restore that looks complete and quietly undoes a
-month of decisions.
-
-Why it did not need a different format: none of the three needs anything the
-portable shape cannot express. Their references are a template, a master item
-and a traveler, and this format already carries all three **by name** — so the
-revisit trigger below (a) did *not* fire. What the restore does instead of
-copying ids is re-key them: a ledger entry's id is derived from (trip, master
-item, traveler), and its row is found by that same identity rather than by
-name, so a row the user renamed still matches.
-
-The accepted costs, both stated in FR-18.4:
-
-- A reference this device cannot resolve is **dropped**, not restored
-  half-resolved. A source pointing at no template would never propose anything;
-  a ledger entry keyed on the wrong position would detach one nobody asked to
-  detach. The log is the exception — its group name is denormalised precisely
-  so the record outlives the group.
-- These sections make a **restore** correct, not a cross-instance clone. The
-  server's single-document import endpoints ignore them as unknown fields
-  (FR-18.5), which is the same asymmetry the decision above already accepted.
-
-An older backup file has none of the three sections. That is not an error: it
-restores as it always did and the trip starts following its groups afresh —
-today's behaviour, now the *documented* fallback, with a test on it.
 
 ## Revisit Trigger
 

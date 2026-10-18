@@ -82,7 +82,7 @@ export const routes: RouteRecordRaw[] = [
     path: PATH.settings,
     name: 'settings',
     // A global action: the gear is offered on every screen, so no one
-    // parent is true (ADR-011 amendment).
+    // parent is true (ADR-011).
     meta: { parent: PATH.dashboard, acceptsFrom: true, titleKey: 'settings.title' },
     component: () => import('@/views/settings/SettingsPage.vue'),
   },
@@ -195,7 +195,7 @@ export const routes: RouteRecordRaw[] = [
   {
     // M23 (FR-24.3). Like the master conflict log beside it, it belongs to
     // no one screen — a retire can start in M9 or in M7 — so it is offered
-    // from Settings and returns where it was opened from (ADR-011 amendment).
+    // from Settings and returns where it was opened from (ADR-011).
     path: PATH.masterRetired,
     name: 'master-retired',
     meta: { parent: PATH.settings, acceptsFrom: true, titleKey: 'retired.title' },
@@ -391,7 +391,7 @@ const router = createRouter({
 })
 
 // A route of the fifth class records where it was entered from, before
-// anything reads the back target off it (ADR-011 amendment).
+// anything reads the back target off it (ADR-011).
 installOriginStamp(router)
 
 // Browser-back with an overlay open closes the overlay, like the chevron.

@@ -283,7 +283,7 @@ function commit() {
   // restore path) — and an import that created no trip at all has its whole
   // result in the inventory, where the trip list would say the same thing.
   // Landing on a tab root is a root navigation, the same rule the anchors
-  // follow (ADR-012 amendment 3): a commit ends the wizard rather than
+  // follow (ADR-012): a commit ends the wizard rather than
   // stacking a page on top of it.
   ionRouter.navigate(
     plan.value.trips.length === 0

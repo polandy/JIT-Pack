@@ -656,7 +656,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(onVisibleScreen(page, 'trip-edit-name')).toHaveCount(0)
   })
   /*
-   * E2E-G1-04 (G-1, ADR-011 amendment): the gear is offered on every
+   * E2E-G1-04 (G-1, ADR-011): the gear is offered on every
    * screen, so /tabs/settings cannot name one parent that is true — a
    * declared /tabs/dashboard carries the user out of their trip. The route
    * records where it was entered from.
