@@ -1,5 +1,5 @@
 /**
- * The meal plan's rows on the wire (§3.33, ADR-066 amendment 2): how a meal
+ * The meal plan's rows on the wire (§3.33, ADR-066): how a meal
  * and an ingredient are read from a pulled row and rebuilt for an optimistic
  * one, and what their deletes follow. The store hands these specs to the
  * kernel on its sinks, so no kernel file names the tables' codecs.

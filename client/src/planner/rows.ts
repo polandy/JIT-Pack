@@ -1,5 +1,5 @@
 /**
- * The planner's rows on the wire (§3.29, ADR-066 amendment 2): how each is
+ * The planner's rows on the wire (§3.29, ADR-066): how each is
  * read from a pulled row and rebuilt for an optimistic one, and what its
  * delete follows. The store hands these specs to the kernel on its sinks, so
  * no kernel file names the tables' codecs. A picture's and a track's codec

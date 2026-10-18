@@ -1,5 +1,5 @@
 /**
- * The kernel's own side of the module contracts (ADR-066 amendment 3): what
+ * The kernel's own side of the module contracts (ADR-066): what
  * the meal plan reads of the trip (§3.33), and the switcher's kernel counts
  * (FR-31.10, FR-7.13) — answered from the reads handed in, and from the
  * folded lists where another contributor's answer counts.

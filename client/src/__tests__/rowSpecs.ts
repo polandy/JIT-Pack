@@ -1,6 +1,6 @@
 /**
  * Every table's spec, composed as the running app composes them: the kernel's
- * and each feature module's (ADR-066 amendment 2). Production never needs the
+ * and each feature module's (ADR-066). Production never needs the
  * whole — each store carries its own on its sinks — so only the specs that
  * hold the registry against the wire and the schema assemble it.
  */

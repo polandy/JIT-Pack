@@ -1,5 +1,5 @@
 /**
- * The fold of the modules' contributions (ADR-066 amendment 3): lists in
+ * The fold of the modules' contributions (ADR-066): lists in
  * contributor order, kernel first; a record key or a single answer given
  * twice refused; the folded lists handed back lazily, and never while a
  * contributor is still contributing.

@@ -19,7 +19,7 @@ import { shoppingFeatureStore, useShoppingStore } from './store'
 
 export { createShoppingActions, useShoppingStore }
 
-/** The module's registration (ADR-066 amendment 3), folded by the composition root. */
+/** The module's registration (ADR-066), folded by the composition root. */
 export const shoppingModule: FeatureModule = {
   featureStore: shoppingFeatureStore,
   contribute(host) {

@@ -57,7 +57,7 @@ publish/fork ownership model. Each carries a revisit trigger in its stub.
 28. FR-7.11/FR-7.12 a task's due day with the server's own morning reminder, and a finished packing closes *before*
     (ADR-076) — 2026-09-25. The reminder is the one notification Single-User sends.
 29. FR-7.13 trip notes as threads — a titled first note, replies one level deep, author-only edits, a tick that reaches
-    the newest entry, replies pushed to the participants — on a view of their own, M26 (ADR-073 amendment note) —
+    the newest entry, replies pushed to the participants — on a view of their own, M26 (ADR-073) —
     2026-09-25.
 30. FR-31 excursions — a small packing list inside a trip, its own lines borrowing from the suitcase, started from and
     saved as a Gruppe (ADR-077) — 2026-09-26; their GPX tracks, as an idea's, in tables of their own (FR-31.15, ADR-089)

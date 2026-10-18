@@ -3,7 +3,8 @@
 **Status:** Accepted
 **Related:** FR-30.1–30.3, FR-3.1–3.3, FR-25.6, FR-25.11j, FR-29.9 (the planner's module boundary, same rule),
 ADR-033, `internal/store/schema.sql` (`shopping_entries`), `client/src/shopping/`,
-`client/src/kernel/shoppingSources.ts`, `client/src/sync/featureModule.ts`,
+`client/src/kernel/shoppingSources.ts`, `client/src/sync/featureModule.ts`, `client/src/sync/sinks.ts`,
+`client/src/sync/cascade.ts`, `client/src/kernel/moduleContribution.ts`, `client/src/featureModules.ts`,
 `client/src/kernel/packingShoppingSource.ts`, `scripts/module-boundary-gate.mjs`
 
 **Context.** The owner asked on 2026-09-19 for a trip's shopping list — groceries for a holiday flat above all — that
@@ -34,9 +35,8 @@ list per trip**, and **both tabs stay**.
 not stored a second time. The packing side turns them into `ShoppingLine`s — the contract in
 `kernel/shoppingSources.ts` — with FR-3.3/FR-25.11j's writes bound into each line's `buy`/`unbuy`. The shopping module
 renders lines from its own entries and from every provided source without knowing whose they are. The orchestrator
-reaches the module's store only as a `FeatureStore` (`sync/featureModule.ts`: pull routing, the trip cascade, the
-`ModuleHost` write path). `App.vue` is the composition root that binds all of it through its config and
-`provide`.
+reaches the module's store only as a `FeatureStore` (`sync/featureModule.ts`: the sinks its pulls, cascades and
+painted writes go through, and the `ModuleHost` write path). `App.vue` is the composition root that binds all of it.
 
 **Pros**
 - Driver 1 holds by construction: an entry is a different table, so no packing query can count it.
@@ -46,7 +46,7 @@ reaches the module's store only as a `FeatureStore` (`sync/featureModule.ts`: pu
   is tested on its own (`packingShoppingSource.spec.ts`).
 
 **Cons**
-- A new table: every development database is deleted and reseeded (invariant 2).
+- A new table, with what invariant 2 charges for one.
 - M6 loses the shared composer. An inventory item to buy is now put on the packing list in M4 and given its mode there.
   That is one step further than typing it on M6, and it reverses the 2026-08-30 ruling that M6 keeps the shared
   composer and no field of its own (FR-25.13a).
@@ -102,21 +102,72 @@ writes FR-3.3 on the packing row.
 ## Decision
 
 A trip's shopping list is the module `client/src/shopping/` with its own table, `shopping_entries`. The packing
-list's buy-mode rows reach it as projected `ShoppingLine`s through `kernel/shoppingSources.ts`, bound in `App.vue`.
-`scripts/module-boundary-gate.mjs` holds the boundary in both directions.
+list's buy-mode rows reach it as projected `ShoppingLine`s through `kernel/shoppingSources.ts`.
+`scripts/module-boundary-gate.mjs` holds the boundary in both directions. The planner and the meal plan are modules of
+the same shape, and what follows is the shape all three share.
 
-**How the wiring is done, and why not otherwise.** The module's store, the packing source and the switcher's count are
-handed in: the orchestrator through its config (`features`), the screen and the switcher through `provide`/`inject`.
-A module-level registry filled at start-up was rejected. It would work in the app and be empty in every spec that did
-not remember to fill it, and its failure is a silently dropped row. The orchestrator importing the module was rejected
-because that is the import the gate exists to refuse.
+### One registration shape per module
+
+Each `<m>/index.ts` exports a `FeatureModule` (`kernel/moduleContribution.ts`) of two members, in the order the app
+is built: `featureStore()`, handed to the orchestrator as one of its `features`, and `contribute(host)`, which returns
+the module's `ModuleContribution` — activity readers, trip cards, shell components, shopping, day-plan and excursion
+sources, idea results, a shortlist, view counts, close crossings, and the single answers (`ideaLookup`,
+`dayPlanEmpty`, `duePurchases`, the excursion connections and journey line). The kernel's own adapters are a
+contribution like any other (`kernel/kernelPorts.ts`), folded first. `composeModules` folds them all: lists append in
+order, and a record key or a single answer given twice throws. `provideComposition` provides the result to the
+screens. `featureModules.ts` is the constant list, and with the router, the catalogue and the dev seed it is the only
+file that names a module's face; `App.vue` names none and holds no logic of its own.
+
+Aggregates that cross modules are handed back **lazily**. The shopping count and `duePurchases` read every shopping
+source, meals' included; `dayPlanEmpty` reads every day-plan source; the kernel's day plan reads every excursion's
+extra lines. They read the folded lists through the host when called, and a read during `contribute` throws. So a
+module reads the folded list and never another module: M31's shortlist is the planner's `shortlist` contribution,
+which the kernel's `mealContext` reads through the host.
+
+Rejected: a module-level registry filled at start-up — it would work in the app and be empty in every spec that did
+not remember to fill it, and its failure is a silently dropped row; the orchestrator importing the module — the import
+the gate exists to refuse; `featureStore` inside the contribution — the host is built from the orchestrator and the
+orchestrator from the stores, so the store would have to exist before its own contribution; and eager aggregates, with
+`App.vue` passing each module the others' lists — explicit, but the root would again know which module needs whose
+list.
+
+### What crosses the boundary is a sink per table
+
+A `FeatureStore` is one member, `sinks`: a `RowSink` per table the module holds (`sync/sinks.ts`), built with
+`specifiedSinks(specs, …)` so **each sink carries its table's spec**. The kernel derives the rest. Which tables a
+module holds is which sinks it offers; a pulled change is parsed by its sink's codec and lands through
+`applyChangesToSinks`; the row a write is painted over comes from `currentRowIn` and is encoded by the same codec; and
+what a delete takes along is `cascadeOf` (`sync/cascade.ts`), walked over the `cascadeParents` each spec declares — the
+`ON DELETE CASCADE` references `schema.sql` holds, which `cascade.spec.ts` compares them with. The trip and master
+stores go through the same functions, so there is one cascade on the client, not one per store, and a module keeps its
+rows in the kernel's `bucketedRows` by trip, as the packing rows are kept.
+
+Rejected: a hand-written child-row function per parent and per store, as Go keeps a query per parent — fast lookups
+through each store's own indexes, but eight functions and module-side copies nothing compared with the schema, which
+had already drifted (a trip item's cascade named its notes and not their replies' ticks); and generating the edges
+from Go's `tableSpecs`, a generator for one field.
+
+### A module's rows and types are its own
+
+A module's entity types live in `<m>/types.ts`, and its parsers, encoders and `RowSpec`s in `<m>/rows.ts`
+(`SHOPPING_ROWS`, `PLANNER_ROWS`, `MEAL_ROWS`). The kernel's registry is `KERNEL_TABLE_SPECS` and names none of a
+module's tables; routing calls every table the kernel does not specify a feature table. A module's `types.ts` is
+vocabulary in the layer order (ADR-096), so its rules read it (`layer-gate.mjs`, `domain-purity-gate.mjs`). The picture
+and track rows of the planner (`IdeaImage`, `IdeaTrack`) and their codecs stay in the kernel, because the kernel serves
+their files (ADR-002, ADR-085; `ModuleHost.pictures`/`tracks`); the planner's spec names them. A new module's rows are
+a diff inside its own directory.
+
+Rejected: a full spec map composed in `App.vue` and handed to the orchestrator beside `features` — explicit, but a
+second list kept in step with the stores, threaded into `cascade.ts`, `sinks.ts` and the trip store. A store that holds
+a table necessarily knows how to read it, and the cascade can only find rows in the sinks it walks anyway, so the spec
+rides the sink.
 
 ## Consequences
 
 **Positive**
 - Groceries leave every packing figure, and a *bought* entry is a bought entry rather than a packed one.
-- The planner (§3.29) finds its seams already there. It adds a directory to `MODULES` in the gate, its store to
-  `features`, and its lines or counts through the same kind of contract.
+- The planner (§3.29) and the meal plan (§3.33) arrived as directories in `MODULES`, a store in `features` and a
+  contribution, with no edit to `App.vue`.
 - The M6 screen no longer knows what a `TripItem` is.
 
 **Negative / accepted costs**
@@ -125,105 +176,29 @@ because that is the import the gate exists to refuse.
 - The frame composable `useTripScreen` still reads the trip store for the trip itself, so the module reaches the
   packing store transitively. The gate judges direct imports only, and says so. The clean end is a trip store split
   from the packing rows, which nothing needs yet.
-- `useTripScreen`, `useHeaderTitle` and `useOrchestrator` are kernel by name in the gate while they live in
-  `composables/` beside packing code. Moving them to a frame directory is a mechanical refactor for later.
+- A contract a module adds is three edits in the kernel: a field on `ModuleContribution`, its fold in
+  `foldContributions` and its `provide` in `provideComposition`.
+- The order of `FEATURE_MODULES` is M1's card order and the order of module lines after the kernel's. `features`
+  follows it too, which nothing reads by order.
+- The fold throws at start-up on a doubled answer instead of refusing it at build time.
+  `src/__tests__/activityReadersWiring.spec.ts` folds the real list, so CI meets the throw first.
+- The build no longer refuses a `TABLE.*` without a spec: `satisfies Record<SyncTable, TableSpec>` can hold only one
+  map. `src/__tests__/moduleRows.spec.ts` holds it instead, composing the kernel's specs and each module's against
+  `TABLE`, and holds each module store's sinks to its module's specs; the specs that read the codecs against each other
+  and against the schema compose the same way (`src/__tests__/rowSpecs.ts`).
+- The cascade finds children a level at a time by scanning each child table once per level, not through an index —
+  on a family's data, a few passes over a few thousand rows per delete — and rebuilds its edges per cascade from a few
+  dozen sinks rather than once at load. Siblings come out in spec order; only leaf-first is a contract, and the specs
+  hold that alone.
 - Entries are not in the portable backup and not cloned.
 
 **Neutral**
 - No sync-protocol change: `shopping_entries` is one more trip-partition table in `tables.go`. Its trip cascade is the
-  same unannounced one every trip-partition table has, and the client mirrors it through `FeatureStore.tripChildRows`
-  and `forgetTrip`.
+  same unannounced one every trip-partition table has, mirrored on the client by `cascadeOf`.
+- The fields an entry needed that a packing line has — a tag (FR-30.9), a due date (FR-30.10), a buyer (FR-30.12) —
+  were answered in the entry's own schema, as this decision foresaw; the boundary did not move.
 
 ## Revisit Trigger
 
-- An entry needs a field a packing line has — an amount, a category or a buyer (FR-25.12's *Zugewiesen an* is the
-  likely first). The contract's `ShoppingLine` already carries amount, recipients and section, so the question is
-  then only the entry's schema, not the boundary.
-- A second module arrives (the planner). Its first real need that the three seams do not cover is the moment to
-  decide whether they become a single module registration shape.
-
-## Amendment 1 (2026-10-08) — a module hands its sinks; the cascade is derived (ARCH-10b)
-
-The boundary is unchanged; what crosses it shrank. `FeatureStore` was five members — the module's table set,
-`applyChanges`, `currentRow`, `tripChildRows`/`travelerChildRows` and `forgetTrip` — and each module wrote all five
-by hand: a switch over its tables, a per-table apply, and its own list of what a deleted trip, traveller, idea or meal
-takes along. It is now one: `sinks`, a `RowSink` per table the module holds (`client/src/sync/sinks.ts`). The kernel
-derives the rest. Which tables a module holds is which sinks it offers; a pulled change lands through
-`applyChangesToSinks`; the row a write is painted over comes from `currentRowIn`; and what a delete takes along is
-`cascadeOf`, walked over the edges each table's `TABLE_SPECS` entry declares as `cascadeParents` — the same
-`ON DELETE CASCADE` references `schema.sql` holds, and `cascade.spec.ts` compares the two. The trip and master stores
-go through the same functions, so there is one cascade on the client, not one per store, and a module stores its
-rows in the kernel's `bucketedRows` by trip, as the packing rows are.
-
-**Options weighed.** (a) Keep a hand-written child-row function per parent, per store, as Go keeps a query per parent
-— fast lookups through each store's own indexes, but eight functions and a module-side copy that nothing compared
-with the schema, and the copies had drifted: a trip item's cascade named its notes but not their replies' ticks, and
-the trip store's comment sink dropped a note's ticks on every edit because it cascaded by hand inside `remove`.
-(b) **Declare the edges per table and derive the walk** *(chosen)*. (c) Generate the edges from Go's `tableSpecs` —
-the right end state once `wiregen` emits tables (ARCH-11), but a generator for one field now.
-
-**Cost accepted.** The walk finds children a level at a time by scanning each child table once per level, not
-through an index; on a family's data that is a few passes over a few thousand rows per delete. Siblings come out in
-`TABLE_SPECS` order rather than a hand-chosen one — only leaf-first is a contract, and the specs hold that alone.
-
-## Amendment 2 (2026-10-09) — a module's rows and types leave the kernel; the specs ride the sinks (ARCH-15)
-
-The revisit trigger's "single module registration shape" is being cut in two. This half moves the data layer. A module's
-entity types moved from `types/domain.ts` to `<m>/types.ts`. Its parsers and encoders moved from `sync/tableRegistry.ts`
-and `sync/rows.ts` to `<m>/rows.ts`, which declares the module's `RowSpec`s (`SHOPPING_ROWS`, `PLANNER_ROWS`,
-`MEAL_ROWS`). The kernel's registry is now `KERNEL_TABLE_SPECS` and names none of the module's tables. A store hands its
-sinks over through `specifiedSinks(specs, …)`, so **each sink carries its table's spec**. A pulled row is parsed by its
-sink's codec, a write's base row is encoded by it, and `cascadeOf` builds its edges from the `cascadeParents` of the
-sinks it is handed. Routing calls every table the kernel does not specify a feature table. A fourth module's rows are
-now a diff inside its own directory.
-
-**Options weighed.** (a) A registry the modules fill at start-up — rejected above, and for the same reason: it would be
-empty in every spec that forgot to fill it, and its failure is a silently dropped row. (b) A full spec map composed in
-`App.vue` and handed to the orchestrator beside `features` — explicit, but a second list kept in step with the stores,
-and `cascade.ts`, `sinks.ts` and the trip store would all need it threaded in. (c) **The spec rides the sink**
-*(chosen)* — a store that holds a table necessarily knows how to read it, and the cascade can only find rows in the
-sinks it walks anyway, so the edges of the stores at hand are all it needs. A spec that builds a store gets the module's
-specs with it.
-
-**Cost accepted.** The build no longer refuses a `TABLE.*` without a spec: `satisfies Record<SyncTable, TableSpec>`
-could only hold one map. `src/__tests__/moduleRows.spec.ts` now holds that, by composing the kernel's specs and each
-module's against `TABLE`. It also holds each module store's sinks to its module's specs. The specs that read the codecs
-against each other and against the schema compose the same way (`src/__tests__/rowSpecs.ts`). The edges are rebuilt per
-cascade from a few dozen sinks rather than once at load. The picture and track rows of the planner (`IdeaImage`,
-`IdeaTrack`) and their codecs stay in the kernel, because the kernel serves their files (ADR-002, ADR-085;
-`ModuleHost.pictures`/`tracks`). The planner's spec names them. A module's `types.ts` is vocabulary in the layer order
-(ADR-096), so its rules read it (`layer-gate.mjs`, `domain-purity-gate.mjs`). The composition half — one `contribute()`
-per module, which `App.vue` folds over — is ARCH-15b.
-
-## Amendment 3 (2026-10-09) — one registration shape per module; `App.vue` folds (ARCH-15b)
-
-The second half of the revisit trigger's "single module registration shape". `App.vue` bound each module by name: its
-store into `features`, and its sources, counts, cards, readers, crossings and bridge halves into ten injection keys,
-each by hand. It also held logic: the kernel's adapters and a `mealContext` that read the planner store for M31's
-shortlist. Now each `<m>/index.ts` exports a `FeatureModule` (`kernel/moduleContribution.ts`): a `featureStore()` and
-`contribute(host)`, which returns the module's `ModuleContribution` — activity readers, trip cards, shell components,
-shopping, day-plan and excursion sources, idea results, a shortlist, view counts, close crossings, and the single
-answers (`ideaLookup`, `dayPlanEmpty`, `duePurchases`, the excursion connections and journey line). The kernel's
-adapters moved to `kernel/kernelPorts.ts`, a contribution like any other, folded first. `composeModules` folds them
-all. Lists append in order. A record key or a single answer given twice throws. `provideComposition` provides the
-result under the existing keys. `featureModules.ts` is the constant list. It is now the only file besides the router,
-the catalogue and the dev seed that names a module's face, and `App.vue` names none.
-
-Aggregates that cross modules are handed back **lazily**. The shopping count and `duePurchases` read every shopping
-source, meals' included. `dayPlanEmpty` reads every day-plan source. The kernel's day plan reads every excursion's
-extra lines. They read the folded lists through the host when called, and a read during `contribute` throws. So a
-module reads the folded list and never another module. M31's shortlist is the planner's `shortlist` contribution,
-which the kernel's `mealContext` reads through the host.
-
-**Options weighed.** (a) A registry the modules fill at start-up — rejected in the decision above, for the same reason.
-(b) `featureStore` inside the contribution — one member fewer, but the host is built from the orchestrator, and the
-orchestrator is built from the stores. The store would have to be created before its own contribution, or the actions
-built lazily behind the host. (c) **Two members, `featureStore()` and `contribute(host)`** *(chosen)* — the order the
-app is built in, said in the type. (d) Eager aggregates, with `App.vue` passing each module the others' lists —
-explicit, but the root again knows which module needs whose list, which is the knowledge this amendment removes.
-
-**Cost accepted.** A contract a module adds is three edits in the kernel: a field on `ModuleContribution`, its fold
-in `foldContributions` and its `provide` in `provideComposition`. The order of `FEATURE_MODULES` is M1's card order
-and the order of module lines after the kernel's. `features` follows it too, which nothing reads by order. The fold
-throws at start-up on a doubled answer instead of refusing it at build time.
-`src/__tests__/activityReadersWiring.spec.ts` folds the real list, so CI meets the throw first.
+- The first screen that needs the trip and must not load the packing rows with it. That is the point at which the trip
+  store splits from the packing rows, the clean end the transitive reach through `useTripScreen` waits for.

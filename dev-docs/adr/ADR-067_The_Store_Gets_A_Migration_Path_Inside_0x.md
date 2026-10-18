@@ -2,7 +2,8 @@
 
 **Status:** Accepted
 **Related:** ADR-018 (whose revisit trigger this fires), CLAUDE.md invariant 2, `internal/store/schema.sql`,
-`internal/store/migrate.go` (`ensureSchema`, `schemaFingerprint`, `ErrSchemaStale`), `docs/upgrades.md`, NFR-4.11
+`internal/store/migrate.go` (`ensureSchema`, `schemaFingerprint`, `baselineLevels`, `ErrSchemaStale`),
+`internal/store/schema_chain_test.go`, `docs/upgrades.md`, NFR-4.11
 
 **Decision Drivers (in priority order):**
 1. **Nothing an instance holds may be lost to an upgrade.** The family instance now carries 213 items, 34 trips and
@@ -31,7 +32,7 @@
 
 `internal/store/schema.sql` remains the single readable schema and the thing a *fresh* database is built from.
 Alongside it, `internal/store/migrations/NNN_*.sql` holds one file per schema change, applied in order to a database
-that is behind. `PRAGMA user_version` goes back to naming a level rather than a fingerprint. A CI gate builds one
+that is behind, and the database records the level it stands at. A CI gate builds one
 database from `schema.sql` and another by replaying the chain from the oldest supported baseline, then compares
 columns, types, defaults, nullability, keys and indexes — the same comparison ADR-018 used to prove `schema.sql`
 equivalent to the chain it replaced, kept permanently this time.
@@ -134,72 +135,54 @@ invented.
 ## Decision
 
 `internal/store/schema.sql` stays the single readable schema and the source for a fresh database. An additive
-`internal/store/migrations/NNN_*.sql` chain carries an existing database forward, `PRAGMA user_version` names the
-applied level again, and a CI gate proves after every change that replaying the chain and applying `schema.sql` produce
-the same database. This happens inside the 0.x line — it is not gated on 1.0, on a major, or on the packing concept
-closing.
+`internal/store/migrations/NNN_*.sql` chain carries an existing database forward, and a test proves after every change
+that replaying the chain and applying `schema.sql` produce the same database. This happens inside the 0.x line — it is
+not gated on 1.0, on a major, or on the packing concept closing.
+
+### Where the level lives
+
+The level a database stands at is **`schema_meta(level, baseline)`** — one row, never synced — and `PRAGMA
+user_version` is a readable mirror of it that nothing decides on. `user_version` cannot hold the level itself, because
+it already holds a second vocabulary: `schemaFingerprint()` is `sha256(schema.sql)` truncated to 31 bits, so a
+fingerprint is *any* value in 1…2³¹-1 — including 1…23, the levels the earlier migration era left behind (its chain ran
+`001_schema.sql` … `023_planning_refresh.sql`, counted off the deleted files). A loader reading one field could not
+tell a level from a hash, and would fail silently in the worst direction: a database twenty-three steps behind read as
+current, or a current one refused.
+
+The *presence* of `schema_meta` is what says a database belongs to this chain at all, a fact no hash can imitate. A
+database without it is placed by matching `user_version` against a **list of known release fingerprints**
+(`baselineLevels`; today one entry, the schema v0.15.0 and v0.16.0 share byte for byte, → level 0), and anything not on
+the list is refused. Two guards keep the vocabularies apart: a value at or below `lastMigrationEraLevel` is refused
+before the list is consulted, and `TestBaselineLevels_CannotCollideWithTheMigrationEra` refuses a future baseline whose
+fingerprint would land in that range. The baseline fingerprint is a **literal**, proven against
+`internal/store/testdata/schema-v0.16.0.sql` rather than recomputed at run time — a recomputation would follow whatever
+the hash function does next, and the bridge would break on the one database that cannot be rebuilt.
 
 ## Consequences
 
 **Positive**
-- Built as of 2026-09-21: the chain is `internal/store/migrations/NNN_*.sql`, the equivalence proof is
-  `TestSchemaChain_EndsWhereSchemaSQLDoes` — a **test**, not a shell gate, so it runs inside `make ci` and
-  the CI `go` job with the product's own SQLite driver and needs no new wiring. Its own mutation proof
-  (`TestSchemaChain_TheComparisonCatchesDrift`) breaks the chain three ways and requires the comparison to
-  report each.
+- The equivalence proof is `TestSchemaChain_EndsWhereSchemaSQLDoes` — a **test**, not a shell gate, so it runs inside
+  `make ci` and the CI `go` job with the product's own SQLite driver and needs no wiring of its own. Its mutation proof
+  (`TestSchemaChain_TheComparisonCatchesDrift`) breaks the chain three ways and requires the comparison to report each.
 - An instance upgrades by pulling an image, which is what everyone already assumes a version bump does.
 - A change needing a backfill becomes expressible again. The four data-transformation tests ADR-018 retired describe a
   category of test that can exist once more.
-- `docs/upgrades.md` gets to stop recommending an export-and-reset routine as the normal path.
+- `docs/upgrades.md` no longer recommends an export-and-reset routine as the normal path.
+- No reading of a single integer can place a database wrongly.
 
 **Negative / accepted costs**
 - Two edits per schema change, and a reviewer who has to read both. This is the price of driver 4 and it is charged on
   every schema change, not once.
-- The oldest supported baseline is a commitment: once the chain starts, a database from before it has no path except
-  the export routine, and that boundary has to be stated in `docs/upgrades.md` rather than discovered.
-- `.claude/settings.json` denies creating `internal/store/migrations/**`, and `.github/hooks/jitpack.json` guards the
-  same path for Copilot. Both are correct until the mechanism lands and must be lifted *with* it, in the same PR, not
-  before.
-- Until the loader exists, every release that touches `schema.sql` still costs a hand migration on the live instance —
-  this ADR does not make the next one cheaper.
+- The oldest supported baseline is a commitment: a database from before it has no path except the export routine, and
+  `docs/upgrades.md` states that boundary rather than leaving it to be discovered.
+- One more table in the schema, and a list of baseline fingerprints that has to be extended each time a release becomes
+  a supported starting point.
 
 **Neutral**
 - The client's Local Mode is untouched, as in ADR-018: IndexedDB keeps its own `DB_VERSION` / `onupgradeneeded` path in
   `client/src/local/persistence.ts`.
 - Nothing here changes what `ErrSchemaStale` says or when it fires. A database *ahead* of the binary, or off the chain
   entirely, is still refused rather than guessed at.
-
-## Amendment, 2026-09-21: the level does not live in `PRAGMA user_version`
-
-Option A said *„`PRAGMA user_version` goes back to naming a level rather than a fingerprint."* Building it
-showed that it cannot, safely, and the owner accepted the correction before any code was written.
-
-**The reason is that the field holds two vocabularies at once.** `schemaFingerprint()` is
-`sha256(schema.sql)` truncated to 31 bits, so a fingerprint is *any* value in 1…2³¹-1 — including 1…23,
-which are exactly the levels the migration era left behind (its chain ran `001_schema.sql` …
-`023_planning_refresh.sql`; counted off the deleted files, not off the backlog, which names only the last
-two that were open at the time). A loader reading that one field has no way to tell a level from a hash,
-and the failure is silent in the worst direction: a database twenty-three steps behind read as current, or
-a current one refused.
-
-**So the level gets its own place.** `schema_meta(level, baseline)` — one row, never synced — is
-authoritative, and `user_version` is kept as a readable mirror that nothing decides on. The *presence* of
-that table is what says a database belongs to the chain era at all, which is a fact no hash can imitate.
-A database without it is placed by matching `user_version` against a **list of known release
-fingerprints** (`baselineLevels`, today one entry: the schema v0.15.0 and v0.16.0 share, byte for byte, → level 0),
-and anything not on the list is refused.
-Two guards keep the vocabularies apart for good: values at or below `lastMigrationEraLevel` are refused
-before the list is even consulted, and a test refuses a future baseline whose fingerprint would land in
-that range.
-
-**The baseline fingerprint is a literal**, proven against `internal/store/testdata/schema-v0.16.0.sql` — which is also
-v0.15.0's, the two being identical
-rather than recomputed at run time. A recomputation would follow whatever the hash function does next, and
-the bridge would break on the one database that cannot be rebuilt.
-
-**What this costs:** one more table in the schema, and a list that has to be extended each time a release
-becomes a supported starting point. What it buys is that no reading of a single integer can ever place a
-database wrongly.
 
 ## Revisit Trigger
 

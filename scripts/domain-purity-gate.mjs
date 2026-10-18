@@ -57,7 +57,7 @@ const ALLOWED_DIRS = ['api', 'domain', 'types']
 /**
  * A module's rules read the shapes of its own rows, which live beside them in
  * `<m>/types.ts` — the module's `types/`, vocabulary like the kernel's
- * (ADR-066 amendment 2).
+ * (ADR-066).
  */
 const ownTypes = (home) => `${home.split('/')[0]}/types`
 

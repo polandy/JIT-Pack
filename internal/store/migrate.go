@@ -115,7 +115,7 @@ var baselineLevels = map[int64]struct {
 //
 // It exists so those values are refused rather than read as levels of *this*
 // chain. That is also why the level of a current database lives in
-// `schema_meta` and not in `user_version` (ADR-067 amendment): a
+// `schema_meta` and not in `user_version` (ADR-067): a
 // hash and a counter must not share one field.
 const lastMigrationEraLevel = 23
 
@@ -213,7 +213,7 @@ func schemaFingerprint() int64 { return fingerprintOf(schemaSQL) }
 
 // fingerprintOf is schemaFingerprint over any DDL, so a *released* schema can
 // be fingerprinted from its fixture — which is how the bridge's literal is
-// proven (ADR-067 amendment).
+// proven (ADR-067).
 func fingerprintOf(ddl string) int64 {
 	sum := sha256.Sum256([]byte(ddl))
 	fp := int64(binary.BigEndian.Uint32(sum[:4]) & maxUserVersion)

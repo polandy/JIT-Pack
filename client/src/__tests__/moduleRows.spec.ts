@@ -1,6 +1,6 @@
 /**
  * The tables, specified once each across the kernel and the feature modules
- * (FR-30.3, ADR-066 amendment 2). The kernel's registry names only its own
+ * (FR-30.3, ADR-066). The kernel's registry names only its own
  * tables, so the build no longer refuses a `TABLE.*` without a spec — this
  * does, by composing both as the running app does: a table no store carries a
  * spec for is dropped on every pull.
@@ -21,7 +21,7 @@ const moduleTables = Object.values(MODULE_ROW_SPECS).flatMap((specs) => Object.k
 
 beforeEach(() => setActivePinia(createPinia()))
 
-describe('the composed table specs (ADR-066 amendment 2)', () => {
+describe('the composed table specs (ADR-066)', () => {
   it('specify every table in TABLE exactly once, kernel and modules together', () => {
     const specified = [...kernelTables, ...moduleTables]
     expect(new Set(specified).size).toBe(specified.length)

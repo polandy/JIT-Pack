@@ -29,8 +29,7 @@ merged, not deleted), `internal/store/schema.sql` (`items.merged_into_id`), `cli
 the photo where the survivor has none, and then writes `items.merged_into_id` on each losing row before FR-24.3's
 ordinary delete disposes of it. `trip_items.source_item_id` and `trip_generated_positions.source_item_id` are left
 exactly as they are. The rear view reads *through* the alias: `mergedIdsOf(itemId, items)` gives M10's FR-27.9
-section the survivor's id plus everything aliased at it, and `resolveMergedItem` answers the other direction for a
-reader that starts from a trip row.
+section the survivor's id plus everything aliased at it.
 
 **Pros**
 
@@ -47,10 +46,10 @@ reader that starts from a trip row.
 
 **Cons**
 
-- A schema change, with the migration ADR-067 owes and a reseed of every development database until that chain is
-  built. Paid knowingly: the column *is* the half of the feature that makes the merge true.
-- Two ways to read one relationship — forwards for the rear view, backwards for a trip row — and both are in one
-  module with the property that keeps them consistent (one hop) written into their docs.
+- A schema change, with the migration ADR-067 owes. Paid knowingly: the column *is* the half of the feature that
+  makes the merge true.
+- One relationship that can be read in two directions — forwards from the item for the rear view, backwards from a
+  trip row — and each direction has to honour the same one-hop rule.
 - A merged-away row is usually *retired* rather than removed, so it stays visible in M23. Mitigated by M23 naming
   the survivor on that row, because a bare restore would otherwise offer to re-create the duplicate.
 
@@ -112,9 +111,13 @@ Scores 1–5, higher is better.
 
 A merge moves **master data** and leaves the **trip partition** alone. The losing row carries
 `items.merged_into_id` pointing at the survivor, flattened to one hop at merge time, and is then disposed of by
-FR-24.3's ordinary delete — retired while anything still resolves against it, removed when nothing does. Readers
-follow the alias exactly one hop: `mergedIdsOf` for a rear view that starts at the item, `resolveMergedItem` for one
-that starts at a trip row.
+FR-24.3's ordinary delete — retired while anything still resolves against it, removed when nothing does.
+
+Readers follow the alias exactly one hop, through `aliasOf` in `client/src/domain/itemMerge.ts`: an alias whose target
+is itself aliased is no alias. The alias is read in **one direction**, from the item outwards — `mergedIdsOf`, for
+M10's FR-27.9 section, and M23's *„zusammengeführt mit"*. No screen, analytic or rule starts from a trip row and asks
+where its item went, so there is no backwards read; the first reader that does adds it beside `mergedIdsOf` and goes
+through `aliasOf` too.
 
 ## Consequences
 
@@ -128,12 +131,11 @@ that starts at a trip row.
 
 **Negative / accepted costs**
 
-- One more column on `items`, and the ADR-067 migration that goes with it. Every development database has to be
-  deleted and reseeded until that chain exists.
+- One more column on `items`, and the ADR-067 migration that goes with it.
 - FR-27.8's „Enthalten in" and FR-8/FR-14's analytics deliberately do **not** read the alias: the first reads
   template positions, which the merge itself re-points, and the second aggregates trip rows by name and category.
   Neither is wrong today — but a future analytic that keys on `source_item_id` has to decide this question again,
-  and the two helpers are where it should be answered.
+  and `aliasOf` is where it should be answered.
 - The rear view of a *merged-away* row, opened from M23, still shows only its own past. Deliberate: it is the row
   the user chose to leave behind, and making it read the survivor's history would invert the hop for no reader.
 
@@ -150,16 +152,3 @@ is the likely first. At that point the one-hop rule has to be honoured in a thir
 teaching that reader the hop and doing what Option B would have done once, in a migration, where the whole database
 is in hand and the `UNIQUE` collisions can be resolved deliberately rather than per device.
 
-## Amendment (2026-10-11): one read direction until a reader needs the other (ARCH-31c)
-
-The alias is read in one direction only: `mergedIdsOf`, from the item outwards, for M10's FR-27.9 section. The
-backwards read the decision named — `resolveMergedItem`, from a trip row's `source_item_id` to the survivor — is
-removed, because no screen, analytic or rule starts from a trip row and asks where its item went: FR-27.8's
-„Enthalten in" and FR-8/FR-14's analytics deliberately do not read the alias (see *Consequences*), and the client's
-surface guard (ARCH-31) does not keep an export that only its own spec reads.
-
-The one-hop rule is unchanged and still lives in `client/src/domain/itemMerge.ts`: `planItemMerge` flattens the
-alias at merge time, so a reader never walks a chain, and `aliasOf` is the reader's half — one hop, and an alias
-whose target is itself aliased is no alias. `mergedIdsOf` and M23's *„zusammengeführt mit"* both read through it.
-The first reader that starts from a trip row — the *Revisit Trigger*'s per-trip usage history is the likely one —
-adds the backwards read beside `mergedIdsOf` and honours the same rule there, through `aliasOf`.
