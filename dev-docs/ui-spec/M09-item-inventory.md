@@ -7,7 +7,7 @@
   **tag controls of FR-24.8** below it. The **group headings stick directly under that bar**, at a height the bar
   reports rather than a constant, because the bar grows a row when a tag outside the three is chosen. The page head's
   meta line carries the collection's size and, while anything narrows it, what is left of it. The app bar carries
-  **no glyph** before the ⋮ (G-12, ADR-050 amendment 1, UX-05). The **sort** (*Nach Tag gruppiert* / *Alle
+  **no glyph** before the ⋮ (G-12, ADR-050, UX-05). The **sort** (*Nach Tag gruppiert* / *Alle
   alphabetisch*) and the **shown properties** (FR-24.4) head the *Ansicht & Filter* sheet: the sort as a two-way
   segment, the properties as toggle chips under *In den Zeilen zeigen*, each in force at once. Neither is a chip in
   the tool bar, because a fourth chip wraps the sticky bar to three rows at 390 px; which order is active is legible

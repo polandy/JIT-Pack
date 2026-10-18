@@ -1,33 +1,23 @@
 <script setup lang="ts">
 /**
- * The trip's views a trip is worked in, as words under the page's name
- * (FR-21.21, ADR-051 and its amendment 1).
+ * The trip's views a trip is worked in, under the page's name (FR-21.21,
+ * ADR-051): a row that says where you are as well as where you can go, so
+ * the step from one view to a sibling does not go back through the packing
+ * list. The luggage and the analytics are read once a trip, so they are
+ * words in the bar's ⋮, which `AppHeader` fills from the same table; while
+ * you stand on one, its pill joins the row so the row still marks you.
  *
- * ADR-050 sent shopping, luggage and analytics into the bar's ⋮ so the bar
- * could stop growing glyphs, and wrote the cost down: §3.25's "one tap each"
- * spent, five destinations behind one glyph. ADR-051 was the other half of
- * that decision — the views came back as a row of words that says where you
- * are as well as where you can go, on all four screens, so the step from the
- * shopping list to the luggage does not go back through the packing list.
+ * Only the view you stand on keeps its word: every other view is its glyph,
+ * with its number as a badge, because the words and their counts do not fit
+ * a phone's row. A glyph without a word names itself three ways —
+ * `aria-label`, a `title` for a hovering pointer, and a bubble on a held
+ * press for a finger, which is the one a phone has.
  *
- * Amendment 1 keeps that shape and narrows what stands in it: the views a
- * trip is worked in, plus whichever view is being looked at. The luggage and
- * the analytics are read once a trip, and a row of four made that
- * indistinguishable from the ones worked in daily; they are entries in the
- * bar's ⋮ again, which `AppHeader` fills from the same table.
- *
- * Amendment 3 keeps the word only where you stand: every other view is its
- * glyph, with its number as a badge, because four words and their counts do
- * not fit a 390 px row. A glyph without a word names
- * itself three ways — `aria-label`, a `title` for a hovering pointer, and a
- * bubble on a held press for a finger, which is the one a phone has.
- *
- * The row is laid out for the Pixel 9 Pro's 410 px (ADR-051) and scrolls
- * sideways where its pills do not fit — on a narrower phone, and at 410 px
- * too once a seventh pill joins it. Amendment 5 makes that scroll visible:
- * the pill you stand on is scrolled to the row's centre, the row fades out
- * on each side that has more, and a swipe comes to rest on a whole pill —
- * a glyph cut at a hard edge read as a layout bug, not as "there is more".
+ * The row is laid out for the Pixel 9 Pro's 410 px and scrolls sideways
+ * where its pills do not fit. The scroll is visible: the pill you stand on
+ * is scrolled to the row's centre, the row fades out on each side that has
+ * more, and a swipe comes to rest on a whole pill — a glyph cut at a hard
+ * edge reads as a layout bug, not as "there is more".
  *
  * The frame renders it, once, from `meta.tripView` — the same shape as the
  * content column it sits in (G-9): a screen that had to remember to offer
@@ -138,7 +128,7 @@ watch(() => props.current, hideBubble)
 onBeforeUnmount(hideBubble)
 
 const row = ref<HTMLElement | null>(null)
-// Amendment 5's fades and centring are G-13's one rule for a sideways row.
+// The fades and the centring are G-13's one rule for a sideways row.
 // The pills change under a mounted row too — the day plan and the meals join
 // once the trip has loaded with both dates, a count lengthens the word.
 const { moreStart, moreEnd, readEdges } = useEdgeFades(row, {

@@ -52,7 +52,7 @@
   are equal — the bar's own visibility is the settled state, so nothing waits on a clock. It is the case the ledger's
   *„a WebKit case lost its click to the FR-19.7 banner"* asked for, written as a property of the layout rather than as a
   hunt for the intermittent: a banner that pushes the page moves the content 64.8 px down and loses the same height.
-  **Two more measurements** (ADR-060 amendment 1), both read off the same settled state: the banner starts at or below
+  **Two more measurements** (ADR-060), both read off the same settled state: the banner starts at or below
   the page head's last pixel, and its box lies inside the content column's. A layer drawn over the head and across the
   full width fails the first by 80 px and the second by 288 px on either side at the default 1280 viewport.
 

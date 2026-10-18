@@ -78,7 +78,7 @@ export function openingView(trip: OpeningTrip, facts: OpeningFacts): TripViewId 
 /**
  * The view to remember for a route's view: a pill's own, and the packing
  * list's for the two views read off it — opening a trip on its analytics
- * would land on a page read once a trip (ADR-051 amendment 1).
+ * would land on a page read once a trip (ADR-051).
  */
 export function rememberedView(view: TripViewId): TripViewId {
   if (PACKING_VIEWS.includes(view)) return 'packing'

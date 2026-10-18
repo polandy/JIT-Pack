@@ -480,8 +480,8 @@ async function saveBackup() {
             G-2 sheet, because the sheet's offer costs knowing what the dot
             means. It is the app's one banner that can arrive while somebody is
             using the screen, so it overlays rather than reflows, and it sits
-            after the head so it never covers the screen's own name (ADR-060
-            and its amendment 1, G-19).
+            after the head so it never covers the screen's own name (ADR-060,
+            G-19).
           -->
           <div class="app-banner-layer">
             <UpdateBanner
@@ -552,7 +552,7 @@ async function saveBackup() {
   height: calc(100% - var(--jp-app-bar-h)); /* below the header toolbar */
 }
 
-/* The FR-19.7 banner's layer — see ADR-060 and its amendment 1.
+/* The FR-19.7 banner's layer — see ADR-060.
 
    `height: 0` is the whole mechanism: the banner overflows a box that
    contributes no height, so its arrival reflows nothing. Being a child of

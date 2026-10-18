@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Related:** FR-7.7, FR-7.3, FR-7.4, FR-7.5, FR-7.6, FR-5.10, FR-25.17, FR-25.31, FR-30.3, ADR-068, ADR-070,
-ADR-051 amendment 1, ADR-066, ADR-022, ADR-067, UI-Spec M25/M4/M8, `internal/store/schema.sql` (`comments.phase`,
+ADR-051, ADR-066, ADR-022, ADR-067, UI-Spec M25/M4/M8, `internal/store/schema.sql` (`comments.phase`,
 `comments.resolved_at`, `comments.resolved_by_user_id`, `template_tasks.phase`),
 `client/src/domain/tripTasks.ts` (`taskPhaseOf`, `packingWindowTasks`), `client/src/domain/closePacking.ts`
 (`tasksCrossing`), `client/src/views/trips/TripTasksPage.vue`, E2E-M25-01…04, E2E-M4-141
@@ -137,8 +137,8 @@ is not a vote: driver 1 is not tradeable here, and B cannot satisfy it at any pr
 * **Four nullable columns on two tables**, no CHECK and no NOT NULL, so every one of them is expressible as
   `ALTER TABLE ADD COLUMN` when ADR-067's chain lands. Until then: a reseed of every development database and a
   hand-carried statement on the live instance.
-* **A third pill re-opens a measurement made the previous morning.** ADR-051 amendment 1 cut the trip's view switcher
-  to two pills because four filled a 390 px line to within six pixels. The tasks earn a pill by that amendment's own
+* **A third pill re-opens a measurement made the previous morning.** ADR-051 cut the trip's view switcher
+  to two pills because four filled a 390 px line to within six pixels. The tasks earn a pill by that ADR's own
   rule — the row keeps the views a trip is *worked* in — but the row is measured again at 360 px rather than assumed.
 * **FR-5.10 is amended at its own line.** Its reason for leaving the tasks alone (*„todos are not packing"*) still
   holds for the rows that step writes, but finishing the packing is the moment „before the trip" ends, so the open

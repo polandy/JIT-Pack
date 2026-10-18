@@ -4,7 +4,7 @@
  *
  * As a thread a note is a place people write in, which is the form ADR-051's
  * revisit trigger names, and a note *is not work*: so it has a view of its
- * own, the fourth pill (ADR-051 amendment 3 made the room).
+ * own, the fourth pill (ADR-051 made the room).
  *
  * The list is the threads, the one with the latest activity first, each a
  * card that shows its words — the notes are looked things up in — and opens

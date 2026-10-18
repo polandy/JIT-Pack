@@ -322,7 +322,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await page.goto(PATH.items)
     await expect(page.getByTestId('search')).toHaveCount(0)
 
-    // UX-05 (ADR-050 amendment 1): a tab root carries search and the ⋮ before
+    // UX-05 (ADR-050): a tab root carries search and the ⋮ before
     // the sync glyph, nothing else — at the reference width and the narrow one.
     // A tagged item, so M9 has a tag to manage and a sheet with tags in it.
     await createItem(page, 'Zelt', { tags: ['Camping'] })
@@ -881,11 +881,11 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     }
 
     // The shopping list wears its glyph on the trip's switcher — at every
-    // width under ADR-051 amendment 3, where the glyph is all a view you are
+    // width under ADR-051, where the glyph is all a view you are
     // not standing on shows. Read off the element Ionic renders.
     const glyphs = [await glyph('trip-view-shopping')]
 
-    // The other two are words in the bar's ⋮ (ADR-051 amendment 1), and
+    // The other two are words in the bar's ⋮ (ADR-051), and
     // carry the same glyph there — which is the point: a reader who learned
     // the icon in one shape must not meet a different one in the other.
     await page.getByTestId('header-overflow').click()
@@ -910,7 +910,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
    * the bar's own cluster — back and the settings gear need a `title` as
    * well as an `aria-label`, or a pointer hovering them is told nothing.
    *
-   * Under ADR-051 amendment 3 the trip's switcher has unlabelled glyphs of
+   * Under ADR-051 the trip's switcher has unlabelled glyphs of
    * its own — every view but the current one — so its pills are read here
    * too. Their bubble on a held press is E2E-G12-08's.
    */
@@ -945,14 +945,14 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   })
 
   /*
-   * E2E-G12-07 (G-12, ADR-050, ADR-051 and its amendments): the trip's
+   * E2E-G12-07 (G-12, ADR-050, ADR-051): the trip's
    * destinations are named — the ones it is worked in on the screen, the
    * other two as words in the bar's ⋮ — and every one of them is reachable
    * from every one.
    *
-   * The bar holds two pills (ADR-051 amendment 1): four would make the two
+   * The bar holds two pills (ADR-051): four would make the two
    * views read once a trip as loud as the two worked in daily. Only the
-   * current pill carries its word (amendment 3), because the row with its
+   * current pill carries its word, because the row with its
    * counts does not fit a 390 px phone. What this pins: every view
    * **named**, the one you stand on in a word, where you are marked, and
    * every view reachable from every one — the luggage and the analytics
@@ -983,7 +983,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
 
     // The row is measured rather than assumed, at the width it is laid out
     // for — the Pixel 9 Pro's 410 px (ADR-051). Six pills fill it to the edge
-    // and more do not fit, so the row scrolls sideways (ADR-051 amendment 4). What holds in every shape: one
+    // and more do not fit, so the row scrolls sideways (ADR-051). What holds in every shape: one
     // line, since a row that wrapped would have „fitted" by every width
     // assertion on its own, and the pill you stand on wholly in view — inside
     // the row's own clip, not merely the viewport's.
@@ -1013,7 +1013,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(page.getByTestId('trip-view-luggage')).toBeInViewport({ ratio: 1 })
     await oneLine([...pillIds, 'trip-view-luggage'])
 
-    // That the row scrolls must be visible (ADR-051 amendment 5): the pill you
+    // That the row scrolls must be visible (ADR-051): the pill you
     // stand on rests at the row's centre, as near as the row's ends allow, and
     // the row fades out on exactly the sides that hold more — a glyph cut at a
     // hard edge read as a layout bug. Measured at both phone widths, at the
@@ -1038,7 +1038,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await openTripView(page, 'packing')
     await expect(onVisibleScreen(page, 'm4-header')).toBeVisible()
     // The two the row leaves out are not gone: they are words in the ⋮, which
-    // is the half of the amendment that keeps them reachable at all.
+    // is the half of ADR-051 that keeps them reachable at all.
     await expect(page.getByTestId('trip-view-luggage')).toHaveCount(0)
     await page.getByTestId('header-overflow').click()
     await expect(page.locator('ion-action-sheet').getByTestId('trip-view-luggage')).toHaveText(
@@ -1062,7 +1062,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(onVisibleScreen(page, 'm6-page')).toBeVisible()
     await expect(page.getByTestId('trip-view-shopping')).toHaveAttribute('aria-current', 'page')
 
-    // … but not sideways into packing's own views (ADR-051 amendment 2): a ⋮
+    // … but not sideways into packing's own views (ADR-051): a ⋮
     // acts on the context it sits in, so the shopping list has none, and the
     // luggage is reached through the packing pill.
     await expect(page.getByTestId('header-overflow')).toHaveCount(0)
@@ -1070,7 +1070,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await openTripView(page, 'luggage')
     await expect(onVisibleScreen(page, 'm11-empty')).toBeVisible()
     // Standing in a view the row does not otherwise show, it says so: the
-    // pill appears for as long as you are there (ADR-051 amendment 1).
+    // pill appears for as long as you are there (ADR-051).
     await expect(page.getByTestId('trip-view-luggage')).toHaveAttribute('aria-current', 'page')
     await openTripView(page, 'analytics')
     await expect(onVisibleScreen(page, 'analytics-dim-category')).toBeVisible()
@@ -1123,7 +1123,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   })
 
   /*
-   * E2E-G12-08 (G-12, ADR-051 amendment 3): a glyph on the trip's switcher
+   * E2E-G12-08 (G-12, ADR-051): a glyph on the trip's switcher
    * says its name when it is held, and the hold is not a tap.
    *
    * A phone has no hover, so the `title` E2E-G12-06 reads is a desktop's

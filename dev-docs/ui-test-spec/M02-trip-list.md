@@ -46,7 +46,7 @@
   change. In `group-refresh.spec.ts` because that is where a trip following a group is built through the app.
 * **E2E-M2-09** `local` (FR-18.4) — **covered by E2E-G9-12** (`e2e/global-nav.spec.ts`), which reaches M18 from the trip
   list and comes back to it. The entry is the word *Datei importieren* behind the app bar's ⋮, beside M15's *Tabelle
-  importieren* (G-12, ADR-050 amendment 1); E2E-G12-02 asserts both words and that neither is a glyph.
+  importieren* (G-12, ADR-050); E2E-G12-02 asserts both words and that neither is a glyph.
 * **E2E-M2-17** `all` (FR-21.15): M2's *Active* segment draws the running trip that departs **soonest**
   as a hero card, does not also list it as a row, leaves the later departure a row, opens the rows' menu on a
   right-click (its *Archive* entry shown, then cancelled), and still exports from the card's menu.

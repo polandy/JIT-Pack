@@ -45,7 +45,7 @@
     active facet count), fold-all — the three glyphs the bar's budget allows, and the three tapped while packing. The
     trip's *other views* are the **G-9 switcher under the page head** (FR-21.21, ADR-051): *Einkaufen* stands in the
     switcher and carries its open count — things to buy, the same arithmetic M6's segments use — while *Gepäck* and
-    *Auswertung* head the ⋮ (ADR-051 amendment 1), ahead of packing's own entries (G-12).
+    *Auswertung* head the ⋮ (ADR-051), ahead of packing's own entries (G-12).
   * **One door to the quick-add** (FR-21.24): the ＋ FAB, and nothing else. A collapsed composer pill above the list
     would say the same thing as the FAB hovering over it — the FAB is what stays, because it is reachable from anywhere
     in a list and the pill only from the top of one. M8's editor makes the same choice, and M6 and M25 make it for

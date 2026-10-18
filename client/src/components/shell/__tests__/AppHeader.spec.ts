@@ -229,7 +229,7 @@ describe('AppHeader — the G-12 overflow', () => {
   })
 
   /*
-   * ADR-050 amendment 1: a tab root carries search and the ⋮, nothing else
+   * ADR-050: a tab root carries search and the ⋮, nothing else
    * (UX-05). The second glyph is not dropped — it becomes a word, as the
    * fourth does on a drill-down.
    */
@@ -262,7 +262,7 @@ describe('AppHeader — the G-12 overflow', () => {
 })
 
 /**
- * ADR-051 amendment 1: the switcher under the page's name keeps the two
+ * ADR-051: the switcher under the page's name keeps the two
  * views a trip is worked in, and the bar's ⋮ carries the rest — on every one
  * of the trip's four screens, filled by the frame from the route table.
  *

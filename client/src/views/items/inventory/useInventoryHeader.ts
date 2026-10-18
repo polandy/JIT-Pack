@@ -1,6 +1,6 @@
 /**
- * What M9 puts into the frame's app bar: the ⋮ words (G-12, ADR-050
- * amendment 1), the selection's bar while it lasts (G-20) and the collection's
+ * What M9 puts into the frame's app bar: the ⋮ words (G-12, ADR-050),
+ * the selection's bar while it lasts (G-20) and the collection's
  * size under the title (FR-24.6).
  */
 import { pricetagsOutline, sparklesOutline, timeOutline } from 'ionicons/icons'
@@ -24,7 +24,7 @@ export function useInventoryHeader(core: InventoryCore) {
 
   /*
    * Only ⋮ words: a tab root carries nothing before the ⋮ but search, and M9's
-   * search is on the screen (G-12, ADR-050 amendment 1). The sort and the
+   * search is on the screen (G-12, ADR-050). The sort and the
    * shown properties are in the „Ansicht & Filter" sheet's head; the selection
    * starts on a row's hold (FR-24.9).
    */

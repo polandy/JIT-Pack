@@ -2,8 +2,9 @@
 
 **Status:** Accepted
 **Related:** ADR-011 (one header bar, the back-target contract), ADR-012 (the four anchors), ADR-049 (one Ionic mode),
-UI-Spec G-9, G-12, G-13, M4, PRD §3.25, FR-21.2, FR-25.20, invariant 9, the design concept *Bergluft* (step 4 of five),
-E2E-M4-44, E2E-G12-04, E2E-G12-05, E2E-G12-06, E2E-G12-07, E2E-G9-11
+ADR-051 (the trip's views in the page), ADR-064 (the detail pane), UI-Spec G-9, G-12, G-13, M1, M2, M4, M7, M9,
+PRD §3.25, FR-21.2, FR-21.26, FR-24.9, FR-25.20, invariant 9, UX-05, UX-14, the design concept *Bergluft* (step 4 of
+five), E2E-M4-44, E2E-M4-71, E2E-G12-02, E2E-G12-04, E2E-G12-05, E2E-G12-06, E2E-G12-07, E2E-G9-11
 
 **Context.** Step 4 of the concept is "Kopf der Seite und Leiste": the page's name moves out of the app bar and into the
 page, and the bar stops being a place where glyphs accumulate. The review counted seven of them on M4 — search, filter,
@@ -25,7 +26,8 @@ exception, and who pays for it.
 2. **Told once, for every screen.** The 960 px content column is one rule in `App.vue` precisely because a screen that
    has to remember is a screen that will forget (UX-17). A page head is the same kind of rule.
 3. **The bar has to have a size.** Every one of M4's seven glyphs arrived one at a time, and each was defensible on its
-   own, because nothing said what full looked like.
+   own, because nothing said what full looked like. The tab roots are the family's first row on every visit, which is
+   where an unreadable glyph costs most.
 4. **Discoverability (§3.25).** The trip's other views were put on M4 as glyphs on purpose: they must not become
    invisible.
 5. **The suite must not be rewritten to prove a look.** 76 assertions read the page's title.
@@ -39,8 +41,7 @@ exception, and who pays for it.
 `PageHead` renders once in `App.vue`, above the outlet and inside the content column, from the head every screen
 already registers (`useHeaderTitle`, extended from one string to a title and a meta line). The bar renders no page
 title at all; on a tab root it keeps the logo, on every other screen the chevron alone. Its action cluster is capped at
-three glyphs, and anything past the third joins the ⋮ in registration order — which is where M4's three trip views go,
-as words.
+three glyphs — one on a tab root — and anything past the cap joins the ⋮ in registration order.
 
 **Pros**
 - Every screen is named, at the display size, without a single view deciding anything — including the twenty
@@ -53,7 +54,8 @@ as words.
 **Cons**
 - The head is a fixed band above the scroller, not part of it, so it costs roughly 60 px of height on every screen and
   does not scroll away. M4's own header line already collapses on scroll; the head does not.
-- The trip's three views are one tap further away, against §3.25's directive — the cost this ADR actually buys.
+- Whatever the cap sends to the ⋮ is one tap further away. For M4's three trip views that was against §3.25's
+  directive; ADR-051 gave them a place in the page instead.
 - `App.vue`'s content area becomes a column with a positioned outlet inside it rather than a positioned box; ADR-011's
   seventeen-unreachable-back-buttons trap lives exactly there.
 
@@ -81,6 +83,24 @@ Leave `ion-title` where it is and give it the display face at a larger size.
 - The size a bar can give a title is the thing that failed: it is what turned "Samedan Sommer" into "S…" and what made
   four screens compose two facts into one line. The concept's first finding about the bar stands unaddressed.
 
+### Where the budget and the cluster stand, within Option A
+
+Both were put to the owner on renders, the first at 412 and 360 px, the second on the live build.
+
+- **A tab root's budget.** The cap of three was written for the drill-downs, where M4 had stood at seven, and the
+  roots filled up under it: M2 carried search, a document (the portable import) and a cloud-upload (the spreadsheet
+  import); M9 an eye (the properties sheet), ↕ (the sort), ✓✓ (the selection) and the ⋮. The imports are done a few
+  times a year, and the eye and the double tick have no literal reading — against G-12's own rule that a glyph must
+  be literal (UX-05). *Leaving the roots at three and moving the glyphs page by page* was rejected: it is how the roots
+  filled up, because nothing said a root was different, and the next root action would land as a glyph again.
+- **Where the cluster stands on desktop.** The bar spans the window, but since FR-21.26 the content is one
+  `--jp-measure` column centred in what the rail and a detail pane leave (ADR-064). Beside the gear, the cluster's
+  right edge stood 20 px past the column's at 900 px, 210 at 1280 and 530 at 1920 — 310, 410 and 730 with M5 open,
+  over the pane rather than the list its glyphs act on (UX-14). *The cluster in the page head, on the title's line*
+  was rejected: M4's head yields on scroll (FR-21.17), so search and filter would leave with it mid-task — the reason
+  G-12 put the cluster in the bar — or need a sticky rule of their own, and the cluster would have one place on a
+  phone and another on desktop.
+
 ---
 
 ## Decision Matrix
@@ -101,8 +121,24 @@ Leave `ion-title` where it is and give it the display face at a larger size.
 The page's name lives in the page. `PageHead` renders once in the frame, above the outlet and inside the content
 column, for every screen that registers a head; the head is a title in the display role plus an optional meta line for
 what the screen belongs to. The app bar renders no page title. Its per-page glyph cluster is capped at three, and the
-surplus becomes words in the ⋮ — which is how M4's shopping, luggage and analytics entries get there, the shopping
-count riding in the word because an action sheet renders no badge.
+surplus becomes words in the ⋮; a count rides in the word, because an action sheet renders no badge. The trip's views,
+the case that set the cap, are a switcher in the page head instead (ADR-051).
+
+**A tab root carries one glyph.** M1, M2, M7 and M9 show at most the magnifier and the ⋮ before the sync glyph. The
+imports are words in the ⋮ (*Datei importieren* — M18's own title — and *Tabelle importieren*); M9's sort and shown
+properties head the sheet behind its tag chips, *Ansicht & Filter* (*Ansicht* while there is no tag, so the view never
+depends on a tag existing), as a segment and toggle chips; M9's selection starts on a row's hold, which FR-24.9
+offers. The budget is held by `AppHeader` (`MAX_BAR_ACTIONS`, `MAX_ROOT_BAR_ACTIONS`, read off the left slot: no back
+target means a root), not by the pages, so an action registered tomorrow becomes a word without anyone remembering
+the rule.
+
+**The bar's two ends are the frame's, its cluster is the page's.** Back or the logo keep the left corner and the sync
+glyph and the gear the right one: they mean the same on every screen. From the 900 px breakpoint up, the page's
+glyphs and its ⋮ end at the content column's right edge, in the bar, and follow the column when a detail pane
+re-centres it; below it the column is the window and nothing moves. The bar is not the body's sibling, so it cannot
+be laid out by the body: `AppHeader` restates the body's geometry from the same tokens — `--jp-nav-rail-w`,
+`--jp-measure`, and the pane's width, which `App.vue` publishes as `--jp-frame-pane-w` keyed on the same `:empty`
+that hides the pane host.
 
 ## Consequences
 
@@ -114,66 +150,19 @@ count riding in the word because an action sheet renders no badge.
 
 **Negative / accepted costs**
 - ~60 px of fixed head on every screen; a long list gets that much less of the viewport. The revisit trigger below is
-  written for exactly this.
-- §3.25's "one tap each" for the trip's three views is spent. What is kept is that they are *named*: E2E-G12-07 now
-  pins that they are words in the one menu the screen has, one level deep, rather than a tap away.
-- The shopping badge is gone. Its information is not: the count is in the word.
+  written for exactly this, and M4 — the longest list — already lets its head yield on downward scroll (FR-21.17).
+- Every action a tab root registers past the magnifier is one tap further away, and M9's selection has a single,
+  gestural entrance. E2E-G12-02 reads the bar of every root at both widths and finds each moved action as its ⋮ word.
+- On a desktop screen whose cluster is only a ⋮ (M9), that ⋮ stands alone mid-bar.
+- A change to the body's columns not made through the shared tokens moves the column without the cluster; E2E-M4-71
+  measures the two together at 1280 and 1920 px, with and without the pane.
 
 **Neutral**
 - The three tab roots stop writing their own `h1` and register a title like everything else; their import controls
-  become bar actions, which is where a screen-level action already lived (G-12).
-- The e2e suite reaches the three trip views through one helper, `openTripView`, rather than through seven copies of a
-  glyph click.
+  become ⋮ words.
 
 ## Revisit Trigger
 
 The first screen on which the fixed head measurably costs more than it gives — a list where the head plus M4's own
 line leaves less than half the viewport for rows on a 390 px phone. The answer then is to let the head collapse on
 downward scroll the way M4's header line already does, which is a change to one component rather than to any screen.
-
-## Amendment 1 (2026-10-07) — a tab root's budget is one
-
-The budget of three was written for the drill-downs, where M4 had stood at seven. The tab roots fell under it too, and
-the UX review (item UX-05) read what had gathered there on renders at 412 and 360 px: M2 carried search, a document (the
-portable import) and a cloud-upload (the spreadsheet import); M7 search and the document; M9 an eye (the properties
-sheet), ↕ (the sort), ✓✓ (the selection) and the ⋮. The imports are done a few times a year, and the eye and the
-double tick have no literal reading — against G-12's own rule that a glyph must be literal and that an action a glyph
-does not carry belongs behind the ⋮ as a word. The roots are the family's first row on every visit, which is where an
-unreadable glyph costs most. Two ways were put to the owner on renders, both with the same bar:
-
-- **The bar on a tab root holds one glyph** — chosen. M1, M2, M7 and M9 show at most the magnifier and the ⋮ before
-  the sync glyph. The imports are words in the ⋮ (*Datei importieren* — M18's own title — and *Tabelle importieren*);
-  M9's sort and shown properties head the sheet behind its tag chips, renamed *Ansicht & Filter*, as a segment and
-  toggle chips (variant B, which retired the properties sheet; variant A kept that sheet behind a row); M9's selection
-  starts on a row's hold, which FR-24.9 already offered. With no tag the chip reads *Ansicht*, so the view never depends
-  on a tag existing. Cost: every one of those actions is one tap further away, and the selection now has a single,
-  gestural entrance.
-- *Leave the roots at three and move the glyphs page by page* — rejected: it is how the roots filled up, because
-  nothing said a root was different, and the next root action would land as a glyph again.
-
-The budget is held by `AppHeader` (`MAX_ROOT_BAR_ACTIONS`, read off the left slot: no back target means a root), not
-by the pages, so a root action registered tomorrow becomes a word without anyone remembering the rule. The *Neutral*
-consequence above — the roots' import controls becoming bar actions — is superseded: they are ⋮ entries. E2E-G12-02
-reads the bar of every root at both widths and finds each moved action as its ⋮ word.
-
-## Amendment 2 (2026-10-07) — on desktop the cluster stands over the column
-
-The bar spans the window; since FR-21.26 the content is one `--jp-measure` column centred in what the rail and a
-detail pane leave (ADR-064). The cluster stayed beside the gear, so the UX review (item UX-14) measured it on the seed:
-its right edge stood 20 px past the column's at 900 px, 210 at 1280 and 530 at 1920 — with M5 open 310, 410 and 730,
-and up to 1280 px it stood over the pane rather than the list its glyphs act on. Two ways were put to the owner on the
-live build:
-
-- **The cluster ends at the column's right edge, in the bar** — chosen. Back or the logo keep the left corner and the
-  sync glyph and the gear the right one: they are the frame's and mean the same on every screen. The page's glyphs and
-  its ⋮ are the page's, and stand where the page is. With a pane open they follow the re-centred column. Below the
-  900 px breakpoint nothing changes. Cost: on a screen whose cluster is only a ⋮ (M9) that ⋮ stands alone mid-bar.
-- *The cluster in the page head, on the title's line* — rejected. M4's head yields on scroll (FR-21.17), so search and
-  filter would leave with it mid-task — the reason G-12 put the cluster in the bar — or need a sticky rule of their
-  own; and the cluster would have one place on a phone and another on desktop.
-
-The bar is not the body's sibling, so it cannot be laid out by the body; `AppHeader` restates the body's geometry from
-the same tokens (`--jp-nav-rail-w`, `--jp-measure`, and the pane's width, which `App.vue` publishes as
-`--jp-frame-pane-w` keyed on the same `:empty` that hides the pane host). A change to the body's columns that is not
-made through those tokens moves the column without the cluster; E2E-M4-71 measures the two together at 1280 and
-1920 px, with and without the pane.

@@ -6,7 +6,7 @@
   `UI_Concept_TripNoteThreads_variants.html` at `6b148419`.
 * **Where it lives:** the fourth pill of the G-9 switcher, after *Aufgaben*, glyph `chatbubblesOutline`
   (`/trips/:id/notes`, `meta.tripView: 'notes'`). Its badge is the number of entries new for me, in the action colour.
-  No ⋮ (ADR-051 amendment 2): nothing here is packing's. Back is M4.
+  No ⋮ (ADR-051): nothing here is packing's. Back is M4.
 * **The list:** the threads, the one with the latest activity first — a reply lifts its thread (question 1). Each is one
   card (`.jp-card`), itself a button into the thread: the first note's author's avatar; **its name** — the title in the
   heading weight, or else the first line in the body weight — with a ***Neu*** badge (*Neu 3* for three) where entries

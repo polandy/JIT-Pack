@@ -77,7 +77,7 @@ const selection = computed(() => selectionFor(route.path))
 const MAX_BAR_ACTIONS = 3
 
 /**
- * A tab root's budget: search and nothing else (ADR-050 amendment 1). The
+ * A tab root's budget: search and nothing else (ADR-050). The
  * roots are the family's first row on every visit, and what else they carried
  * — imports done once a year, an eye and a ✓✓ with no literal reading — read
  * as noise there. Held here rather than left to the pages, so the next root
@@ -97,7 +97,7 @@ const pageActions = computed(() => glyphActions.value.slice(0, barBudget.value))
 const counts = inject(TRIP_VIEW_COUNTS, {})
 
 /**
- * The trip's other views, for the screens that are one (ADR-051 amendment 1).
+ * The trip's other views, for the screens that are one (ADR-051).
  *
  * The switcher under the page's name shows the two views a trip is worked in;
  * the ones it leaves out are offered here, as words, on all four trip screens
@@ -406,7 +406,7 @@ function goBack() {
   }
 
   /*
-   * G-12 (UX-14, ADR-050 amendment 2): the page's cluster ends where the
+   * G-12 (UX-14, ADR-050): the page's cluster ends where the
    * content column ends. The bar spans the window and the column does not, so
    * the offset is the body's own layout restated from the same tokens — the
    * rail on the left, the open pane on the right (ADR-064), and the measure

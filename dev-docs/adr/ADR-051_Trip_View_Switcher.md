@@ -2,9 +2,11 @@
 
 **Status:** Accepted
 **Related:** ADR-050 (the page names itself, the bar's three-glyph budget), ADR-011 (one header bar, the back-target
-contract), ADR-046 (one live page per route), UI-Spec G-9, G-12, M4, M6, M11, M12, PRD §3.25, FR-21.17, FR-21.18,
-FR-21.21, FR-25.6, E2E-G12-05, E2E-G12-06, E2E-G12-07, E2E-G12-08, E2E-M4-11, E2E-M6-04,
-`dev-docs/trip-note-threads-concept.md` §7a, `UI_Concept_TripNoteThreads_variants.html` at `6b148419`
+contract), ADR-046 (one live page per route), ADR-077 (excursions), ADR-078 (the planner), ADR-092 (the meal plan),
+UI-Spec G-9, G-12, G-13, M2, M4, M6, M11, M12, M25, M26, PRD §3.25, §3.29, FR-7.13, FR-9.3, FR-21.17, FR-21.18,
+FR-21.21, FR-25.6, FR-31, UX-04, E2E-G12-05, E2E-G12-06, E2E-G12-07, E2E-G12-08, E2E-M4-11, E2E-M6-04,
+`dev-docs/trip-note-threads-concept.md` §7a, `UI_Concept_TripNoteThreads_variants.html` and
+`UI_Concept_PlannerNav_variants.html` at `6b148419`
 
 **Context.** ADR-050 capped the bar at three glyphs and sent M4's shopping, luggage and analytics entries into the ⋮,
 recording the cost in its own consequences: *"§3.25's 'one tap each' for the trip's three views is spent."* The M4
@@ -17,15 +19,26 @@ Two further facts changed since that decision. FR-21.17 made the page head colla
 under the name no longer costs a long list its height permanently. And there was never a way **sideways**: from the
 shopping list to the luggage meant going back to M4 first, because the ⋮ only ever carried M4's own list.
 
+The trip's views did not stay at four. A trip now has ten: the ideas it is planned from (§3.29), the packing list, the
+shopping list, the tasks (FR-7.7), the notes (FR-7.13), the excursions (FR-31), the day plan and the meal plan
+(FR-29.15, §3.33) — each a place the family works in, returned to across a trip — and the luggage and the analytics,
+each read about once a trip. Any answer has to hold for that many.
+
 **Decision Drivers (in priority order):**
-1. **Discoverability (§3.25).** The trip's other views must be visible without opening anything. This is the driver
-   ADR-050 scored a 2 on and paid with.
+1. **Discoverability (§3.25).** Every view a trip is *worked in* must be visible without opening anything, and every
+   view must be nameable on demand. This is the driver ADR-050 scored a 2 on and paid with. It does not ask that a
+   view read once a trip be as loud as the list being packed: a row that is equally loud everywhere says nothing
+   about where the work is.
 2. **The bar keeps its size.** Whatever the answer is, it must not put glyphs back on the bar — the budget is what
    stopped seven from becoming eight.
-3. **Told once.** Four screens carry this. A rule each of them has to remember is a rule one of them will forget
-   (UX-17, FR-21.18 — superseded by FR-21.26, which this decision is what triggered).
-4. **Sideways, not just down.** Four views of one trip are peers; the reader moves between them.
-5. **Height is not free.** A phone has 844 px, and M4's own head and header line already take 190 of them.
+3. **Told once.** Every trip screen carries this. A rule each of them has to remember is a rule one of them will
+   forget (UX-17, FR-21.18 — superseded by FR-21.26, which this decision is what triggered).
+4. **Sideways, not just down.** A trip's views are peers; the reader moves between them. A menu, though, acts on the
+   screen it opens on (the owner's call, from using the app): an entry with nothing to do with the screen reads as a
+   junk drawer, and costs a thought about whether it applies here.
+5. **Height and width are not free.** A phone has 844 px, and M4's own head and header line already take 190 of them.
+   The row is laid out for the Pixel 9 Pro's 410 CSS px, the phone the family packs with, and its tap targets stay at
+   G-13's size.
 
 ---
 
@@ -33,21 +46,20 @@ shopping list to the luggage meant going back to M4 first, because the ⋮ only 
 
 ### Option A — A switcher in the page head, rendered by the frame *(recommended, accepted)*
 
-`TripViewNav` renders inside `PageHead`'s body, from `meta.tripView` in the route table: four pills, the current one
-marked and inert, the other three one tap. Because it is inside the head's body, it yields with the name on a screen
-that collapses its head.
+`TripViewNav` renders inside `PageHead`'s body, from `meta.tripView` in the route table: a pill per worked-in view,
+the current one marked and inert, every other one tap. Because it is inside the head's body, it yields with the name
+on a screen that collapses its head.
 
 **Pros**
-- Every view is named on every one of the four screens, with no screen deciding anything.
+- Every worked-in view is shown on every trip screen, with no screen deciding anything.
 - The step from a sibling to a sibling is one tap — the thing the ⋮ never offered at all.
-- The bar gains nothing; the ⋮ shrinks to what *changes* the trip.
+- The bar gains nothing; the ⋮ shrinks to what belongs to the screen it is on.
 - Where you are is part of the same control, so the row says both things at once.
 
 **Cons**
-- ~35 px of head on four screens, and on M4 it is inside the band that collapses — so it is gone while scrolling,
-  and comes back on any upward scroll.
-- Four pills fill a 390 px row to within six pixels; the glyphs only fit from 480 px up, so the row has two
-  appearances.
+- ~35 px of head on every trip screen, and on M4 it is inside the band that collapses — so it is gone while
+  scrolling, and comes back on any upward scroll.
+- Ten views do not fit a phone's row in any shape that keeps a tap target; see *The row's shape* below.
 - `App.vue` imports a trips component. The frame knew only frame-level components before this.
 
 ### Option B — Promote shopping to the bar's third glyph, leave the rest in the ⋮
@@ -56,7 +68,7 @@ that collapses its head.
 - No new surface, no height at all; the one entry with a count becomes visible.
 
 **Cons**
-- Fails driver 1 for two of the three views and driver 4 entirely.
+- Fails driver 1 for every view but one and driver 4 entirely.
 - It re-opens the argument the budget settled: which single view deserves the slot, answered per screen and per
   reviewer, which is exactly how seven glyphs happened.
 
@@ -68,7 +80,41 @@ that collapses its head.
 **Cons**
 - Two conflicting tab bars, or an app-level anchor set that changes meaning inside a trip (G-3, ADR-012's four
   anchors). That is a navigation-model change, not a screen change.
-- Costs 56 px at the bottom of every trip screen and never collapses.
+- Costs 56 px at the bottom of every trip screen and never collapses, and holds five entries, not eight.
+
+### The row's shape, within Option A
+
+Each was mocked or rendered against the running palette and chosen by the owner off the render.
+
+- **Which views earn a pill.** Every view as a pill fills a 390 px row with destinations all equally loud, two of
+  which are read once a trip. Rejected besides the chosen *worked-in views as pills, the luggage and the analytics
+  as ⋮ words*: a *Mehr* pill opening a popover, the luggage hung off the weight M4's header line already shows, and
+  two cards at the foot of the list.
+- **Words or glyphs.** A row of word pills was measured in headless Chromium with the component's own metrics
+  (German, *Einkaufen (12)*, *Aufgaben (7)*, two new notes; negative is overflow):
+
+  | Row | 360 px | 390 px | 430 px |
+  |---|---|---|---|
+  | Three word pills, on M4 | +47 | +77 | +117 |
+  | Three word pills, standing on *Auswertung* | −50 | −20 | +20 |
+  | Four word pills, on M4 | −42 | −12 | +28 |
+  | One word and three glyphs, on M4 | +70 | +100 | +140 |
+  | One word and four glyphs, standing on *Auswertung* | −1 | +29 | +69 |
+
+  Four words do not fit a 390 px phone once the fourth has something to say; one word and glyphs do, until the row
+  grows past six. A row of glyphs that marked nothing in words was refused: it stops saying where you are.
+- **How a glyph tells its name.** A phone has no hover. A tap that shows a bubble and a second tap that goes was
+  drawn and not taken: it charges every switch a tap to spare a reader one look at the page title the switch lands
+  on. A held press shows the bubble instead.
+- **When the row does not fit.** Six pills fill the Pixel 9 Pro's row to the edge, and the luggage or the analytics
+  joining while you stand there overflows it; the sample trip's row needs 458–547 px against 380 at 412 px and 328 at
+  360. *Slimmer glyph pills* were rejected: 40 px pills are still 41 px too wide for M4 at 412 px, and fitting eight
+  takes 32–36 px, below G-13's tap target. *No pill for a ⋮ view* — the packing pill stays marked and the title names
+  *Gepäck* — was rejected because the row would stop marking where you are. Scrolling at a hard edge alone was
+  rejected on the render (UX-04): a glyph cut there reads as a layout bug, and the views beyond it sit behind a
+  gesture nothing invites.
+- **Where the ⋮ views are offered.** On every trip screen — so that shopping → luggage is one tap plus the menu — was
+  rejected by driver 4's second half: a ⋮ holds its own screen's context.
 
 ---
 
@@ -76,194 +122,91 @@ that collapses its head.
 
 | Driver | Weight | Option A | Option B | Option C |
 |---|---|---|---|---|
-| Discoverability §3.25 | 5 | 5 — all four, always visible | 2 — one of three | 5 — same |
+| Discoverability §3.25 | 5 | 5 — every worked-in view, always visible | 2 — one view | 5 — same, up to five |
 | The bar keeps its size | 4 | 5 — untouched | 3 — a glyph returns | 5 — untouched |
 | Told once | 4 | 5 — the route table says it | 5 — one page | 2 — a second anchor model |
-| Sideways | 3 | 5 — from any of the four | 1 — M4 only | 5 — same |
-| Height is not free | 3 | 3 — ~35 px, collapses on M4 | 5 — nothing | 1 — 56 px, permanent |
-| **Total** | | **86** | 58 | 71 |
+| Sideways | 3 | 4 — any pill from any screen; the ⋮ views via packing | 1 — M4 only | 5 — same |
+| Height and width are not free | 3 | 3 — ~35 px, collapses on M4; scrolls | 5 — nothing | 1 — 56 px, permanent |
+| **Total** | | **83** | 58 | 71 |
 
 ---
 
 ## Decision
 
-The trip's four views are a pill row inside the page head, rendered once by the frame from `meta.tripView`. The
-current view is marked with `aria-current="page"` and does nothing when tapped; a sibling is `router.push`, and the
-packing list — the declared parent of the other three — is `navigate(..., 'back', 'replace')`, the same call the
-bar's chevron makes, so returning to it does not mount a second copy (ADR-046). The ⋮ keeps the trip's properties and
-the one lifecycle step that is next.
+The trip's views are a pill row inside the page head, rendered once by the frame from `meta.tripView`.
 
-The shopping pill's count is `buyRowCount` from `domain/shoppingView.ts` — **things to buy**, the aggregation
-FR-25.6 defines and M6's own segments already used.
+**The pills are the views a trip is worked in**, in `TRIP_VIEW_PILLS`' order: the ideas first, because a trip is
+planned before it is packed, then the packing list, the shopping list, the tasks, the notes, the excursions, the day
+plan and the meal plan. The day plan and the meal plan stand only while the trip has both dates (`absentViews`). The
+luggage and the analytics are words in the bar's ⋮ — and while you stand on one of them its pill joins the row, so
+the row always marks where you are.
 
-**Amendment 1 (2026-09-20) — two of the four earn a pill; the other two are words in the ⋮ again.** The row
-renders **the packing list and the shopping list**, plus whichever view is being looked at when it is neither of
-them. The luggage and the analytics are entries in the bar's ⋮, which `AppHeader` fills from `meta.tripView` — so
-they still render on all four screens, and driver 4 still holds: shopping → luggage is one tap plus the menu, not a
-detour through M4.
-
-The judgement is the owner's, made off a render on 2026-09-20: *the luggage is not important enough to stand in the
-badges at the top of the packing list, and neither is the analytics.* Four options were mocked against the running
-palette — the two-pill row with the rest in the ⋮, a third "Mehr" pill opening a popover, the luggage hung off the
-weight the header line already shows, and two cards at the foot of the list — and this is the one chosen.
-
-What changes about the decision, and what does not:
-
-- **Driver 1 is re-weighted rather than re-scored.** ADR-051 read "discoverability" as *every view visible*. The
-  render says what that costs: four pills fill a 390 px row to within six pixels, so a view read once a trip is
-  exactly as loud as the list being packed, and a row that is equally loud everywhere says nothing about where the
-  work is. Two pills say it.
-- **The row still answers "where am I".** A screen whose view has no pill would otherwise mark nothing as current,
-  which is half of what the switcher is for — so the current view joins the row while you stand in it. That makes
-  the row two or three pills wide, never four.
-- **One table, two shapes.** `lib/tripViews.ts` now holds each view's word, glyph and path; the switcher and the
-  bar's ⋮ both render from it, and a menu entry keeps the id its pill had. Written twice, a view could have been
-  renamed in one shape and not the other, and nothing would have failed.
-- **What the ⋮ keeps** is still what *changes* the trip — properties, the next lifecycle step — but the sheet now
-  leads with where you can go and follows with what you can do. A lifecycle step in the middle of a list of places
-  reads as neither.
-
-Accepted cost: the luggage and the analytics are two taps rather than one, and behind an unlabelled glyph — the
-exact shape ADR-050 was criticised for. It is affordable here and was not there because it is now **two** entries
-rather than five, and because the two it holds are the two nobody reaches while packing.
-
-**Amendment 2 (2026-09-25) — a ⋮ holds its own context; the luggage and the analytics are packing's.** The owner's
-call, from using the app: the three-dot menu on a screen should act on *that* screen's area — packing, shopping,
-tasks — and may not be needed at all in some. So the frame offers *Gepäck* and *Auswertung* only on packing's views
-(M4, M11, M12), and **M6 and M25 have no ⋮**; `tripViewMenu` returns nothing there. In the same move M4's ⋮ gave up
-what changes the whole trip — *Reise-Eigenschaften* and the lifecycle step — which now live on M2 only, the trip's
-row menu and its hero; M2's *Reise abschliessen* opens M4 in FR-9.3's closing pass (`?closing=1`) rather than
-archiving past it.
-
-What this reverses, stated: **driver 4's sideways step** — shopping → luggage in one tap plus the menu — which this
-ADR bought and Amendment 1 kept. From the shopping list or the tasks the luggage is now the packing pill, then the
-⋮: one screen further. Accepted, because the alternative the owner rejected is the one this ADR's Context started
-from — a menu whose entries have nothing to do with the screen it opens on reads as a junk drawer, and every entry
-in it costs the reader a thought about whether it applies here. The E2E-G12-07 walk now goes through M4.
-
-**Amendment 3 (2026-09-25) — the word stays where you stand; every other view is its glyph.** The trip's notes
-are to become a view of their own (FR-7.9's threads, `dev-docs/trip-note-threads-concept.md`), which is the revisit
-trigger's own case — a view worked in rather than read. The row was measured before deciding, in the concept's
-mockup with this component's own metrics in headless Chromium (German, *Einkaufen (12)*, *Aufgaben (7)*, two new
-notes; negative is overflow):
-
-| Row | 360 px | 390 px | 430 px |
-|---|---|---|---|
-| Three word pills, on M4 (as built) | +47 | +77 | +117 |
-| Three word pills, standing on *Auswertung* (as built) | −50 | −20 | +20 |
-| Four word pills, on M4 | −42 | −12 | +28 |
-| One word and three glyphs, on M4 | +70 | +100 | +140 |
-| One word and four glyphs, standing on *Auswertung* | −1 | +29 | +69 |
-
-Four words do not fit a 390 px phone once the fourth has something to say, and **the row as built already
-overflowed there** while standing on the luggage or the analytics: Amendment 1's 286 px was measured with a
-one-digit shopping count and before *Aufgaben* joined the row. The owner proposed glyphs instead of words and chose
-from the render:
-
-- **The current view keeps its word** (and its glyph at `--jp-icon-sm`). A row of glyphs that marked nothing in words
-  would have stopped saying where you are, which Amendment 1 established is half of what the row is for.
-- **Every other view is its glyph** at `--jp-icon-md`, the step for an icon that is its own tap target, and **its count
-  is a badge**. The name is still the whole label (*„Einkaufen (12)"*) as `aria-label` and as `title`, so a screen
-  reader and a hovering pointer are told the count the eye reads off the badge. The 480 px breakpoint is gone: it
-  hid glyphs to save room, and glyphs are now what saves it.
-- **A held press shows the name in a bubble; a tap navigates.** A phone has no hover. The owner's first reading, a
-  tap that shows the bubble and a second that goes, was drawn and not taken: it charges every switch a tap to spare
-  a reader one look at the page title the switch lands on. The release that ends a hold swallows its click.
-
-What this reverses, stated. **Driver 1 is re-weighted a second time**: ADR-051 read discoverability as *every view
-visible*, Amendment 1 as *every worked-in view visible*, and this as *every worked-in view visible and named on
-demand*. The glyphs now carry meaning alone, so E2E-G12-05's pairwise-distinct vocabulary is load-bearing rather than
-decorative — and the one pair a reader may confuse is the packing list's list and the tasks' checkbox, both of which
-are checklists. Accepted; if it proves unlearnable, one of the two changes its glyph, not the row its shape.
-**And UI-Spec G-12's struck bubble** (2026-08-31: *"a third meaning for a gesture the app already spends twice"*)
+**The current view keeps its word**, beside its glyph at `--jp-icon-sm`; it carries `aria-current="page"` and does
+nothing when tapped. **Every other view is its glyph** at `--jp-icon-md`, the step for an icon that is its own tap
+target, and its count is a badge. Its whole label with the count (*„Einkaufen (12)"*) is its `aria-label` and its
+`title`, so a screen reader and a hovering pointer are told what the eye reads off the badge. **A held press shows
+the name in a bubble; a tap navigates**, and the release that ends a hold swallows its click. G-12's struck bubble
 comes back here and only here, by that ruling's own revisit trigger — *a glyph that cannot move behind the ⋮*: these
-are the destinations that left the ⋮. The collision it feared was two holds on one element; a pill carries no other
-hold. E2E-G12-08 pins the hold and that it goes nowhere.
+are the destinations that left the ⋮, and a pill carries no other hold.
 
-**Built with the notes (2026-09-25, FR-7.13).** *Notizen* joined as the fourth pill (`chatbubblesOutline`), after
-*Aufgaben*. Its badge is the one count that says what is *new* rather than how much there is — the entries new for me,
-never the total — so it wears the action colour where the shopping count is grey (`TripViewEntry.countIsNew`). The
-five-pill row, standing on the luggage, is what E2E-G12-07 measures at 360 px.
+A sibling is `router.push`; the packing list — the declared parent of the others — is
+`navigate(..., 'back', 'replace')`, the same call the bar's chevron makes, so returning to it does not mount a second
+copy (ADR-046).
 
-**Built with the excursions (2026-09-26, FR-31, ADR-077).** *Ausflüge* joined as the fifth pill
-(`trailSignOutline`), after *Notizen* — the revisit trigger's case again, a view worked in rather than read: a trip's
-excursions are packed during it, more often then than the suitcase. Its badge counts the excursions ahead with something
-open, grey. The row is now five pills, six while standing on the luggage or the analytics. Six do not fit 360 px
-(376 px of row against 344 px of room), and the owner settled the width the row is laid out for: **the Pixel 9 Pro's,
-410 CSS px**, the phone the family packs with. E2E-G12-07 measures the widest row there; a narrower phone scrolls the
-row sideways, which it always could (the row scrolls rather than wraps), instead of every trip screen's pills being
-made denser for a phone nobody in the household holds.
+**The counts.** The shopping pill's is `buyRowCount` from `domain/shoppingView.ts` — **things to buy**, the
+aggregation FR-25.6 defines and M6's own segments use. The ideas count the ones nobody has decided on yet and the
+excursions the ones ahead with something open, both grey. The notes count only what is new for me, never the total,
+and wear the action colour (`TripViewEntry.countIsNew`).
 
-**Amendment 4 (2026-09-27) — the planner's ideas are the first pill, and a full row scrolls at 410 px too.** The planner
-(§3.29, ADR-078) puts *Ideen* in the one switcher rather than in a phase bar above it — variant B of
-`UI_Concept_PlannerNav_variants.html` at `6b148419`, chosen by the owner on the render: one row of navigation, one tap
-to anything, no new pattern. *Ideen* (`bulbOutline`) is the **first** pill, because a trip is planned before it is
-packed; its badge counts the ideas nobody has decided on yet, grey. The day plan will join as the last pill (§3.29
-FR-29.7).
+**One table, two shapes.** `lib/tripViews.ts` holds each view's word, glyph and path; the switcher and the bar's ⋮
+both render from it, and a menu entry keeps the id its pill has, so a view cannot be renamed in one shape and not the
+other.
 
-The mockup said seven glyphs fit 360 px. **Measured in the app, they do not fit 410 px**: its pills are wider than the
-mockup's (a glyph pill ≈ 48 px with its gap, the worded one 90–110 px). Six pills fill the Pixel 9 Pro's row to the edge
-— in English, *Packing list* worded, one pixel over — and a seventh, the luggage or the analytics joining it while you
-stand there, overflows by 36 px. Three ways were put to the owner:
+**A ⋮ holds its own context.** *Gepäck* and *Auswertung* are packing's, so the frame offers them only on packing's
+views (M4, M11, M12), ahead of packing's own entries — where you can go, then what you can do; `tripViewMenu`
+returns nothing anywhere else, and M6 and M25 have no ⋮. What changes the whole trip — *Reise-Eigenschaften* and the
+lifecycle step — lives on M2, in the trip's row menu and its hero; M2's *Reise abschliessen* opens M4 in FR-9.3's
+closing pass (`?closing=1`) rather than archiving past it.
 
-- **Scroll the row sideways, the current pill scrolled into view** — chosen. The pills keep their size and tap target;
-  the row already scrolled on anything narrower than 410 px. Cost: in that shape a pill at the edge is cut off, and the
-  row no longer shows every destination at once on the phone it is laid out for.
-- *Slimmer glyph pills* (padding 10 → 6 px, gap 6 → 4 px), so seven fit — rejected: a glyph pill of about 36 px is below
-  a comfortable tap target, and the day plan's seventh pill would make it tight again.
-- *No pill for the ⋮ views* — the packing pill stays marked and the title names *Gepäck* — rejected: it solves today's
-  shape only, reverses Amendment 1's "the row marks where you are", and the day plan would need one of the other two
-  anyway.
-
-The row now brings the pill you stand on inside its own clip when it overflows (`TripViewNav`'s `revealCurrent`, the
-row's own scroll offset, never the page's). E2E-G12-07 asserts, at 410 px, the six pills on one line with the current
-one wholly in view, and standing on the luggage the row scrolling with that pill wholly in view.
-
-**Amendment 5 (2026-10-06) — a row that scrolls says so.** Amendment 4 accepted the sideways scroll but not the cue
-for it, and the UX review (item UX-04) read the result on the render: a glyph cut at a hard edge, on one side or both,
-reads as a layout bug, and *Tagesplan* and *Essen* sat beyond M4's edge behind a gesture nothing invited. Measured on
-the sample trip, the row needs 458–547 px against 380 at 412 px and 328 at 360. The reveal also had a defect: it ran
-before the trip loaded, while the day plan and the meals were absent, and was not repeated when they joined, so on
-*Gepäck* and *Auswertung* the current pill stood wholly outside the row. Two ways were put to the owner on renders of
-the sample trip at 360 and 412 px:
-
-- **Keep the 48 px glyph pills and add the cue** — chosen: a 24 px fade on each side that holds more pills and on no
-  other, `scroll-snap-type: x proximity` so a swipe rests on a whole pill, and the current pill scrolled to the row's
-  centre as near as the ends allow, again whenever the pills change. Centred, it shows what lies on either side of
-  where you are. Cost: the row still does not show every destination at once on the phone it is laid out for.
-- *40 px glyph pills* — rejected: still 41 px too wide for M4 at 412 px (421 needed; 406 with 4 px gaps), so the row
-  scrolls anyway and needs the same cue. Fitting eight pills takes glyph pills of 32–36 px, below G-13's tap target.
-
-E2E-G12-07 now measures, at 360 and 412 px, the row resting at its start on the packing list (faded at the end), at
-its end on the luggage (faded at the start), and centred on the notes (faded on both sides).
+**The row scrolls sideways and says so.** It is laid out for 410 px and never wraps; the glyph pills keep their
+48 px. Where it holds more than it shows, a 24 px fade stands on each side that has more and on no other,
+`scroll-snap-type: x proximity` brings a swipe to rest on a whole pill, and the current pill is scrolled to the row's
+centre as near as the ends allow — on the row's own scroll offset, never the page's, and again whenever the pills
+change, since the day plan and the meal plan join only once the trip has loaded (`useEdgeFades`, the one rule for
+every row that scrolls sideways, G-13).
 
 ## Consequences
 
 **Positive**
-- §3.25's directive is met for the first time since ADR-050, and better than before it: four views, not three, and
-  reachable from each other.
+- §3.25's directive is met, and better than before ADR-050: every view the trip is worked in, reachable from each
+  other.
 - M6, M11 and M12 gain a way out that is not the back chevron.
-- The count disagreement between the switcher and M6's segments is now impossible to write: one function, two
-  readers. It existed in the ⋮ entry and nothing found it, because the two numbers were never on one screen.
+- The count disagreement between the switcher and M6's segments is impossible to write: one function, two readers.
+  It existed in the ⋮ entry and nothing found it, because the two numbers were never on one screen.
 
 **Negative / accepted costs**
-- The pills carry their glyphs only from 480 px up. E2E-G12-05, which pins that four destinations did not reach for
-  one icon, reads them at the desktop width for that reason — and since Amendment 1 it reads two of the four inside
-  the ⋮, where the same glyph has to be the one the reader learned on the pill.
+- The luggage and the analytics are two taps rather than one, behind an unlabelled glyph — the shape ADR-050 was
+  criticised for. Affordable here because it is two entries rather than five, and the two nobody reaches while
+  packing. From the shopping list or the tasks they are one screen further: the packing pill, then the ⋮.
+- The glyphs carry meaning alone, so E2E-G12-05's pairwise-distinct vocabulary is load-bearing. The one pair a reader
+  may confuse is the packing list's list and the tasks' checkbox, both checklists; accepted.
+- On the phone it is laid out for, the row does not show every destination at once, and a pill under a fade is cut.
 - On M4 the switcher is inside the collapsing head, so it is not on screen while the reader is scrolled into the
   list. Accepted: it is navigation, and any upward scroll brings it back.
-- `App.vue` now imports one trips component.
+- `App.vue` imports one trips component.
 
 **Neutral**
-- `openTripView` in the e2e helpers is one click again rather than open-menu-then-click, and works from any of the
-  four screens.
+- `openTripView` in the e2e helpers knows which shape a view is in: a pill is one click from any trip screen, the
+  luggage and the analytics go through the ⋮ of packing's views.
+- E2E-G12-07 measures the row at 360 and 412 px: resting at its start on the packing list (faded at the end), at its
+  end on the luggage (faded at the start), and centred on the notes (faded on both sides). E2E-G12-08 pins the hold
+  and that it goes nowhere.
 
 ## Revisit Trigger
 
-A fifth view of a trip, or a third view that earns a pill. Amendment 1 answers the first form of the question the
-original trigger asked — which of them is a *view* and which is a destination read once — but it answers it for
-four. A fifth arrives as a ⋮ entry by default; what would reopen the decision is a view that is worked in rather
-than read, because three pills plus a current one is the width the row was already at its limit with.
-
-A second trigger, from Amendment 1's accepted cost: the ⋮ growing back past three entries on a trip screen. Two
-destinations behind an unlabelled glyph is the judgement made here; five was ADR-050's, and it did not hold.
+- A new view of a trip. It arrives as a ⋮ entry of the context it belongs to by default; what earns it a pill is
+  being worked in rather than read.
+- The ⋮ on a trip screen growing back past three entries. Two destinations behind an unlabelled glyph is the
+  judgement made here; five was ADR-050's, and it did not hold.
+- The packing list's glyph and the tasks' proving unlearnable as a pair. Then one of the two changes its glyph, not
+  the row its shape.

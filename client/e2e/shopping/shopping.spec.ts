@@ -1167,7 +1167,7 @@ test.describe('M6 shopping — the two lists and their counts @local @m6 @shoppi
     // The destination exists either way — hiding the entry would strand M6 on
     // a trip that has yet to need it. Only the count answers to the count —
     // part of the word where the view is the current one, a badge beside its
-    // glyph everywhere else (ADR-051 amendment 3); the name carries it both
+    // glyph everywhere else (ADR-051); the name carries it both
     // ways.
     await expect(page.getByTestId('trip-view-shopping')).toHaveAccessibleName('Shopping')
 

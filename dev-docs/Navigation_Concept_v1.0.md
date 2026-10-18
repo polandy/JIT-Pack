@@ -285,7 +285,7 @@ holding one kind of entry:
 | Clone | **M2** row hold menu | archived trips (also M16) | `/trips/:id/clone` |
 
 **Reading of this.** Each place answers one question. The switcher names the views a trip is *worked* in; the ⋮ holds
-what belongs to the context it sits in and nothing else (G-12, ADR-051 amendment 2) — on packing's views that is the
+what belongs to the context it sits in and nothing else (G-12, ADR-051) — on packing's views that is the
 two views read off the packing list plus packing's own steps, and M6/M25 have no ⋮ at all. What changes the whole trip
 (its properties, starting it, archiving it) is M2's alone, so M4 does not repeat it. The trip's status is the gate for
 those lifecycle entries; M14 is reached from the archived trip's card on M4 and from the end of the closing pass.

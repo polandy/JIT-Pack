@@ -41,7 +41,7 @@
 * **Actions:** Create/edit/delete containers; assign items from the unassigned bucket via the picker. **Deleting a
   container unassigns its items rather than removing them** — items outlive their bag, and deleting rows with it would
   silently shorten the packing list.
-* **Navigation:** From *Gepäck* in the bar's ⋮ on packing's views (G-12, ADR-051 amendments 1 and 2) — the switcher
+* **Navigation:** From *Gepäck* in the bar's ⋮ on packing's views (G-12, ADR-051) — the switcher
   is for the views a trip is worked in. Standing here, *Gepäck* **is** a pill, so the row still says where you are.
   There is no "Edit containers" entry inside the grouping switcher. ~~and from M12~~ — **not built:** M12's only
   navigation is to M4, and opening a picked *Gepäck* bar sets the container facet there rather than opening this

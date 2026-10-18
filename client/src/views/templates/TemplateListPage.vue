@@ -86,7 +86,7 @@ const {
 setHeaderTitle(() => t('templates.title'))
 
 // M18's portable import is a ⋮ word, as on M2: a tab root carries search and
-// the ⋮, nothing else (G-12, ADR-050 amendment 1, FR-18.4).
+// the ⋮, nothing else (G-12, ADR-050, FR-18.4).
 setHeaderActions(() => [
   action(),
   {

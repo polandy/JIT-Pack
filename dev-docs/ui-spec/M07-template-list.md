@@ -32,7 +32,7 @@
   M8's group picker. The confirm carries M10's outcome sentence in its three forms, for the same reason and with the
   same wording; the client's own count is advisory and the server's is authoritative (ADR-032); the outcome is stated
   before the tap rather than reported after it in G-2's detail. While the menu is open, row taps are inert. **Import is
-  *Datei importieren* behind the app bar's ⋮** → M18 (G-12, ADR-050 amendment 1: a tab root carries the magnifier and
+  *Datei importieren* behind the app bar's ⋮** → M18 (G-12, ADR-050: a tab root carries the magnifier and
   the ⋮ alone) — ~~the FAB's *Import from file* entry~~ is **not built**: the FAB asks which scope to create and has no
   menu, and a second door to a function that already has one buys nothing. E2E-M7-05 asserts the entry, including that
   the way back lands on M7 rather than on M18's declared parent. **A taken name is met in the sheet, not by a push

@@ -33,5 +33,5 @@
   **which carries the instance's currency where one is named** (FR-21.9, `JITPACK_CURRENCY`) and stays unit-less where
   none is — as it does in Local Mode, which has no server to ask. No series, or a series with no archived trips → the
   trend section is absent, not empty.
-* **Navigation:** From *Auswertung* in the bar's ⋮ on packing's views (G-12, FR-21.21, ADR-051 amendments 1 and 2 —
+* **Navigation:** From *Auswertung* in the bar's ⋮ on packing's views (G-12, FR-21.21, ADR-051 —
   a switcher pill while you are standing here); trend section also from M16.
