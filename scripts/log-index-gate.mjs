@@ -21,6 +21,9 @@
  * longer holds without opening it, so the status is a fixed value — Accepted,
  * or Superseded by ADR-NNN — and the index must repeat the file's. A date or
  * an amendment note on that line is history, and the history is in git.
+ * For the same reason an ADR carries no `Amendment` or `Addendum` section:
+ * a later change rewrites the decision to what holds, so the file never asks
+ * its reader to replay a sequence of edits to learn the rule.
  *
  * Node built-ins only, so it needs no install; wired into `make ci` and the CI
  * client job beside the other two node gates.
@@ -167,10 +170,14 @@ const STATUS_LINE = '**Status:** '
 /** The whole status vocabulary: a decision holds, or a named later one replaced it. */
 const STATUS = /^(Accepted|Superseded by (ADR-\d{3}))$/
 
+/** A heading, or a line opening in bold, that appends a change instead of rewriting the decision. */
+const APPENDED_SECTION = /^#+ .*(Amend|Addend)|^\*\*(Amend|Addend)/
+
 /**
  * Checks the ADRs' statuses against the vocabulary and against the README's
- * index. Takes the files as `{ name, text }` and the README's text, and returns
- * one message per disagreement — none when they agree.
+ * index, and refuses an amendment or addendum section. Takes the files as
+ * `{ name, text }` and the README's text, and returns one message per
+ * disagreement — none when they agree.
  */
 export function checkAdrs(files, readme) {
   const errors = []
@@ -190,6 +197,14 @@ export function checkAdrs(files, readme) {
     const cells = line.split('|').map((c) => c.trim())
     const link = /^\[\d{3}\]\(([^)]+)\)$/.exec(cells[1] ?? '')
     if (link) indexed.set(link[1], cells.at(-2))
+  }
+
+  for (const { name, text } of files) {
+    text.split('\n').forEach((l, i) => {
+      if (APPENDED_SECTION.test(l)) {
+        errors.push(`${name}:${i + 1}: "${l}" — fold the change into the decision; an ADR states what holds`)
+      }
+    })
   }
 
   for (const { name, text } of files) {
@@ -226,7 +241,7 @@ function checkAdrDir() {
     .map((name) => ({ name, text: readFileSync(resolve(root, ADR_DIR, name), 'utf8') }))
   const errors = checkAdrs(files, readFileSync(resolve(root, ADR_DIR, 'README.md'), 'utf8'))
   if (!errors.length) return files.length
-  console.error(`log-index-gate: the ADRs' statuses and their index disagree.\n`)
+  console.error(`log-index-gate: the ADRs break their contract (status, index, no amendment section).\n`)
   for (const e of errors) console.error(`  ${e}`)
   console.error('')
   return null
@@ -247,6 +262,6 @@ function main() {
   console.log(
     `log-index-gate: ok (${results.length} ledger files, ${sections} sections, all indexed; ` +
       `${readmes.length} split documents, every file linked from its README; ` +
-      `${adrs} ADRs, each status in the vocabulary and in the index)`,
+      `${adrs} ADRs, each status in the vocabulary and in the index, none with an amendment section)`,
   )
 }

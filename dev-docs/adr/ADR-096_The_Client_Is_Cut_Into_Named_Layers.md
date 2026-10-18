@@ -1,8 +1,9 @@
 # ADR-096: The client is cut into named layers — a directory per layer vs. a role per file
 
 **Status:** Accepted
-**Related:** ARCH-16, ARCH-17a (`scripts/layer-gate.mjs`, the gate that holds it), ADR-066 (feature modules),
-ADR-008 / ADR-025 (`domain/` runs client-side), `dev-docs/CODING_PRINCIPLES.md` §3, `client/CLAUDE.md`
+**Related:** ARCH-16, ARCH-16b, ARCH-16c, ARCH-17a (`scripts/layer-gate.mjs`, the gate that holds it), ARCH-19,
+ADR-066 (feature modules), ADR-097 (`domain/shared/`), ADR-008 / ADR-025 (`domain/` runs client-side),
+`dev-docs/CODING_PRINCIPLES.md` §3, `client/CLAUDE.md`
 
 **Decision Drivers (in priority order):**
 1. A contributor can tell from a file's directory what it may import, and so where a new rule goes.
@@ -16,19 +17,37 @@ ADR-008 / ADR-025 (`domain/` runs client-side), `dev-docs/CODING_PRINCIPLES.md` 
 
 ### Option A — One directory per layer, Vue reactivity only above `lib/` *(recommended, accepted)*
 
-`domain → lib → sync → kernel → stores → app → composables → components → views`, each importing only
-leftwards; the feature modules sit beside `views/`. `lib/` is pure (no `vue`, Ionic, router or `.vue`);
-`app/` holds the use cases the orchestrator and the CLI share; `sync/` the Vue-free transport; `kernel/` the
-ports a module meets the kernel through and the adapters that fill them; `composables/shared/` what a module may
-mount.
+`domain → lib → auth → sync → local → edges → kernel → stores → app → composables → components → views`, each
+importing only leftwards; the feature modules sit beside `views/`, and below them all lies the vocabulary — `types/`,
+`api/`, `i18n/`, `theme/` — which any layer may read.
+
+- **`domain/` is the bottom, without exception.** A rule reads `types/`, `api/` and other rules, never `lib/`,
+  `sync/` or `kernel/`: the day rules and the hand order are rules and live there (`dueDay.ts`, `handOrder.ts`); a
+  port a module's rules read keeps its shape in `domain/` (`dayPlanLine.ts`, `ideaBridge.ts`, `mealContext.ts`) and
+  only its `InjectionKey` in `kernel/`; a rule hands back domain values and `sync/` encodes them
+  (`trackSettingsColumns`). The portable import declares `ImportMutations`, the builders it consumes, which
+  `sync/mutations` satisfies structurally; the option shapes both sides read live in `types/creationOptions.ts`, so
+  the port is no copy of them. The rules a module may read are `domain/shared/` (ADR-097).
+- **`lib/` is pure** (no `vue`, Ionic, router or `.vue`).
+- **`auth/` sits below `sync/`.** The HTTP client calls the token refresh, and `auth/` reads only the wire's words and
+  the clock, so the transport depends on it without a cycle.
+- **`sync/` is the Vue-free transport**, the HTTP client among it (`sync/apiClient.ts`): `api/` is vocabulary —
+  generated wire types, routes, tables and status codes — and performs no request.
+- **`edges` are the app's edges with the platform**: `notifications/`, `pwa/`, `mode.ts`, `config.ts` and the
+  navigation helpers in `router/`, above `local/` and below `kernel/`.
+- **`kernel/`** holds the ports a module meets the kernel through and the adapters that fill them; **`app/`** the use
+  cases the orchestrator and the CLI share; **`composables/shared/`** what a module may mount.
+- **The composition root** — `router/index.ts`, `App.vue`, `main.ts` and `dev/` — imports every layer and is imported
+  by none.
 
 **Pros**
-- A file's layer is its first path segment, so the gate ARCH-17 adds is a table of allowed edges.
+- A file's layer is its first path segment, so `layer-gate.mjs` is a table of allowed edges.
 - `lib/` can be held pure in one line; the Vue helpers that lived there are now where reactivity is expected.
-- The module boundary's kernel list shrinks from ~15 file entries to two folders.
+- The module boundary's kernel list shrinks from ~15 file entries to three folders.
 
 **Cons**
 - ~60 files move; open branches touching them rebase over renames.
+- One more layer name for a contributor to learn (`edges`).
 - Two files split along the line (`activityReaders`, `tripViews`), so a reader follows a port to its types in a
   second file.
 
@@ -71,8 +90,11 @@ As A, with `lib/` allowed reactivity and Ionic controllers.
 ## Decision
 
 Option A. The order and each layer's role are written in `dev-docs/CODING_PRINCIPLES.md` §3 and
-`client/CLAUDE.md`; `scripts/module-boundary-gate.mjs` lets a module import `kernel/` and `composables/shared/` by
-folder.
+`client/CLAUDE.md`. `scripts/layer-gate.mjs` holds the whole order: every file under `client/src` belongs to the layer
+of its longest path prefix and imports only its own layer or earlier ones, and a file in no layer fails; an import of
+`dev/` is `dev-code-gate.mjs`'s to judge. `scripts/domain-purity-gate.mjs` holds `domain/` to the vocabulary with no
+list of allowed files, and `scripts/module-boundary-gate.mjs` lets a module import `kernel/`, `composables/shared/` and
+`domain/shared/` by folder.
 
 ## Consequences
 
@@ -80,9 +102,12 @@ folder.
 - A new pure helper goes to `lib/`, a new use case to `app/`, a new contract between the kernel and a module to
   `kernel/` — decided by what it imports.
 - `sync/tableRegistry.ts` no longer reaches up into `composables/` for its row codecs.
+- No gate carries an exception: an edge the table refuses is answered by moving the file.
 
 **Negative / accepted costs**
 - A reactive value a pure helper reads has to live below it: the currency moved beside the locale in `i18n/`.
+- `auth/` reads above the vocabulary only through `lib/clock`, and a port a rule reads is split across two files — its
+  shape in `domain/`, its key in `kernel/`.
 - Specs moved with their subjects, so `git log --follow` is needed to read a spec's history across the move.
 
 **Neutral**
@@ -91,46 +116,5 @@ folder.
 ## Revisit Trigger
 
 A layer whose files keep needing an exception to the edge table, or a fourth feature module that needs a kernel
-contract `kernel/` cannot express without importing a module.
-
-## Amendment, 2026-10-08: `domain/` is the bottom, without exceptions but one (ARCH-16b)
-
-The order put `domain/` first, yet the purity gate still let the rule directories read `lib/`, `sync/` and `kernel/` —
-the edges the old layout had hidden. They are closed: the day rules and the hand order are rules, so `dueDay.ts` and
-`handOrder.ts` moved into `domain/`; a port a module's rules read keeps its shape in `domain/` (`dayPlanLine.ts`,
-`ideaBridge.ts`, `mealContext.ts`) and only its `InjectionKey` in `kernel/`, the split `activityReader` already had; a
-rule hands back domain values and `sync/` encodes them (`trackSettingsChanges` → `trackSettingsColumns`). The gate
-now allows `types/`, `api/` and `domain/`, plus one named file: the portable import builds through the mutation
-factory and names its type, which needs the builders' option shapes moved below `sync/` first (ARCH-16c). The cost is
-five more entries on the boundary gate's list of `domain/` files a module may read, until ARCH-19 gives them a folder.
-
-## Amendment, 2026-10-08: the last exception closes and the order gets its gate (ARCH-16c, ARCH-17a)
-
-The portable import no longer names the mutation factory's type: it declares `ImportMutations`, the fifteen builders it
-consumes, and `sync/mutations` satisfies it structurally. The option shapes both sides read (`MasterItemOptions`,
-`TemplateItemOptions`, `TripOptions`, `ContainerOptions`, `PortableTripItemFields`) moved into `types/`
-(`types/creationOptions.ts`), so the port is no copy of them. `domain-purity-gate.mjs` lost its list of allowed files.
-
-`scripts/layer-gate.mjs` holds the whole order: every file under `client/src` belongs to the layer of its longest path
-prefix and imports only its own layer or earlier ones; a file in no layer fails. Placing every directory took three
-decisions the original order left open:
-
-- **`auth/` sits below `sync/`.** The HTTP client calls the token refresh, and `auth/` reads only the wire's words and
-  the clock, so the transport can depend on it without a cycle.
-- **The HTTP client moved from `api/client.ts` to `sync/apiClient.ts`.** `api/` is vocabulary — generated wire types,
-  routes, tables and status codes — and the one file that performed requests imported `auth/` from there.
-- **`mode.ts`, `config.ts` and the navigation helpers in `router/` join `notifications/` and `pwa/`** as the app's
-  edges with the platform, above `local/` and below `kernel/`; `router/index.ts`, `App.vue`, `main.ts` and `dev/` are
-  the composition root, which imports every layer and is imported by none (an import of `dev/` is
-  `dev-code-gate.mjs`'s to judge).
-
-The cost is one more layer name for a contributor to learn (`edges`) and an `auth/` that reads above the vocabulary
-only through `lib/clock`. The revisit trigger stands: an edge the table refuses is answered by moving the file, not
-by an exception.
-
-## Amendment, 2026-10-08: the module-visible rules get their folder (ARCH-19)
-
-The list of `domain/` files a module may read became `domain/shared/`: the boundary gate admits the folder, and the
-purity gate holds it to reading only itself and the vocabulary. `lib/tripPhase.ts` and `lib/whoGoes.ts`, rules that sat
-in `lib/` only because a module could not reach `domain/`, moved in beside the new `calendar.ts`. The reasoning, and
-the kernel-vs-module criterion it answers to, are ADR-097's.
+contract `kernel/` cannot express without importing a module. An edge the table refuses is answered by moving the
+file, not by an exception.
