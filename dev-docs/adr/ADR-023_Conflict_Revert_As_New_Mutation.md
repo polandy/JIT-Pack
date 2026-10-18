@@ -25,7 +25,7 @@ system whose only ordering is a hybrid logical clock.
    Server and Single-User (invariant 5); Local Mode has one writer and no
    conflicts at all (FR-19.6).
 5. **No schema change if the data is already there** (invariant 2 /
-   ADR-018): a schema change deletes every development database.
+   ADR-067): a schema change carries a migration every instance runs.
 
 ---
 
@@ -35,8 +35,9 @@ system whose only ordering is a hybrid logical clock.
 
 The server builds a mutation from the log entry (`entity_table`,
 `entity_id`, `field`, `losing_value`), stamps it with `Store.hlc.Next()`
-after folding the row's own clock in, and runs it through the same
-`sync.Merge` + `persist` + `change_log` path as any push.
+after folding the row's own clock in, and runs it through the push's own
+write pipeline — the server-owned stamp, the partition's scope,
+`sync.Merge`, `persist` and `change_log`.
 
 **Pros**
 - **Converges by construction.** The revert is the newest write in the
@@ -62,9 +63,9 @@ after folding the row's own clock in, and runs it through the same
   deleted, or rule 2 may outrank it. Three refusals had to be named and
   given sentences rather than one shrug.
 - The revert carries the *server's* device id in its HLC rather than the
-  reverting user's, so the change feed does not say who asked for it.
-  (Attribution of the request itself is not modelled anywhere yet; the
-  `conflict_log` row does not record an actor either.)
+  reverting device's. The restored row's stamped actor names the reverter,
+  but the `conflict_log` entry records only who pushed the losing write,
+  not who took it back.
 
 ### Option B — Rewrite the row in place, keeping the original HLC
 
@@ -158,9 +159,24 @@ statement (`UPDATE conflict_log SET reverted = 1 WHERE id = ? AND
 reverted = 0`): two devices cannot both restore one entry, and any refusal
 below rolls the flag back with it.
 
+The revert runs the push's write pipeline rather than one beside it.
+`applyRevert` stamps the server-owned columns (`tableSpec.serverOwned`,
+`internal/store/stamp.go`, invariant 3) and runs the partition's scope
+(`p.scope`) exactly where `applyMutation` does, then the partition's extra
+`change_log` entries. The master partition's scope is `authorizeMaster`; the
+trip partition's is not skipped on the argument that membership is its only
+gate, because it is not — a member cannot restore the losing value of
+another member's vote, as the push refuses it (FR-29.3). The stamped actor
+is the **reverter**, not the person whose push lost: the revert is a new
+write in the present, and a write names whoever made it. The memo, the
+tombstone check, and a delete's retire and cascade stay the push's alone;
+a revert is a server-built upsert of an existing row and has no use for
+them.
+
 Refusals are named rather than merged into one code — `already_reverted`,
 `row_deleted`, `revert_refused`, `forbidden` — because each is a different
-sentence for the reader.
+sentence for the reader. A scope refusal answers `403 forbidden` in both
+partitions.
 
 ## Consequences
 
@@ -185,6 +201,12 @@ sentence for the reader.
   one field of a causally coupled pair would write half a fact (FR-5.4).
   `sync.GroupedWith` names the coupling once, for the merge and the revert
   alike.
+- A restored `packed` or `packing_now` carries the packer or claim holder
+  the state implies, because the revert stamps like a push. The four
+  record columns follow the state group's verdict (`sync.stateRecord`,
+  Sync-API §6) without joining its clock, so the `409 revert_refused` on a
+  `packing_now` over a `packed` row is a whole refusal, never a
+  half-applied merge.
 
 **Negative / accepted costs**
 - **The button can fail, and the UI must say why.** Four sentences where a
@@ -194,10 +216,10 @@ sentence for the reader.
   it, exactly as it would over any other write. This is correct and it is
   the thing users will misread; the page carries a line saying the revert
   is a new change.
-- **No actor is recorded.** Neither the conflict entry nor the revert says
-  who did it, so a shared trip cannot answer "who took this back". The
-  `conflict_log` has no actor column today, which is why this is a gap
-  rather than a regression.
+- **The conflict entry does not record who reverted it.** The restored
+  row's stamped actor names the reverter, but the log itself answers only
+  who pushed the losing write, so a shared trip's conflict log cannot say
+  "who took this back".
 - **The master revert reads visibility outside its transaction.** The pool
   holds a single connection (SQLite's single writer), so `masterVisible`
   would deadlock against its own transaction. Membership could in
@@ -215,43 +237,14 @@ sentence for the reader.
 
 ## Revisit Trigger
 
-**A conflict entry recording who *reverted* it.** The actor half arrived
-with ADR-022 — `conflict_log.actor_user_id` names whoever pushed the
-losing write — and that is not the name this design would need: a
-client-side revert (Option C) attributes the *restore* to the person
-making it, which the server-side write here does not record at all. The
-day the log has to say "Sia took this back", the balance between the two
-options is worth re-weighing, because the attribution Option C gets for
-free stops being free here.
+**A conflict entry recording who *reverted* it.** ADR-022's
+`conflict_log.actor_user_id` names whoever pushed the losing write; the
+restore's author is stamped on the restored row's state record and nowhere
+on the entry. The day the log has to say "Sia took this back", the balance
+between the two options is worth re-weighing, because the attribution
+Option C gets for free stops being free here.
 
 Secondarily: **reverting fields of one row that are not coupled, in one
 go**. The coupled group already travels as a unit; an entry-by-entry
 revert of, say, a name and a container is N round-trips, and a batch
 shape would have to be weighed against the atomicity this design buys.
-
-## Amendment, 2026-10-06: the revert runs the push's stamp and scope
-
-Driver 2 said "the merge rules stay one set of rules", and the revert kept that promise for the merge alone. It built
-its write beside the push pipeline rather than through it, and so skipped two of the push's steps: the stamping of the
-server-owned columns (invariant 3), and the trip partition's scope. Two defects followed. A restored `packed` or
-`packing_now` arrived without the packer or claim holder the state carries — a claim nobody held. And a member could
-restore the losing value of another member's vote, which the push path refuses (FR-29.3).
-
-What changed: the stamp moved into the store as a step of the write pipeline, declared per table
-(`tableSpec.serverOwned`, `internal/store/stamp.go`), and `applyRevert` runs it and `p.scope` exactly where
-`applyMutation` does, then the partition's extra change_log entries. The authorizer parameter is gone: the master
-partition's scope is the same `authorizeMaster` it passed, and the trip partition's scope is no longer skipped on the
-argument that membership is its only gate — it is not. A scope refusal answers `403 forbidden` in both partitions.
-
-The stamped actor is the **reverter**, not the person whose push lost: the revert is a new write in the present (the
-decision above), and a write names whoever made it. The Revisit Trigger's "who took this back" is answered for the
-state's own record and still open for the conflict entry.
-
-A second defect surfaced on the way, on the push path itself: §6 rule 2 dropped a `packing_now` onto a `packed` row,
-while the claim and the erased packing record the same mutation carried won on their own clocks. The four record
-columns now follow the state group's verdict (`sync.stateRecord`, Sync-API §6), without joining its clock and without
-an entry of their own — so the revert's `409 revert_refused` on that pair stays a refusal rather than a half-applied
-merge.
-
-What did not change: the memo, the tombstone check, and a delete's retire and cascade stay the push's alone; a
-revert is a server-built upsert of an existing row and has no use for them.

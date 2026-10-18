@@ -33,8 +33,8 @@ applied to the mode the tests see and been silently overruled by the other.
 
 `app.use(IonicVue, { mode: 'md' })`. Then, once each: buttons in sentence case and pill-shaped without a shadow;
 segments as a pill track on the sunken plane with a card-coloured chosen option and no underline; the checkbox at
-24 px with the small radius; the header bar transparent over a page that paints a brand wash, and its Material shadow
-removed; the active tab carrying a soft brand pill behind its glyph.
+24 px with the small radius; the header bar transparent over the brand wash, and its Material shadow removed; the
+active tab carrying a soft brand pill behind its glyph.
 
 **Pros**
 - The mode the suite has always rendered becomes the mode everyone gets; no baseline is a lie about any device.
@@ -89,6 +89,15 @@ Keep the detection and write every rule twice, under `.md` and `.ios`.
 The client runs in Ionic's `md` mode on every platform, and the shape, case and chrome of the controls Material would
 otherwise decide — button, segment, checkbox, header bar, active tab — are written once in the three token tables.
 
+**The page plane is opaque; the header bar is transparent over `ion-app`.** `ion-app` paints the wash and the surface,
+`ion-router-outlet > .ion-page` paints `--jp-surface-page`, and `ion-content` stays transparent. A background is what
+occludes, opacity alone never does: Ionic's md animation keeps the leaving page mounted and fades the entering one in,
+so two transparent pages would show both screens at once for the length of the transition. The wash survives above the
+outlet's top edge because `AppHeader` and `PageHead` are rendered by `App.vue` *outside* the outlet and sit on
+`ion-app`; below that edge the opaque page covers it. Repainting the wash on the page with
+`background-attachment: fixed` was rendered and refused: `.ion-page` is its own containing block, so "fixed" resolves
+to the outlet rather than the viewport and the wash lands in the wrong place (up to 100/255 off on M4).
+
 ## Consequences
 
 **Positive**
@@ -99,44 +108,13 @@ otherwise decide — button, segment, checkbox, header bar, active tab — are w
 - iPhone users lose swipe-back and the iOS sheet presentation they had through detection. If that is missed, the
   answer is a *decided* gesture (Ionic's `swipeBackEnabled` works in md too), not a return to detection.
 - 26 visual baselines are rewritten again, one PR after ADR-048.
+- The wash's tail no longer reaches the content below the outlet's top edge — at most 17/255 in the wash region, on
+  M16, where a shorter page head puts the cut on a steeper part of the gradient. That part of the gradient had almost
+  nothing left to give, and the opaque page buys back hiding the screen just left.
 
 **Neutral**
 - The section label's uppercase (G-13) is untouched here; the concept replaces it with a Fraunces section head in
   step 5, which is a typography role, not a Material default.
-
-## Amendment 1 (2026-09-13) — the page plane is opaque
-
-The decision above made the header bar transparent over a page that paints a brand wash. It was implemented by
-painting the whole plane — wash and surface — on `ion-app`, and making every page and its `ion-content` transparent
-over it. At rest that is correct and it is what 26 baselines have recorded since.
-
-It is not correct while the outlet is transitioning. Ionic's md animation keeps the leaving page mounted and fades the
-entering one in, and two transparent pages show both screens at once: the packing list legible through the settings
-form, line crossing line, for the length of the animation. A background is what occludes; opacity alone never does.
-
-Three options were rendered and compared pixel by pixel against the built app (430x860, Nacht):
-
-| Option | Transition | Cost at rest |
-|---|---|---|
-| Leave the page transparent | both screens at full strength throughout | none |
-| Opaque page, wash stays on `ion-app` *(accepted)* | leaving page occluded in proportion to the fade | wash's tail no longer reaches content — max 17/255 in the wash region, on M16 |
-| Opaque page, wash re-painted on the page with `background-attachment: fixed` | same as accepted | wash lands in the wrong place — max 100/255 on M4; `.ion-page` is its own containing block, so "fixed" resolves to the outlet rather than the viewport |
-
-Accepted: `ion-router-outlet > .ion-page` paints `--jp-surface-page`, `ion-app` keeps wash and surface, and
-`ion-content` stays transparent. The wash survives above the outlet's top edge because `AppHeader` and `PageHead` are
-rendered by `App.vue` *outside* the outlet and still sit on `ion-app`; below that edge it is gone. That is the part of
-the gradient that had almost nothing left to give, and it buys back the one thing the plane could not do, which is hide
-the screen you just left.
-
-**What the 26 rewritten baselines actually record**, decoded channel by channel rather than read off the stylesheet:
-
-- The wash is byte-identical above the cut and truncated below it. Twelve of the 26 change *only* there, and the
-  worst of those is **17/255**, on M16 — a shorter page head puts the cut higher, on a steeper part of the gradient.
-  Mean change per pixel never exceeds 0.37 on any baseline.
-- The other fourteen also carry deltas up to **213/255**, but confined: at most **482 pixels** on any one baseline —
-  0.15 % of that frame, `tab-trips` at 390x844 — and always glyph-shaped. That is text re-rasterising against a flat
-  opaque ground instead of a composited one, not a change of position. Recorded because "17/255" is the wash-region
-  figure and would otherwise read as the frame's.
 
 ## Revisit Trigger
 

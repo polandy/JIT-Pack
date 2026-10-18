@@ -47,10 +47,14 @@ spelling of `PresenceMember`. Both compiled, both were wrong, and neither had a 
 
 ### Option A — Go declares the contract; the client's types are generated from it *(recommended, accepted)*
 
-One file, `internal/api/wire.go`, declares the sync envelopes, the WebSocket frame, the conflict-log shapes and the
-error vocabulary. `cmd/wiregen` parses it and writes `client/src/api/types.ts` — and, since ADR-027's amendment of
-2026-08-24, the paths as well, into `client/src/api/routes.ts`; `scripts/wire-contract-gate.sh` regenerates into a
-temporary file and fails the build when the checked-in one differs. `make wire` is the one way to update it.
+Go declares the contract, and the client's half of it is generated. `cmd/wiregen` writes three files, and
+`scripts/wire-contract-gate.sh` regenerates each into a temporary file and fails the build when the checked-in one
+differs; `make wire` is the one way to update them:
+
+- **`client/src/api/types.ts`** from `internal/api/wire*.go` — the sync envelopes, the WebSocket frames, the
+  conflict-log shapes, every response type, and the error and notification vocabularies.
+- **`client/src/api/routes.ts`**, the paths, from the same files (the route shapes are ADR-027's).
+- **`client/src/api/tables.ts`**, the per-table contract, from `internal/store/tables.go` and `schema.sql`.
 
 **Pros**
 - The declaration sits where the wire is actually served, so it cannot describe an endpoint that does not exist.
@@ -72,12 +76,9 @@ temporary file and fails the build when the checked-in one differs. `make wire` 
 - It formats its own output to the client's prettier settings (print width, quote style, trailing newline). If those
   settings change, the generator has to follow, or `make fmt` rewrites a generated file and the gate fails on a file
   nobody edited. Accepted with a test pinning the print width.
-- **It covers the shapes the client consumes, not all 40 routes.** The admin, notification, config and auth responses
-  are still hand-typed on both sides today. The gate protects what is in `wire.go`; growing that file is how the rest
-  joins. **Done 2026-08-24**: those four families joined, and the rule is now held by a check rather than by intent — an
-  AST test over `internal/api` fails on a map literal handed to `writeJSON`, so the next response cannot be added
-  untyped. It has one blind spot (a map held in a variable, which the preference handler did) and a second test closes
-  exactly that one.
+- **The gate protects only what is declared**, so a response left untyped would escape it. A check holds the rule
+  rather than intent: an AST test over `internal/api` fails on a map literal handed to `writeJSON`, and a second test
+  closes its one blind spot, a map held in a variable.
 
 ### Option B — OpenAPI as the source, both sides generated or validated from it
 
@@ -132,20 +133,53 @@ Two things this explicitly does **not** decide:
 - **It does not move logic to the server.** NFR-4.14 states the boundary and invariant 4 stands: generation, dependency
   resolution, quantities, analytics, the review assistant, cloning and import stay in `client/src/domain`, because Local
   Mode has no server. This ADR is about the shape of what crosses the wire, not about what runs on which side.
-- **It does not settle the route shapes.** `export.csv`/`export.yaml`/`/export`/`/export/full` and the two conflict
-  paths stay as they are for now; that is the NFR's third point and a separate change, deliberately kept out so a
-  mechanical rename does not travel with the mechanism (owner, 2026-08-23). **Settled the next day by ADR-027**, which
-  chose scope-first for all three families; the two YAML endpoints named here had already gone with ADR-025.
+- **It does not decide the route shapes.** ADR-027 does; the paths it settles ride this generator into `routes.ts`.
+
+### The per-table contract
+
+What travels *inside* the envelope is generated as well: the client's `TABLE`, the feed each table is pushed on, the
+columns a mutation may carry, every column of each syncable table, and the text vocabularies of the domain unions
+(`ItemState`, `TripRole`, `MealSlot`, …). Hand-kept, each was correct by discipline only — encoder/parser pairs held
+against each other and never against the schema, which is how a parser came to read a column no writer filled.
+
+- **From `internal/store/tables.go`** — the table names in `tableSpecs` order, each table's feed and its push whitelist.
+  The store package is *parsed*, its string constants resolved across files; `wiregen` stays a leaf (invariant 1).
+- **From `schema.sql`** — every column of each syncable table, and each text column's `CHECK … IN (…)` list, in schema
+  order. A 0/1 flag is a boolean, not a vocabulary.
+- **It refuses rather than guesses**: a whitelisted column the schema lacks, a registered table it does not create, a
+  column named by an unresolvable constant, a text CHECK in a shape it does not read, or a CHECK value that is not a
+  plain word (it would need an escape in the TS literal) is a generator error, never a file. It is not an SQL parser;
+  the shapes it reads are this repository's own.
+
+On the client the generated facts are the only copy: `TABLE` and `SyncTable` come from the file, `partitionOf` reads
+`TABLE_PARTITION`, the domain unions and their ordered arrays are aliases of `COLUMN_ENUMS`, a mutation's `fields` are
+typed against `PUSHABLE_COLUMNS`, and `tableRegistry.spec.ts` holds every column a codec pair — or a parser with no
+builder — names to `TABLE_COLUMNS`.
+
+### The WebSocket frames and the notification vocabulary
+
+`wire.go` holds the HTTP contract and `wire_ws.go` the WebSocket's; each addition is held by the gate or a mirror test:
+
+- **The frames are a union.** `wsEventPayloads` names each `WSEventType`'s payload struct (nil for none); `wiregen`
+  emits `WSEvent` as the discriminated union of them and refuses a type the table omits. The client frame
+  (`WSClientFrame`) and the channel prefix (`WSChannelTripPrefix`) are generated too. The hub builds every frame from
+  those structs; `TestWSEventPayloads_EveryFrameCarriesItsDeclaredPayload` holds it to the table. The client routes
+  frames through `sync/wsRouting.ts`, an exhaustive switch over the union.
+- **The notification words.** `NotificationKind`, `NotificationPayloadKey` and `NotificationDue` are wire enums, kept
+  equal to the store's kinds and `internal/notify`'s keys by `wire_mirror_test.go`; the payload stays a map. The push
+  body is `WebPushMessage`, mirrored by notify's own struct (notify cannot import `api`).
+- **The service worker**, which cannot import TypeScript, is held to `WebPushMessage` and the vocabulary by
+  `notifications/__tests__/workerWire.spec.ts`, which reads `public/sw.js` as text.
 
 ## Consequences
 
 - A wire change is now two files in one commit, and the gate says so by name when it is one.
-- **The response *type* is now the enforced unit, not just the sync envelope** (added 2026-08-24). Encoding a map
-  literal fails a test, so a new endpoint declares its shape here before it can answer. Two consequences that were
-  accepted rather than avoided: a struct encodes its keys in field order where a map encoded them sorted, so key order
-  moved on eight responses (no consumer depends on it, and no wire *name* changed — the tag set gained thirteen and lost
-  none); and a *request* body may still be a map where an absent key means something other than the zero value, which is
-  why the notification preference body stays one.
+- **The response *type* is the enforced unit, not just the sync envelope.** Encoding a map literal fails a test, so a
+  new endpoint declares its shape here before it can answer. A struct encodes its keys in field order rather than
+  sorted, which no consumer depends on; a *request* body may still be a map where an absent key means something other
+  than the zero value, which is why the notification preference body is one.
+- **A schema change that adds a vocabulary or a column is a `make wire` away from a green build**, like a wire change.
+  The registry's own comments in `tables.go` are where a table is explained; the generated `TABLE` carries none.
 - The outcome vocabulary moved into `internal/sync` so `store`, `api` and the client all say the same four words;
   `api`'s wire copy is held to it by a test, because `sync` may import nothing internal (invariant 1) and so cannot own
   the wire declaration itself.
@@ -159,55 +193,9 @@ Two things this explicitly does **not** decide:
 
 Any of:
 
-1. **A wire shape the generator cannot express** — a discriminated union keyed by `type` for the WebSocket payloads is
-   the likely first one. Extending the generator is the cheap answer once; a second such shape means Option B deserves a
-   fresh look.
+1. **A wire shape the generator cannot express.** The WebSocket frames' discriminated union was one, answered by
+   extending the generator; the next such shape means Option B deserves a fresh look.
 2. **A published API.** Today the only consumer is this client and the FR-18.7 command. The moment a third party is
    expected to write against the surface, they need a description they can generate *their* client from, and that is
    OpenAPI's argument, not ours.
 3. **The client's formatter changes its defaults**, which is the maintenance cost this option accepted.
-
-## Amendment (2026-10-08): the per-table contract is generated too
-
-The decision covered the envelope — what a mutation, a pull change or a refusal looks like — and left what travels
-*inside* it hand-kept: the client's `TABLE`, the feed a table is pushed on, the columns a mutation may carry and the
-text vocabularies of the domain unions (`ItemState`, `TripRole`, `MealSlot`, …). Each was correct by discipline only;
-the encoder/parser pairs were held against each other, never against the schema, which is how `trips.series_name` came
-to be read by a parser that no writer filled.
-
-`cmd/wiregen` now also writes `client/src/api/tables.ts`, and the same gate holds it:
-
-- **From `internal/store/tables.go`** — the table names in `tableSpecs` order, each table's feed and its push whitelist.
-  The store package is *parsed*, its string constants resolved across files; `wiregen` stays a leaf (invariant 1).
-- **From `schema.sql`** — every column of each syncable table, and each text column's `CHECK … IN (…)` list, in schema
-  order. A 0/1 flag is a boolean, not a vocabulary.
-- **It refuses rather than guesses**: a whitelisted column the schema lacks, a registered table it does not create, a
-  column named by an unresolvable constant, a text CHECK in a shape it does not read, or a CHECK value that is not a
-  plain word (it would need an escape in the TS literal) is a generator error, never a file. It is not an SQL parser;
-  the shapes it reads are this repository's own.
-
-On the client the generated facts replace their copies: `TABLE` and `SyncTable` come from the file, `TableSpec` no
-longer states a feed (`partitionOf` reads `TABLE_PARTITION`), the domain unions and their ordered arrays are aliases of
-`COLUMN_ENUMS`, a mutation's `fields` are typed against `PUSHABLE_COLUMNS`, and `tableRegistry.spec.ts` holds every
-column a codec pair — or a parser with no builder — names to `TABLE_COLUMNS`.
-
-The cost accepted: a schema change that adds a vocabulary or a column is now a `make wire` away from a green build, like
-a wire change already was; and the doc comments the hand-kept `TABLE` carried per entry are gone — the registry's own
-comments in `tables.go` are where a table is explained.
-
-## Amendment (2026-10-11): the WebSocket frames and the notification vocabulary join (ARCH-05)
-
-The contract is `internal/api/wire*.go`: `wire.go`, and `wire_ws.go` for the WebSocket. Additions, each held by the gate
-or a mirror test rather than by hand:
-
-- **The frames as a union.** `wsEventPayloads` names each `WSEventType`'s payload struct (nil for none); `wiregen`
-  emits `WSEvent` as the discriminated union of them and refuses a type the table omits. The client frame
-  (`WSClientFrame`) and the channel prefix (`WSChannelTripPrefix`) are exported and generated too. The hub builds every
-  frame from those structs; `TestWSEventPayloads_EveryFrameCarriesItsDeclaredPayload` holds it to the table.
-- **The notification words.** `NotificationKind`, `NotificationPayloadKey` and `NotificationDue` are wire enums, kept
-  equal to the store's kinds and `internal/notify`'s keys by `wire_mirror_test.go`; the payload stays a map. The push
-  body is `WebPushMessage`, mirrored by notify's own struct (notify cannot import `api`).
-- **The service worker**, which cannot import TypeScript, is held to `WebPushMessage` and the vocabulary by
-  `notifications/__tests__/workerWire.spec.ts`, which reads `public/sw.js` as text.
-
-The client routes frames through `sync/wsRouting.ts`, an exhaustive switch over the union.

@@ -1,7 +1,8 @@
 # ADR-015: The Local Mode Backup Is One Multi-Document YAML File, Not One File Per Trip
 
 **Status:** Accepted
-**Related:** ADR-008 (generation and import run client-side), ADR-010 (import stays dependency-free), FR-18.2/18.3
+**Related:** ADR-008 (generation and import run client-side), ADR-010 (import stays dependency-free), ADR-025 (one
+importer, the server does not read the format), FR-18.2/18.3
 (portable export), FR-18.4 (round-trip import), FR-19.5 (migration to a server), FR-19.6 (the G-2 storage detail),
 NFR-4.3 (dependency footprint), NFR-4.11 (local storage durability)
 
@@ -33,9 +34,6 @@ lists the documents and imports them together (`commitPortableRestore`).
 - Partial damage is survivable: an unreadable document is reported in its place and the intact ones still import.
 
 **Cons**
-- **The server's `/api/v1/templates/import` and `/api/v1/trips/import` endpoints take one document and reject this
-  file.** Restoring or migrating goes through the app, not through `curl` — FR-19.5's migration path is now "open the
-  app against the server and import there".
 - It is not a *complete* backup: the portable shape carries items by name, so master items nobody uses, item images,
   tags and dependencies do not travel. NFR-4.11 already accepted that when it named the portable export as the backup,
   but a file called "backup" invites the assumption.
@@ -47,7 +45,7 @@ lists the documents and imports them together (`commitPortableRestore`).
 M17's export pickers, one trip or one template at a time, with the G-2 detail linking there.
 
 **Pros**
-- Zero new code, and every file is importable by the server endpoints as-is.
+- Zero new code.
 - The user chooses exactly what leaves the device.
 
 **Cons**
@@ -59,7 +57,7 @@ M17's export pickers, one trip or one template at a time, with the G-2 detail li
 ### Option C — A ZIP archive of one file per document
 
 **Pros**
-- Familiar container; each entry stays individually server-importable.
+- Familiar container; each entry stays an individual portable file.
 - Room to carry item images later.
 
 **Cons**
@@ -86,8 +84,9 @@ M17's export pickers, one trip or one template at a time, with the G-2 detail li
 
 The Local Mode backup is a single multi-document YAML file, `jitpack-backup-<date>.yaml`, holding every template and
 every trip of the device with packing progress included. The app's own importer (FR-18.4) reads it, listing its
-documents and importing them together, matching master items **per document as each is imported**. The server's
-single-document import endpoints are deliberately left as they are.
+documents and importing them together, matching master items **per document as each is imported**. The server does
+not read the format (ADR-025); the command-line import runs the same importer, so a restore from a shell reads the same
+file. FR-19.5's migration to a server is this file, imported in the app or by the CLI against the server.
 
 **A trip document carries how the trip follows its groups** (FR-27.4): `follows:` (the templates it follows),
 `generated:` (the generation ledger) and `applied_changes:` (the log), all by name, all optional. Without the ledger a
@@ -103,13 +102,11 @@ groups afresh.
 
 **Positive**
 - FR-19.6's one-tap backup exists and covers the device rather than one row of it.
-- The restore is the ordinary M18 screen, so there is one import path and not a second "restore" mechanism to keep
-  correct.
+- The restore is the ordinary M18 importer — on the screen or through the CLI — so there is one import path and not a
+  second "restore" mechanism to keep correct.
 - Backup and restore both work with no server, which is the mode they exist for (ADR-008/ADR-009).
 
 **Negative / accepted costs**
-- A backup file cannot be posted to the server's import endpoints; `docs/backup.md` says so explicitly rather than
-  leaving it to be discovered.
 - The file is a data backup, not a device image: unused master items, images, tags and dependencies stay behind.
 - Per-document matching is more work than matching once, and it is the behaviour a test has to pin — matching up front
   would create one copy of a shared item per mention.
@@ -119,15 +116,13 @@ groups afresh.
 - The follow sections make a **restore** correct, not a cross-instance clone (FR-18.4/FR-18.5).
 
 **Neutral**
-- The server keeps its single-document contract, so nothing about cross-instance sharing of one template changes
-  (FR-18.1).
+- A single-document file is still a valid portable file, so nothing about cross-instance sharing of one template
+  changes (FR-18.1).
 - The file is written as `application/yaml` (RFC 9512) with a `.yaml` extension, and M18's picker also accepts the
   plain-text types a mobile file manager hands a YAML file back as — what decides the media type here is whether the
   round trip works on the device, not correctness in the abstract.
 
 ## Revisit Trigger
 
-Either of: (a) a restore has to carry something the portable shape cannot express — item images, tag assignments or
-dependencies — at which point a container format is back on the table and Option C is the starting point; or (b)
-`/api/v1/*/import` gains a multi-document mode, which would make `curl`-based restore possible and reopen where the
-restore path should live.
+A restore has to carry something the portable shape cannot express — item images, tag assignments or dependencies —
+at which point a container format is back on the table and Option C is the starting point.

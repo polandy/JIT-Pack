@@ -190,8 +190,8 @@ const onSettings = computed(() => route.path === PATH.settings)
  * navigation, which is what the outlet needs — a redirect aborts the push
  * Ionic's `router-link` had already staged, Ionic keeps the staged params,
  * and from two pages deep the outlet then hides the wrong one (ADR-049
- * amendment 1 records the reading; the log entry of 2026-09-13 records the
- * measurement). The guard stays for the entry points that navigate
+ * records the opaque page plane that shows it; the log entry of 2026-09-13
+ * records the measurement). The guard stays for the entry points that navigate
  * programmatically; this is the one `router-link` into a stamped route.
  *
  * An unmatched path is no origin, which is the guard's own rule: `‹` would

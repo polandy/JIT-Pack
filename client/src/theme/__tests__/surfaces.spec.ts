@@ -175,7 +175,7 @@ describe('the controls Material would shape are told once (ADR-049)', () => {
   })
 
   /*
-   * ADR-049 amendment 1. The plane is painted twice on purpose — on
+   * ADR-049. The plane is painted twice on purpose — on
    * `ion-app` and on the page: a transparent page cannot occlude the one it
    * is replacing, so the whole of the screen being left would stay legible
    * through every transition.
