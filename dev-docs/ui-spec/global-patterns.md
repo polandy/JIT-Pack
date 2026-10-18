@@ -233,7 +233,7 @@ These patterns apply to every screen and are specified once.
   there, from the same `meta.tripView` the row comes from, so the screens decide nothing in either shape and a view
   cannot be named differently in the two. The row is laid out for the Pixel 9 Pro's 410 CSS px (ADR-051); six pills fill
   it, and where they do not fit — a narrower phone, a longer word, a seventh pill while standing on one of the ⋮'s views
-  — **the row scrolls sideways, with the pill you stand on scrolled to its centre** (amendments 4 and 5; E2E-G12-07
+  — **the row scrolls sideways, with the pill you stand on scrolled to its centre** (ADR-051; E2E-G12-07
   measures both shapes), as near as the row's ends allow. **A 24 px fade marks each side that holds more pills**, and
   a swipe rests on a whole pill (`scroll-snap-type: x proximity`), so a glyph is never cut at a hard edge — G-13's
   sideways-row rule, which every scrolling row of chips shares. **The notes'
