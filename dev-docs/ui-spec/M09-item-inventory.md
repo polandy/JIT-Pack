@@ -55,7 +55,7 @@
   names what the cap held back. All three raise the same snackbar with one **Rückgängig**, and a link's result sentence
   names what it skipped. A batch that writes **nothing** — every item already named that person, or every edge already
   there or circular — is a plain toast instead, with no *Rückgängig* to offer, and the selection stays armed so the
-  choice can be made again. **M9 selects the way M6 and M25 do** (ADR-075, amended): a **hold** on a row (500 ms, or a
+  choice can be made again. **M9 selects the way M6 and M25 do** (ADR-075): a **hold** on a row (500 ms, or a
   right-click) starts the mode with that row picked; a tap opens the item outside the mode
   and picks the row inside it — the whole row is the surface, since M9 has no grip to share it with. The row navigates
   in code rather than through a router link, so the release that ends a hold never opens M10. The bars, the box and the
@@ -114,7 +114,7 @@
   one chosen, leaving the list whole — filtering takes rows away, jumping does not. It is offered only where it is a
   question: in the grouped order, outside a search, with more than one group. The scroll waits for the sheet to have
   dismissed, because an overlay locks the scroll host while it is up.
-  **The heading is drawn by `ListGroup`** (ADR-075, amended), M6's and M25's heading, so the three
+  **The heading is drawn by `ListGroup`** (ADR-075), M6's and M25's heading, so the three
   lists look alike: the row divider with the tag's mark before the name. M9 switches on the three extras only it needs —
   the group's **count** at the trailing edge, the heading **sticking under the tool bar** (`--list-group-top`, the
   measured bar height) and the **jump** (a chevron in the accent colour; the whole heading is the control). The groups

@@ -10,7 +10,11 @@ for what it says and asked that the phase be shown in the date line instead. Tak
 second half empty, and he asked for it to carry what is still owed — the trip's tasks and its shopping — with the count,
 the next entries, an add field and a check-off in each, folding, and a link into the full screen. Two standing rulings
 sit in the way: M1 *reports, takes no actions* (FR-7.4, 2026-09-18), with one named exception for the shopping card
-(FR-30.7), and the hero is one link (`RouterLink`), which a control cannot be nested in.
+(FR-30.7), and the hero is one link (`RouterLink`), which a control cannot be nested in. A second question is what moves
+the hero on at all: a family that never taps *Packen abschliessen* — the common case, since a bag is never quite
+finished — would otherwise open M1 on day three of fifteen to a packing ring and the word *Packen*, a separate
+*Aufgaben* card above it, and the day's plan, its meals and the village shopping below it: an order for the week before
+the trip, held for the whole stay (UX-review item UX-02).
 
 **Decision Drivers (in priority order):**
 1. **What is owed is done where it is seen.** The dashboard is opened to tick something off or to write something down,
@@ -25,7 +29,7 @@ sit in the way: M1 *reports, takes no actions* (FR-7.4, 2026-09-18), with one na
 
 ---
 
-## Considered Options
+## Considered Options — what the hero holds
 
 ### Option A — Workable blocks inside the hero *(recommended, accepted)*
 
@@ -65,9 +69,33 @@ Lines and counts as text, tasks read-only, the shopping card unchanged under the
 - The owner saw it in the mockup and said (translated) that it looks a bit empty. A hero of a name and a date is a
   poorer dashboard than the one it replaces.
 
+## Considered Options — what moves the hero on
+
+### Option D — the stamp or the first day (`pastPacking`) *(accepted)*
+
+The hero switches once the packing is declared finished **or** the trip's first day has come. On the road the blocks
+lead with the day (*Heute*, *Heute essen*), then *Einkauf*, then *Aufgaben*; an unfinished packing becomes its figure in
+the foot control, still one tap from M4.
+
+**Pros**
+- The screen is right on the road without anyone doing anything for it.
+
+**Cons**
+- The phase word on a card below the hero can say *Vor Ort* beside a ring that is not full; both statements are true
+  once the trip has left.
+
+### Option E — the stamp only, and a nudge *(rejected)*
+
+From the first day the hero offers *Packen abschliessen?*. It makes the family do something for the screen to become
+right, and a declined nudge leaves it wrong.
+
+### Option F — a separate day card above the packing hero *(rejected)*
+
+A second hero is a second answer to what you are on.
+
 ---
 
-## Decision Matrix
+## Decision Matrix — what the hero holds
 
 | Driver | Weight | A | B | C |
 |---|---|---|---|---|
@@ -82,45 +110,29 @@ Lines and counts as text, tasks read-only, the shopping card unchanged under the
 
 ## Decision
 
-Option A. Once a trip's packing is declared finished the hero carries the phase in its date line, a day counter, and two
-blocks that are worked in place; only its head is a link. FR-7.10 has the details; FR-7.4's ruling that M1 takes no
-actions is amended to say *except the shopping card and the hero's two blocks*.
+Options A and D. Once a trip is past its packing — the packing is declared finished, or its first day has come
+(`pastPacking`) — the hero carries the phase in its date line, a day counter, and blocks that are worked in place; only
+its head is a link. On the road the day leads and an unfinished packing is its figure in the foot control. FR-7.10 has
+the details; FR-7.4's ruling that M1 takes no actions reads *except the shopping card and the hero's blocks*. A planned
+trip's shopping card on M1 has no field (FR-30.7): two composers on the start screen, one for a trip months away, would
+repeat the clutter this decision removes.
 
 ## Consequences
 
 **Positive**
 - The dashboard after the packing shows what is left to do and lets it be done.
-- The shopping block reads the list in focus (`listInFocus`) and the phase word reads the packing stamp, so each
-  says the one thing it is about.
+- The shopping block reads the list in focus (`listInFocus`) and the phase word reads where the trip stands
+  (`pastPacking`), so each says the one thing it is about.
 
 **Negative / accepted costs**
 - M1 is no longer read-only for tasks; every later dashboard feature has one exception more to argue against.
 - A fold state exists per user and block, with an open question on where it lives (FR-7.10).
 - The hero's tab order is longer than before; the Playwright cases must walk it.
+- The phase word on a card below the hero can say *Vor Ort* beside a ring that is not full. The stamp keeps its own
+  meaning for FR-7.12 (*before* closes) and for a trip whose packing is finished ahead of its first day.
 
 **Neutral**
 - No schema change and no new table; the portable backup is unaffected.
-
-## Amendment 1 — the date moves the hero on, not only the stamp (2026-10-06)
-
-**Context.** The hero switched on the packing stamp alone. A family that never taps *Packen abschliessen* — the
-common case, since a bag is never quite finished — opened M1 on day three of fifteen to a packing ring and the word
-*Packen*, a separate *Aufgaben* card above it, and the day's plan, its meals and the village shopping below it: an
-order for the week before the trip, held for the whole stay (UX-review item UX-02).
-
-**Options.**
-- *Stamp only, and nudge* — from the first day the hero offers *Packen abschliessen?*. Rejected: it makes the family
-  do something for the screen to become right, and a declined nudge leaves it wrong.
-- *A separate day card above the packing hero.* Rejected: a second hero is a second answer to what you are on.
-- *The date moves it too* (`pastPacking`: the stamp, or the first day has come) — accepted. The blocks lead with the
-  day (*Heute*, *Heute essen*), then *Einkauf*, then *Aufgaben*; an unfinished packing becomes its figure in the foot
-  control, still one tap from M4.
-
-**Cost.** The phase word on a card below the hero can now say *Vor Ort* beside a ring that is not full, which this
-ADR's Consequences had avoided; both statements are true once the trip has left. The stamp keeps its own meaning for
-FR-7.12 (*before* closes) and for a trip whose packing is finished ahead of its first day. A planned trip's shopping
-card on M1 loses its field in the same change (FR-30.7): two composers on the start screen, one for a trip months away,
-was the other half of the finding.
 
 ## Revisit Trigger
 

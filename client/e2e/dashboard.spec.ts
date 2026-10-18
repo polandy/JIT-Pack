@@ -575,7 +575,7 @@ test.describe('M1 — the shopping list on the dashboard @local @m1', () => {
 })
 
 /**
- * FR-7.10 with ADR-074 amendment 1 (UX-02): the hero moves on by the date as
+ * FR-7.10 with ADR-074 (UX-02): the hero moves on by the date as
  * well as by the stamp. On the road it works the day — *Heute* first, the
  * tasks last — and an unfinished packing is one line at its foot; a trip that
  * has not left yet keeps the packing hero. The dates are counted from the

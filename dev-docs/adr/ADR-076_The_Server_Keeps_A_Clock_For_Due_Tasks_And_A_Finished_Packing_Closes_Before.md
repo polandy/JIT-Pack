@@ -3,7 +3,8 @@
 **Status:** Accepted
 **Related:** FR-7.11, FR-7.12, FR-7.7, FR-5.10, FR-17.3, FR-6.2, NFR-4.6, FR-30.3, ADR-066, ADR-071, ADR-037,
 `internal/notify/due.go`, `internal/store/taskdue.go`, `client/src/domain/taskDue.ts`,
-`client/src/domain/closePacking.ts`, `client/src/kernel/packingClose.ts`, migration `005_task_due_date.sql`
+`client/src/domain/closePacking.ts`, `client/src/kernel/packingClose.ts`, `client/src/composables/useDueLine.ts`,
+UI-Spec M1, migration `005_task_due_date.sql`
 
 **Context.** The owner asked on 2026-09-25 for two things that FR-7.7 had deliberately left out. A task may name the
 **day** it is due, and whoever it is for is **reminded the day before and on the day**, at a time the operator sets
@@ -94,6 +95,21 @@ packing side may not import the module (FR-30.3). Every writer of a new task ask
 - A second state to keep equal to the stamp, and a refusal would wedge an offline device's outbox — the reason the
   G-3 lock stays advisory (owner, 2026-08-30). Fails driver 4 and the precedent.
 
+## Considered Options — what Local Mode shows instead
+
+With no server there is no push, so the app says what is due when it is open.
+
+- **The page head's meta line on M1** *(accepted)* — *„2 Aufgaben (1 überfällig) · 3 Einkäufe fällig"*, each count a
+  link that brings its block forward. Seen on arrival at every width and for as long as it is true. It is a fact about
+  the page, not a reminder, so it stands in all three modes beside the server's push. The purchases are every open line
+  carrying a day, a source's included, so the line agrees with the *Heute* badges on the shopping card.
+- **A toast on opening** *(rejected after it was built; UX-review item UX-15)* — *„2 Aufgaben und 1 Einkauf fällig"*,
+  once per app start, for three seconds, over the hero, with nothing to tap: a state of the trip said in the grammar
+  the app keeps for answering an act (FR-25.2 undo), repeating what the rows' pills already say.
+- **A count pill on the *Aufgaben* and *Einkaufen* block heads** *(rejected)* — at 412 px the *Aufgaben* head stands
+  some 1400 px down, so on arrival nothing would say anything; and the head is the fold's button, so the pill could
+  not lead anywhere.
+
 ---
 
 ## Decision Matrix
@@ -102,7 +118,7 @@ packing side may not import the module (FR-30.3). Every writer of a new task ask
 |---|---|---|---|---|
 | Arrives with the app closed | 5 | 5 — Web Push, as every kind | 1 — no timed notification on the web | 5 |
 | Once, not never | 4 | 5 — the claim, and a run at start-up | 2 — one per device | 3 — depends on the operator |
-| Local Mode keeps it | 3 | 3 — an in-app hint instead | 5 | 3 |
+| Local Mode keeps it | 3 | 3 — M1 says what is due instead | 5 | 3 |
 | Standard library | 2 | 5 | 5 | 4 — an endpoint to guard |
 | **Total** | | **63** | 42 | 54 |
 
@@ -118,9 +134,10 @@ packing side may not import the module (FR-30.3). Every writer of a new task ask
 ## Decision
 
 The server runs FR-7.11's reminder itself, once a day at `JITPACK_TASK_REMINDER_TIME` (default 06:00) in its own zone,
-claiming the day in `server_keys` so it is sent once and never lost to a restart; Single-User is reminded too, and
-Local Mode says *„N Aufgaben fällig"* once when the app opens. FR-7.12's lock is read off `packing_closed_at`: the
-close moves tasks and purchases across in one undoable act, and every writer of a new task asks `phaseForNewTask`.
+claiming the day in `server_keys` so it is sent once and never lost to a restart; Single-User is reminded too. Local
+Mode has no reminder: M1's page head says what is due instead, in every mode. FR-7.12's lock is read off
+`packing_closed_at`: the close moves tasks and purchases across in one undoable act, and every writer of a new task asks
+`phaseForNewTask`.
 
 ## Consequences
 
@@ -133,6 +150,7 @@ close moves tasks and purchases across in one undoable act, and every writer of 
 - A reminder sent at the claimed time is not re-sent if the process dies between the claim and the sends — the claim
   is the guarantee against twice, and *never* is accepted for that one window.
 - The lock is advisory: a device that has not heard of the close can still write into *before*.
+- M1's head line changes with the data, and *„Was beim Packen ansteht"* is shown only when nothing is due.
 - `task_due` is the one kind with no actor, so the notification vocabulary needed a second body chosen by the payload
   (*today* / *tomorrow*, ADR-037's mirror carries both).
 
@@ -145,23 +163,3 @@ close moves tasks and purchases across in one undoable act, and every writer of 
 A second server instance on one database (the claim then needs a real lease), a request for a reminder *time* per
 task rather than a day, or a web platform API that can fire a notification at a set time with the app closed (then
 Local Mode could be reminded properly).
-
-## Amendment 1 (2026-10-08) — Local Mode reads what is due on M1, as a standing line
-
-Local Mode's stand-in for the push was a toast on opening: *„2 Aufgaben und 1 Einkauf fällig"*, once per app start,
-for three seconds, over the hero, with nothing to tap. The UX review (item UX-15) found it on the seed: a state of the
-trip said in the grammar the app keeps for answering an act (FR-25.2 undo), repeating what the rows' pills already
-say, and counting only the shopping list's own entries while the card badged a meal's ingredients *Heute* too — one
-purchase named over three rows that said otherwise. Two shapes were put to the owner on a live mockup:
-
-- **The page head's meta line says it** — chosen. *„2 Aufgaben (1 überfällig) · 3 Einkäufe fällig"*, each count a
-  link that brings its block forward. Seen on arrival at every width, and for as long as it is true. In all three
-  modes: it is a fact about the page, not a reminder, so the server's push stays as decided above. The purchases are
-  every open line carrying a day, a source's included. Cost: the head's second line now changes with the data, and
-  *„Was beim Packen ansteht"* is shown only when nothing is due.
-- *A count pill on the Aufgaben and Einkaufen block heads* — rejected. At 412 px the Aufgaben head stands some
-  1400 px down, so on arrival nothing would say anything; and the head is the fold's button, so the pill could not
-  lead anywhere.
-
-The decision's sentence on Local Mode reads accordingly: it has no reminder, and M1 says what is due instead.
-
