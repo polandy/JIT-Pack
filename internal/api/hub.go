@@ -330,24 +330,14 @@ func (h *Hub) send(targets []*conn, evt WSEvent) {
 // broadcastPresence builds the presence list for a trip and sends it
 // to all subscribed connections.
 //
-// headSeq is a database read, done outside the lock below (as
-// broadcastRoster's own mayReceive calls are, for the same reason: it must
-// not hold the hub's mutex across I/O). So two calls triggered for the same
-// trip — a cursor report arriving on one connection, a subscribe or a second
-// cursor report on another — can overtake each other between snapshot and
-// send: the one invoked first can still be the one whose slower read finishes
-// last. Without a guard, that last-to-finish call wins the wire regardless of
-// which trigger was more current, so a stale "still behind" verdict can
-// overwrite the "caught up" one already delivered — the shape of the
-// E2E-G10-02 flake (run 39125844356: the caught-up frame was seen on the
-// socket, by a tracker reading every frame as it arrives, yet the facepile
-// it was meant to update never showed it, because a later-arriving, earlier
-// in flight call had re-sent the older answer over it).
-//
-// Each snapshot therefore carries a per-trip generation, numbered at the
-// point it is taken rather than when it is sent, and a peer is never queued
-// one older than it already holds — the same fix broadcastRoster already
-// carries for its own version of this race.
+// headSeq is a database read taken outside the lock below, for the same
+// reason broadcastRoster's own queries are: the hub's mutex must not hold
+// across I/O. Two calls for the same trip can therefore overtake each other
+// between snapshot and send — the one invoked first can still be the one
+// whose read finishes last, so a stale verdict can overwrite a fresher one
+// already delivered. Each snapshot therefore carries a per-trip generation,
+// taken at the point the read is triggered rather than when it completes,
+// and a peer is never queued one older than it already holds.
 func (h *Hub) broadcastPresence(tripID string) {
 	// One authorised set answers both halves: who is listed, and who is
 	// told. A revoked member is neither.

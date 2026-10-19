@@ -287,16 +287,12 @@ func TestHub_Presence_NamesTheHeadInSyncWasJudgedAgainst(t *testing.T) {
 }
 
 // TestHub_Presence_AnOlderSnapshotNeverArrivesLast_FR4_6 is the presence
-// twin of the roster race (`TestHub_Roster_AnOlderSnapshotNeverArrivesLast_FR4_9`
+// twin of the roster race (TestHub_Roster_AnOlderSnapshotNeverArrivesLast_FR4_9
 // below): headSeq is a database read taken outside the lock, so a call
-// triggered first can still be the one whose slower read finishes last. Run
-// 39125844356 is this race's shape in the wild (TODO.md, E2E-G10-02): a
-// tracker reading every frame off the wire saw the all-caught-up presence
-// frame arrive, but the facepile it was meant to update never showed it — a
-// stale "still behind" verdict, invoked earlier but computed slower,
-// overwrote it on arrival. Without the generation guard in broadcastPresence
-// this case fails by observing exactly that: alice ends up holding the
-// earlier, stale verdict even though the later one reached the wire first.
+// triggered first can still be the one whose slower read finishes last.
+// Without the generation guard in broadcastPresence this case fails by
+// observing exactly that: alice ends up holding the earlier, stale verdict
+// even though the later one reached the wire first.
 func TestHub_Presence_AnOlderSnapshotNeverArrivesLast_FR4_6(t *testing.T) {
 	var head atomic.Int64
 	head.Store(5)
