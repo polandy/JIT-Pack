@@ -1,7 +1,7 @@
 # ADR-100: The write path is a port chosen once, and a view asks for a capability
 
 **Status:** Accepted
-**Related:** ADR-006, ADR-096, ADR-098, FR-19.1/19.2, FR-19.3, G-8, CLAUDE.md invariant 5, ARCH-14/14b
+**Related:** ADR-002, ADR-006, ADR-096, ADR-098, FR-19.1/19.2, FR-19.3, G-8, CLAUDE.md invariant 5, ARCH-14/14b/14c
 
 **Decision Drivers (in priority order):**
 1. Invariant 5 answered once: every feature owes "what happens in Single-User and in Local?", and the answer
@@ -20,6 +20,13 @@ The orchestrator builds `createLocalBackend` (IndexedDB save and load, no outbox
 `drainTrip`, `whenSent`, `tripDataLoaded`, …). Views and `App.vue` ask `capabilitiesOf(mode).activityLog` and its seven
 siblings instead of comparing the mode.
 
+The bytes outside the envelope — item photos, idea pictures and GPX files (ADR-002) — are not among its verbs, which
+are the envelope's: a blob verb there would put the bytes back on the path they were kept off. They get a sibling,
+`app/blobBackend.ts`, which picks a Local or a Server factory per group once (`createLocal*`/`createServer*` in
+`images.ts`, `ideaImages.ts`, `trackFiles.ts`), behind `ImageActions`, `IdeaPictures` and `TrackFiles`. It chooses
+whole write paths, not a primitive store: the row write differs per mode too (a funnel change with a local hash
+against an upload and a drain), so a port of `put`/`get` would only have moved the guards.
+
 **Pros**
 - About twenty `if (local)` guards in the orchestrator became one selection; Local's side is a file that can be
   read as "does nothing" and is tested as such.
@@ -29,6 +36,7 @@ siblings instead of comparing the mode.
 - A sixteen-method port, and two files carrying code that used to sit in one. Roughly 300 lines moved out of the facade.
 - Eight flags for two modes: today every server flag is `true` together. The names pay off only when a surface splits
   from its siblings (Single-User already does, through `hasCollaborativeSession`, which stays a separate question).
+- A second selection beside the port, one factory pair per blob group.
 - The REST-only action groups are still chosen by one `local ?` (the null-object bundle) because they need the client,
   which both modes build.
 
@@ -63,7 +71,8 @@ siblings instead of comparing the mode.
 
 ## Decision
 
-The write path is the `SyncBackend` port, selected once by the orchestrator; a screen reads `capabilitiesOf(mode)`.
+The write path is the `SyncBackend` port, selected once by the orchestrator, and the bytes' write paths are
+`app/blobBackend.ts`'s factories, selected once per group; a screen reads `capabilitiesOf(mode)`.
 `isServerMode`/`isLocalMode` remain for composition (which backend, which token refresher) and the route guard.
 
 ## Consequences
@@ -76,15 +85,6 @@ The write path is the `SyncBackend` port, selected once by the orchestrator; a s
 
 **Neutral**
 - Single-User Mode is the server backend with no tokens, as before.
-
-## Addendum — the bytes outside the envelope (ARCH-14c)
-
-Item photos, idea pictures and GPX files (ADR-002) are not in `SyncBackend`: its verbs are the envelope's, and a
-blob verb there would put the bytes back on the path they were kept off. They get a sibling, `app/blobBackend.ts`,
-which picks a Local or a Server factory per group once (`createLocal*`/`createServer*` in `images.ts`,
-`ideaImages.ts`, `trackFiles.ts`), behind the existing `ImageActions`, `IdeaPictures` and `TrackFiles`. A primitive
-store port was rejected: the row write (a funnel change with a local hash against an upload and a drain) differs per
-mode too, so the guards would only have moved. No behaviour changes.
 
 ## Revisit Trigger
 

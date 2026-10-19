@@ -1,8 +1,8 @@
 # ADR-097: A kernel area shares rows with packing — excursions stay kernel, and the rules both sides read get a folder
 
 **Status:** Accepted
-**Related:** ARCH-19, ARCH-26, ADR-066 (feature modules), ADR-071 (tasks stay kernel), ADR-077 (excursions), ADR-096
-(the layers), ADR-008 (one of each rule), `client/CLAUDE.md`, `dev-docs/CODING_PRINCIPLES.md` §3,
+**Related:** ARCH-19, ARCH-22, ARCH-26, ARCH-26b, ADR-066 (feature modules), ADR-071 (tasks stay kernel), ADR-077
+(excursions), ADR-096 (the layers), ADR-008 (one of each rule), `client/CLAUDE.md`, `dev-docs/CODING_PRINCIPLES.md` §3,
 `scripts/domain-purity-gate.mjs`, `scripts/module-boundary-gate.mjs`
 
 **Decision Drivers (in priority order):**
@@ -27,19 +27,22 @@ read `domain/` one allowlisted file at a time.
 
 ### Option A — Excursions are a kernel area, with a home inside the kernel *(recommended, accepted)*
 
-The criterion is written down: **a kernel area shares rows with packing; a feature module meets the kernel only
-through contracts.** Excursions fail the module test at every step. A line borrows a suitcase row (`trip_item_id`), and
-planning it raises or creates that row (`planLinks`); M4 shows which excursions borrow a row (`borrowersByTripItem`);
-the excursion screen *is* M4's list — its lines read as `TripItem`s through `excursionLineAsRow` into
-`buildPackingView`, `PackingRow` and the browse sheet; a line bought on the spot joins the packing list or the
-inventory; the list is saved as a Gruppe. The code moves into the places its name points to: `views/trips/excursion/`
-beside the two pages, modelled on `views/trips/packing/`, and `domain/excursions.ts` (~40 exports) split by concern
-into `excursionLines.ts`, `excursionSuitcase.ts` and `excursionSchedule.ts`.
+The criterion is written down: **a kernel area shares rows with packing; a feature module meets the kernel only through
+contracts.** Excursions fail the module test at every step. A line borrows a suitcase row (`trip_item_id`), and planning
+it raises or creates that row (`planLinks`); M4 shows which excursions borrow a row (`borrowersByTripItem`); the
+excursion screen *is* M4's list — `buildPackingView`, `RowPort`, M4's row slices, `PackingGroupList`, `PackingRow` and
+the row menu are generic over `PackableRow` (`domain/packingView.ts`), what a trip item and a line both carry: name,
+count, state, mode, the person it is for, with the suitcase's own facts (luggage, the departure-day, missing and unused
+flags, assignment, packing record) optional and read as none where absent; a line bought on the spot joins the packing
+list or the inventory; the list is saved as a Gruppe. The code moves into the places its name points to:
+`views/trips/excursion/` beside the two pages, modelled on `views/trips/packing/`, and `domain/excursions.ts` (~40
+exports) split by concern into `excursionLines.ts`, `excursionSuitcase.ts` and `excursionSchedule.ts`.
 
 **Pros**
 - No contract invented to carry a foreign key across a boundary — ADR-071's argument, which holds here for the same
   reason.
-- The excursion screen keeps reusing M4's view model and row unchanged.
+- The excursion screen reuses M4's view model and row by port: M4 reads its `TripItem`s and M27 its lines, neither
+  disguised as the other.
 
 **Cons**
 - The kernel stays the larger side, and an excursion change can still touch packing code without a gate noticing.
@@ -116,8 +119,15 @@ itself and the vocabulary (`types/`, `api/`), so it never leads on into packing'
 
 ## Decision
 
-Option A with Option 1. `client/CLAUDE.md` carries the criterion beside the layer order; the tasks are a kernel area by
-the same rule (ADR-071), their physical home a later step.
+Option A with Option 1. `client/CLAUDE.md` carries the criterion beside the layer order.
+
+The tasks are a kernel area by the same rule (ADR-071) and are placed as the excursions are: M25's parts — the
+composer, the phase section, the list, the sheet, the tag chooser, the item chip, M1's figure and overview — live in
+`views/trips/tasks/` beside `TripTasksPage.vue`, and M4 and M1 import them from there, as they import an excursion's
+sheet. What stays elsewhere stays by the same rule: M4's own slices of the list (`packing/TripTasksSection.vue`,
+`usePackingTasks.ts`) are packing's, `useTripTasks`/`useTaskActs` serve three screens from `composables/`,
+`lib/taskDueText.ts` is read by every module, and the rules keep their `domain/task*.ts` names
+(`dev-docs/glossary.md`).
 
 ## Consequences
 
@@ -131,29 +141,11 @@ the same rule (ADR-071), their physical home a later step.
 - `TripExcursionPage.vue` is still the largest file in the client; splitting it into slices like M4's is its own step.
 
 **Neutral**
-- The pages stay in `views/trips/`, their parts beside them in `excursion/`, as `PackingListPage.vue` and `packing/`.
+- The pages stay in `views/trips/`, their parts beside them in `excursion/` and `tasks/`, as `PackingListPage.vue` and
+  `packing/`.
+- The facet arithmetic the packing view filters with lives beside it in `domain/packingFacets.ts`.
 
 ## Revisit Trigger
 
 A feature that shares no rows with packing yet is placed in the kernel; a kernel area whose couplings to packing all
 turn out to be one contract; or a file in `domain/shared/` that needs a rule from the rest of `domain/`.
-
-## Amendment, 2026-10-09: the tasks get their folder (ARCH-26b)
-
-The tasks' later step is taken as the excursions' was: M25's parts — the composer, the phase section, the list, the
-sheet, the tag chooser, the item chip, M1's figure and overview — move from `components/trips/` into
-`views/trips/tasks/` beside `TripTasksPage.vue`. M4 and M1 import them from there, as they import an excursion's sheet.
-What stays put stays by the same rule: M4's own slices of the list (`packing/TripTasksSection.vue`,
-`usePackingTasks.ts`) are packing's, `useTripTasks`/`useTaskActs` serve three screens from `composables/`,
-`lib/taskDueText.ts` is read by every module, and the rules keep their `domain/task*.ts` names — `tripTasks.ts`
-among them, which took its name from ARCH-27's glossary (`dev-docs/glossary.md`).
-
-## Amendment, 2026-10-09: a line is M4's row by port, not by disguise (ARCH-22)
-
-The excursion screen still *is* M4's list, but a line no longer reads as a `TripItem`. `domain/packingView.ts` names
-the row it reads, `PackableRow`: what a trip item and a line both carry — name, count, state, mode, the person it is
-for — with the suitcase's own facts (luggage, the departure-day, missing and unused flags, assignment, packing record)
-optional and read as none where absent. `buildPackingView`, `RowPort`, M4's row slices, `PackingGroupList`,
-`PackingRow` and the row menu are generic over it, so M4 gets its `TripItem`s back and M27 its lines; the 24-field
-`excursionLineAsRow` and the `lineOf` lookup behind every row event are gone. The facet arithmetic the view filters
-with moved beside it into `domain/packingFacets.ts`.
