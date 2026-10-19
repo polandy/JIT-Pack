@@ -53,7 +53,7 @@ import {
 } from '@/domain/excursionSuitcase'
 import type { BrowseDecision } from '@/domain/browseRows'
 import type { IdeaPlanWrites } from '@/domain/shared/ideaBridge'
-import { beforeIsOver, standingOf } from '@/domain/shared/tripPhase'
+import { beforeIsOverFor } from '@/domain/shared/tripPhase'
 
 /** What creating an excursion did, for the screen's one undo. */
 export interface ExcursionCreation {
@@ -109,7 +109,7 @@ export function createExcursionActions(
   /** Whether the suitcase still takes things (FR-31.7) — *before* is not over. */
   function suitcaseOpen(tripId: string): boolean {
     const trip = tripStore.getTrip(tripId)
-    return trip !== undefined && !beforeIsOver(standingOf(trip), today())
+    return trip !== undefined && !beforeIsOverFor(trip, today())
   }
 
   function participants(tripId: string, excursionId: string) {

@@ -33,7 +33,7 @@ import { EXCURSION_EXTRA_LINES, extraLinesOf, withExtraUnits } from '@/kernel/ex
 import { excursionDays } from '@/lib/excursionText'
 import { tracksSummary } from '@/lib/trackFormat'
 import { presentToast } from '@/composables/shared/toast'
-import { beforeIsOver, standingOf } from '@/domain/shared/tripPhase'
+import { beforeIsOverFor } from '@/domain/shared/tripPhase'
 import type { IdeaSeed } from '@/domain/shared/ideaBridge'
 import { ORIGIN_QUERY_PARAM, tripExcursionsPath } from '@/router/paths'
 import { useTripStore } from '@/stores/tripStore'
@@ -62,7 +62,7 @@ const empty = computed(
 const pastOpen = ref(false)
 
 const suitcaseOpen = computed(
-  () => trip.value !== undefined && !beforeIsOver(standingOf(trip.value), orchestrator.today()),
+  () => trip.value !== undefined && !beforeIsOverFor(trip.value, orchestrator.today()),
 )
 
 /** The row's second line: who goes, where it is not everybody. */

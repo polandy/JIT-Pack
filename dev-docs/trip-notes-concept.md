@@ -55,7 +55,7 @@ The recommended variant was taken everywhere except question 2.
 
 | # | Question | Decided | Alternatives, and what they cost |
 |---|---|---|---|
-| 1 | Where the notes live | **A — a second segment inside M25**, carrying the count of new notes | B, a fourth pill, reopens the pill-row measurement ADR-051 amendment 1 closed at three words; C, a card above the packing list, competes with the list being worked |
+| 1 | Where the notes live | **A — a second segment inside M25**, carrying the count of new notes | B, a fourth pill, reopens the pill-row measurement ADR-051 closed at three words; C, a card above the packing list, competes with the list being worked |
 | 2 | Tick on M1 | **B — yes, the card carries the tick** | A (report only) held FR-7.4's ruling; the tick is taken because *„gesehen"* is exactly what one says at the dashboard. The FR-7.4 ruling was made against an empty composer standing above every dashboard, which a tick is not |
 | 3 | Who sees who ticked | **Everyone, in the note's sheet only** | Not in the list: a line per note about others' ticks makes the list a read-receipt board |
 | 4 | Own notes | **Never new, no tick** | A tick on my own note would say nothing |

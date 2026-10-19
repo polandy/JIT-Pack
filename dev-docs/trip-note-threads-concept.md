@@ -1,7 +1,7 @@
 # Concept — trip notes become threads: a titled note, one level of replies, its participants told
 
 **Status:** **every question decided, the recommendation everywhere; built in two PRs** — the trip-view switcher on
-icons (ADR-051 amendment 3, #601), then the threads as **FR-7.13** in PRD Addendum §3.7a, with notes as a view of
+icons (ADR-051, #601), then the threads as **FR-7.13** in PRD Addendum §3.7a, with notes as a view of
 their own (**M26**). The FR and UI-Spec M26 are authoritative. This file is the reasoning: where §1–§4 describe M25's
 segment or replies newest first, §7a (question 6) and §7b (the UX rework) decide otherwise — a thread has its own
 view, read top to bottom. The reader's own latest entry counts as read (§3's *"replying is not ticking"*, made a
@@ -141,14 +141,14 @@ Negative is overflow:
 **Reading:** in German a fourth pill fits only on a large phone; at 390 px it fits only while no note is new — the
 moment the pill has something to say, it is cut off. The row scrolls rather than clips, so nothing breaks, but the
 view that is new is the one that disappears. A side finding: **today's three-pill row already overflows at 390 px
-while standing on *Auswertung* or *Gepäck*** — ADR-051 amendment 1's 286 px measurement was made with a one-digit
+while standing on *Auswertung* or *Gepäck*** — ADR-051's 286 px measurement was made with a one-digit
 shopping count and before *Aufgaben* joined the row. Recommendation after the render: **keep the segment**, and give
 it what the own view would have bought — push and M1 open M25 on the notes segment and the thread expanded, and the
 *Aufgaben* pill does not count notes. A shorter pill word (the count as a badge, not *„(12)"*) would change every
 pill and is its own decision.
 
 **Icons instead of words.** Rendered as a third variant: the current view keeps
-icon and word (the row must still say where you are — ADR-051 amendment 1), every other view is its Ionicon at
+icon and word (the row must still say where you are — ADR-051), every other view is its Ionicon at
 `--jp-icon-md` with its count as a badge (the notes' badge in the *neu* colour, the others grey), and the name appears
 in a bubble on a long press (on hover with a mouse). Measured the same way:
 

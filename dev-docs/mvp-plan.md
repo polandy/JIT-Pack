@@ -293,8 +293,8 @@ log reachable from inside a trip), while `/tabs/settings` declares the single st
 
 Whichever is chosen: a case in `client/e2e/global-nav.spec.ts` (the working agreement makes the
 global patterns binding — they were made binding *by* four navigation defects found by hand),
-the §7 table updated, an ADR-011 amendment, and the `ROOT_PATHS` contradiction resolved rather
-than left standing.
+the §7 table updated, ADR-011 updated with the chosen shape, and the `ROOT_PATHS` contradiction
+resolved rather than left standing.
 
 ### Track H — Dogfood deployment *(sequential, owner-driven, after A–D merge)* — **✅ DONE**
 
@@ -369,7 +369,7 @@ with no dependencies), then C, with E/F/G filling in.
 5. Track A step 3: hand-rolled SW vs `vite-plugin-pwa` — the ADR will present it, but a prior leaning saves a
    round-trip.
 6. ~~**Track I shape**~~ — **built as A**: a global action carries its origin, stamped by the router rather
-   than by each link. B (Settings as an overlay) was weighed and lost in the ADR-011 amendment: it fixes Settings and
+   than by each link. B (Settings as an overlay) was weighed and lost in ADR-011: it fixes Settings and
    does nothing for the two import flows, which were half the defect. Say so if you want B instead — the branch is one
    guard and one branch in `backTarget`.
 7. ~~**Track J shape**~~ — **decided**: own screen from M4's cluster (M22). Merged as `443327d`.

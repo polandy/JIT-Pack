@@ -85,7 +85,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { pickAssignee as pickAssigneeFrom } from '@/composables/shared/pickAssignee'
-import { beforeIsOver, isPackingClosed, standingOf } from '@/domain/shared/tripPhase'
+import { beforeIsOverFor, isPackingClosed } from '@/domain/shared/tripPhase'
 import {
   TASK_PHASE_BEFORE,
   TASK_PHASE_DURING,
@@ -155,7 +155,7 @@ const tripStart = computed(() => trip.value?.start_date ?? null)
  * for the road, and no task is moved in. What already stands there stays, is
  * ticked and can go to the road. M6 asks the same rule (`domain/shared/tripPhase`).
  */
-const forTheRoad = computed(() => !!trip.value && beforeIsOver(standingOf(trip.value), today.value))
+const forTheRoad = computed(() => beforeIsOverFor(trip.value, today.value))
 
 /**
  * FR-7.14: the board — what is pressing on top, across both phases and every
