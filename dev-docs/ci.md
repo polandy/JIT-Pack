@@ -55,3 +55,31 @@ or deletion, linear history, admins not exempt, no review approvals required. `e
 wedges: `gh api -X DELETE repos/polandy/JIT-Pack/branches/main/protection`, merge, re-apply.
 
 The CI `format` job *checks* gofmt and prettier (ADR-040): run `make fmt` before pushing if `make ci` complains.
+
+## `docker-build` authenticates to public ECR
+
+The Dockerfile's three base images are pulled from `public.ecr.aws`, which throttles anonymous pulls per shared
+runner IP; a job that pulls on every push/PR exhausts that pool and goes red with a 429 (ADR-102). Both
+`docker-build` (`ci.yml`) and the release build (`docker.yml`) authenticate first, via
+`aws-actions/configure-aws-credentials` and GitHub's OIDC token — no stored AWS key.
+
+**One-time AWS-side setup** (the repo owner's AWS account; nothing here runs in CI until this exists):
+
+1. Create an IAM OIDC identity provider for `https://token.actions.githubusercontent.com` (audience
+   `sts.amazonaws.com`), unless the account already has one.
+2. Create an IAM role (e.g. `jitpack-ci-ecr-public`) whose trust policy allows
+   `sts:AssumeRoleWithWebIdentity` from that provider, conditioned on
+   `token.actions.githubusercontent.com:sub` equal to `repo:polandy/JIT-Pack:*` — scoped to this repository only.
+3. Attach a policy granting that role `ecr-public:GetAuthorizationToken` and `sts:GetServiceBearerToken` (both
+   needed by `aws ecr-public get-login-password`), and nothing else.
+4. In the repo's Settings → Secrets and variables → Actions → **Variables**, add `AWS_ECR_PUBLIC_ROLE_ARN` with
+   that role's ARN. It is a repo *variable*, not a secret — the ARN grants nothing by itself, only the trust
+   policy above does.
+
+Both steps carry `if: vars.AWS_ECR_PUBLIC_ROLE_ARN != ''`: until that variable is set, they are skipped and the
+pull stays anonymous, exactly as it is today — a release tag pushed before the owner's AWS setup still builds,
+it just keeps the 429 risk this change exists to remove. The rate-limit fix only takes effect once the variable
+is set; an unset variable is a silent no-op, not a failure, and not a regression from today's behaviour.
+
+`aws-region` is hardcoded to `us-east-1` in both workflows: Amazon ECR Public is a single-region service, so this
+is a fact about AWS, not a per-deployment setting.

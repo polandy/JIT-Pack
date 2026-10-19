@@ -19,12 +19,35 @@ jobs:
     permissions:
       contents: read
       packages: write
+      # Federates to AWS without a stored secret (ADR-102): the OIDC token
+      # this grants is what configure-aws-credentials exchanges for the role.
+      id-token: write
 
     # One release publishes one image: since ADR-043 the root Dockerfile
     # builds the client and the backend into a single container that serves
     # both on one origin. Its base images are pinned by digest (invariant 8).
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # public.ecr.aws throttles anonymous pulls per shared runner IP (429
+      # "Data limit exceeded", ADR-102); an authenticated pull gets its own
+      # quota. The role trusts only this repo's OIDC token — see
+      # dev-docs/ci.md for the AWS-side setup. Until the repo variable
+      # exists, both steps are skipped and the pull stays anonymous (today's
+      # behaviour), so a release tag pushed before that setup is not
+      # hard-blocked.
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        if: vars.AWS_ECR_PUBLIC_ROLE_ARN != ''
+        with:
+          role-to-assume: ${{ vars.AWS_ECR_PUBLIC_ROLE_ARN }}
+          # Amazon ECR Public is a single-region service; this is a fact
+          # about AWS, not a per-deployment setting, so it is not a variable.
+          aws-region: us-east-1
+      - name: Log in to public ECR
+        if: vars.AWS_ECR_PUBLIC_ROLE_ARN != ''
+        run: |
+          aws ecr-public get-login-password --region us-east-1 \
+            | docker login --username AWS --password-stdin public.ecr.aws
 
       - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
