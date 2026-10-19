@@ -475,11 +475,34 @@ jobs:
   # serves the client from the same origin.
   docker-build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Federates to AWS without a stored secret (ADR-102): the OIDC token
+      # this grants is what configure-aws-credentials exchanges for the role.
+      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # Before building: a build-image major bumped on its own would pass both
       # builds and ship a bundle no other job ever compiled (see the script).
       - run: ./scripts/toolchain-pins-gate.sh
+      # public.ecr.aws throttles anonymous pulls per shared runner IP (429
+      # "Data limit exceeded", ADR-102); an authenticated pull gets its own
+      # quota. The role trusts only this repo's OIDC token — see the PR
+      # description / dev-docs/ci.md for the AWS-side setup. Until the repo
+      # variable exists, both steps are skipped and the pull stays anonymous
+      # (today's behaviour) rather than hard-failing on a missing role.
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        if: vars.AWS_ECR_PUBLIC_ROLE_ARN != ''
+        with:
+          role-to-assume: ${{ vars.AWS_ECR_PUBLIC_ROLE_ARN }}
+          # Amazon ECR Public is a single-region service; this is a fact
+          # about AWS, not a per-deployment setting, so it is not a variable.
+          aws-region: us-east-1
+      - name: Log in to public ECR
+        if: vars.AWS_ECR_PUBLIC_ROLE_ARN != ''
+        run: |
+          aws ecr-public get-login-password --region us-east-1 \
+            | docker login --username AWS --password-stdin public.ecr.aws
       - run: docker build -t jitpack-ci .
       # A built image is not a served app: since ADR-043 the same container
       # answers the API and the client, and the one mistake that ships that
