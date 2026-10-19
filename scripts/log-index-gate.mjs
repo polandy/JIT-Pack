@@ -177,8 +177,13 @@ const STATUS_LINE = '**Status:** '
 /** The whole status vocabulary: a decision holds, or a named later one replaced it. */
 const STATUS = /^(Accepted|Superseded by (ADR-\d{3}))$/
 
-/** A heading, or a line opening in bold, that appends a change instead of rewriting the decision. */
-const APPENDED_SECTION = /^#+ .*(Amend|Addend)|^\*\*(Amend|Addend)/
+/**
+ * A heading, or a label opening any line — indented, bulleted or bold — that
+ * appends a change instead of rewriting the decision. The label ends in a
+ * colon, so a wrapped line that cites the PRD's "Addendum 3.21" stays prose.
+ */
+const APPENDED_SECTION =
+  /^#+ .*(Amend|Addend)|^\*\*(Amend|Addend)|^\s*(?:[-*]\s+)?\**(?:Amend|Addend)\w*(?: \d+)?(?: \([^)]*\))?\**:/
 
 /**
  * Checks the ADRs' statuses against the vocabulary and against the README's

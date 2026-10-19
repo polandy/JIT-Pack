@@ -89,9 +89,8 @@ a feature module (`ModuleHost.write`) and the seam double bind it to their store
 - A fixture row a spec passes to an action has to be in the store, or the write is dropped.
 
 **Neutral**
-- The action groups keep their `tripId` parameters; the facade's signatures did not change.
-  Amendment (ARCH-12b): the parameters that only forwarded `tripId` without using it were dropped; a parameter
-  the body still reads — a store lookup, a row's `trip_id` on insert — stayed.
+- An action takes a `tripId` only where its body reads it — a store lookup, a row's `trip_id` on insert; a
+  parameter that only forwarded it to the write is gone, since the paint finds the row by its key.
 
 ## Revisit Trigger
 
