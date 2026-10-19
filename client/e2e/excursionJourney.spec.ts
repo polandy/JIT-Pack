@@ -13,7 +13,7 @@ import {
   typeStop,
   wayByHand,
 } from './planner/helpers/m29'
-import { writesLanded } from './helpers/page'
+import { pageSettled, writesLanded } from './helpers/page'
 import { stubTimetable } from './planner/helpers/timetable'
 
 /**
@@ -95,6 +95,11 @@ test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m2
     await expect(undated.getByTestId('m27-journey-out')).toHaveCount(0)
 
     await page.goBack()
+    // The outlet still paints the excursion's own page a moment after the
+    // back navigation lands — the same race `pageSettled` was written for on
+    // M6's `‹ back` (its own doc comment): the FAB `createExcursion` clicks
+    // next sits behind the leaving page until the outlet settles to one.
+    await pageSettled(page)
     await expect(visiblePage(page).getByTestId('m27-page')).toBeVisible()
     const m27 = await createExcursion(page, {
       name: 'Oeschinensee',
@@ -149,6 +154,7 @@ test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m2
     await expect(slot(page, 'out')).toHaveCount(0)
 
     await page.goBack()
+    await pageSettled(page)
     const list = visiblePage(page)
     await expect(list.getByTestId('m27-page')).toBeVisible()
     await expect(list.getByTestId('m27-journey-line-Oeschinensee')).toHaveText(
