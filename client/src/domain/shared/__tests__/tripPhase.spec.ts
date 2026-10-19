@@ -9,7 +9,14 @@
  */
 import { describe, it, expect } from 'vitest'
 
-import { beforeIsOver, hasDeparted, isPackingClosed, pastPacking, standingOf } from '../tripPhase'
+import {
+  beforeIsOver,
+  hasDeparted,
+  isPackingClosed,
+  isUnderWay,
+  pastPacking,
+  standingOf,
+} from '../tripPhase'
 
 describe('isPackingClosed', () => {
   it('is the stamp, not a reading of the rows', () => {
@@ -63,6 +70,19 @@ describe('beforeIsOver', () => {
     expect(
       standingOf({ status: 'planning', start_date: '2026-10-12', packing_closed_at: null }),
     ).toEqual({ planned: true, packingClosed: false, startDate: '2026-10-12' })
+  })
+})
+
+describe('isUnderWay (FR-30.8): beforeIsOver read off a trip row', () => {
+  it('answers no for a trip that is not on the device', () => {
+    expect(isUnderWay(undefined, '2026-10-10')).toBe(false)
+  })
+
+  it('reads the row it is given', () => {
+    const row = { status: 'planning', start_date: '2026-10-12', packing_closed_at: null }
+    expect(isUnderWay(row, '2026-10-10')).toBe(false)
+    expect(isUnderWay({ ...row, status: 'active' }, '2026-10-10')).toBe(true)
+    expect(isUnderWay(row, '2026-10-12')).toBe(true)
   })
 })
 

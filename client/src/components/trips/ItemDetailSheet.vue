@@ -60,7 +60,7 @@ import { modeIcon, modeLabel } from '@/lib/modeLabels'
 import { t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import { isPackingClosed } from '@/domain/shared/tripPhase'
+import { isUnderWay } from '@/domain/shared/tripPhase'
 import {
   ITEM_MODE_BUY_BEFORE,
   ITEM_MODES,
@@ -99,8 +99,8 @@ const orchestrator = useOrchestrator()
 
 const item = computed(() => tripStore.getItems(props.tripId).find((i) => i.id === props.itemId))
 const trip = computed(() => tripStore.getTrip(props.tripId))
-/** FR-7.12: the packing is finished, so *before departure* takes nothing new. */
-const beforeClosed = computed(() => isPackingClosed(trip.value))
+/** FR-30.8, FR-7.12: the trip is under way, so *before departure* takes nothing new. */
+const beforeClosed = computed(() => isUnderWay(trip.value, orchestrator.today()))
 const travelers = computed(() => tripStore.getTravelers(props.tripId))
 /** FR-25.28: the strip is absent where there is no membership to distribute (G-8). */
 const offersForWhom = computed(() => travelers.value.length >= MIN_TRAVELERS_FOR_PER_PERSON)
@@ -649,8 +649,7 @@ const packedStamp = computed(() => {
           data-testid="m5-mode"
           @ion-change="(e: CustomEvent) => onModeChange(e.detail.value)"
         >
-          <!-- FR-7.12: nothing new goes onto a *before departure* the
-               finished packing has closed. -->
+          <!-- FR-30.8: nothing new goes *before departure* once under way. -->
           <IonSelectOption
             v-for="m in ITEM_MODES"
             :key="m"
