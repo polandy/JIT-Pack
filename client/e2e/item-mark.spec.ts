@@ -13,7 +13,7 @@ import {
 } from './fixtures'
 import { fillIonic } from './helpers/ionic'
 import { openCluster } from './helpers/m4'
-import { backToInventory, createItem } from './helpers/m9'
+import { backToInventory, commitNewItem, createItem } from './helpers/m9'
 import { PATH } from './routes'
 
 /**
@@ -128,8 +128,7 @@ test.describe('§3.28 the item mark', () => {
     // and the item is saved unmarked because nothing was tapped. The empty
     // slot on the row is the positive signal — the case cannot pass by the
     // picker merely being slow.
-    await visiblePage(page).getByTestId('m10-create').click()
-    await expect(page.getByTestId('header-title')).toHaveText('Zahnbürste')
+    await commitNewItem(page, 'Zahnbürste')
     await backToInventory(page)
     await expect(m9Row(page, 'Zahnbürste').getByTestId('item-mark')).toHaveCount(0)
 

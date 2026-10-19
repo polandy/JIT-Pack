@@ -6,6 +6,7 @@ import { expect } from '@playwright/test'
 import type { Locator, Page } from '@playwright/test'
 
 import { visiblePage, writesLanded } from './page'
+import { commitNewItem } from './m9'
 import { addInComposer, openQuickAdd } from './trips'
 import { PATH } from '../routes'
 
@@ -13,15 +14,16 @@ import { PATH } from '../routes'
  * Create a master item through M9/M10's own path (spec §2.4). Ends on the
  * new item's editor, which is where a dependency is declared — so a caller
  * building a companion pair calls this twice and wires the second to the
- * first without navigating again.
+ * first without navigating again — through `commitNewItem`, or the second
+ * call's own `m10-add-dependency` click lands in the same transition window
+ * `commitNewItem` exists to close.
  */
 export async function createMasterItem(page: Page, name: string) {
   await writesLanded(page)
   await page.goto(PATH.items)
   await visiblePage(page).getByTestId('m9-fab').click()
   await visiblePage(page).getByTestId('m10-name').locator('input').fill(name)
-  await visiblePage(page).getByTestId('m10-create').click()
-  await expect(page.getByTestId('header-title')).toHaveText(name)
+  await commitNewItem(page, name)
   await writesLanded(page)
 }
 
