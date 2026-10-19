@@ -778,7 +778,7 @@ make this possible.
 | `trip.changed` | `{trip_id, head_seq}` | pull if `head_seq > local_cursor` |
 | `master.changed` | `{seq}` | pull master partition |
 | `item.locked` / `item.unlocked` | `{trip_id, item_id, by_user, name}` | render lock overlay (G-3) — ephemeral, not persisted |
-| `presence` | `{trip_id, head_seq, users:[{user_id, device_count, in_sync}]}` | avatars + group-sync badge in M4 header (UI-Spec G-10) |
+| `presence` | `{trip_id, head_seq, users:[{user_id, device_count, in_sync}]}` | avatars + group-sync badge in M4 header (UI-Spec G-10) — whole state each time, never a delta, and never older than the last one that connection was sent for that trip |
 | `roster` | `{users:[{user_id, trip_ids}]}` | the G-2 sheet's "Packing right now" section (FR-4.9) — sent to **every** connection, not only a trip's subscribers; whole state each time, never a delta, and never older than the last one that connection was sent; a newcomer gets it on connect only when it is non-empty |
 | `notification.created` | `{notification_id}` | fetch via `GET /notifications` + toast/OS notification (FR-6.2) |
 | `location` | `{trip_id, user_id, lat, lon, accuracy_m, at, gone}` | a trip member's live position, or its end (`gone`, the rest empty) — FR-29.19, ADR-087. Sent to the trip's subscribers **but the sharer's own connections**; `user_id` and `at` are the server's, never the client's. The hub keeps the newest fix per connection **in memory only** and gives the live ones to a connection that subscribes later; a stop, an unsubscribe or the socket closing sends `gone` — unless another device of the person still shares, whose fix is sent instead. Never stored, logged or pulled |

@@ -51,6 +51,9 @@ type conn struct {
 	rosterSent uint64
 	// pullCursors tracks the last known pull cursor per trip.
 	pullCursors map[string]int64
+	// presenceSent is the generation of the newest presence snapshot queued
+	// to this peer, per trip, guarded by Hub.mu — see `broadcastPresence`.
+	presenceSent map[string]uint64
 	// locations is the position this connection shares per trip (FR-29.19),
 	// guarded by Hub.mu. It lives and dies with the connection: nothing else
 	// keeps it (ADR-087).
@@ -91,6 +94,9 @@ type Hub struct {
 	conns map[*conn]struct{}
 	// rosterGen numbers the roster snapshots, newest highest.
 	rosterGen uint64
+	// presenceGen numbers each trip's presence snapshots, newest highest —
+	// the per-trip twin of rosterGen, for the same reason (broadcastPresence).
+	presenceGen map[string]uint64
 
 	headSeq    HeadSeqFunc
 	mayReceive ReceiveFunc
@@ -109,10 +115,11 @@ type Hub struct {
 // worse than one that fails shut, and total silence is loud in a test.
 func NewHub(headSeq HeadSeqFunc, mayReceive ReceiveFunc) *Hub {
 	return &Hub{
-		conns:      make(map[*conn]struct{}),
-		headSeq:    headSeq,
-		mayReceive: mayReceive,
-		now:        time.Now,
+		conns:       make(map[*conn]struct{}),
+		headSeq:     headSeq,
+		mayReceive:  mayReceive,
+		now:         time.Now,
+		presenceGen: make(map[string]uint64),
 	}
 }
 
@@ -322,12 +329,23 @@ func (h *Hub) send(targets []*conn, evt WSEvent) {
 
 // broadcastPresence builds the presence list for a trip and sends it
 // to all subscribed connections.
+//
+// headSeq is a database read taken outside the lock below, for the same
+// reason broadcastRoster's own queries are: the hub's mutex must not hold
+// across I/O. Two calls for the same trip can therefore overtake each other
+// between snapshot and send — the one invoked first can still be the one
+// whose read finishes last, so a stale verdict can overwrite a fresher one
+// already delivered. Each snapshot therefore carries a per-trip generation,
+// taken at the point the read is triggered rather than when it completes,
+// and a peer is never queued one older than it already holds.
 func (h *Hub) broadcastPresence(tripID string) {
 	// One authorised set answers both halves: who is listed, and who is
 	// told. A revoked member is neither.
 	targets := h.subscribersOf(tripID)
 
 	h.mu.Lock()
+	h.presenceGen[tripID]++
+	gen := h.presenceGen[tripID]
 	// Collect unique users, their device count, and their best cursor.
 	type userState struct {
 		userID  string
@@ -371,7 +389,23 @@ func (h *Hub) broadcastPresence(tripID string) {
 		})
 	}
 
-	h.send(targets, presenceEvent(tripID, headSeq, members))
+	data, err := json.Marshal(presenceEvent(tripID, headSeq, members))
+	if err != nil {
+		h.log().Error("marshal event", "error", err)
+		return
+	}
+
+	h.mu.Lock()
+	for _, c := range targets {
+		// A snapshot taken before one a peer already holds is dropped
+		// rather than queued: reordering it ahead would be exactly the
+		// regression this guard exists to stop.
+		if gen > c.presenceSent[tripID] {
+			c.presenceSent[tripID] = gen
+			c.enqueue(data)
+		}
+	}
+	h.mu.Unlock()
 }
 
 func presenceEvent(tripID string, headSeq int64, members []PresenceMember) WSEvent {
@@ -475,13 +509,14 @@ func (h *Hub) broadcastRoster(only *conn) {
 // begins at `Register`, and ends at `Unregister`.
 func newConn(ws wsWriter, userID string) *conn {
 	return &conn{
-		ws:          ws,
-		userID:      userID,
-		trips:       make(map[string]bool),
-		pullCursors: make(map[string]int64),
-		locations:   make(map[string]liveFix),
-		out:         make(chan []byte, wsSendQueue),
-		done:        make(chan struct{}),
+		ws:           ws,
+		userID:       userID,
+		trips:        make(map[string]bool),
+		pullCursors:  make(map[string]int64),
+		presenceSent: make(map[string]uint64),
+		locations:    make(map[string]liveFix),
+		out:          make(chan []byte, wsSendQueue),
+		done:         make(chan struct{}),
 	}
 }
 

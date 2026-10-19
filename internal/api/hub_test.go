@@ -286,6 +286,94 @@ func TestHub_Presence_NamesTheHeadInSyncWasJudgedAgainst(t *testing.T) {
 	}
 }
 
+// TestHub_Presence_AnOlderSnapshotNeverArrivesLast_FR4_6 is the presence
+// twin of the roster race (TestHub_Roster_AnOlderSnapshotNeverArrivesLast_FR4_9
+// below): headSeq is a database read taken outside the lock, so a call
+// triggered first can still be the one whose slower read finishes last.
+// Without the generation guard in broadcastPresence this case fails by
+// observing exactly that: alice ends up holding the earlier, stale verdict
+// even though the later one reached the wire first.
+func TestHub_Presence_AnOlderSnapshotNeverArrivesLast_FR4_6(t *testing.T) {
+	var head atomic.Int64
+	head.Store(5)
+	// armed holds off the park until both subscribes below are done: each
+	// one's own broadcastPresence calls headSeq too, and the very first call
+	// overall must not be one of those — it must be bob's first cursor
+	// report, the one the race is about.
+	var armed, parkedOnce atomic.Bool
+	parked, release := make(chan struct{}), make(chan struct{})
+	headFn := func(context.Context, string) (int64, error) {
+		// Only the first call after arming parks — a second one invoked
+		// while it is still parked (bob's own second report, below) must run
+		// to completion, exactly as happens on the wire.
+		if armed.Load() && parkedOnce.CompareAndSwap(false, true) {
+			close(parked)
+			<-release
+		}
+		return head.Load(), nil
+	}
+
+	hub := NewHub(headFn, allowAll)
+	bobPeer, alicePeer := newFakePeer(false), newFakePeer(false)
+	bob, alice := newConn(bobPeer, "bob"), newConn(alicePeer, "alice")
+	hub.Register(bob)
+	hub.Register(alice)
+	defer func() {
+		hub.Unregister(bob)
+		hub.Unregister(alice)
+	}()
+	hub.Subscribe(bob, "trip-1")
+	hub.Subscribe(alice, "trip-1")
+	armed.Store(true)
+
+	// Bob reports a cursor behind a head that is about to move — the call
+	// whose headSeq read gets parked, so it is the slow one.
+	olderDone := make(chan struct{})
+	go func() {
+		hub.UpdateCursor(bob, "trip-1", 5)
+		close(olderDone)
+	}()
+	<-parked
+
+	// The head moves on, and bob's next report — invoked only now, strictly
+	// after the parked call above — is free to run to completion first.
+	head.Store(7)
+	hub.UpdateCursor(bob, "trip-1", 7)
+
+	close(release)
+	<-olderDone
+
+	// A frame queued after both broadcasts marks where alice's presence ends.
+	const marker = 42
+	hub.NotifyMasterChanged("alice", marker)
+	var bobInSync *bool
+	for {
+		var evt wsFrame
+		if err := json.Unmarshal(<-alicePeer.got, &evt); err != nil {
+			t.Fatalf("unmarshal frame: %v", err)
+		}
+		if evt.Type == EventPresence && evt.Payload["trip_id"] == "trip-1" {
+			for _, raw := range evt.Payload["users"].([]any) {
+				u := raw.(map[string]any)
+				if u["user_id"] == "bob" {
+					v, _ := u["in_sync"].(bool)
+					bobInSync = &v
+				}
+			}
+		}
+		if evt.Type == EventMasterChanged && evt.Payload["seq"] == float64(marker) {
+			break
+		}
+	}
+	if bobInSync == nil {
+		t.Fatal("alice never received a presence frame naming bob")
+	}
+	if !*bobInSync {
+		t.Error("alice's last presence for bob = behind, want in_sync=true: " +
+			"bob's catch-up must not be overwritten by a stale verdict that finishes late")
+	}
+}
+
 func TestHub_Subscribers_Count(t *testing.T) {
 	hub, srv := wsTestServer(t, nil)
 
