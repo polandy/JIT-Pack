@@ -60,7 +60,7 @@ import { modeIcon, modeLabel } from '@/lib/modeLabels'
 import { t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import { isUnderWay } from '@/domain/shared/tripPhase'
+import { beforeIsOverFor } from '@/domain/shared/tripPhase'
 import {
   ITEM_MODE_BUY_BEFORE,
   ITEM_MODES,
@@ -100,7 +100,7 @@ const orchestrator = useOrchestrator()
 const item = computed(() => tripStore.getItems(props.tripId).find((i) => i.id === props.itemId))
 const trip = computed(() => tripStore.getTrip(props.tripId))
 /** FR-30.8, FR-7.12: the trip is under way, so *before departure* takes nothing new. */
-const beforeClosed = computed(() => isUnderWay(trip.value, orchestrator.today()))
+const beforeClosed = computed(() => beforeIsOverFor(trip.value, orchestrator.today()))
 const travelers = computed(() => tripStore.getTravelers(props.tripId))
 /** FR-25.28: the strip is absent where there is no membership to distribute (G-8). */
 const offersForWhom = computed(() => travelers.value.length >= MIN_TRAVELERS_FOR_PER_PERSON)

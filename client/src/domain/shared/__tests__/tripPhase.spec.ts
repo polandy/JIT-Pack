@@ -13,7 +13,7 @@ import {
   beforeIsOver,
   hasDeparted,
   isPackingClosed,
-  isUnderWay,
+  beforeIsOverFor,
   pastPacking,
   standingOf,
 } from '../tripPhase'
@@ -73,16 +73,16 @@ describe('beforeIsOver', () => {
   })
 })
 
-describe('isUnderWay (FR-30.8): beforeIsOver read off a trip row', () => {
+describe('beforeIsOverFor (FR-30.8): beforeIsOver read off a trip row', () => {
   it('answers no for a trip that is not on the device', () => {
-    expect(isUnderWay(undefined, '2026-10-10')).toBe(false)
+    expect(beforeIsOverFor(undefined, '2026-10-10')).toBe(false)
   })
 
   it('reads the row it is given', () => {
     const row = { status: 'planning', start_date: '2026-10-12', packing_closed_at: null }
-    expect(isUnderWay(row, '2026-10-10')).toBe(false)
-    expect(isUnderWay({ ...row, status: 'active' }, '2026-10-10')).toBe(true)
-    expect(isUnderWay(row, '2026-10-12')).toBe(true)
+    expect(beforeIsOverFor(row, '2026-10-10')).toBe(false)
+    expect(beforeIsOverFor({ ...row, status: 'active' }, '2026-10-10')).toBe(true)
+    expect(beforeIsOverFor(row, '2026-10-12')).toBe(true)
   })
 })
 

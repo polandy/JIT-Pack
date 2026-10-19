@@ -80,11 +80,12 @@ export function beforeIsOver(trip: TripStanding, today: string): boolean {
 }
 
 /**
- * isUnderWay: `beforeIsOver` read off a trip row. A trip that is not on the
+ * beforeIsOverFor: `beforeIsOver` read off a trip row (not `lib/tripOpening`'s
+ * `isUnderWay`, which leaves a finished packing out). A trip that is not on the
  * device yet is not under way (FR-30.8): the reader would see *before* close
  * and reopen once the row arrives.
  */
-export function isUnderWay(
+export function beforeIsOverFor(
   trip: Parameters<typeof standingOf>[0] | undefined,
   today: string,
 ): boolean {
