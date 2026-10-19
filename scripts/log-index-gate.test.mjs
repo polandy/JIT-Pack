@@ -65,13 +65,16 @@ test('an index row whose status differs from its file is refused', () => {
   assert.match(errors[0], /ADR-001_First\.md.*"Accepted".*"Superseded by ADR-002"/)
 })
 
-test('an amendment or addendum section in an ADR is refused — the decision is rewritten to what holds (ARCH-32c)', () => {
+test('an amendment or addendum section or label in an ADR is refused, indented or not — the decision is rewritten to what holds (ARCH-32c, ARCH-32fc)', () => {
   for (const heading of [
     '## Amendment, 2026-10-08: the order gets its gate',
     '### Amendment 2 (FR-29.13)',
     '## Addendum — the bytes outside the envelope',
     '**Amendment (2026-09-30):** the pill is measured',
     '**Addendum:** the bytes',
+    '  Amendment (ARCH-12b): the parameters that only forwarded `tripId` were dropped',
+    '- Addendum 2: the bytes',
+    '- **Amendment:** the pill is measured',
   ]) {
     const file = adr(A, '**Status:** Accepted')
     file.text += `\n## Decision\n\nOption A.\n\n${heading}\n\nA later change.\n`
@@ -83,7 +86,9 @@ test('an amendment or addendum section in an ADR is refused — the decision is 
 
 test('prose that speaks of amending is not a section and passes', () => {
   const file = adr(A, '**Status:** Accepted')
-  file.text += '\n## Decision\n\nA later change amends the rule by rewriting this text; an addendum is not kept.\n'
+  file.text +=
+    '\n## Decision\n\nA later change amends the rule by rewriting this text; an addendum is not kept.\n' +
+    '- The theme follows the PRD\n  Addendum 3.21, ADR-048 and the avatar FR-17.13.\n'
   assert.deepEqual(checkAdrs([file], readmeOf(row(A, 'Accepted'))), [])
 })
 
