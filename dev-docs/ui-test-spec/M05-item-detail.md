@@ -76,6 +76,9 @@ definition. The gate carries one rule and no escape hatch: a collision is resolv
 * **E2E-M5-34** `local` (FR-25.28, G-13, UX-08) — **implemented** (`e2e/membership.spec.ts`): five travelers on a 360 px
   phone — the line scrolls rather than cut a name; at rest it fades at its end only, scrolled to its end at its start
   only, and every name stands whole or under the fade.
+* **E2E-M5-35** `local` (FR-30.8, FR-7.12) — **implemented** (`e2e/item-detail.spec.ts`): on a trip started ahead of
+  its date, its packing still open, *Vorher kaufen* is not selectable for a row not already in that mode, while *Vor
+  Ort kaufen* beside it is; a row set to *Vorher kaufen* before the start keeps it, checked and selectable.
 * **E2E-M5-17** `all` (FR-9.1) — **implemented** (`e2e/item-detail.spec.ts`): the two trip-feedback flags are controls
   behind *Details ▾* and appear **only once the trip runs** — the same case starts the trip and marks the row *unused*,
   so the absence half has a positive signal beside it rather than passing on a typo. Read back from the glance chip,

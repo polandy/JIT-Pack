@@ -416,6 +416,47 @@ test.describe('M5 item detail @local @m5', () => {
     await expect(page.getByTestId('m5-glance')).toContainText('Unused')
   })
 
+  // E2E-M5-35 (FR-30.8, FR-7.12): once the trip is under way *Vorher kaufen*
+  // takes no new row, as M6's composer writes nothing more for *Vor der
+  // Reise*. Started ahead of its date, with the packing still open — the
+  // case the packing stamp alone missed. A row already bought before keeps
+  // its choice; the other purchase mode stays open beside the locked one.
+  test('E2E-M5-35: a trip under way sends no new row to buy before', async ({ page }) => {
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+    await addInComposer(page, 'Regenhose')
+    await addInComposer(page, 'Sonnenhut')
+    await page.keyboard.press('Escape')
+    await page.getByTestId('m4-row-Sonnenhut').getByRole('heading').click()
+    await page.getByTestId('m5-details').click()
+    await chooseInSelect(page, 'm5-mode', 'Buy before')
+    await page.getByTestId('m5-close').click()
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+
+    await tripAction(page, 'start')
+    await expectTripActionOffered(page, 'archive')
+    await expect(visible(page).getByTestId('m4-packing-closed')).toHaveCount(0)
+
+    const option = (label: string) =>
+      page.locator('ion-popover ion-select-popover ion-item', { hasText: label })
+    await page.getByTestId('m4-row-Regenhose').getByRole('heading').click()
+    await page.getByTestId('m5-details').click()
+    await page.getByTestId('m5-mode').click()
+    await expect(option('Buy there')).not.toHaveClass(/item-disabled/)
+    await expect(option('Buy before')).toHaveClass(/item-disabled/)
+    // Escape leaves Ionic's popover standing; the row's own mode closes it unchanged.
+    await option('Pack').click()
+    await expect(page.locator('ion-popover ion-select-popover')).toHaveCount(0)
+    await page.getByTestId('m5-close').click()
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+
+    await page.getByTestId('m4-row-Sonnenhut').getByRole('heading').click()
+    await page.getByTestId('m5-details').click()
+    await page.getByTestId('m5-mode').click()
+    await expect(option('Buy before')).toHaveClass(/item-radio-checked/)
+    await expect(option('Buy before')).not.toHaveClass(/item-disabled/)
+  })
+
   // E2E-M5-05 (FR-7.1/7.2): a note and a preparation are the same
   // record — a task-type comment (`is_task = 1`) — rendered by two
   // sections of the same sheet. The promotion is therefore not a field

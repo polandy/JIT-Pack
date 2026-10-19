@@ -25,7 +25,12 @@ import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 
 vi.mock('vue-router', () => ({ useRoute: () => ({ query: {} }) }))
 
+/** The device's day, pinned: the sheet never reads the real clock. */
+const TODAY = '2026-07-10'
+const DAY_AFTER_TODAY = '2026-07-11'
+
 const orchestratorFake = {
+  today: () => TODAY,
   syncStatus: { state: { value: 'synced' } },
   // FR-25.15: the indicator's own signal, deliberately not the one above.
   // A real `ref`, because the indicator latches: what it says is a
@@ -888,11 +893,12 @@ describe('M5 preparation — the tick stands at the end of the line', () => {
 })
 
 /*
- * FR-7.12: once the packing is finished, *before departure* takes nothing
- * new — a row cannot be sent there from its sheet. A row already there keeps
- * its choice, so the select still reads true.
+ * FR-30.8, FR-7.12: once the trip is under way — started, its first day come,
+ * or its packing finished — *before departure* takes nothing new, so a row
+ * cannot be sent there from its sheet. A row already there keeps its choice,
+ * so the select still reads true.
  */
-describe('M5 mode choice once the packing is finished (FR-7.12)', () => {
+describe('M5 mode choice once the trip is under way (FR-30.8, FR-7.12)', () => {
   function modeOption(wrapper: ReturnType<typeof mountSheet>, mode: string) {
     return wrapper
       .findAll('ion-select-option')
@@ -901,26 +907,51 @@ describe('M5 mode choice once the packing is finished (FR-7.12)', () => {
   const disabled = (option: { element: Element }) =>
     (option.element as HTMLElement & { disabled?: boolean }).disabled === true
 
-  function closePacking(tripStore: ReturnType<typeof useTripStore>) {
+  function patchTrip(tripStore: ReturnType<typeof useTripStore>, patch: Partial<Trip>) {
     const trip = tripStore.getTrip('t1')!
     tripStore.applyChange({
       seq: 1,
       table: 'trips',
       id: 't1',
       deleted: false,
-      row: { ...trip, packing_closed_at: '2026-07-08T06:00:00Z' },
+      row: { ...trip, ...patch },
     })
   }
 
-  it('offers no *before departure* for a row that is not there already', async () => {
-    closePacking(seedTrip('active'))
+  it('offers no *before departure* once the packing is finished', async () => {
+    patchTrip(seedTrip('planning'), { packing_closed_at: '2026-07-08T06:00:00Z' })
     const wrapper = await openDetails(mountSheet())
     expect(disabled(modeOption(wrapper, 'buy_before'))).toBe(true)
     expect(disabled(modeOption(wrapper, 'buy_local'))).toBe(false)
   })
 
-  it('offers it while the packing is open', async () => {
-    seedTrip('active')
+  it('offers no *before departure* on a trip started ahead of its date, packing open', async () => {
+    patchTrip(seedTrip('active'), { start_date: DAY_AFTER_TODAY })
+    const wrapper = await openDetails(mountSheet())
+    expect(disabled(modeOption(wrapper, 'buy_before'))).toBe(true)
+    expect(disabled(modeOption(wrapper, 'buy_local'))).toBe(false)
+  })
+
+  it('offers no *before departure* once the first day has come, nobody having started it', async () => {
+    patchTrip(seedTrip('planning'), { start_date: TODAY })
+    const wrapper = await openDetails(mountSheet())
+    expect(disabled(modeOption(wrapper, 'buy_before'))).toBe(true)
+  })
+
+  it('keeps *before departure* selected for a row already there', async () => {
+    patchTrip(seedTrip('active', {}, 'buy_before'), { start_date: TODAY })
+    const wrapper = await openDetails(mountSheet())
+    expect(disabled(modeOption(wrapper, 'buy_before'))).toBe(false)
+  })
+
+  it('offers it on a planned trip whose first day is still ahead', async () => {
+    patchTrip(seedTrip('planning'), { start_date: DAY_AFTER_TODAY })
+    const wrapper = await openDetails(mountSheet())
+    expect(disabled(modeOption(wrapper, 'buy_before'))).toBe(false)
+  })
+
+  it('offers it on an undated trip nobody has started', async () => {
+    seedTrip('planning')
     const wrapper = await openDetails(mountSheet())
     expect(disabled(modeOption(wrapper, 'buy_before'))).toBe(false)
   })

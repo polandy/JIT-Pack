@@ -38,7 +38,8 @@ removed on that row.
 
 - **The field on top**, opened with the orange **＋** at the bottom right (and already open while the list is empty),
   adds something to buy, with chips under it: **Vor der Reise** or **Vor Ort** (only until
-  the trip is under way, by the task list's rule — after that, everything new is for **Vor Ort**), your shopping tags
+  the trip is under way, by the task list's rule — after that, everything new is for **Vor Ort**, and an item's sheet
+  on the packing list no longer offers **Vorher kaufen** to an item not bought before already), your shopping tags
   (**＋ Tag** opens the entry sheet), and — once you have typed something — a day, with the same chips as a task.
 - **Fällig** comes next, when anything is pressing: everything overdue, due today or in the next two days, from both
   lists, earliest first, each row naming its tag underneath.

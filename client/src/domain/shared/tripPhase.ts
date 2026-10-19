@@ -78,3 +78,16 @@ export function standingOf(trip: {
 export function beforeIsOver(trip: TripStanding, today: string): boolean {
   return !trip.planned || trip.packingClosed || hasDeparted({ start_date: trip.startDate }, today)
 }
+
+/**
+ * beforeIsOverFor: `beforeIsOver` read off a trip row (not `lib/tripOpening`'s
+ * `isUnderWay`, which leaves a finished packing out). A trip that is not on the
+ * device yet is not under way (FR-30.8): the reader would see *before* close
+ * and reopen once the row arrives.
+ */
+export function beforeIsOverFor(
+  trip: Parameters<typeof standingOf>[0] | undefined,
+  today: string,
+): boolean {
+  return trip !== undefined && beforeIsOver(standingOf(trip), today)
+}
