@@ -1,10 +1,11 @@
 # Concept — the planner: ideas, votes and a day plan inside a trip
 
 **Status:** **accepted; slice 1a and the CI fast loop built** (2026-09-27) — the board, votes and discussion, as §3.29
-FR-29.1–29.15 in the PRD Addendum, M28 in the UI Spec, ADR-078 and ADR-051 amendment 4; the loop as ADR-079. Those are
-now authoritative; this file is the reasoning, and where it and they differ, they win. Written 2026-09-26 on the owner's
-request; the walk-through settled the points in §2 the same evening, and the navigation was chosen on the rendered
-mockup (`UI_Concept_PlannerNav_variants.html` at `6b148419`, built by `build-planner-nav-variants.mjs` at `6b148419`).
+FR-29.1–29.15 in the PRD Addendum, M28 in the UI Spec, ADR-078 and ADR-051's row that scrolls with the current pill in
+view; the loop as ADR-079. Those are now authoritative; this file is the reasoning, and where it and they differ, they
+win. Written 2026-09-26 on the owner's request; the walk-through settled the points in §2 the same evening, and the
+navigation was chosen on the rendered mockup (`UI_Concept_PlannerNav_variants.html` at `6b148419`, built by
+`build-planner-nav-variants.mjs` at `6b148419`).
 It takes the Idea Board draft as its base — §3.29 on the unmerged branch `docs/idea-board-spec` (commit `53130c83`,
 2026-09-19) — and adds what the draft left out: the bridge from an idea to the packing side, a fourth state, and the day
 plan.
@@ -13,7 +14,7 @@ plan.
 excursions took M27. The discussion is **its own table, `idea_comments`**, not `comments.idea_id` (ADR-078): every
 reader of trip-level comments would otherwise have had to exclude it, across the module boundary. The mockup's claim
 that seven glyphs fit 360 px did not survive the real pills — six fill 410 px — and the owner chose a row that
-scrolls with the current pill in view (ADR-051 amendment 4). §7's trip without dates is decided as recommended.
+scrolls with the current pill in view (ADR-051). §7's trip without dates is decided as recommended.
 
 **Asked for:** JIT-Pack as a trip planner and a coordination planner. The travellers note ideas, attach more
 information and pictures, the others comment, a proposal is given a thumbs up or turned down, links can be posted.
@@ -51,7 +52,7 @@ switcher.
 | 7 | Planning an idea | **A day, the time optional**; without a day it waits in *noch nicht eingeplant* | A time without a duration: the plan orders, it does not block out hours |
 | 8 | Scope beyond the board | **The day plan**; polls, expenses and group logistics are not in this concept | Picking one of several options is still done with one idea per option |
 | 9 | What the day plan reads | Planned ideas, **dated excursions**, **tasks due that day**, **arrival and departure**, **free entries** | The day plan writes one table of its own (free entries) and reads four others |
-| 10 | Navigation | **Variant B**: two more pills in the one switcher — *💡 Ideen* first, *📅 Tagesplan* last (ADR-051 amendment 3: only the current one in words) | Seven glyphs; the row fills 360 px almost to the edge, so an eighth view does not fit |
+| 10 | Navigation | **Variant B**: two more pills in the one switcher — *💡 Ideen* first, *📅 Tagesplan* last (ADR-051: only the current one in words) | Seven glyphs; the row fills 360 px almost to the edge, so an eighth view does not fit |
 | 11 | Where a trip opens | **By date**: before departure the view last visited (on a first visit *Ideen* while the packing list is empty); during the trip *Tagesplan*; afterwards *Packliste* | A trip opens on different screens on different days |
 | 12 | Code separation | **A feature module with a hard boundary, and CI runs only the module's e2e cases on a diff that stays inside it** (§5a) | Path-based selection can miss a regression that crosses the boundary at run time; a packing smoke set rides along to catch the obvious one |
 

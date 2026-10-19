@@ -113,7 +113,7 @@ import { SWITCH_KEYS } from '@/lib/packingFilterPanel'
 import { ROW_MENU_BUTTONS, type RowMenuButton } from '@/lib/rowMenuButtons'
 import { sheetBandAttrs } from '@/lib/sheetBands'
 import { presentToast } from '@/composables/shared/toast'
-import { beforeIsOver, standingOf } from '@/domain/shared/tripPhase'
+import { beforeIsOverFor } from '@/domain/shared/tripPhase'
 import { closeOverlayRoute } from '@/composables/shared/closeOverlay'
 import {
   LINE_QUERY_PARAM,
@@ -268,7 +268,7 @@ const toBuy = computed(() => lines.value.filter(isOpenPurchase).length)
 const tripItems = computed(() => tripStore.getItems(props.tripId))
 
 const suitcaseOpen = computed(
-  () => trip.value !== undefined && !beforeIsOver(standingOf(trip.value), orchestrator.today()),
+  () => trip.value !== undefined && !beforeIsOverFor(trip.value, orchestrator.today()),
 )
 
 // An excursion deleted — here or on another device — has nothing left to show.
