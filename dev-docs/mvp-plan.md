@@ -73,7 +73,7 @@ page, Web Push with self-generated VAPID (zero config needed), WebSocket hub, sy
 - **S2 — Local Mode backup omits the three FR-27.4 tables** (`trip_template_sources`, `trip_generated_positions`,
   `trip_applied_changes` — confirmed absent from `client/src/local/backup.ts` and `domain/portable.ts`). A restored
   device re-asks answered proposals and resurrects deleted positions.
-- **S3 — M4 loses scroll position when a detail opens** (ADR-012 overlay amendment). Painful on a 40-row list on a
+- **S3 — M4 loses scroll position when a detail opens** (ADR-012's overlay rule). Painful on a 40-row list on a
   phone.
 - **S4 — M14 has never been eyeballed with real proposals** (the positive e2e exists; a rendered owner eyeball is
   owed).
@@ -202,7 +202,7 @@ new sections (old file) still succeeds — the current behaviour becomes the doc
 
 Files: `client/src/views/trips/PackingListPage.vue` (+ router/overlay layer per ADR-012), `dev-docs/e2e-ledger/`.
 
-1. ~~M4 scroll restoration when a detail sheet closes~~ ✅ done (the ADR-012 overlay amendment's carried cost).
+1. ~~M4 scroll restoration when a detail sheet closes~~ ✅ done (the carried cost of ADR-012's overlay rule).
 2. ~~Write E2E-M12-03's positive half~~ ✅ done — both halves, see `dev-docs/e2e-ledger/`.
 3. **Still owed.** Stage real proposals on :3000 (`docker stop jitpack-dev-web` frees the port) and get the owner's
    M14 eyeball — deliverable is a click-path note or artifact link, per the standing eyeball rule.

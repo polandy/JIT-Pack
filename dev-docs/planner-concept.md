@@ -252,7 +252,7 @@ plan and their polish — the bulk of the work — stay inside the module.
 
 ## 6. The ADRs owed
 
-* **Where the planner is reached** — the three variants of the mockup, B chosen; an amendment to ADR-051 rather than
+* **Where the planner is reached** — the three variants of the mockup, B chosen; ADR-051 rewritten rather than
   a new record, since it is that record's switcher.
 * **An idea's results are a column on the result** — against a list on the idea and against a join table; the
   field-level-merge argument of §3.

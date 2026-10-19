@@ -25,9 +25,16 @@
  * a later change rewrites the decision to what holds, so the file never asks
  * its reader to replay a sequence of edits to learn the rule.
  *
+ * A folded amendment leaves its citations behind: a concept note or a code
+ * comment that sends its reader to amendment 3 of an ADR points at a section
+ * that no longer exists. So outside the append-only records, which keep their
+ * history by design, no tracked file may point at an ADR's amendment or
+ * addendum; it cites the ADR, and its section where one names the matter.
+ *
  * Node built-ins only, so it needs no install; wired into `make ci` and the CI
  * client job beside the other two node gates.
  */
+import { execFileSync } from 'node:child_process'
 import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -247,13 +254,88 @@ function checkAdrDir() {
   return null
 }
 
+/**
+ * The files that keep their history and may cite what an ADR once said: the two
+ * ledgers, the generated changelog, the deviations record — and this gate's own
+ * test, which has to spell out what it refuses.
+ */
+const EXEMPT = [...LEDGERS.map((dir) => `${dir}/`), 'CHANGELOG.md', 'DEVIATIONS.md', 'scripts/log-index-gate.test.mjs']
+
+/** The tracked files a pointer can hide in: prose, code, schema, workflows. */
+const POINTER_SOURCES = /\.(md|ts|vue|go|mjs|sql|ya?ml|sh|html)$/
+
+/**
+ * What may stand between two words of a pointer: whitespace across a wrapped
+ * line, and the comment or quote marker that opens the next one.
+ */
+const GAP = String.raw`[\s*/#>]+`
+
+/**
+ * "ADR-NNN amendment 3", "ADR-NNN's amendment", "ADR-NNN overlay amendment",
+ * "ADR-NNN addendum", "an amendment to ADR-NNN". The addendum takes no word
+ * between, because "ADR-NNN and Addendum 3.21" cites the PRD addendum beside it.
+ */
+const AMENDMENT_POINTER = new RegExp(
+  [
+    String.raw`ADR-\d{3}(?:['’]s)?(?:${GAP}[\w-]+)?${GAP}amendments?\b`,
+    String.raw`ADR-\d{3}(?:['’]s)?${GAP}addend(?:um|a)\b`,
+    String.raw`\b(?:amendment|addendum)s?(?:${GAP}\d+)?${GAP}(?:to|of|in)${GAP}ADR-\d{3}`,
+  ].join('|'),
+  'gi',
+)
+
+/** Whether a repository path keeps its history and so may cite an amendment. */
+export function isExempt(path) {
+  return EXEMPT.some((e) => (e.endsWith('/') ? path.startsWith(e) : path === e))
+}
+
+/**
+ * Finds every pointer to an ADR amendment or addendum in `{ path, text }`
+ * files and returns one message per pointer, with its line.
+ */
+export function findAmendmentPointers(files) {
+  const errors = []
+  for (const { path, text } of files) {
+    for (const match of text.matchAll(AMENDMENT_POINTER)) {
+      const line = text.slice(0, match.index).split('\n').length
+      const pointer = match[0].replace(/\s+/g, ' ')
+      errors.push(`${path}:${line}: "${pointer}" — the amendment is folded into the ADR; cite the ADR and its section`)
+    }
+  }
+  return errors
+}
+
+/**
+ * Reads the tracked files outside the exempt records and reports what
+ * `findAmendmentPointers` finds. Tracked, because an untracked worklist in the
+ * main checkout is nobody's document yet. Returns the number of files, or null.
+ */
+function checkAmendmentPointers() {
+  const files = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' })
+    .split('\0')
+    .filter((path) => POINTER_SOURCES.test(path) && !isExempt(path))
+    .map((path) => ({ path, text: readFileSync(resolve(root, path), 'utf8') }))
+  const errors = findAmendmentPointers(files)
+  if (!errors.length) return files.length
+  console.error('log-index-gate: a document points at an ADR amendment that was folded away.\n')
+  for (const e of errors) console.error(`  ${e}`)
+  console.error('')
+  return null
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) main()
 
 function main() {
   const results = DOCUMENTS.map((doc) => [doc.path, check(doc)])
   const readmes = SPLIT.map((dir) => [dir, checkReadme(dir)])
   const adrs = checkAdrDir()
-  if (results.some(([, n]) => n === null) || readmes.some(([, n]) => n === null) || adrs === null) {
+  const pointerFiles = checkAmendmentPointers()
+  if (
+    results.some(([, n]) => n === null) ||
+    readmes.some(([, n]) => n === null) ||
+    adrs === null ||
+    pointerFiles === null
+  ) {
     console.error('The index is read instead of the document; a section missing from it is unreachable.')
     process.exit(1)
   }
@@ -262,6 +344,7 @@ function main() {
   console.log(
     `log-index-gate: ok (${results.length} ledger files, ${sections} sections, all indexed; ` +
       `${readmes.length} split documents, every file linked from its README; ` +
-      `${adrs} ADRs, each status in the vocabulary and in the index, none with an amendment section)`,
+      `${adrs} ADRs, each status in the vocabulary and in the index, none with an amendment section; ` +
+      `${pointerFiles} files, none pointing at an amendment)`,
   )
 }

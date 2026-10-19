@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { checkAdrs } from './log-index-gate.mjs'
+import { checkAdrs, findAmendmentPointers, isExempt } from './log-index-gate.mjs'
 
 const adr = (name, status) => ({ name, text: `# ${name.slice(0, 7)}: A decision\n\n${status}\n**Related:** —\n` })
 const row = (name, status) => `| [${name.slice(4, 7)}](${name}) | A decision | ${status} |`
@@ -85,4 +85,44 @@ test('prose that speaks of amending is not a section and passes', () => {
   const file = adr(A, '**Status:** Accepted')
   file.text += '\n## Decision\n\nA later change amends the rule by rewriting this text; an addendum is not kept.\n'
   assert.deepEqual(checkAdrs([file], readmeOf(row(A, 'Accepted'))), [])
+})
+
+test('a pointer to an ADR amendment is refused — the amendment was folded into the decision (ARCH-32fb)', () => {
+  for (const text of [
+    'the pill row is measured in ADR-051 amendment 1.',
+    'a fourth pill is ADR-051\'s amendment 3 and E2E-G12\'s cases',
+    'S3 (ADR-012 overlay amendment) is painful.',
+    'B chosen; an amendment to ADR-051 rather than a new record.',
+    'the bytes outside the envelope (ADR-100 addendum).',
+    'reopened ADR-051\namendment 1\'s width measurement',
+    '    // returns to where it was opened (ADR-011\n    // amendment) — the same shape.',
+  ]) {
+    const errors = findAmendmentPointers([{ path: 'dev-docs/concept.md', text: `# Concept\n\n${text}\n` }])
+    assert.equal(errors.length, 1, text)
+    assert.match(errors[0], /^dev-docs\/concept\.md:3: /, text)
+  }
+})
+
+test('the PRD addendum, an FR amendment and an ADR cited by its section pass', () => {
+  const text = [
+    'Superseded by Addendum ADR-001 v2.',
+    'the theme (Addendum 3.21, ADR-048) and the avatar (Addendum FR-17.13, ADR-002).',
+    'the FR-27.4 amendment, and ADR-051\'s *The row\'s shape*.',
+  ].join('\n')
+  assert.deepEqual(findAmendmentPointers([{ path: 'dev-docs/concept.md', text }]), [])
+})
+
+test('the append-only records keep their history, and this test spells out what is refused, so both pass', () => {
+  for (const path of [
+    'dev-docs/implementation-log/2026-09-28.md',
+    'dev-docs/e2e-ledger/2026-09.md',
+    'CHANGELOG.md',
+    'DEVIATIONS.md',
+    'scripts/log-index-gate.test.mjs',
+  ]) {
+    assert.equal(isExempt(path), true, path)
+  }
+  for (const path of ['dev-docs/planner-concept.md', 'client/src/router/index.ts', 'docs/index.md']) {
+    assert.equal(isExempt(path), false, path)
+  }
 })

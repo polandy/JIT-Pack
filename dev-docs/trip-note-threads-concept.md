@@ -112,8 +112,8 @@ in it that I have not seen, so a reply to a thread I ticked last week makes it n
 
 ### 7a. Question 6 — a view of their own
 
-FR-7.9 decision 1 put notes inside M25 because a fourth pill reopened ADR-051
-amendment 1's width measurement. Threads change the premise of that ruling:
+FR-7.9 decision 1 put notes inside M25 because a fourth pill reopened the width measurement
+in ADR-051's *The row's shape*. Threads change the premise of that ruling:
 
 * **For a view of its own.** A note *is not work* — FR-7.9's own first sentence — so filing it under *Aufgaben* is a
   category error the segment only hid while a note was one line. A thread is a place people write in, which is the
@@ -163,8 +163,8 @@ costs: **a pill no longer says what it is** — the packing list (a list) and th
 checklists, and that pair is the one a reader will confuse; the page title names the screen after the tap, which is
 the lesson, not the label. **The bubble on a tap** was drawn too and is not recommended:
 every switch would cost two taps to spare a reader who already knows the icons one look at the title. And it is a
-change to the switcher for every trip view (M4, M6, M25, M11, M12), so it is ADR-051's amendment 3 and E2E-G12's
-cases, not a rider on this feature.
+change to the switcher for every trip view (M4, M6, M25, M11, M12), so it is ADR-051's to decide (*The row's shape*)
+and E2E-G12's cases, not a rider on this feature.
 
 ## 7b. The UX rework — decided as recommended
 

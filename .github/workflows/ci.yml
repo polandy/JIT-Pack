@@ -163,7 +163,8 @@ jobs:
       # Not a client check, but this is the job that has node and no install
       # step to pay for: the implementation log's index must name every
       # section, because it is meant to be read instead of the log. The
-      # same gate holds the ADRs' status vocabulary, tested first.
+      # same gate holds the ADRs' status vocabulary and refuses a pointer to
+      # a folded ADR amendment, tested first.
       - run: node --test ../scripts/log-index-gate.test.mjs
       - run: node ../scripts/log-index-gate.mjs
       # Same job, same reason: a specification paragraph written on one
