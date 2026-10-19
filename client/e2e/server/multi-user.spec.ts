@@ -27,7 +27,7 @@ import { writesLanded } from '../helpers/page'
 import { packItem, quickAddItem, uniq, watchSubscribed } from '../serverMode'
 
 import { ACCOUNT_NAMES, loginAs, shareWith } from './fixtures'
-import { holdRow, openViewSheet } from '../helpers/m9'
+import { commitNewItem, holdRow, openViewSheet } from '../helpers/m9'
 import { PATH } from '../routes'
 
 /**
@@ -1305,8 +1305,7 @@ test.describe('Two accounts on one instance @server', () => {
       .locator('ion-popover ion-select-popover ion-item')
       .filter({ hasText: ACCOUNT_NAMES.bob })
       .click()
-    await visiblePage(alice).getByTestId('m10-create').click()
-    await expect(alice.getByTestId('header-title')).toHaveText(item)
+    await commitNewItem(alice, item)
     // Settled on the saved item: the choice survived the create, which a
     // draft that was dropped on the way would not have.
     await expect(visiblePage(alice).getByTestId('m10-assignee')).toContainText(ACCOUNT_NAMES.bob)
@@ -1374,8 +1373,7 @@ test.describe('Two accounts on one instance @server', () => {
     for (const name of items) {
       await alice.goto(PATH.newItem)
       await fillIonic(visiblePage(alice).getByTestId('m10-name'), name)
-      await visiblePage(alice).getByTestId('m10-create').click()
-      await expect(alice.getByTestId('header-title')).toHaveText(name)
+      await commitNewItem(alice, name)
       // Nobody, until the batch says otherwise — the assertion below is only
       // worth making because this one holds first. `.select-text` is the
       // rendered *value*; an `ion-select`'s own text is its whole option list,
@@ -1459,8 +1457,7 @@ test.describe('Two accounts on one instance @server', () => {
     for (const name of [mine, nobodys]) {
       await alice.goto(PATH.newItem)
       await fillIonic(visiblePage(alice).getByTestId('m10-name'), name)
-      await visiblePage(alice).getByTestId('m10-create').click()
-      await expect(alice.getByTestId('header-title')).toHaveText(name)
+      await commitNewItem(alice, name)
     }
     // Only the first one gets an account, in M10's own field.
     await alice.goto(PATH.items)

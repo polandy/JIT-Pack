@@ -4,7 +4,7 @@
  */
 import { expect } from '@playwright/test'
 import type { Locator, Page } from '@playwright/test'
-import { visiblePage, writesLanded } from './page'
+import { pageSettled, visiblePage, writesLanded } from './page'
 import { fillIonic } from './ionic'
 
 /** What a created item may carry besides its name. */
@@ -63,13 +63,7 @@ export async function createItem(page: Page, name: string, opts: NewItem = {}): 
     if (opts.price) await fillIonic(visiblePage(page).getByTestId('m10-price'), opts.price)
   }
 
-  await visiblePage(page).getByTestId('m10-create').click()
-  // Creating ends where editing continues — the saved item, by name, on the
-  // edit head that only the replaced page carries. Not the FR-25.15
-  // indicator inside it: that is silent until it has written something, so
-  // it says nothing about which page is on screen.
-  await expect(page.getByTestId('header-title')).toHaveText(name)
-  await expect(visiblePage(page).getByTestId('m10-edit-head')).toBeVisible()
+  await commitNewItem(page, name)
   await writesLanded(page)
 }
 
@@ -87,24 +81,31 @@ export async function backToInventory(page: Page): Promise<void> {
 }
 
 /**
- * Commit the creation form and wait for the *edit* page to be painted.
+ * Commit the creation form and wait until the *edit* page is the only one
+ * painted.
  *
- * A helper rather than two lines inline, because leaving this wait out is
- * invisible until it bites: committing does a `router.replace`, and going
- * back immediately overlaps two outlet transitions — after which
- * `ion-router-outlet` intercepts pointer events and the next tap simply
- * never lands. That surfaces as an unclickable FAB 30 s later, nothing
- * resembling a navigation error. The edit head exists only once the item
- * does, so it is a positive signal that the replaced page — and not the
- * form it replaced — is the one now on screen. The FR-25.15 indicator
- * inside that head cannot say so: it is silent until it has written
- * something, and the write that created the item can well have landed
- * before its page was painted.
+ * A helper rather than lines inline, because leaving this wait out is
+ * invisible until it bites: committing does a `router.replace`, and for the
+ * length of that transition the outlet holds both pages — the form, still
+ * painted, and the editor, `ion-page-invisible`. Going back in that window
+ * overlaps two outlet transitions, after which `ion-router-outlet` intercepts
+ * pointer events and the next tap simply never lands (an unclickable FAB
+ * 30 s later). Reading a field in it fails outright: both pages carry
+ * `m10-name` and `m10-assignee`, and `visiblePage` excludes only hidden
+ * pages, so a scoped locator resolves twice.
+ *
+ * Neither the header title nor the edit head says the transition is over.
+ * The title lives in the frame, outside the outlet, and follows the route;
+ * the edit head is on the incoming page from its first frame, and
+ * `ion-page-invisible` is `opacity: 0`, which Playwright counts as visible.
+ * The title proves the item was created; `pageSettled` proves its page is
+ * the one on screen, and only then does the edit head say which page that is.
  */
 export async function commitNewItem(page: Page, name: string) {
   await visiblePage(page).getByTestId('m10-create').click()
   // Creating ends where editing continues — the saved item, by name.
   await expect(page.getByTestId('header-title')).toHaveText(name)
+  await pageSettled(page)
   await expect(visiblePage(page).getByTestId('m10-edit-head')).toBeVisible()
 }
 
