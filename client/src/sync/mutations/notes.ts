@@ -81,7 +81,7 @@ export function createNotesMutations({ make, nowIso }: MutationContext) {
   /** flagCommentAsTask promotes a comment into an open ticket (FR-7.2). */
   /**
    * FR-7.2: a comment becomes an open task. `phase` is written only when the
-   * caller names one — FR-7.12's *during*, once *before* is closed; without
+   * caller names one — *during*, once the trip is under way (FR-7.14); without
    * it the task reads as *before*, as every task without a phase does.
    */
   function flagCommentAsTask(commentId: string, phase?: TaskPhase): Mutation {

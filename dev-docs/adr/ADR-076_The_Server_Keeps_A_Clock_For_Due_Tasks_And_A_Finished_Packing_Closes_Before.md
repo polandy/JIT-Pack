@@ -78,14 +78,16 @@ The lock has two strengths, both read, neither stored:
 - **Under way, *before* takes nothing new** — `beforeIsOver` in `domain/shared/tripPhase.ts`, true when any one of
   three facts holds: the trip is no longer `planning` (*Reise starten*, even a day early), its `start_date` has come in
   the reader's day, or `packing_closed_at` is set. M25's and M6's composers then offer no *before*, the dashboard card
-  files for the destination, and no task is moved or dragged into *before*. What already stands there stays
+  files for the destination, every other writer of a new task — a row's preparation from M5, a group added late, a
+  comment made a task — asks `phaseForNewTask`, which answers *during* for one asked for *before*, and no task is moved
+  or dragged into *before*. What already stands there stays
   workable — ticked, reworded, moved to the road. An undated trip nobody has started has no day to have passed.
 - **Closed, *before* is history** — the packing stamp alone. Only the close moves anything (a start without it moves
   nothing, FR-7.16): it moves the open *before* tasks (FR-7.7) and the open *before departure* purchases in the same act
   under the same undo — its own `buy_before` rows directly, the shopping list's own entries through a kernel contract
   (`kernel/packingClose.ts`) the composition root binds, since the packing side may not import the module (FR-30.3).
-  From then on *before* is read-only on M25 and M6, every writer of a new task asks `phaseForNewTask`, which answers
-  *during* while the stamp is set, and M5 offers *Vorher kaufen* to no row not already in that mode.
+  From then on *before* is read-only on M25 and M6, and M5 offers *Vorher kaufen* to no row not already in that
+  mode.
 
 A date never moves anything (FR-7.12): the first day arriving, like the start, closes *before* to new things and
 leaves the rest where it stands until somebody closes the packing.
@@ -152,9 +154,9 @@ The server runs FR-7.11's reminder itself, once a day at `JITPACK_TASK_REMINDER_
 claiming the day in `server_keys` so it is sent once and never lost to a restart; Single-User is reminded too. Local
 Mode has no reminder: M1's page head says what is due instead, in every mode. The lock on *before* is read off the trip
 row, never stored. Once the trip is under way — started, its first day come, or its packing closed (`beforeIsOver`) —
-the composers and moves offer *before* nothing new. Once the packing is closed (`packing_closed_at`), *before* is
-read-only history: the close moves tasks and purchases across in one undoable act, and every writer of a new task asks
-`phaseForNewTask`.
+the composers and moves offer *before* nothing new, and every other writer of a new task writes it for the road
+(`phaseForNewTask`). Once the packing is closed (`packing_closed_at`), *before* is read-only history: the close moves
+tasks and purchases across in one undoable act.
 
 ## Consequences
 

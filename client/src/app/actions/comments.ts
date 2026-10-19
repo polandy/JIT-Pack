@@ -16,16 +16,17 @@ import { TASK_PHASE_BEFORE, TASK_PHASE_DURING } from '@/types/domain'
 import type { SyncContext } from '../context'
 import type { NoteThreadFields, TaskFiling } from '@/sync/mutations'
 import { phaseForNewTask } from '@/domain/closePacking'
-import { isPackingClosed } from '@/domain/shared/tripPhase'
+import { standingOf } from '@/domain/shared/tripPhase'
 import { nextPosition } from '@/domain/shared/handOrder'
 
 /** createCommentActions binds the comment/task group to one sync context. */
 export function createCommentActions(ctx: SyncContext) {
-  const { mutations, write, tripStore, masterStore } = ctx
+  const { mutations, write, tripStore, masterStore, today } = ctx
 
-  /** FR-7.12: never into a *before* the finished packing has closed. */
+  /** FR-7.12, FR-7.14: never into *before* once the trip is under way. */
   function newTaskPhase(tripId: string, asked: TaskPhase): TaskPhase {
-    return phaseForNewTask(asked, isPackingClosed(tripStore.getTrip(tripId)))
+    const trip = tripStore.getTrip(tripId)
+    return trip ? phaseForNewTask(asked, standingOf(trip), today()) : asked
   }
 
   /**
@@ -46,8 +47,8 @@ export function createCommentActions(ctx: SyncContext) {
 
   /** Promote a plain comment into an open ticket (FR-7.2). */
   function flagCommentAsTask(tripId: string, comment: ItemComment) {
-    const closed = isPackingClosed(tripStore.getTrip(tripId))
-    write(mutations.flagCommentAsTask(comment.id, closed ? TASK_PHASE_DURING : undefined))
+    const phase = newTaskPhase(tripId, TASK_PHASE_BEFORE)
+    write(mutations.flagCommentAsTask(comment.id, phase === TASK_PHASE_DURING ? phase : undefined))
   }
 
   /** A first note goes with its thread (FR-7.13), as the server's cascade does. */
