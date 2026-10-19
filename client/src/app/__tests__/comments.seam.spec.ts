@@ -396,7 +396,7 @@ describe('createCommentActions without an orchestrator', () => {
       const actions = createCommentActions(ctx)
       actions.addOwnTask(TRIP_ID, AUTHOR, 'Post holen', 'before')
       actions.addPrepTask(TRIP_ID, 'ti-1', AUTHOR, 'Akku laden')
-      expect(queued.map((q) => q.muts[0]!.mutation.fields.phase)).toEqual(['before', 'before'])
+      expect(queued.map((q) => q.muts[0]!.mutation.fields!.phase)).toEqual(['before', 'before'])
     })
 
     it('files a comment promoted to a task without a phase, so it reads as before', () => {
