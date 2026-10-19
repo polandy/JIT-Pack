@@ -288,12 +288,33 @@ describe('FR-7.12: the close ends *before* for the shopping list and for new tas
     expect(namesOf(planPackingClose(rows).buyRows)).toEqual(['Hut'])
   })
 
+  const TODAY = '2026-07-08'
+  const planned = { planned: true, packingClosed: false, startDate: '2026-07-10' }
+
   it.each([
-    ['before, while the packing is open', 'before', false, 'before'],
-    ['before, once the packing is finished', 'before', true, 'during'],
-    ['during, either way', 'during', true, 'during'],
-  ] as const)('writes a new task asked for %s', (_name, asked, closed, want) => {
-    expect(phaseForNewTask(asked as TaskPhase, closed)).toBe(want)
+    ['before, while the trip is still ahead', 'before', planned, 'before'],
+    [
+      'before, once the packing is finished',
+      'before',
+      { ...planned, packingClosed: true },
+      'during',
+    ],
+    [
+      'before, once the trip is started ahead of its date',
+      'before',
+      { ...planned, planned: false },
+      'during',
+    ],
+    ['before, once its first day has come', 'before', { ...planned, startDate: TODAY }, 'during'],
+    [
+      'before, on an undated trip nobody has started',
+      'before',
+      { ...planned, startDate: null },
+      'before',
+    ],
+    ['during, either way', 'during', { ...planned, packingClosed: true }, 'during'],
+  ] as const)('FR-7.14: writes a new task asked for %s', (_name, asked, trip, want) => {
+    expect(phaseForNewTask(asked as TaskPhase, trip, TODAY)).toBe(want)
   })
 })
 

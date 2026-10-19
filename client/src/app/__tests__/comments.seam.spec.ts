@@ -12,7 +12,14 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { createCommentActions } from '../actions/comments'
-import { makeSeamContext, pullIn, type Recorded, paintedRow, type SeamContext } from './seamContext'
+import {
+  makeSeamContext,
+  pullIn,
+  type Recorded,
+  paintedRow,
+  type SeamContext,
+  SEAM_TODAY,
+} from './seamContext'
 import { TABLE } from '@/api/tables'
 import type { ItemComment, PrepTask, OwnTask } from '@/types/domain'
 
@@ -26,6 +33,18 @@ beforeEach(() => {
   setActivePinia(createPinia())
   ;({ ctx, queued } = makeSeamContext())
 })
+
+/** A plain comment on a packing row, pulled in, ready to be made a task (FR-7.2). */
+function promotable(): ItemComment {
+  pullIn(ctx.tripStore, TABLE.comments, 'cm-1', {
+    trip_id: TRIP_ID,
+    trip_item_id: 'ti-1',
+    author_id: AUTHOR,
+    body: 'Akku?',
+    is_task: 0,
+  })
+  return ctx.tripStore.getItemComments(TRIP_ID, 'ti-1')[0] as ItemComment
+}
 
 describe('createCommentActions without an orchestrator', () => {
   it('addComment queues one insert on the trip partition', () => {
@@ -322,17 +341,25 @@ describe('createCommentActions without an orchestrator', () => {
   })
 
   /*
-   * FR-7.12: once the packing is finished *before the trip* takes nothing
-   * new. Every writer of a new task — M5's preparation, a composer, a comment
-   * promoted to a task — lands in *during* instead, whatever it asked for.
+   * FR-7.12, FR-7.14: once the trip is under way *before the trip* takes
+   * nothing new. Every writer of a new task — M5's preparation, a composer, a
+   * comment promoted to a task — lands in *during* instead, whatever it asked
+   * for, on each of the three facts alone. SEAM_TODAY is 2026-06-01.
    */
-  describe('once the packing is finished (FR-7.12)', () => {
+  const ahead = { status: 'planning', start_date: '2026-06-10', packing_closed_at: null }
+  describe.each([
+    [
+      'once the packing is finished (FR-7.12)',
+      { ...ahead, packing_closed_at: '2026-05-30T06:00:00Z' },
+    ],
+    ['once the trip is started ahead of its date (FR-7.14)', { ...ahead, status: 'active' }],
+    [
+      'once its first day has come, the packing open (FR-7.14)',
+      { ...ahead, start_date: SEAM_TODAY },
+    ],
+  ])('%s', (_name, standing) => {
     beforeEach(() => {
-      pullIn(ctx.tripStore, TABLE.trips, TRIP_ID, {
-        name: 'Samedan',
-        year: 2026,
-        packing_closed_at: '2026-07-08T06:00:00Z',
-      })
+      pullIn(ctx.tripStore, TABLE.trips, TRIP_ID, { name: 'Samedan', year: 2026, ...standing })
     })
 
     it('writes a new trip task for the road', () => {
@@ -346,15 +373,7 @@ describe('createCommentActions without an orchestrator', () => {
     })
 
     it('files a comment promoted to a task for the road', () => {
-      pullIn(ctx.tripStore, TABLE.comments, 'cm-1', {
-        trip_id: TRIP_ID,
-        trip_item_id: 'ti-1',
-        author_id: AUTHOR,
-        body: 'Akku?',
-        is_task: 0,
-      })
-      const comment = ctx.tripStore.getItemComments(TRIP_ID, 'ti-1')[0] as ItemComment
-      createCommentActions(ctx).flagCommentAsTask(TRIP_ID, comment)
+      createCommentActions(ctx).flagCommentAsTask(TRIP_ID, promotable())
       expect(queued[0]!.muts[0]!.mutation.fields).toEqual({
         is_task: 1,
         task_state: 'open',
@@ -365,6 +384,24 @@ describe('createCommentActions without an orchestrator', () => {
     it('leaves a task already asked for the road alone', () => {
       createCommentActions(ctx).addOwnTask(TRIP_ID, AUTHOR, 'Karte kaufen', 'during')
       expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ phase: 'during' })
+    })
+  })
+
+  describe('while the trip is still ahead (FR-7.14)', () => {
+    beforeEach(() => {
+      pullIn(ctx.tripStore, TABLE.trips, TRIP_ID, { name: 'Samedan', year: 2026, ...ahead })
+    })
+
+    it('writes a new trip task and a preparation for before, as asked', () => {
+      const actions = createCommentActions(ctx)
+      actions.addOwnTask(TRIP_ID, AUTHOR, 'Post holen', 'before')
+      actions.addPrepTask(TRIP_ID, 'ti-1', AUTHOR, 'Akku laden')
+      expect(queued.map((q) => q.muts[0]!.mutation.fields!.phase)).toEqual(['before', 'before'])
+    })
+
+    it('files a comment promoted to a task without a phase, so it reads as before', () => {
+      createCommentActions(ctx).flagCommentAsTask(TRIP_ID, promotable())
+      expect(queued[0]!.muts[0]!.mutation.fields).toEqual({ is_task: 1, task_state: 'open' })
     })
   })
 

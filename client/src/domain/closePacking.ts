@@ -22,6 +22,7 @@
  */
 import { stateFor } from './packState'
 import { taskPhaseOf } from './tripTasks'
+import { beforeIsOver, type TripStanding } from './shared/tripPhase'
 
 import {
   ITEM_MODE_BUY_BEFORE,
@@ -181,14 +182,17 @@ export function packingIsFinished(items: readonly TripItem[]): boolean {
 }
 
 /**
- * FR-7.12: the phase a *new* task is written in. Once the packing is
- * finished *before the trip* is closed — the section is history, and a task
- * landing there would be one nobody can tick. Whatever asked for *before*
- * (a row's preparation from M5, a group added late, a composer that still
- * says so) is written for the road instead. Reopening the packing lifts it.
+ * FR-7.12, FR-7.14: the phase a *new* task is written in. Once the trip is
+ * under way — started, its first day come, or its packing finished
+ * ({@link beforeIsOver}) — *before the trip* takes nothing new, so whatever
+ * asked for *before* (a row's preparation from M5, a group added late, a
+ * comment made a task, a composer that still says so) is written for the road
+ * instead. Every writer asks this, so a task cannot land in a section the
+ * composer beside it no longer offers. Reopening the packing of a trip not yet
+ * under way lifts it.
  */
-export function phaseForNewTask(asked: TaskPhase, packingClosed: boolean): TaskPhase {
-  return packingClosed && asked === TASK_PHASE_BEFORE ? TASK_PHASE_DURING : asked
+export function phaseForNewTask(asked: TaskPhase, trip: TripStanding, today: string): TaskPhase {
+  return asked === TASK_PHASE_BEFORE && beforeIsOver(trip, today) ? TASK_PHASE_DURING : asked
 }
 
 /**
