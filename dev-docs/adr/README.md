@@ -7,7 +7,9 @@ that replaced it.
 
 **The status is one of two values:** `Accepted`, or `Superseded by ADR-00M`. The file's `**Status:**` line and the
 index's last column carry the same value, and `scripts/log-index-gate.mjs` holds both — along with one file per number,
-one index row per file and no `Amendment` or `Addendum` section in any of them.
+one index row per file and no `Amendment` or `Addendum` section in any of them. Outside the append-only records (the
+two ledgers, `CHANGELOG.md`, `DEVIATIONS.md`) it also refuses a pointer to an ADR's amendment: a refined decision is
+cited by the ADR, and its section where one names the matter.
 
 ## Index
 

@@ -185,8 +185,8 @@ export const routes: RouteRecordRaw[] = [
   },
   {
     // The master partition's log belongs to no trip, so it is offered on
-    // every screen and returns to the one it was opened from (ADR-011
-    // amendment) — the same shape as the settings gear.
+    // every screen and returns to the one it was opened from (ADR-011's
+    // Decision) — the same shape as the settings gear.
     path: PATH.masterConflicts,
     name: 'master-conflicts',
     meta: { parent: PATH.dashboard, acceptsFrom: true, titleKey: 'conflicts.titleMaster' },
