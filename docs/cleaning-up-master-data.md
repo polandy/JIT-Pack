@@ -7,7 +7,8 @@ tags are the exception, and the [note below](#task-tags-cannot-be-cleaned-up-yet
 
 !!! tip "For tags, try the app first"
     **Inventory → ⋮ → Manage tags** renames, merges, reorders (drag a tag by its grip) and deletes tags, and it is
-    the only place that can *merge* tags into one. Merging is usually what you want
+    the only place that can *merge* tags into one. Its order is also the order a new item's form offers the tags in:
+    the first two lines show, *Show all* opens the rest. Merging is usually what you want
     when a tag was typed twice — it keeps every item filed, which deleting does not. Several
     at once: hold one of the tags (or right-click it, or tap the checkbox icon beside the
     sheet's ✕), tap the others that mean the same thing, then **Merge** in the bar at the

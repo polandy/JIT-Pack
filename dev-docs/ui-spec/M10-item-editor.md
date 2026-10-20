@@ -14,10 +14,13 @@
 * **Elements:** Name, **multi-tag selector** (`TagChooser` — the same control M9's FR-24.11 sheet uses) — a search field
   filters the tag chips, **assigned tags stay pinned above the matches** so the filter can never hide what the item
   already carries; ＋/Enter creates an unmatched name as a new tag and assigns it (FR-24.1, filter-or-create; there is no
-  single category picker). **With an empty query the offers are a shelf, not the vocabulary (UX-14):** the first eight
-  unassigned tags, then a dashed *„N weitere per Suche"* tail that hands focus to the search — a grown instance carries
-  dozens of tags, and rendering them all would make every item form scroll. A query lifts the cap, so the search still
-  reaches everything. A summary line names the set and which of them is primary — i.e. where M9 will file it. Then
+  single category picker). **With an empty query the offers are every unassigned tag, folded to two lines** in the
+  tag manager's order: a grown instance carries dozens of tags, and all of them open would push the fields below down
+  every item form. A dashed *„Alle N zeigen"* under the fold opens the rest in place and *„Weniger zeigen"* folds it
+  back, so every tag is one tap away without typing; how many fit is measured from the rendered chips, so the two lines
+  hold at any width. Opened once, the shelf stays open for the session — on the next item and in M9's FR-24.11 sheet,
+  whose chooser it is too. With fewer tags than two lines hold there is nothing to fold and no toggle. A query shows
+  every match unfolded. A summary line names the set and which of them is primary — i.e. where M9 will file it. Then
   weight (g) and price — displayed through `formatValue` where it is read (M9, M12), which carries the instance's
   currency where one is named (FR-21.9) and stays unit-less where none is. The currency is `JITPACK_CURRENCY`, an
   instance-wide label rather than a per-screen field; there are no units (FR-1.8). **Editing commits immediately (G-5)**
