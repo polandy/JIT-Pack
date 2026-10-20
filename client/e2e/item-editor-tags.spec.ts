@@ -1,11 +1,12 @@
 import { test, expect, visiblePage } from './fixtures'
 import { fillIonic } from './helpers/ionic'
 import { backToInventory, commitNewItem, createItem, groupHeadings } from './helpers/m9'
+import { pageSettled } from './helpers/page'
 import { PATH } from './routes'
 
 /**
  * M10 — the item's tags: where it is filed (FR-24.9), and the shelf of tags
- * an empty query offers (UX-14).
+ * an empty query offers (FR-24.1).
  */
 
 test.describe('M10 — where an item is filed (FR-24.9)', () => {
@@ -101,16 +102,16 @@ test.describe('M10 — where an item is filed (FR-24.9)', () => {
 })
 
 /**
- * UX-14: with a grown vocabulary, an empty query that rendered every
- * unassigned tag as a chip would put twenty on each form on the real
- * instance, and a long de placeholder runs out of its box at phone width.
- * The empty query offers a capped shelf with a "more via search" tail, and
- * the search still reaches everything.
+ * FR-24.1: with an empty query every unassigned tag is offered, folded to two
+ * lines — a grown instance carries dozens of tags, and all of them open would
+ * push the rest of every item form down — and one tap opens the rest, so no
+ * tag is reachable only by typing its name. A long de placeholder runs out of
+ * its box at phone width.
  *
- * Phone viewport on purpose: the placeholder assertion is about fitting the
- * narrow box, and at the behaviour projects' desktop width it could not fail.
+ * Phone viewport on purpose: the fold is about the narrow column, and the
+ * placeholder assertion could not fail at the behaviour projects' desktop width.
  */
-test.describe('M10 item editor — the tag shelf stays short (UX-14)', () => {
+test.describe('M10 item editor — every tag on a folded shelf (FR-24.1)', () => {
   test.use({ viewport: { width: 390, height: 844 } })
 
   test.beforeEach(async ({ seedMode, page }) => {
@@ -121,24 +122,25 @@ test.describe('M10 item editor — the tag shelf stays short (UX-14)', () => {
     await page.goto(PATH.items)
   })
 
-  test('E2E-M10-16: an empty query offers a capped shelf, and search reaches past it', async ({
+  test('E2E-M10-16: an empty query folds every tag to two lines, and one tap opens the rest', async ({
     page,
   }) => {
     test.slow() // ten tags are built through the form itself (§2.4)
 
-    // Alphabetical creation order, so the shelf's "first eight" is the same
-    // set whether the list orders by sort_order or by name.
+    // Names long enough that two share a line at 390 px, so ten need five
+    // lines and the fold has something to hold back. The last one created
+    // is last in the vocabulary's order, below the fold.
     const tags = [
-      'Angeln',
-      'Baden',
-      'Camping',
-      'Deko',
-      'Elektro',
-      'Fischen',
-      'Garten',
-      'Hygiene',
-      'Werkzeug',
-      'Zubehör',
+      'Erste-Hilfe-Ausrüstung',
+      'Fahrradreparaturset',
+      'Ferienwohnungsküche',
+      'Kinderbetreuungsmaterial',
+      'Wintersportbekleidung',
+      'Schwimmausrüstung',
+      'Campingküchenzubehör',
+      'Kletterausrüstung',
+      'Reisedokumentenmappe',
+      'Werkzeugkiste',
     ]
     await createItem(page, 'Träger', { tags })
     await backToInventory(page)
@@ -146,19 +148,30 @@ test.describe('M10 item editor — the tag shelf stays short (UX-14)', () => {
     // A fresh form: all ten are unassigned, the query is empty.
     await visiblePage(page).getByTestId('m9-fab').click()
     await expect(visiblePage(page).getByTestId('m10-new-hint')).toBeVisible()
+    // The toggle is tapped next, and a tap issued into the form's incoming
+    // transition can land on neither page.
+    await pageSettled(page)
 
     const offers = visiblePage(page).locator('[data-testid^="m10-tag-offer-"]')
-    await expect(offers).toHaveCount(8)
-    await expect(visiblePage(page).getByTestId('m10-tag-offer-Werkzeug')).toHaveCount(0)
-    // The tail names what the shelf holds back, so the cap is visible state
-    // rather than a silently shorter vocabulary.
-    await expect(visiblePage(page).getByTestId('m10-tag-more')).toContainText('2')
+    const toggle = visiblePage(page).getByTestId('m10-tag-shelf-toggle')
+    const lines = () =>
+      offers.evaluateAll(
+        (chips) => new Set(chips.map((chip) => Math.round(chip.getBoundingClientRect().top))).size,
+      )
 
-    // The search reaches past the cap…
+    // Folded: the offers fill exactly two lines, and the toggle names all ten.
+    await expect(toggle).toHaveText('Alle 10 zeigen')
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    expect(await lines()).toBe(2)
+    expect(await offers.count()).toBeLessThan(tags.length)
+    await expect(visiblePage(page).getByTestId('m10-tag-offer-Werkzeugkiste')).toHaveCount(0)
+
+    // The search reaches a folded tag, and a query is not folded.
     await fillIonic(visiblePage(page).getByTestId('m10-tag-search'), 'Werkzeug')
-    await expect(visiblePage(page).getByTestId('m10-tag-offer-Werkzeug')).toBeVisible()
+    await expect(visiblePage(page).getByTestId('m10-tag-offer-Werkzeugkiste')).toBeVisible()
+    await expect(toggle).toHaveCount(0)
 
-    // …and clearing it returns to the shelf. Cleared by keys, not fill(''):
+    // Clearing it folds the shelf again. Cleared by keys, not fill(''):
     // deleting through the keyboard dispatches an input event per keystroke,
     // the same reason fillIonic types (see its comment).
     const searchInput = visiblePage(page).getByTestId('m10-tag-search').locator('input')
@@ -166,11 +179,30 @@ test.describe('M10 item editor — the tag shelf stays short (UX-14)', () => {
     await searchInput.press('ControlOrMeta+a')
     await searchInput.press('Backspace')
     await expect(searchInput).toHaveValue('')
-    await expect(offers).toHaveCount(8)
+    await expect(toggle).toHaveText('Alle 10 zeigen')
+    await expect(visiblePage(page).getByTestId('m10-tag-offer-Werkzeugkiste')).toHaveCount(0)
 
-    // The tail hands over to the search: after the tap, typing starts there.
-    await visiblePage(page).getByTestId('m10-tag-more').click()
-    await expect(visiblePage(page).getByTestId('m10-tag-search').locator('input')).toBeFocused()
+    // One tap opens all ten in place, without typing…
+    await toggle.click()
+    await expect(offers).toHaveCount(tags.length)
+    await expect(visiblePage(page).getByTestId('m10-tag-offer-Werkzeugkiste')).toBeVisible()
+    await expect(toggle).toHaveText('Weniger zeigen')
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+
+    // …and the next new item finds the shelf as it was left.
+    await backToInventory(page)
+    await visiblePage(page).getByTestId('m9-fab').click()
+    await expect(visiblePage(page).getByTestId('m10-new-hint')).toBeVisible()
+    // The toggle is tapped next, and a tap issued into the form's incoming
+    // transition can land on neither page.
+    await pageSettled(page)
+    await expect(offers).toHaveCount(tags.length)
+
+    // Folding it back returns to two lines.
+    await toggle.click()
+    await expect(toggle).toHaveText('Alle 10 zeigen')
+    await expect(visiblePage(page).getByTestId('m10-tag-offer-Werkzeugkiste')).toHaveCount(0)
+    expect(await lines()).toBe(2)
 
     // The placeholder fits its box at phone width — a longer de string runs
     // out of the searchbar. Measured by rendering, not by reproducing the

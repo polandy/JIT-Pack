@@ -1,26 +1,25 @@
 /**
- * UX-14/FR-20.1: what M10 offers in its two pickers. Both derivations were
- * reachable only through the built screen, so the cap that exists to keep the
- * form from scrolling was asserted by nothing.
+ * FR-24.1/FR-20.1: what M10 offers in its two pickers, and how much of the tag
+ * shelf a collapsed form shows. The derivations were reachable only through the
+ * built screen, so what keeps the form from scrolling was asserted by nothing.
  */
 import { describe, expect, it } from 'vitest'
 
-import { DEPENDENCY_OFFER_CAP, TAG_OFFER_CAP, dependencyOffer, tagOffer } from '../itemEditorOffers'
+import {
+  DEPENDENCY_OFFER_CAP,
+  chipsWithinRows,
+  dependencyOffer,
+  tagOffer,
+} from '../itemEditorOffers'
 
 const tags = (...names: string[]) => names.map((name, i) => ({ id: `t${i}`, name }))
 const many = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `t${i}`, name: `tag${i}` }))
 
-describe('tagOffer (UX-14)', () => {
-  it('holds the shelf to the cap while nothing is being searched', () => {
-    const offer = tagOffer(many(TAG_OFFER_CAP + 5), new Set(), '')
-    expect(offer.matches).toHaveLength(TAG_OFFER_CAP)
-    expect(offer.hiddenCount).toBe(5)
-  })
-
-  it('lifts the cap once a query is filtering — a match must not look absent', () => {
-    const offer = tagOffer(many(TAG_OFFER_CAP + 5), new Set(), 'tag')
-    expect(offer.matches).toHaveLength(TAG_OFFER_CAP + 5)
-    expect(offer.hiddenCount).toBe(0)
+describe('tagOffer (FR-24.1)', () => {
+  it('offers every unassigned tag while nothing is being searched, in vocabulary order', () => {
+    const offer = tagOffer(many(40), new Set(), '')
+    expect(offer.matches).toHaveLength(40)
+    expect(offer.matches[39]!.name).toBe('tag39')
   })
 
   it('leaves out the tags this item already carries — they are pinned above', () => {
@@ -31,12 +30,6 @@ describe('tagOffer (UX-14)', () => {
   it('matches on a substring, ignoring case', () => {
     const offer = tagOffer(tags('Winter', 'Sommer'), new Set(), 'MME')
     expect(offer.matches.map((tag) => tag.name)).toEqual(['Sommer'])
-  })
-
-  it('counts an assigned tag as neither offered nor hidden', () => {
-    const offer = tagOffer(many(TAG_OFFER_CAP + 1), new Set(['t0']), '')
-    expect(offer.matches).toHaveLength(TAG_OFFER_CAP)
-    expect(offer.hiddenCount).toBe(0)
   })
 
   it('offers to create a name no tag carries', () => {
@@ -55,6 +48,24 @@ describe('tagOffer (UX-14)', () => {
 
   it('offers nothing to create while the box is empty', () => {
     expect(tagOffer(tags('Winter'), new Set(), '   ').canCreate).toBe(false)
+  })
+})
+
+describe('chipsWithinRows (FR-24.1)', () => {
+  it('counts the leading chips whose top edge lies on one of the first lines', () => {
+    expect(chipsWithinRows([0, 0, 0, 36, 36, 72, 72], 2)).toBe(5)
+  })
+
+  it('counts every chip when they fill no more lines than allowed', () => {
+    expect(chipsWithinRows([0, 0, 36], 2)).toBe(3)
+  })
+
+  it('treats a sub-pixel difference as the same line', () => {
+    expect(chipsWithinRows([0, 0.5, 36, 36.4, 72], 2)).toBe(4)
+  })
+
+  it('counts nothing for no chips', () => {
+    expect(chipsWithinRows([], 2)).toBe(0)
   })
 })
 

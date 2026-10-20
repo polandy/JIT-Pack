@@ -1,3 +1,14 @@
+<script lang="ts">
+import { ref } from 'vue'
+
+/**
+ * Whether the shelf is open, for every chooser of the session: whoever opened
+ * it to pick from all the tags on one item wants them on the next one too,
+ * on M10 and in the FR-24.11 sheet alike.
+ */
+const shelfOpen = ref(false)
+</script>
+
 <script setup lang="ts">
 /**
  * An item's tag set, chosen by search-or-create (FR-24.1).
@@ -9,14 +20,15 @@
  * item exists) stays with the caller, which is why every act is an event.
  *
  * Assigned tags come first and are never hidden by the query, the first of
- * them is the primary one (where M9 files the item), and with an empty query
- * the offers are a shelf rather than the vocabulary (UX-14).
+ * them is the primary one (where M9 files the item). With an empty query the
+ * offers are every unassigned tag, folded to the shelf's first lines until the
+ * user opens it; a query shows every match (FR-24.1).
  */
 import { IonIcon, IonSearchbar } from '@ionic/vue'
 import { addOutline, bookmarkOutline, closeOutline } from 'ionicons/icons'
-import { computed, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, watch } from 'vue'
 
-import { tagOffer } from '@/lib/itemEditorOffers'
+import { TAG_SHELF_ROWS, chipsWithinRows, tagOffer } from '@/lib/itemEditorOffers'
 import { findNameCollision } from '@/domain/nameCollision'
 import { t } from '@/i18n'
 import type { Tag } from '@/types/domain'
@@ -66,15 +78,69 @@ const pool = computed<Tag[]>(() => {
 const offer = computed(() => tagOffer(pool.value, assignedIds.value, query.value))
 const preferredSet = computed(() => new Set(props.preferredIds))
 
-const searchbar = ref<{ $el: HTMLElement } | null>(null)
+const browsing = computed(() => query.value.trim() === '')
 
-/** The shelf's tail hands over to the search — the way past the cap. */
-async function focusSearch() {
-  const native = await (
-    searchbar.value?.$el as HTMLIonSearchbarElement | undefined
-  )?.getInputElement?.()
-  native?.focus()
+const chipRow = ref<HTMLElement | null>(null)
+
+/** How many offers the folded shelf's lines hold; all of them until measured. */
+const fitCount = ref(Number.POSITIVE_INFINITY)
+
+/**
+ * Every offer is laid out for one tick to be measured. A flag of its own
+ * rather than resetting `fitCount`, which would take the toggle away and
+ * rebuild it — and a toggle rebuilt between a tap's mousedown and mouseup
+ * never receives the click.
+ */
+const measuring = ref(false)
+
+const shownOffers = computed(() =>
+  browsing.value && !shelfOpen.value && !measuring.value
+    ? offer.value.matches.slice(0, fitCount.value)
+    : offer.value.matches,
+)
+
+/** Only a shelf that runs past its lines has anything to open or fold. */
+const shelfOverflows = computed(() => browsing.value && fitCount.value < offer.value.matches.length)
+
+/**
+ * Lays every offer out, then reads where the lines break. Both happen before
+ * the browser paints, so the unfolded row is never seen.
+ */
+async function measureShelf() {
+  if (!browsing.value) return
+  measuring.value = true
+  await nextTick()
+  const chips = chipRow.value?.querySelectorAll<HTMLElement>('.chip.offer') ?? []
+  fitCount.value = chipsWithinRows(
+    [...chips].map((chip) => chip.offsetTop),
+    TAG_SHELF_ROWS,
+  )
+  measuring.value = false
 }
+
+// One getter per source: a getter returning a fresh array counts as changed on
+// every re-run, and any re-render of the form would re-measure.
+watch([browsing, () => offer.value.matches.map((tag) => tag.id).join()], measureShelf, {
+  flush: 'post',
+})
+
+// Where the lines break moves with the width — a sheet sliding up, a rotated
+// phone — and with the web font replacing its fallback.
+let resize: ResizeObserver | null = null
+let measuredWidth = 0
+onMounted(() => {
+  void measureShelf()
+  void document.fonts?.ready.then(measureShelf)
+  if (typeof ResizeObserver === 'undefined' || !chipRow.value) return
+  resize = new ResizeObserver(([entry]) => {
+    const width = entry?.contentRect.width ?? 0
+    if (width === measuredWidth) return
+    measuredWidth = width
+    void measureShelf()
+  })
+  resize.observe(chipRow.value)
+})
+onBeforeUnmount(() => resize?.disconnect())
 
 function assign(tagId: string) {
   emit('assign', tagId)
@@ -95,7 +161,6 @@ function commitQuery() {
 <template>
   <div class="tag-chooser">
     <IonSearchbar
-      ref="searchbar"
       :value="query"
       :data-testid="`${inSheet ? 'create-item' : 'm10'}-tag-search`"
       :placeholder="t('items.editor.tagSearchPlaceholder')"
@@ -104,7 +169,7 @@ function commitQuery() {
       @keyup.enter="commitQuery"
     />
 
-    <div class="chips">
+    <div ref="chipRow" class="chips">
       <!-- Assigned first and always visible: the filter must never hide
            what the item already carries. Two targets, because the chip had
            one and it was the destructive one (FR-24.9): the name files the
@@ -138,25 +203,15 @@ function commitQuery() {
       </span>
 
       <button
-        v-for="tag in offer.matches"
+        v-for="tag in shownOffers"
         :key="tag.id"
         type="button"
-        class="chip"
+        class="chip offer"
         :class="{ preferred: preferredSet.has(tag.id) }"
         :data-testid="`${inSheet ? 'create-item' : 'm10'}-tag-offer-${tag.name}`"
         @click="assign(tag.id)"
       >
         {{ tag.name }}
-      </button>
-
-      <button
-        v-if="offer.hiddenCount > 0"
-        type="button"
-        class="chip more"
-        :data-testid="`${inSheet ? 'create-item' : 'm10'}-tag-more`"
-        @click="focusSearch"
-      >
-        {{ t('items.editor.tagMoreOffers', { n: offer.hiddenCount }) }}
       </button>
 
       <button
@@ -170,6 +225,21 @@ function commitQuery() {
         {{ t('items.editor.tagCreate', { name: query.trim() }) }}
       </button>
     </div>
+
+    <button
+      v-if="shelfOverflows"
+      type="button"
+      class="chip shelf-toggle"
+      :aria-expanded="shelfOpen"
+      :data-testid="`${inSheet ? 'create-item' : 'm10'}-tag-shelf-toggle`"
+      @click="shelfOpen = !shelfOpen"
+    >
+      {{
+        shelfOpen
+          ? t('items.editor.tagShelfFold')
+          : t('items.editor.tagShelfOpen', { n: offer.matches.length })
+      }}
+    </button>
 
     <p class="tag-summary" :data-testid="`${inSheet ? 'create-item' : 'm10'}-tag-summary`">
       <template v-if="assigned.length > 0">
@@ -250,10 +320,13 @@ function commitQuery() {
   color: var(--jp-brand);
 }
 
-/* The tail is a hand-over, not a tag: quieter than the offers around it. */
-.chip.more {
+/* Opens or folds the shelf, not a tag: quieter than the offers above it. */
+.chip.shelf-toggle {
   border-style: dashed;
   background: transparent;
+  color: var(--jp-brand);
+  cursor: pointer;
+  margin-bottom: 4px;
 }
 
 .tag-summary {

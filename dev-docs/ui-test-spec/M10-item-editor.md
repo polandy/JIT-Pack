@@ -62,10 +62,12 @@ M10-02's delete refusal is reversed by FR-24.3.
   item is created and asserted untouched, so "one row fewer" cannot be produced by the list simply failing to paint;
   then the same name is created again, which a retired row holding it would refuse — the rendered proof that the delete
   was physical and that uniqueness ranges over the active rows only.
-* **E2E-M10-16** `all` (FR-24.1, UX-14) (`item-editor-tags.spec.ts`): with ten unassigned tags and an empty query the
-  form offers **eight** chips and a *„N weitere per Suche"* tail naming the two held back; the search reaches a tag past
-  the cap; clearing the query (by keys — a programmatic clear is the event-loss path the suite's `fillIonic` exists to
-  avoid) returns to the shelf; tapping the tail focuses the search. Runs at phone width and in German, where it also
+* **E2E-M10-16** `all` (FR-24.1) (`item-editor-tags.spec.ts`): with ten unassigned tags whose long names need more
+  than two lines and an empty query, the form offers chips on **exactly two lines** — measured from their rendered
+  boxes — and fewer than ten, under an *„Alle 10 zeigen"* toggle; the search reaches a folded tag; clearing the query
+  (by keys — a programmatic clear is the event-loss path the suite's `fillIonic` exists to avoid) folds the shelf
+  again; the toggle opens all ten in place, *„Weniger zeigen"* folds them, and a shelf opened on one form is open on
+  the next new item. Runs at phone width and in German, where it also
   measures that the placeholder fits its box — by briefly rendering the text as the value and reading `scrollWidth`,
   because a canvas re-measure can use the wrong font and then cannot fail.
 * **E2E-M7-11** `all` (FR-24.3): M7's row menu → *Löschen* on a Vorlage no trip ever used; the
