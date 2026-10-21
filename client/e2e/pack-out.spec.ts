@@ -43,8 +43,9 @@ test('E2E-M4-33: a packed row leaves and the snackbar puts it back @local @m4', 
   await expect(toast).toContainText('Schlafsack')
 
   // And back. Before this, recovering a mistap meant finding the reveal
-  // bar, showing the done rows, finding yours, and un-checking it.
-  await toast.getByRole('button').click()
+  // bar, showing the done rows, finding yours, and un-checking it. Named,
+  // since FR-25.33 gives the same toast a second button for its note.
+  await toast.getByRole('button', { name: /undo/i }).click()
   await expect(visiblePage(page).getByTestId('m4-row-Schlafsack')).toBeVisible()
 
   // Restored to *open*, not merely visible: a row that came back still
@@ -71,7 +72,8 @@ test('E2E-M4-34: packing several rows leaves one undo, for the last of them @loc
   const toast = page.locator('ion-toast.pack-toast')
   await expect(toast).toContainText('Schlafsack')
 
-  await toast.getByRole('button').click()
+  // Named, since FR-25.33 gives the same toast a second button for its note.
+  await toast.getByRole('button', { name: /undo/i }).click()
   await expect(visiblePage(page).getByTestId('m4-row-Schlafsack')).toBeVisible()
   // The earlier pack stays packed — undo is one step, not a rewind.
   await expect(page.getByTestId('m4-row-Zelt')).toBeHidden()

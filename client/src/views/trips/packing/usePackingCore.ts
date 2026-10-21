@@ -185,6 +185,7 @@ export function usePackingCore(tripId: string, screen: TripScreen) {
     announceAct,
     announcePacked: announcer.announcePacked,
     announceSkipped: announcer.announceSkipped,
+    packNote: (row) => row.pack_note ?? null,
   }
 
   return {

@@ -9,12 +9,14 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest'
 
-import { setLocale } from '@/i18n'
+import { setLocale, t } from '@/i18n'
 import {
   boughtStampText,
   lockNoteText,
   nameFrom,
   packedStampText,
+  packingRecordText,
+  packNoteText,
   responsibleNote,
   skippedNote,
   stampText,
@@ -129,6 +131,29 @@ describe('responsibleNote (FR-25.19)', () => {
   })
 })
 
+describe('packingRecordText (FR-25.17/25.19)', () => {
+  it('joins the stamp and the responsible person with a dot', () => {
+    const text = packingRecordText(
+      row({
+        packed_at: '2026-03-01T14:32:00',
+        packed_by_user_id: 'u-andy',
+        packer_user_id: 'u-nina',
+      }),
+      nameOf,
+    )
+    expect(text).toMatch(/^packed by Andy · .+ · assigned to Nina$/)
+  })
+
+  it('is the stamp alone where the packer was the one responsible', () => {
+    const facts = row({ packed_by_user_id: 'u-andy', packer_user_id: 'u-andy' })
+    expect(packingRecordText(facts, nameOf)).toBe(packedStampText(facts, nameOf))
+  })
+
+  it('says nothing for a row with no stamp, whoever was responsible', () => {
+    expect(packingRecordText(row({ packer_user_id: 'u-nina' }), nameOf)).toBeNull()
+  })
+})
+
 describe('lockNoteText (G-3)', () => {
   it('names the holder rather than only wearing a padlock', () => {
     expect(lockNoteText('u-nina', nameOf)).toBe('Nina is packing this right now')
@@ -204,5 +229,15 @@ describe('boughtStampText (FR-30.4)', () => {
     const opts = { withDay: false }
     expect(boughtStampText(at, 'u-nina', nameOf, NOW, opts)).toBe('bought by Nina · 14:32')
     expect(boughtStampText(at, null, nameOf, NOW, opts)).toBe('bought · 14:32')
+  })
+})
+
+describe('packNoteText (FR-25.33)', () => {
+  it('quotes the note the way the row reads it', () => {
+    expect(packNoteText('Jeans')).toBe(t('packing.packNoteQuoted', { note: 'Jeans' }))
+  })
+
+  it.each([null, undefined])('says nothing for a row without a note (%s)', (note) => {
+    expect(packNoteText(note)).toBeNull()
   })
 })

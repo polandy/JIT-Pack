@@ -52,6 +52,7 @@ function notes(overrides: Partial<PackingRowNotes> = {}): PackingRowNotes {
     skipped: null,
     packed: null,
     responsible: null,
+    packNote: null,
     ...overrides,
   }
 }
@@ -124,6 +125,32 @@ describe('PackingRow — the sentence under the name', () => {
       notes: notes({ packed: 'packed by Andy', responsible: 'for Bea' }),
     })
     expect(stamp(done)).toBe('packed by Andy · for Bea')
+  })
+
+  it('FR-25.33: the pack note leads the packed stamp, quoted as it was handed in', () => {
+    const done = mountRow({
+      done: true,
+      notes: notes({ packed: 'packed by Andy', responsible: 'for Bea', packNote: '"Jeans"' }),
+    })
+
+    expect(stamp(done)).toBe('"Jeans" · packed by Andy · for Bea')
+    expect(done.get('[data-testid="m4-pack-note"]').text()).toBe('"Jeans"')
+  })
+
+  it('FR-25.33: an open row reads its note as the plan, with no stamp beside it', () => {
+    const open = mountRow({ notes: notes({ packed: 'packed by Andy', packNote: '"Jeans"' }) })
+
+    expect(stamp(open)).toBe('"Jeans"')
+    expect(open.find('[data-testid="m4-packed-stamp"]').exists()).toBe(false)
+  })
+
+  it("FR-25.33: G-3's lock still outranks the note", () => {
+    const locked = mountRow({
+      locked: true,
+      notes: notes({ lock: 'in progress by Andy', packNote: '"Jeans"' }),
+    })
+
+    expect(stamp(locked)).toBe('in progress by Andy')
   })
 
   it('writes no sentence when the row has nothing to say', () => {

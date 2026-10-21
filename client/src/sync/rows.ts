@@ -397,6 +397,7 @@ export function itemRow(item: TripItem): Record<string, unknown> {
     flag_missing: dbBool(item.flag_missing),
     carried_over_at: item.carried_over_at ?? null,
     shopping_position: item.shopping_position ?? null,
+    pack_note: item.pack_note ?? null,
     updated_hlc: item.updated_hlc,
   }
 }

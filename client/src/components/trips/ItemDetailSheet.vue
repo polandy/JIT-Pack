@@ -50,6 +50,7 @@ import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import QuantityEditor from '@/components/global/QuantityEditor.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import ForWhomStrip from '@/components/trips/ForWhomStrip.vue'
+import PackNoteField from '@/components/trips/PackNoteField.vue'
 import { resolveDependencies, type SuggestedCompanion } from '@/domain/dependencies'
 import { MIN_TRAVELERS_FOR_PER_PERSON } from '@/domain/membership'
 import { quantityChoices } from '@/domain/quantityChoices'
@@ -69,7 +70,7 @@ import {
   TASK_STATE_RESOLVED,
 } from '@/types/domain'
 import type { ItemMode, ReviewFlag, TripMemberProfile } from '@/types/domain'
-import { lockNoteText, nameFrom, packedStampText, responsibleNote } from '@/lib/rowFacts'
+import { lockNoteText, nameFrom, packingRecordText, packNoteText } from '@/lib/rowFacts'
 import { stateLabel as stateLabelFor } from '@/lib/stateLabels'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { useItemDiscussion } from '@/composables/useItemDiscussion'
@@ -169,6 +170,9 @@ const containerName = computed(
   () => containers.value.find((c) => c.id === item.value?.container_id)?.name ?? null,
 )
 
+/** FR-25.33: the note as M4's row reads it — quoted; its field is in Details. */
+const packNote = computed(() => packNoteText(item.value?.pack_note))
+
 /*
  * The glance names what is unusual about the item (UX-21). Packing is what
  * every item does unless it is bought, so the pack mode has no chip — a pill
@@ -184,7 +188,8 @@ const glanceSays = computed(() => {
     containerName.value !== null ||
     row.late_packer ||
     row.flag_missing ||
-    row.flag_unused
+    row.flag_unused ||
+    packNote.value !== null
   )
 })
 
@@ -347,19 +352,8 @@ const stateLabel = computed(() =>
   item.value ? stateLabelFor(item.value.state, { prepOpen: hasPrepWithPacked.value }) : '',
 )
 
-/**
- * FR-25.17/25.19: who packed it and when, and who was responsible. The
- * sheet joins the two with a `·` where M4's list gives the second its own
- * span — the composition is the screen's, the wording is shared (U-2).
- */
-const packedStamp = computed(() => {
-  const row = item.value
-  if (!row) return null
-  const line = packedStampText(row, nameOf)
-  if (!line) return null
-  const responsible = responsibleNote(row, nameOf)
-  return responsible ? `${line} · ${responsible}` : line
-})
+/** FR-25.17/25.19: who packed it and when, and who was responsible (U-2). */
+const packedStamp = computed(() => (item.value ? packingRecordText(item.value, nameOf) : null))
 </script>
 
 <template>
@@ -518,6 +512,7 @@ const packedStamp = computed(() => {
         t('facet.flagMissing')
       }}</FactChip>
       <FactChip v-if="item.flag_unused" tone="warn" bordered>{{ t('facet.flagUnused') }}</FactChip>
+      <FactChip v-if="packNote" data-testid="m5-glance-pack-note">{{ packNote }}</FactChip>
     </div>
 
     <!-- FR-7.3: the work attached to the thing, before the thing's fields. -->
@@ -749,6 +744,9 @@ const packedStamp = computed(() => {
           />
         </IonItem>
       </template>
+      <IonItem lines="none">
+        <PackNoteField :item :locked="isLocked" />
+      </IonItem>
       <IonItem v-if="packedStamp" lines="none">
         <IonNote data-testid="m5-stamp">{{ packedStamp }}</IonNote>
       </IonItem>

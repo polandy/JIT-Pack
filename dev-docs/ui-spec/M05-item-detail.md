@@ -95,6 +95,12 @@
   It is a control rather than a chip because it is a *decision about* the row, not a property of it, and it is spelled
   out because M4's press-and-hold is the fast path while this is the one a user finds without knowing it exists. The
   stepper says *how many*; only this says *none, on purpose*.
+* ***Packnotiz* sits in Details, its note in the glance row (FR-25.33).** One outlined line, *„Was ist eingepackt?"*,
+  60 characters with a counter, on every row, open or packed — the place a note is written before packing or changed
+  afterwards. It is folded away because on the first level it pushed the folded sheet to its 85 % ceiling
+  (E2E-M5-25); the glance row carries the note quoted, as M4's row reads it, so a packed row still says what went in
+  without unfolding. The field writes on change (Enter or leaving it), because unlike M4's note bar nothing is waiting
+  on it; emptying it clears the note, and a held row (G-3) shows it disabled.
 * ***Zugewiesen an* is a control, not a readout.** It is the writer of `packer_user_id` (FR-25.19) that every surface
   reading responsibility — M4's row avatar, the „zuständig war …" stamp, FR-25.20's filter and its reveal bar — depends
   on, and the app's way to fire the FR-6.2 delegation notification. It is a picker in *Details ▾* beside the luggage

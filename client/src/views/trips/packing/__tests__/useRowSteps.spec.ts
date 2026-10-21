@@ -99,3 +99,37 @@ describe('useRowSteps (FR-25.2, FR-25.31, FR-31.6)', () => {
     ])
   })
 })
+
+describe('useRowSteps — the pack snackbar names the row for its note (FR-25.33)', () => {
+  it.each([
+    [
+      'the tick',
+      (steps: ReturnType<typeof useRowSteps<TripItem>>, r: TripItem) => steps.onToggle(r),
+    ],
+    [
+      'the completing step',
+      (steps: ReturnType<typeof useRowSteps<TripItem>>, r: TripItem) => steps.onIncrement(r),
+    ],
+    [
+      'all of it in',
+      (steps: ReturnType<typeof useRowSteps<TripItem>>, r: TripItem) => steps.onComplete(r),
+    ],
+  ])('%s hands the snackbar the row and its note, where the list keeps notes', (_name, act) => {
+    const port = { ...fakePort(), packNote: (r: TripItem) => r.pack_note ?? null }
+
+    act(useRowSteps<TripItem>(port), row({ pack_note: 'die graue' }))
+
+    expect(port.announcePacked).toHaveBeenCalledWith('Trinkflasche', {
+      id: 'r1',
+      current: 'die graue',
+    })
+  })
+
+  it('names no row on a list that keeps no notes (an excursion line)', () => {
+    const port = fakePort()
+
+    useRowSteps(port).onToggle(row({ packed_count: 0 }))
+
+    expect(port.announcePacked.mock.calls[0]).toEqual(['Trinkflasche'])
+  })
+})

@@ -184,6 +184,7 @@ export const sharedEn = {
   'fieldLabel.icon': 'Mark',
   'fieldLabel.sort_order': 'Order',
   'fieldLabel.late_packer': 'Pack last',
+  'fieldLabel.pack_note': 'Pack note',
   'fieldLabel.flag_unused': 'Flagged unused',
   'fieldLabel.flag_missing': 'Flagged missing',
   'fieldLabel.body': 'Text',

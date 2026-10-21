@@ -230,6 +230,37 @@ describe('cloneTrip on the seam (FR-12)', () => {
     expect(drains).toEqual([[tripId]])
   })
 
+  it("writes last time's pack note onto the cloned row, as the new trip's plan (FR-25.33)", () => {
+    seedSource()
+    pullIn(ctx.tripStore, TABLE.tripItems, 'b', {
+      trip_id: 'src',
+      name: 'Lange Hose',
+      quantity: 1,
+      state: 'packed',
+      mode: 'pack',
+      pack_note: 'Jeans',
+    })
+
+    createTripCreationActions(ctx).cloneTrip('src', {
+      name: 'Engadin 2026',
+      year: 2026,
+      startDate: null,
+      endDate: null,
+      options: { travelerAssignments: true, packerDelegations: false, containerAssignments: true },
+    })
+
+    const rows = queued
+      .flatMap((q) => q.muts.map((m) => m.mutation))
+      .filter((m) => m.table === TABLE.tripItems)
+    expect(rows.find((m) => m.fields?.['name'] === 'Lange Hose')!.fields).toMatchObject({
+      pack_note: 'Jeans',
+      state: 'open',
+    })
+    expect(rows.find((m) => m.fields?.['name'] === 'Zelt')!.fields).toMatchObject({
+      pack_note: null,
+    })
+  })
+
   it('writes nothing at all when the source rows are not on the device (ADR-033)', () => {
     seedSource()
     const notLoaded = makeSeamContext({ tripDataLoaded: () => false })

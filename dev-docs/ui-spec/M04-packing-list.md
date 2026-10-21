@@ -419,6 +419,15 @@
     mechanisms would show it twice). What it keeps is its own words — *"Bewusst weggelassen"*, or the FR-20.2 reason —
     and the reverse action *Doch einpacken*, which restores it to open with quantity 1. Purpose unchanged: acknowledge
     that an item was considered and deliberately not packed, distinguishing "forgot" from "decided against."
+  * **The pack note (FR-25.33) is offered by the pack snackbar.** A pack on a trip row raises the snackbar with
+    ***Notiz*** before *Rückgängig*. Notiz swaps the snackbar for a **note bar** in its place: the same sentence, a
+    focused one-line field (*„Was ist eingepackt?"*, placeholder *„z. B. Jeans"*, 60 characters, counter *„n / 60 ·
+    Enter speichert"*) and the snackbar's *Rückgängig*, which stays armed while the bar is open. **Enter saves (an
+    empty field clears the note), Escape closes, and leaving the field does not save** — a keyboard folding away is
+    not a decision, and a half-typed note written on blur would be. A new act on the list replaces the bar as it
+    replaces a snackbar. An excursion's list (FR-31.6) raises the snackbar without Notiz. The note shows on the row,
+    quoted, leading the line that carries the FR-25.17 stamp (*„Jeans" · Andy, heute 14:02*); an open row with a note
+    shows it alone in that line, and a held row's lock line outranks it. (E2E-M4-156)
   * Filtering: the faceted panel described above (FR-25.11), reached from the app-bar filter icon. **Decided: the
     filter, the Erledigte switch and the grouping persist per trip for the session** (FR-25.18) — deliberately
     session-scoped where grouping is durable, since a forgotten filter hides rows; a fresh session starts unfiltered and

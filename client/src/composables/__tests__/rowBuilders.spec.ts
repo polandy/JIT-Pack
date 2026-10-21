@@ -264,6 +264,7 @@ const CASES: BuilderCase[] = [
         flag_missing: 1,
         carried_over_at: '2026-08-21T18:00:00Z',
         shopping_position: 3,
+        pack_note: 'die graue',
         updated_hlc: '0000009000000-0001-abcdef01',
       })
     },
@@ -278,6 +279,11 @@ const CASES: BuilderCase[] = [
         act: (i) => newOrch().packing.setLatePacker(i, false),
         changed: 'late_packer',
         becomes: false,
+      },
+      {
+        act: (i) => newOrch().packNotes.setPackNote(i, 'Jeans'),
+        changed: 'pack_note',
+        becomes: 'Jeans',
       },
     ],
     expected: {
@@ -308,6 +314,7 @@ const CASES: BuilderCase[] = [
       flag_missing: true,
       carried_over_at: '2026-08-21T18:00:00Z',
       shopping_position: 3,
+      pack_note: 'die graue',
       updated_hlc: '0000009000000-0001-abcdef01',
     } satisfies Record<keyof TripItem, unknown>,
   },

@@ -134,6 +134,14 @@ function sampleDocument(): PortableDocument {
       row('Wandersocken', 'Kleidung', { quantity: 6, packed_count: 4, container: 'Koffer' }),
       // Per-person: one row each, so M4 shows a named cluster.
       ...TRAVELERS.map((traveler) => row('Regenjacke', 'Kleidung', { traveler })),
+      // FR-25.33: Leonardo's share went in and says what it was; Sia's has
+      // its plan written down before anything went in.
+      ...TRAVELERS.map((traveler) =>
+        row(SEED_NOTED_ROW, 'Kleidung', {
+          traveler,
+          packed_count: traveler === 'Leonardo' ? 1 : 0,
+        }),
+      ),
       ...['Sia', 'Leonardo'].map((traveler) =>
         row('Sonnenhut', 'Kleidung', { traveler, mode: ITEM_MODE_BUY_BEFORE }),
       ),
@@ -173,6 +181,7 @@ export function seedSampleTrip(
   const { id } = orchestrator.portable.commitPortableImport(sampleDocument(), merges)
   orchestrator.tripLifecycle.activateTrip(id)
   buyOneShoppingRow(id, orchestrator)
+  notePackedRows(id, orchestrator)
   seedShoppingEntries(id, orchestrator)
   seedItemComment(id, orchestrator)
   seedOwnTasks(id, orchestrator)
@@ -695,6 +704,27 @@ function buyOneShoppingRow(tripId: string, orchestrator: Orchestrator): void {
     .getItems(tripId)
     .find((row) => row.name === SEED_BOUGHT_ROW)
   if (item) orchestrator.packing.buyItem(item, ITEM_MODE_BUY_BEFORE)
+}
+
+/**
+ * FR-25.33: the pack notes, through the action M4's snackbar and M5 call —
+ * the portable document carries no note, and a row written directly would be
+ * a second way of noting something, for the reason `buyOneShoppingRow` gives.
+ */
+const SEED_NOTED_ROW = 'Lange Hose'
+const SEED_PACK_NOTES: Record<string, string> = { Leonardo: 'Jeans', Sia: 'die graue' }
+
+function notePackedRows(tripId: string, orchestrator: Orchestrator): void {
+  const travelerName = new Map(
+    useTripStore()
+      .getTravelers(tripId)
+      .map((tr) => [tr.id, tr.name]),
+  )
+  for (const item of useTripStore().getItems(tripId)) {
+    if (item.name !== SEED_NOTED_ROW || !item.assigned_traveler_id) continue
+    const note = SEED_PACK_NOTES[travelerName.get(item.assigned_traveler_id) ?? '']
+    if (note) orchestrator.packNotes.setPackNote(item, note)
+  }
 }
 
 /**

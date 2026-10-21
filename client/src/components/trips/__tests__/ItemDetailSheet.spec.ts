@@ -44,6 +44,7 @@ const orchestratorFake = {
     setQuantity: vi.fn(),
     quickAddItem: vi.fn(() => ({ id: 'ti-new', companions: [] })),
   },
+  packNotes: { setPackNote: vi.fn() },
   claims: {
     lockHolder: vi.fn(() => null as string | null),
   },
@@ -954,5 +955,85 @@ describe('M5 mode choice once the trip is under way (FR-30.8, FR-7.12)', () => {
     seedTrip('planning')
     const wrapper = await openDetails(mountSheet())
     expect(disabled(modeOption(wrapper, 'buy_before'))).toBe(false)
+  })
+})
+
+/*
+ * FR-25.33: M5 holds the same note the pack snackbar writes, on every row,
+ * open or packed — on an open row it is the plan. The field is in Details,
+ * so the folded sheet keeps its height (E2E-M5-25); the glance says the note.
+ */
+describe('M5 pack note (FR-25.33)', () => {
+  function withNote(note: string | null) {
+    const tripStore = seedTrip('active')
+    tripStore.applyChange({
+      seq: 1,
+      table: 'trip_items',
+      id: 'ti1',
+      deleted: false,
+      row: { ...tripStore.getItems('t1')[0]!, pack_note: note },
+    })
+  }
+
+  it('folds its field into Details, and says the note in the glance row', () => {
+    withNote('Jeans')
+    const wrapper = mountSheet()
+
+    expect(wrapper.find('[data-testid="m5-pack-note"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="m5-glance-pack-note"]').text()).toBe(
+      t('packing.packNoteQuoted', { note: 'Jeans' }),
+    )
+  })
+
+  it('has no glance chip for a row without a note', () => {
+    withNote(null)
+    expect(mountSheet().find('[data-testid="m5-glance-pack-note"]').exists()).toBe(false)
+  })
+
+  it('shows the note as it stands in its field under Details', async () => {
+    withNote('Jeans')
+    const wrapper = await openDetails(mountSheet())
+
+    const field = wrapper.get('[data-testid="m5-pack-note"]').element as HTMLElement & {
+      value?: string
+    }
+    expect(field.value).toBe('Jeans')
+  })
+
+  it('writes what was typed through the packing action, which decides what it stores', async () => {
+    withNote(null)
+    const wrapper = await openDetails(mountSheet())
+
+    await wrapper
+      .get('[data-testid="m5-pack-note"]')
+      .trigger('ionChange', { detail: { value: 'Jeans' } })
+
+    expect(orchestratorFake.packNotes.setPackNote).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'ti1' }),
+      'Jeans',
+    )
+  })
+
+  it('writes nothing when what it would store is the note there is', async () => {
+    withNote('Jeans')
+    const wrapper = await openDetails(mountSheet())
+
+    await wrapper
+      .get('[data-testid="m5-pack-note"]')
+      .trigger('ionChange', { detail: { value: ' Jeans ' } })
+
+    expect(orchestratorFake.packNotes.setPackNote).not.toHaveBeenCalled()
+  })
+
+  it('is inert while somebody else holds the row (G-3)', async () => {
+    withNote(null)
+    orchestratorFake.claims.lockHolder.mockReturnValue('user-sarah')
+    const wrapper = await openDetails(mountSheet())
+
+    const field = wrapper.get('[data-testid="m5-pack-note"]')
+    await field.trigger('ionChange', { detail: { value: 'Jeans' } })
+
+    expect((field.element as HTMLElement & { disabled?: boolean }).disabled).toBe(true)
+    expect(orchestratorFake.packNotes.setPackNote).not.toHaveBeenCalled()
   })
 })

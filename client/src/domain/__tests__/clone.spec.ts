@@ -163,6 +163,29 @@ describe('planClone — fresh pack state (FR-12.1)', () => {
   })
 })
 
+describe('planClone — the pack note carries over (FR-25.33)', () => {
+  it.each([
+    ["a packed row keeps what went in, as the new trip's plan", 'packed', 'Jeans', 'Jeans'],
+    ['an open row keeps its plan', 'open', 'die graue', 'die graue'],
+    ['a row without a note stays without one', 'packed', null, null],
+  ] as const)('%s', (_name, state, note, want) => {
+    const plan = planClone(
+      {
+        trip: trip(),
+        travelers: [],
+        containers: [],
+        items: [tripItem({ id: 'a', state, pack_note: note })],
+      },
+      { travelerAssignments: false, packerDelegations: false, containerAssignments: false },
+      noLookup,
+      4,
+    )
+
+    expect(plan.items[0]!.pack_note).toBe(want)
+    expect(plan.items[0]!.state).toBe('open')
+  })
+})
+
 describe('planClone — quantities carry over (FR-12.2, formulas retired 2026-08-08)', () => {
   const templateItem: TemplateItem = {
     id: 'tpl-item-1',

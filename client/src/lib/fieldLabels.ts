@@ -26,6 +26,7 @@ export const FIELD_LABELS: Partial<Record<string, MessageKey>> = {
   icon: 'fieldLabel.icon',
   sort_order: 'fieldLabel.sort_order',
   late_packer: 'fieldLabel.late_packer',
+  pack_note: 'fieldLabel.pack_note',
   flag_unused: 'fieldLabel.flag_unused',
   flag_missing: 'fieldLabel.flag_missing',
   body: 'fieldLabel.body',

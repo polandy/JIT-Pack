@@ -93,6 +93,7 @@ import { ITEM_QUERY_PARAM, tripItemPath, tripPath, tripSubPath } from '@/router/
 
 import PackingGroupList from './packing/PackingGroupList.vue'
 import PackingHeadline from './packing/PackingHeadline.vue'
+import PackNoteSlot from './packing/PackNoteSlot.vue'
 import RowQuantityPopover from './packing/RowQuantityPopover.vue'
 import TripTasksSection from './packing/TripTasksSection.vue'
 import { useBrowseAdd } from './packing/useBrowseAdd'
@@ -778,13 +779,11 @@ setHeaderTitle(
         testid="m4-done-bar"
         @toggle="showDone = !showDone"
       />
+      <PackNoteSlot slot="fixed" :core />
 
-      <!-- FR-25.13a: the ＋ opens *and focuses* the quick-add. Expanding it
-           without focus costs a second tap on the only path that has to be
-           one-handed. -->
-      <!-- The id is the snackbar's anchor: FR-25.2's undo is the one control
-           the FAB must never sit on top of (the same rule as FR-25.11h, one
-           layer up). -->
+      <!-- FR-25.13a: the ＋ opens *and focuses* the quick-add — without focus, a second tap
+           on the only path that has to be one-handed. The id is the snackbar's anchor:
+           FR-25.2's undo is the one control the FAB must never sit on (FR-25.11h, one layer up). -->
       <IonFab :id="FAB_ANCHOR.m4" slot="fixed" vertical="bottom" horizontal="end">
         <IonFabButton
           v-if="!quickAddExpanded && !closingPass"

@@ -191,6 +191,18 @@ finished, the packing list is one line at the bottom (*10/26 gepackt · 13 offen
 packing. A trip that has not started yet shows what is left to buy for it under **Geplant**, without a field — add to
 that list on the trip's shopping list.
 
+## Noting what went in
+
+A packing row names a kind of thing — *Lange Hose* — and the bag holds a particular one. Once you tick a row off, the
+message at the bottom offers **Notiz** beside **Rückgängig**: tap it, type up to 60 characters (*Jeans*) and press
+Enter. Escape closes the field without saving, and **Rückgängig** still takes the packing back while it is open. The
+note then leads the row's *packed* line (*„Jeans" · Andy, heute 14:02*).
+
+Each traveller's share of a per-person item has its own note. The item's sheet shows the note at the top and has the
+same field (**Packnotiz**) under **Details** for any row, packed or not — write the note there before packing, change it afterwards, or empty it to remove it.
+Everyone on the trip sees and can change every note. A trip copied from this one keeps its notes, so next time the
+list already says which trousers.
+
 ## When the packing is finished
 
 **Packen abschliessen** on the packing list ends *before the trip*:
