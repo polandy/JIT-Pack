@@ -403,6 +403,10 @@ CREATE TABLE trip_items (
     -- shopping list, by hand; NULL for never placed (ADR-083). A line that
     -- stands for several rows writes it on each of them.
     shopping_position    INTEGER,
+    -- FR-25.33: what exactly went in (*Jeans* on a *Lange Hose* row), one
+    -- line; NULL for none, never blank. The client's to write, open or packed
+    -- alike, and untouched by un-packing, which clears only the stamp beside it.
+    pack_note            TEXT CHECK (pack_note IS NULL OR (length(pack_note) BETWEEN 1 AND 60)),
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc          TEXT NOT NULL DEFAULT ''         -- NFR-4.2a
 );

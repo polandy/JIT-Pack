@@ -38,6 +38,7 @@ import { createDependencyActions } from '@/app/actions/dependencies'
 import { createSeriesActions } from '@/app/actions/series'
 import { createMasterDataActions } from '@/app/actions/masterData'
 import { createPackingActions } from '@/app/actions/packing'
+import { createPackNoteActions } from '@/app/actions/packNotes'
 import { createGroupRefreshActions } from '@/app/actions/groupRefresh'
 import { createInventoryNameActions } from '@/app/actions/inventoryNames'
 import { createTripLifecycleActions } from '@/app/actions/tripLifecycle'
@@ -590,6 +591,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     // One namespace per action group, named after its file (ADR-098)
     packing: packingActions,
+    packNotes: createPackNoteActions(ctx),
     claims: claimActions,
     removalPrune: removalPruneActions,
     containers: containerActions,

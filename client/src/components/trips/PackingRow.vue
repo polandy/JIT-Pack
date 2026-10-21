@@ -47,6 +47,11 @@ export interface PackingRowNotes {
   packed: string | null
   /** FR-25.19, appended to the packed stamp where it differs from the packer. */
   responsible: string | null
+  /**
+   * FR-25.33: what exactly went in, worded for the row („Jeans"). It leads
+   * the packed stamp, and on a row without one reads alone, as the plan.
+   */
+  packNote: string | null
 }
 
 /** Who the row's right edge names, and in which of the two roles (FR-25.19). */
@@ -206,8 +211,15 @@ const emit = defineEmits<{
       </p>
       <p v-else-if="notes.skipped" class="stamp">{{ notes.skipped }}</p>
       <p v-else-if="done && notes.packed" class="stamp" data-testid="m4-packed-stamp">
-        {{ notes.packed }}
+        <!-- FR-25.33's note, then the stamp: one line, „Jeans" · gepackt von … -->
+        <span v-if="notes.packNote" class="pack-note" data-testid="m4-pack-note">{{
+          notes.packNote
+        }}</span
+        >{{ notes.packNote ? ' · ' : '' }}{{ notes.packed }}
         <span v-if="notes.responsible" class="muted">· {{ notes.responsible }}</span>
+      </p>
+      <p v-else-if="notes.packNote" class="stamp">
+        <span class="pack-note" data-testid="m4-pack-note">{{ notes.packNote }}</span>
       </p>
       <p
         v-if="!done && borrowedBy.length > 0"
@@ -370,6 +382,11 @@ const emit = defineEmits<{
 
 .stamp {
   font-size: var(--jp-text-xs);
+}
+
+/* FR-25.33: what went in is the row's news; the stamp beside it is the record. */
+.pack-note {
+  color: var(--ct-text);
 }
 
 .borrowed {

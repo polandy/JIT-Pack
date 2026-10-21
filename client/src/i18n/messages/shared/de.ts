@@ -183,6 +183,7 @@ export const sharedDe: Record<keyof typeof sharedEn, string> = {
   'fieldLabel.icon': 'Marke',
   'fieldLabel.sort_order': 'Reihenfolge',
   'fieldLabel.late_packer': 'Zuletzt packen',
+  'fieldLabel.pack_note': 'Packnotiz',
   'fieldLabel.flag_unused': 'Als unbenutzt markiert',
   'fieldLabel.flag_missing': 'Als fehlend markiert',
   'fieldLabel.body': 'Text',

@@ -706,6 +706,45 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
   })
 
   /**
+   * E2E-M4-156 (FR-25.33): the pack note is written at the tick, from the
+   * snackbar, and read on the row and in M5.
+   *
+   * The snackbar is the only place a packed row is still under the finger —
+   * the row itself has left the list — so the note bar has to take the
+   * snackbar's place without losing its undo.
+   */
+  test('E2E-M4-156: the pack snackbar takes a note that the row then reads', async ({ page }) => {
+    await createTripViaWizard(page, M4_TRIP)
+    await quickAddRows(page, ['Lange Hose'])
+    await packRow(page, 'Lange Hose')
+
+    await page
+      .locator('ion-toast.pack-toast')
+      .getByRole('button', { name: /^note$/i })
+      .click()
+    const bar = visible(page).getByTestId('m4-pack-note-bar')
+    await expect(bar).toBeVisible()
+    await expect(bar.getByTestId('m4-pack-note-undo')).toBeVisible()
+    const input = bar.getByTestId('m4-pack-note-input')
+    await expect(input).toBeFocused()
+
+    await visible(page).getByTestId('m4-done-bar').click()
+    const row = visible(page).getByTestId('m4-row-Lange Hose')
+    await expect(row.getByTestId('m4-packed-stamp')).toBeVisible()
+    // Before the Enter: no note on the row, so the one after is the write's.
+    await expect(row.getByTestId('m4-pack-note')).toHaveCount(0)
+
+    await input.fill('Jeans')
+    await input.press('Enter')
+    await expect(bar).toHaveCount(0)
+    await expect(row.getByTestId('m4-pack-note')).toHaveText('“Jeans”')
+    await expect(row.getByTestId('m4-packed-stamp')).toContainText(/“Jeans” · .*\d{1,2}[:.]\d{2}/)
+
+    await row.getByRole('heading').click()
+    await expect(page.getByTestId('m5-pack-note')).toHaveJSProperty('value', 'Jeans')
+  })
+
+  /**
    * E2E-M4-11 (FR-3.2): the shopping entry counts, and says no number when
    * there is nothing to buy.
    *

@@ -27,18 +27,24 @@ export function useRowSteps<R extends PackableRow>(port: RowPort<R>) {
     packStep(item, Math.max(item.packed_count - 1, 0), () => port.packDecrement(item))
   }
 
+  /** The pack snackbar, offering a note where the list keeps them (FR-25.33). */
+  function announcePackOf(item: R) {
+    return port.packNote
+      ? announcePacked(item.name, { id: item.id, current: port.packNote(item) })
+      : announcePacked(item.name)
+  }
+
   function packStep(item: R, packed: number, act: () => void) {
     const name = item.name
     rowUndo.actWithUndo([item], act, port.restorePacked)
     void (packed >= item.quantity
-      ? announcePacked(name)
+      ? announcePackOf(item)
       : announceAct(t('packing.countToast', { name, packed, quantity: item.quantity })))
   }
 
   function onComplete(item: R) {
-    const name = item.name
     rowUndo.actWithUndo([item], () => port.packComplete(item), port.restorePacked)
-    void announcePacked(name)
+    void announcePackOf(item)
   }
 
   function onZero(item: R) {
@@ -55,7 +61,7 @@ export function useRowSteps<R extends PackableRow>(port: RowPort<R>) {
     const unpacks = reads === STATE_PACKED || reads === STATE_SKIPPED
     const name = item.name
     rowUndo.actWithUndo([item], () => port.packToggle(item), port.restorePacked)
-    void (unpacks ? announceAct(t('packing.unpackedToast', { name })) : announcePacked(name))
+    void (unpacks ? announceAct(t('packing.unpackedToast', { name })) : announcePackOf(item))
   }
 
   /**

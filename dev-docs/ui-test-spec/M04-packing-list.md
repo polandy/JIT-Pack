@@ -546,3 +546,7 @@
   selected, and choosing *Vergessen* changes the hint to say what will be recorded. After the add the figure is still
   *1/1* (not packed, not an open job) and the row is absent from the open list; behind the reveal bar it reads
   *„Forgotten to pack"* rather than *deliberately skipped*. The default answer is E2E-M4-141's.
+* **E2E-M4-156** `local` (FR-25.33) — **implemented** (`packing-list-sheet.spec.ts`): *Lange Hose* is ticked, the
+  pack snackbar offers *Note*, and Note opens the note bar with its field focused and *Undo* still on it. *„Jeans"*
+  and Enter close the bar; the revealed row reads *„Jeans"* ahead of its stamp, and M5's *Pack note* holds the same
+  word. Asserted before the act too: the row carries no note until Enter, so the line is the write's.

@@ -188,6 +188,11 @@ export interface TripItem {
    */
   shopping_position?: number | null
   /**
+   * FR-25.33: what exactly went in (*Jeans* on a *Lange Hose* row), one line
+   * of at most PACK_NOTE_MAX_LENGTH characters; null or absent for none.
+   */
+  pack_note?: string | null
+  /**
    * Which shopping list the row was bought from (FR-25.11j), or null if it
    * was not bought. Buying changes the row's mode (FR-3.3), so this is what
    * lets M6 find the row again and put it back.
@@ -240,20 +245,6 @@ export interface TripKPIs {
   packedValue: number
   totalPrepTasks: number
   resolvedPrepTasks: number
-}
-
-export interface DashboardTrip {
-  trip: Trip
-  kpis: TripKPIs
-  myItems: DashboardItem[]
-  myItemCount: number
-}
-
-export interface DashboardItem {
-  id: string
-  name: string
-  quantity: number
-  packed: number
 }
 
 export interface Traveler {

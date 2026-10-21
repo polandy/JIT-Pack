@@ -52,6 +52,13 @@ export interface RowPort<R extends PackableRow = PackableRow> extends Pick<
   /** Back on the list (FR-5.5's way back). */
   unskip(row: R): void
 
+  /**
+   * FR-25.33: the row's pack note, on a list whose rows keep one — the pack
+   * snackbar then offers *Notiz*. Absent where they do not (an excursion's
+   * lines), and the snackbar offers only the undo.
+   */
+  packNote?(row: R): string | null
+
   /** Put back what a pack changed: the packed count and the state. */
   restorePacked(records: RowUndoRecord[]): void
   /** Put back what a skip or an amount changed: amount, packed count and state. */

@@ -10,6 +10,11 @@ export const packingDe: Record<keyof typeof packingEn, string> = {
   'packing.skipped': 'Bewusst weggelassen',
   'packing.forgotten': 'Vergessen einzupacken',
   'packing.undo': 'Rückgängig',
+  'packing.packNoteAction': 'Notiz',
+  'packing.packNoteLabel': 'Was ist eingepackt?',
+  'packing.packNotePlaceholder': 'z. B. Jeans',
+  'packing.packNoteCount': '{n} / {max} · Enter speichert',
+  'packing.packNoteQuoted': '„{note}“',
   'packing.skippedVia': 'weggelassen: „{name}“ ist nicht dabei',
   'packing.passTitle': 'Reise abschliessen',
   'packing.passHint':

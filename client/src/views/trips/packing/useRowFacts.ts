@@ -9,12 +9,31 @@ import type { PackingRowNotes, RowEdgeAvatar } from '@/components/trips/PackingR
 import { borrowersByTripItem } from '@/domain/excursionSuitcase'
 import { rowEdgeAvatar, type PackableRow, type PackingCluster } from '@/domain/packingView'
 import { avatarAssignable } from '@/domain/rowMenu'
-import { lockNoteText, packedStampText, responsibleNote, skippedNote } from '@/lib/rowFacts'
+import {
+  lockNoteText,
+  packedStampText,
+  packNoteText,
+  responsibleNote,
+  skippedNote,
+} from '@/lib/rowFacts'
 import { t } from '@/i18n'
 import { TASK_STATE_OPEN } from '@/types/domain'
 import type { MasterItem, TripItem } from '@/types/domain'
 
 import type { PackingCore } from './usePackingCore'
+
+/**
+ * A row with nothing in M4's note slots: an excursion's line (FR-31.6), whose
+ * facts are its own.
+ */
+export const NO_ROW_NOTES: PackingRowNotes = {
+  lock: null,
+  ownClaim: null,
+  skipped: null,
+  packed: null,
+  responsible: null,
+  packNote: null,
+}
 
 /**
  * The row resolvers `PackingGroupList` renders through — the port M4 answers
@@ -105,6 +124,7 @@ export function useRowFacts(core: PackingCore): RowFacts {
       skipped: skippedNoteFor(item),
       packed: packedStamp(item),
       responsible: responsibleNoteFor(item),
+      packNote: packNoteText(item.pack_note),
     }
   }
 

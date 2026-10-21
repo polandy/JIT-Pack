@@ -63,10 +63,9 @@ import RowQuantityPopover from './packing/RowQuantityPopover.vue'
 import { actUndoably } from './packing/rowPort'
 import { useBrowseVerbs } from './packing/useBrowseVerbs'
 import { usePackingListShape } from './packing/usePackingListShape'
-import type { ListFacts } from './packing/useRowFacts'
+import { NO_ROW_NOTES, type ListFacts } from './packing/useRowFacts'
 import { useRowQuantity } from './packing/useRowQuantity'
 import { useRowSteps } from './packing/useRowSteps'
-import type { PackingRowNotes } from '@/components/trips/PackingRow.vue'
 import TravelerProgressStrip from '@/components/trips/TravelerProgressStrip.vue'
 import { useContextSearch } from '@/composables/useContextSearch'
 import { setHeaderActions } from '@/composables/shared/useHeaderActions'
@@ -286,15 +285,6 @@ const metaLine = computed(() => {
   return `${days} · ${who}`
 })
 
-/** A line says nothing in M4's own note slots — its facts are its own. */
-const NO_NOTES: PackingRowNotes = {
-  lock: null,
-  ownClaim: null,
-  skipped: null,
-  packed: null,
-  responsible: null,
-}
-
 function masterOf(sourceItemId: string | null) {
   return sourceItemId ? (masterStore.getItem(sourceItemId) ?? null) : null
 }
@@ -306,7 +296,7 @@ function masterOf(sourceItemId: string | null) {
  */
 const lineFacts: ListFacts<ExcursionLine> = {
   locked: () => false,
-  rowNotes: () => NO_NOTES,
+  rowNotes: () => NO_ROW_NOTES,
   edgeAvatarFor: () => null,
   assignableRow: () => false,
   masterOf: (item) => masterOf(item.source_item_id),

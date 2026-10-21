@@ -63,6 +63,11 @@ export function createTripItemsMutations({ make, nowIso }: MutationContext) {
     return make('upsert', TABLE.tripItems, itemId, { late_packer: dbBool(latePacker) })
   }
 
+  /** FR-25.33: what exactly went in; null clears the note. */
+  function setPackNote(itemId: string, note: string | null): Mutation {
+    return make('upsert', TABLE.tripItems, itemId, { pack_note: note })
+  }
+
   /**
    * FR-9.1 trip feedback. Setting a flag is *additive* in the merge
    * (internal/sync/merge.go) so a concurrent edit can never lose it;
@@ -213,6 +218,7 @@ export function createTripItemsMutations({ make, nowIso }: MutationContext) {
       mode: ItemMode
       late_packer: boolean
       packer_user_id: string | null
+      pack_note: string | null
     },
     assignedTravelerId: string | null,
     containerId: string | null,
@@ -236,6 +242,7 @@ export function createTripItemsMutations({ make, nowIso }: MutationContext) {
       packer_user_id: item.packer_user_id,
       flag_unused: 0,
       flag_missing: 0,
+      pack_note: item.pack_note,
     })
     return { mutation, id }
   }
@@ -296,6 +303,7 @@ export function createTripItemsMutations({ make, nowIso }: MutationContext) {
     assignTraveler,
     assignContainer,
     setLatePacker,
+    setPackNote,
     setReviewFlag,
     setPacker,
     addTripItem,

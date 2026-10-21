@@ -7,6 +7,17 @@ import { TOAST_DURATION_MS } from '@/composables/shared/toast'
 
 import { useRowUndo, type RowUndo } from './useRowUndo'
 
+/** FR-25.33: the row a pack snackbar can write a note on, and its note now. */
+export interface PackNoteTarget {
+  id: string
+  current: string | null
+}
+
+/** FR-25.33: the open note bar — the snackbar's row, its sentence and the note as it stood. */
+export interface PackNoteBar extends PackNoteTarget {
+  message: string
+}
+
 export interface PackAnnouncer {
   /**
    * The undo the snackbar offers. Exposed rather than wrapped: what a pack
@@ -30,8 +41,20 @@ export interface PackAnnouncer {
    * its in-flight signal.
    */
   packAnnouncements: Ref<number>
-  /** FR-25.2: a pack registers, and the snackbar is where it can be taken back. */
-  announcePacked: (name: string) => Promise<void>
+  /**
+   * FR-25.2: a pack registers, and the snackbar is where it can be taken
+   * back. Given the row, it also offers *Notiz* (FR-25.33), which hands over
+   * to {@link noteBar}; a list without notes (an excursion's) passes none.
+   */
+  announcePacked: (name: string, note?: PackNoteTarget) => Promise<void>
+  /**
+   * FR-25.33: the note bar the screen renders in the snackbar's place, null
+   * while there is none. It inherits the snackbar's undo, which stays armed
+   * until the bar closes.
+   */
+  noteBar: Ref<PackNoteBar | null>
+  /** Close the note bar, disarming the undo it inherited. */
+  closeNoteBar: () => void
   /**
    * FR-5.5 with FR-20.2: the companions that went along are named, because a
    * list that shortened itself by three rows on one tap owes an explanation.
@@ -77,6 +100,7 @@ export interface PackAnnouncer {
 export function usePackAnnouncer(anchor: string | null = FAB_ANCHOR.m4): PackAnnouncer {
   const rowUndo = useRowUndo()
   const packAnnouncements = ref(0)
+  const noteBar = ref<PackNoteBar | null>(null)
 
   /** The snackbar currently on screen, so a second action replaces it. */
   let packToast: HTMLIonToastElement | null = null
@@ -88,8 +112,24 @@ export function usePackAnnouncer(anchor: string | null = FAB_ANCHOR.m4): PackAnn
    */
   let live = true
 
-  async function announcePacked(name: string): Promise<void> {
-    await announce(t('packing.packedToast', { name }))
+  async function announcePacked(name: string, note?: PackNoteTarget): Promise<void> {
+    const message = t('packing.packedToast', { name })
+    await announce(message, note && { ...note, message })
+  }
+
+  /**
+   * The snackbar's *Notiz*: the toast goes, the bar comes, and the undo
+   * stays. Forgetting the toast *before* Ionic dismisses it is what keeps the
+   * undo — its dismiss handler disarms only the toast it still holds.
+   */
+  function openNoteBar(bar: PackNoteBar): void {
+    packToast = null
+    noteBar.value = bar
+  }
+
+  function closeNoteBar(): void {
+    noteBar.value = null
+    rowUndo.clear()
   }
 
   async function announceSkipped(name: string, companions: string[]): Promise<void> {
@@ -114,7 +154,11 @@ export function usePackAnnouncer(anchor: string | null = FAB_ANCHOR.m4): PackAnn
     await announce(t('packing.taskDoneToast', { body }))
   }
 
-  async function announce(message: string): Promise<void> {
+  async function announce(message: string, note?: PackNoteBar): Promise<void> {
+    // A new act replaces an open note bar as it replaces a snackbar; the
+    // bar's undo belonged to the act before, and the caller has already
+    // armed this one's.
+    noteBar.value = null
     // Cleared *before* dismissing, not after. The dismiss handler below
     // disarms the undo, and an outgoing toast resolves its dismissal after
     // the incoming one has already armed a new record — so with the order
@@ -142,7 +186,10 @@ export function usePackAnnouncer(anchor: string | null = FAB_ANCHOR.m4): PackAnn
       // viewport, where its *Rückgängig* cannot be reached (E2E-M25-02).
       positionAnchor: anchor ?? undefined,
       cssClass: 'pack-toast',
-      buttons: [{ text: t('packing.undo'), handler: () => rowUndo.undo() }],
+      buttons: [
+        ...(note ? [{ text: t('packing.packNoteAction'), handler: () => openNoteBar(note) }] : []),
+        { text: t('packing.undo'), handler: () => rowUndo.undo() },
+      ],
     })
     if (!live) {
       void toast.dismiss()
@@ -163,6 +210,7 @@ export function usePackAnnouncer(anchor: string | null = FAB_ANCHOR.m4): PackAnn
 
   onUnmounted(() => {
     live = false
+    noteBar.value = null
     rowUndo.clear()
     void packToast?.dismiss()
   })
@@ -175,6 +223,8 @@ export function usePackAnnouncer(anchor: string | null = FAB_ANCHOR.m4): PackAnn
     announceRemoved,
     announceRenamed,
     announceTaskDone,
-    announceAct: announce,
+    announceAct: (message: string) => announce(message),
+    noteBar,
+    closeNoteBar,
   }
 }

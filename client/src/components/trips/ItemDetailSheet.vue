@@ -50,6 +50,7 @@ import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import QuantityEditor from '@/components/global/QuantityEditor.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import ForWhomStrip from '@/components/trips/ForWhomStrip.vue'
+import PackNoteField from '@/components/trips/PackNoteField.vue'
 import { resolveDependencies, type SuggestedCompanion } from '@/domain/dependencies'
 import { MIN_TRAVELERS_FOR_PER_PERSON } from '@/domain/membership'
 import { quantityChoices } from '@/domain/quantityChoices'
@@ -69,7 +70,7 @@ import {
   TASK_STATE_RESOLVED,
 } from '@/types/domain'
 import type { ItemMode, ReviewFlag, TripMemberProfile } from '@/types/domain'
-import { lockNoteText, nameFrom, packedStampText, responsibleNote } from '@/lib/rowFacts'
+import { lockNoteText, nameFrom, packingRecordText } from '@/lib/rowFacts'
 import { stateLabel as stateLabelFor } from '@/lib/stateLabels'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { useItemDiscussion } from '@/composables/useItemDiscussion'
@@ -347,19 +348,8 @@ const stateLabel = computed(() =>
   item.value ? stateLabelFor(item.value.state, { prepOpen: hasPrepWithPacked.value }) : '',
 )
 
-/**
- * FR-25.17/25.19: who packed it and when, and who was responsible. The
- * sheet joins the two with a `·` where M4's list gives the second its own
- * span — the composition is the screen's, the wording is shared (U-2).
- */
-const packedStamp = computed(() => {
-  const row = item.value
-  if (!row) return null
-  const line = packedStampText(row, nameOf)
-  if (!line) return null
-  const responsible = responsibleNote(row, nameOf)
-  return responsible ? `${line} · ${responsible}` : line
-})
+/** FR-25.17/25.19: who packed it and when, and who was responsible (U-2). */
+const packedStamp = computed(() => (item.value ? packingRecordText(item.value, nameOf) : null))
 </script>
 
 <template>
@@ -473,6 +463,8 @@ const packedStamp = computed(() => {
       <IonIcon :icon="isSkipped ? refreshOutline : closeCircleOutline" />
       {{ isSkipped ? t('packing.unskipAction') : t('packing.skipAction') }}
     </button>
+
+    <PackNoteField :item :locked="isLocked" />
 
     <!-- Read-only summary of everything Details can change (FR-25.14). -->
     <!-- FR-25.28: who the item is for is answered here, above the fold — the

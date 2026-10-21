@@ -429,7 +429,7 @@ var tableSpecs = map[string]tableSpec{
 		columns: toSet(
 			"trip_id", "source_item_id", "source_template_id", "name",
 			"weight_grams", "value_cents", "category_name", "quantity",
-			"packed_count", "state", "mode", "late_packer",
+			"packed_count", "state", "mode", "late_packer", "pack_note", // FR-25.33
 			// FR-25.11j: the list the row was bought from. A client-chosen
 			// value like packer_user_id beside it — it records a decision the
 			// person made, not an identity claim, so it is not server-owned.

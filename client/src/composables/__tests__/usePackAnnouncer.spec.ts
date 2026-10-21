@@ -295,3 +295,90 @@ describe('usePackAnnouncer — any other act (FR-25.31)', () => {
     expect(restore).toHaveBeenCalledOnce()
   })
 })
+
+/*
+ * FR-25.33: the pack snackbar is where a note is written — the moment the
+ * thing went in is the moment the packer knows what it was. The field cannot
+ * live inside an Ionic toast, so *Notiz* hands over to the screen's note bar,
+ * which keeps the snackbar's undo: the pack it is about can still be taken
+ * back while the note is being typed.
+ */
+describe('usePackAnnouncer — the pack note (FR-25.33)', () => {
+  type Button = { text: string; handler: () => void }
+  const buttonsOf = (call: number) => create.mock.calls[call]![0]!.buttons as unknown as Button[]
+
+  async function announceWithNote(api: Announcer): Promise<void> {
+    const done = api.announcePacked('Lange Hose', { id: 'i1', current: 'die graue' })
+    settleCreates()
+    await done
+  }
+
+  it('offers Notiz beside the undo when the pack names its row', async () => {
+    const { api } = mountAnnouncer()
+
+    await announceWithNote(api)
+
+    expect(buttonsOf(0).map((b) => b.text)).toEqual([
+      t('packing.packNoteAction'),
+      t('packing.undo'),
+    ])
+  })
+
+  it('offers no Notiz where the list has no note to write (an excursion line)', async () => {
+    const { api } = mountAnnouncer()
+
+    await announce(api, 'Zelt')
+
+    expect(buttonsOf(0).map((b) => b.text)).toEqual([t('packing.undo')])
+  })
+
+  it("opens the note bar on the row, with the snackbar's sentence and the note as it stands", async () => {
+    const { api } = mountAnnouncer()
+    await announceWithNote(api)
+
+    buttonsOf(0)[0]!.handler()
+
+    expect(api.noteBar.value).toEqual({
+      id: 'i1',
+      message: t('packing.packedToast', { name: 'Lange Hose' }),
+      current: 'die graue',
+    })
+  })
+
+  it('keeps the undo armed while the note is typed, though the snackbar itself has gone', async () => {
+    const { api } = mountAnnouncer()
+    const restore = vi.fn()
+    api.rowUndo.actWithUndo([row] as never, () => {}, restore)
+    await announceWithNote(api)
+
+    buttonsOf(0)[0]!.handler()
+    toasts[0]!.fireDismiss()
+    await Promise.resolve()
+    api.rowUndo.undo()
+
+    expect(restore).toHaveBeenCalledOnce()
+  })
+
+  it('closing the note bar disarms the undo, as the snackbar going would', async () => {
+    const { api } = mountAnnouncer()
+    api.rowUndo.actWithUndo([row] as never, () => {}, vi.fn())
+    await announceWithNote(api)
+    buttonsOf(0)[0]!.handler()
+
+    api.closeNoteBar()
+
+    expect(api.noteBar.value).toBeNull()
+    expect(api.rowUndo.pending.value).toEqual([])
+  })
+
+  it('a later pack closes an open note bar and raises its own snackbar', async () => {
+    const { api } = mountAnnouncer()
+    await announceWithNote(api)
+    buttonsOf(0)[0]!.handler()
+
+    await announce(api, 'Zelt')
+
+    expect(api.noteBar.value).toBeNull()
+    expect(toasts).toHaveLength(2)
+  })
+})

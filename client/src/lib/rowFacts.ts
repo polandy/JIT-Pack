@@ -70,6 +70,14 @@ export function packedStampText(
 }
 
 /**
+ * FR-25.33: the row's pack note as the row reads it — quoted, in the
+ * language's own quotation marks („Jeans" / "Jeans"). `null` for none.
+ */
+export function packNoteText(note: string | null | undefined): string | null {
+  return note ? t('packing.packNoteQuoted', { note }) : null
+}
+
+/**
  * FR-30.4: "gekauft von Andy · heute 14:32" — FR-25.17's stamp for a
  * purchase, on both kinds of shopping line. `null` when the line says
  * neither who nor when; the reveal has already said it was bought.
@@ -98,6 +106,18 @@ export function responsibleNote(item: PackedFacts, nameOf: NameOf): string | nul
   if (!item.packer_user_id || item.packer_user_id === item.packed_by_user_id) return null
   const who = nameOf(item.packer_user_id)
   return who ? t('packing.responsibleWas', { who }) : null
+}
+
+/**
+ * FR-25.17/25.19: the packing record as one line — who packed it and when,
+ * then who was responsible. M5 joins the two with a `·` where M4's list
+ * gives the second its own span; the wording is shared either way (U-2).
+ */
+export function packingRecordText(item: PackedFacts, nameOf: NameOf): string | null {
+  const line = packedStampText(item, nameOf)
+  if (!line) return null
+  const responsible = responsibleNote(item, nameOf)
+  return responsible ? `${line} · ${responsible}` : line
 }
 
 /**
