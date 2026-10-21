@@ -26,6 +26,8 @@ const props = defineProps<{
   taken: { name: string } | null
   /** The select's test id; the name field and its note append `-name` and `-name-taken`. */
   testid: string
+  /** The list's separator style, so the picker can sit flush under a card (M22). */
+  lines?: 'full' | 'inset' | 'none'
 }>()
 
 const emit = defineEmits<{
@@ -39,7 +41,7 @@ const masterStore = useMasterStore()
 </script>
 
 <template>
-  <IonList>
+  <IonList :lines="props.lines">
     <IonItem>
       <IonSelect
         :label="t('wizard.series')"

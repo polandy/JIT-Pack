@@ -9,6 +9,7 @@ import { computed, ref } from 'vue'
 
 import { installHarness } from '@/__tests__/harness'
 import { isRadarHidden } from '@/local/radarHidden'
+import { useIdentityStore } from '@/stores/identityStore'
 import type { Trip, TripItem } from '@/types/domain'
 
 import type { PackingCore } from '../usePackingCore'
@@ -43,7 +44,9 @@ const AKKU = {
 } as TripItem
 
 /** A core over one planning trip and its archived predecessor in the series. */
-function setup(over: { status?: Trip['status']; loaded?: boolean } = {}) {
+function setup(
+  over: { status?: Trip['status']; loaded?: boolean; comments?: Record<string, unknown>[] } = {},
+) {
   const planning = trip('new', { status: over.status ?? 'planning', year: 2026 })
   const reference = trip('ref', { name: 'Samedan 2025' })
   const rows = ref<TripItem[]>([])
@@ -59,7 +62,7 @@ function setup(over: { status?: Trip['status']; loaded?: boolean } = {}) {
       tripList: [planning, reference],
       getTemplateSources: () => [],
       getItems: (id: string) => (id === 'ref' ? [AKKU] : rows.value),
-      getComments: () => [],
+      getComments: (id: string) => (id === 'ref' ? (over.comments ?? []) : []),
     },
     masterStore: {
       templateList: [],
@@ -96,6 +99,41 @@ describe('usePackingHead — the forgotten radar (FR-9.5)', () => {
       pending: false,
       entries: [{ key: 'i-akku', name: 'Ersatzakku', why: 'Was not on the list', comments: [] }],
     })
+  })
+
+  it('names a comment’s author where the directory knows them (Server Mode), then the day', () => {
+    useIdentityStore().directory = [{ user_id: 'u-anna', display_name: 'Anna' }] as never
+    const { head } = setup({
+      comments: [
+        {
+          id: 'c-1',
+          trip_item_id: 'r-akku',
+          author_id: 'u-anna',
+          body: 'Akku am zweiten Tag leer',
+          created_at: '2025-08-02T10:00:00Z',
+        },
+      ],
+    })
+    const [comment] = head.radar.value?.entries[0]?.comments ?? []
+    expect(comment?.body).toBe('Akku am zweiten Tag leer')
+    expect(comment?.meta).toMatch(/^Anna · \S/)
+  })
+
+  it('names nobody where the directory is empty (Local, Single-User): the day alone', () => {
+    const { head } = setup({
+      comments: [
+        {
+          id: 'c-1',
+          trip_item_id: 'r-akku',
+          author_id: 'u-anna',
+          body: 'x',
+          created_at: '2025-08-02T10:00:00Z',
+        },
+      ],
+    })
+    const meta = head.radar.value?.entries[0]?.comments[0]?.meta
+    expect(meta).toMatch(/\d/)
+    expect(meta).not.toContain('·')
   })
 
   it('is absent on an active trip — the time to act on the list is over', () => {
