@@ -749,6 +749,31 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
   })
 
   /**
+   * E2E-M4-157 (FR-25.33): the note bar's undo is the snackbar's — it takes
+   * the tick back and closes the bar, writing no note.
+   */
+  test("E2E-M4-157: the note bar's undo unpacks the row and closes the bar", async ({ page }) => {
+    await createTripViaWizard(page, M4_TRIP)
+    await quickAddRows(page, ['Lange Hose'])
+    await packRow(page, 'Lange Hose')
+    // Packed rows leave the working list, so the row's return is the undo's.
+    await expect(visible(page).getByTestId('m4-row-Lange Hose')).toBeHidden()
+
+    await page
+      .locator('ion-toast.pack-toast')
+      .getByRole('button', { name: /^note$/i })
+      .click()
+    const bar = visible(page).getByTestId('m4-pack-note-bar')
+    await bar.getByTestId('m4-pack-note-input').fill('Jeans')
+    await bar.getByTestId('m4-pack-note-undo').click()
+
+    await expect(bar).toHaveCount(0)
+    const row = visible(page).getByTestId('m4-row-Lange Hose')
+    await expect(row).toBeVisible()
+    await expect(row.getByTestId('m4-pack-note')).toHaveCount(0)
+  })
+
+  /**
    * E2E-M4-11 (FR-3.2): the shopping entry counts, and says no number when
    * there is nothing to buy.
    *

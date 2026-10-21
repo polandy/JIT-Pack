@@ -551,3 +551,6 @@
   and Enter close the bar; the revealed row reads *„Jeans"* ahead of its stamp, M5's glance row reads it too, and
   its *Pack note* under Details holds the same word. Asserted before the act too: the row carries no note until
   Enter, so the line is the write's.
+* **E2E-M4-157** `local` (FR-25.33) — **implemented** (`packing-list-sheet.spec.ts`): with *„Jeans"* typed into the
+  note bar, its *Undo* closes the bar and puts *Lange Hose* back on the working list, without a note. Asserted
+  before the act too: the packed row had left the list, so its return is the undo's.
