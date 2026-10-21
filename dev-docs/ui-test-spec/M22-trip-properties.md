@@ -48,8 +48,9 @@ below, and UI-Spec M22).
 * **E2E-M22-07** `all` (FR-2.7): the positive half — a **planning** trip renders one ✕ per traveller and no note.
   Without it, "no ✕ on a started trip" would pass just as well against a screen that never renders one at all.
 * **E2E-M22-10** `all` (FR-2.7/FR-27.4): the archived trip's editor. UI-Spec M22's *States* line promises that *„on an
-  archived one the whole screen is read-only"*; `TripEditPage.spec.ts` pins the two `DateField`s, and this case covers
-  the name, the roster inputs and the add row. All four are asserted, against a roster that is demonstrably rendered so
+  archived one the screen is read-only … except the series"*; `TripEditPage.spec.ts` pins the two `DateField`s, and
+  this case covers the name, the year, the roster inputs and the add row — and the series select still enabled, whose
+  write is E2E-M22-15's. All are asserted, against a roster that is demonstrably rendered so
   the absences are not read off a screen that failed to load. **Open decision:** `traveler-remove-note` is gated on the
   trip *not* having started, so an archived trip loses the ✕, the add row **and** the sentence together — nothing on the
   screen says why it answers no tap, the shape E2E-M22-04 rules out for the started trip. Build a sentence for the
@@ -85,14 +86,19 @@ below, and UI-Spec M22).
   asserted on the queued mutations in `tripLifecycle.seam.spec.ts`, because the only browser-visible symptom would be
   a notification count on a third device.
 
+* **E2E-M22-15** `all` (FR-2.7, FR-13.1): the series, set after the fact on an **archived** trip — the one field
+  that screen still offers, and the case FR-9.5 needs: an older trip joins a series and the next trip of it shows the
+  radar. A new series is named inline and committed on blur; after a **reload** the select reads it and the other
+  fields are still read-only, the archived note naming the series as what is left. Then the trip moves to *„Keine"*.
+  Read back through M2 after a reload, where the series header stands over the archived trip, and after *„Keine"* does
+  not — the trip row being the positive signal for that absence.
+
 **Two fields at the edge of M22's scope** (read against the template):
 
 * **The trip's year is edited here.** FR-2.1b makes the year the one required temporal fact and `TripEdit` carries it;
   FR-2.7's own scope is *name, dates and travellers*, so the field is UI-Spec M22's addition rather than the PRD's.
   E2E-M22-12 asserts it.
-* **The series a trip belongs to is edited on M16, not here.** `setTripSeries` has exactly one caller and it is
-  `SeriesPage.vue`, whose *detach/attach trips* action UI-Spec M16 describes. Coverage of the attach/detach path is
-  M16's question.
+* **The series is edited here too** (FR-13.1, beside M16's *attach/detach*). E2E-M22-15 asserts it.
 
 **One deterministic seam in the unit:** every `page.goto` in `trip-properties.spec.ts` waits on the G-2 indicator
 returning to *on this device* first. A case that fills, blurs and navigates otherwise fails under load against

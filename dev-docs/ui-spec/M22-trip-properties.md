@@ -13,9 +13,11 @@
   that lies outside the window, so an imported 2014 trip is not silently offered a move. FR-2.1b makes the year the one
   *required* temporal fact and the fact M2 sorts and groups by, so a trip created in the wrong year must not keep it for
   good; FR-2.7's own scope is *name, dates and travellers*, and the year is this document's addition to it, by decision
-  (E2E-M22-12). And the **travellers** section — one row per person, rename in place, ＋ to add, ✕ to remove. The
-  **series** is not edited here: it is edited on **M16**, whose *detach/attach trips* action is its one writer — as PRD
-  FR-2.7's opening paragraph says. Each traveller row also carries an **account picker** (FR-2.5, ADR-058) — *„Kein
+  (E2E-M22-12); the **series** (FR-13.1), under the dates, as the wizard's own control (`SeriesPicker`): *„Keine"*,
+  the instance's series, or *„Neue Serie …"* with its name typed inline and committed on blur/Enter, the name-taken
+  note included. A picked series writes at once; M16's *attach/detach* stays the second writer (E2E-M22-15). And the
+  **travellers** section — one row per person, rename in place, ＋ to add, ✕ to remove. Each traveller row also
+  carries an **account picker** (FR-2.5, ADR-058) — *„Kein
   Konto"* or one of the trip's members — in the row's end slot, between the name and the ✕. In the end slot rather than
   on a second line: the roster reads as a list of people, and a line per row would push the fourth traveller off a phone
   screen for a fact that is empty on most rows; the control states itself through its value, so it carries no visible
@@ -38,13 +40,15 @@
 * **States:** **Removal is offered only while the trip has not started.** On an active or archived trip the ✕ is **not
   rendered at all**, and one sentence under the roster says why: a control that is visibly there and answers no tap
   reads as a broken app, and the sentence answers the question the ✕ raises once rather than per row. Adding and
-  renaming stay available on an active trip; on an archived one the whole screen is read-only, consistent with FR-27.4's
-  "past trips are never touched". **An archived trip says why it answers no tap:** a single note above both cards,
+  renaming stay available on an active trip; on an archived one the screen is read-only, consistent with FR-27.4's
+  "past trips are never touched" — **except the series**, which groups the record rather than changing it, and is how
+  an older trip joins a series after the fact. **An archived trip says why the rest answers no tap:** a single note
+  above both cards, naming the series as what is left,
   because the read-only state is the screen's rather than one section's — rendered inside the travellers card it would
   read as a rule about people. It is its own sentence rather than the started trip's: the reason is that the trip is
   over, and borrowing that wording would claim it has not left yet. The *„a traveller who joins…"* hint goes with the
   controls it explains (E2E-M22-10).
-* **Modes:** unchanged in all three for name, dates, year and roster. The screen edits trip-level records, not
+* **Modes:** unchanged in all three for name, dates, year, series and roster. The screen edits trip-level records, not
   membership — sharing and roles remain FR-4.5's roster (`/trips/:tripId/members`), which is hidden outside Server
   Mode per G-8. Local Mode has the full screen: travellers are trip records, not accounts (FR-19.3). The **account
   picker is the one part that is not in all three**: it renders only where the trip has more than one member, which

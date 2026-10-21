@@ -9,7 +9,9 @@ there, so the same gap is not left open twice.
 The card reads **one** trip and names it, so you always know where its claim comes from:
 
 - the most recent **archived** trip of the **same series** (the series is chosen in the
-  trip wizard under *Mehr Optionen*), or, where there is none,
+  trip wizard under *Mehr Optionen*, or later in the trip's *Reise-Eigenschaften* —
+  there even on a finished trip, so an older trip can join a series after the fact), or,
+  where there is none,
 - the most recent archived trip built from the **same Ferien-Vorlage**. A shared group
   alone does not count — a camera group goes to the beach and the mountains alike.
 

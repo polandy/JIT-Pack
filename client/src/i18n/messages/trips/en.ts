@@ -252,7 +252,7 @@ export const tripsEn = {
   'tripEdit.sectionTrip': 'Trip',
   'tripEdit.sectionTravelers': 'Travellers',
   'tripEdit.year': 'Year',
-  'tripEdit.archivedNote': 'This trip is finished, so nothing here can be changed any more.',
+  'tripEdit.archivedNote': 'This trip is finished, so only its series can still be changed.',
   'tripEdit.name': 'Name',
   'tripEdit.dates': 'Trip dates',
   'tripEdit.startDate': 'Start',

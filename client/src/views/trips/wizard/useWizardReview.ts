@@ -18,7 +18,8 @@ import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { WizardComposition } from './useWizardComposition'
-import { NEW_SERIES, type WizardMetadata } from './useWizardMetadata'
+import { NEW_SERIES } from '@/components/trips/SeriesPicker.vue'
+import type { WizardMetadata } from './useWizardMetadata'
 
 /**
  * Builds step 4's draft and the rows the trip will be created from, over

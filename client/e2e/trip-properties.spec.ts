@@ -376,11 +376,13 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     await expect(visible(page).getByTestId('traveler-add')).toBeVisible()
   })
 
-  test('E2E-M22-10: an archived trip’s properties are read-only, all of them', async ({ page }) => {
-    // UI-Spec M22's *States* line: "on an archived one the whole screen is
-    // read-only, consistent with FR-27.4's 'past trips are never touched'".
-    // The unit spec pins the date range; the name, the roster and the add
-    // row are asserted here.
+  test('E2E-M22-10: an archived trip’s properties are read-only, all but its series', async ({
+    page,
+  }) => {
+    // UI-Spec M22's *States* line: "on an archived one the screen is
+    // read-only, consistent with FR-27.4's 'past trips are never touched' —
+    // except the series". The unit spec pins the date range; the name, the
+    // roster and the add row are asserted here, the series in E2E-M22-15.
     await tripWithTwoTravellers(page, 'Letztes Jahr')
     await tripAction(page, 'start')
     await expectTripActionOffered(page, 'archive')
@@ -404,10 +406,11 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
       'readOnly',
       true,
     )
-    // "Read-only throughout" has to mean the whole screen, the year included,
+    // "Read-only" has to mean every field but the series, the year included,
     // or it decays into a list of what was true when the case was written. A
     // select has no `readonly`; disabled is it.
     await expect(visible(page).getByTestId('trip-edit-year')).toHaveJSProperty('disabled', true)
+    await expect(visible(page).getByTestId('trip-edit-series')).toHaveJSProperty('disabled', false)
     await expect(removeButtons(page)).toHaveCount(0)
     await expect(visible(page).getByTestId('traveler-add')).toHaveCount(0)
     await expect(visible(page).getByTestId('traveler-add-input')).toHaveCount(0)
@@ -422,6 +425,44 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     // The started-trip note is *not* what is showing — a shared testid would
     // let one sentence satisfy both cases.
     await expect(visible(page).getByTestId('traveler-remove-note')).toHaveCount(0)
+  })
+
+  // E2E-M22-15 (FR-2.7/FR-13.1): an older trip joins a series after the fact
+  // — the one field an archived trip still offers, and what FR-9.5's radar
+  // needs to find it.
+  test('E2E-M22-15: an archived trip takes a new series, and leaves it again', async ({ page }) => {
+    await createTripViaWizard(page, { name: 'Engadin 2024' })
+    await tripAction(page, 'start')
+    await expectTripActionOffered(page, 'archive')
+    await tripAction(page, 'archive')
+    await page.getByTestId('m4-pass-finish').click()
+    await openTripEdit(page)
+    await expect(visible(page).getByTestId('trip-edit-archived-note')).toContainText(
+      'only its series',
+    )
+
+    await chooseInSelect(page, 'trip-edit-series', 'New series…')
+    const typed = visible(page).getByTestId('trip-edit-series-name').locator('input')
+    await typed.fill('Engadin')
+    await typed.blur()
+    await localWriteSettled(page)
+
+    // Read back through M2, not the field: a series groups trips, and the
+    // header over this one is that grouping after a reload threw the
+    // optimistic store away.
+    await page.goto(`${PATH.trips}?status=archived`)
+    await expect(visible(page).getByTestId('series-header-Engadin')).toContainText('1 trip')
+
+    await openTripEditFromList(page, 'Engadin 2024')
+    await expect(visible(page).getByTestId('trip-edit-series').locator('.select-text')).toHaveText(
+      'Engadin',
+    )
+    await chooseInSelect(page, 'trip-edit-series', 'No series')
+    await localWriteSettled(page)
+    await page.goto(`${PATH.trips}?status=archived`)
+    // The trip row is the positive signal the header's absence is read against.
+    await expect(visible(page).getByTestId('trip-row-Engadin 2024')).toBeVisible()
+    await expect(visible(page).getByTestId('series-header-Engadin')).toHaveCount(0)
   })
 
   // E2E-M22-12 (FR-2.1b/FR-2.7): the year is editable after creation.

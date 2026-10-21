@@ -4,27 +4,17 @@
  * the dates open beside them, and everything else optional folded behind one
  * row (FR-2.1c).
  */
-import {
-  IonList,
-  IonItem,
-  IonInput,
-  IonSelect,
-  IonSelectOption,
-  IonIcon,
-  IonNote,
-} from '@ionic/vue'
+import { IonList, IonItem, IonInput, IonSelect, IonSelectOption, IonIcon } from '@ionic/vue'
 import { chevronForwardOutline } from 'ionicons/icons'
 
 import DateRangeField from '@/components/global/DateRangeField.vue'
 import SectionHead from '@/components/global/SectionHead.vue'
+import SeriesPicker from '@/components/trips/SeriesPicker.vue'
 import { t } from '@/i18n'
-import { useMasterStore } from '@/stores/masterStore'
 import type { WizardCore } from './useWizardCore'
-import { NEW_SERIES } from './useWizardMetadata'
 
 const { core } = defineProps<{ core: WizardCore }>()
 
-const masterStore = useMasterStore()
 const { stepDefaultAction } = core
 const {
   name,
@@ -110,39 +100,15 @@ const {
     </button>
 
     <template v-if="moreOpen">
-      <IonList>
-        <IonItem>
-          <IonSelect
-            :label="t('wizard.series')"
-            interface="popover"
-            :value="seriesChoice"
-            data-testid="wizard-series"
-            @ionChange="(e: CustomEvent) => pickSeries(e.detail.value)"
-          >
-            <IonSelectOption value="">{{ t('wizard.seriesNone') }}</IonSelectOption>
-            <IonSelectOption v-for="s in masterStore.seriesList" :key="s.id" :value="s.id">
-              {{ s.name }}
-            </IonSelectOption>
-            <IonSelectOption :value="NEW_SERIES">{{ t('wizard.seriesNew') }}</IonSelectOption>
-          </IonSelect>
-        </IonItem>
-        <IonItem v-if="seriesChoice === NEW_SERIES">
-          <IonInput
-            :label="t('wizard.seriesName')"
-            label-placement="stacked"
-            :placeholder="t('wizard.seriesNamePlaceholder')"
-            :value="newSeriesName"
-            data-testid="wizard-series-name"
-            @keydown.enter="stepDefaultAction"
-            @ionInput="(e: CustomEvent) => (newSeriesName = e.detail.value ?? '')"
-          />
-        </IonItem>
-        <IonItem v-if="seriesTaken" lines="none">
-          <IonNote class="name-taken" data-testid="wizard-series-name-taken">
-            {{ t('wizard.seriesNameTaken', { name: seriesTaken.name }) }}
-          </IonNote>
-        </IonItem>
-      </IonList>
+      <SeriesPicker
+        testid="wizard-series"
+        :choice="seriesChoice"
+        :new-name="newSeriesName"
+        :taken="seriesTaken"
+        @pick="pickSeries"
+        @name="(value) => (newSeriesName = value)"
+        @enter="stepDefaultAction"
+      />
       <SectionHead :title="t('wizard.sectionAttributes')" />
       <IonList>
         <IonItem>
@@ -255,10 +221,5 @@ const {
   margin: 0 0 10px;
   font-size: var(--jp-text-sm);
   color: var(--ct-subtext0);
-}
-
-/* A note about something that exists, not an error state (G-14). */
-.name-taken {
-  color: var(--ct-straw);
 }
 </style>

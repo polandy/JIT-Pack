@@ -9,9 +9,7 @@ import { tripYearChoices } from '@/domain/tripYears'
 import { durationDays } from '@/domain/instantiate'
 import { useMasterStore } from '@/stores/masterStore'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
-
-/** The series select's value for "a new series, named inline" (FR-13.1); '' is none. */
-export const NEW_SERIES = 'new'
+import { NEW_SERIES } from '@/components/trips/SeriesPicker.vue'
 
 /** Step 1's draft and what is derived from it. */
 export type WizardMetadata = ReturnType<typeof useWizardMetadata>
