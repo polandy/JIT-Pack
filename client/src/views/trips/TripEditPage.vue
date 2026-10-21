@@ -42,6 +42,7 @@ import { TRIP_STATUS_ARCHIVED, TRIP_STATUS_PLANNING } from '@/types/domain'
 import type { TravelerChangeReport } from '@/types/domain'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import SectionHead from '@/components/global/SectionHead.vue'
+import SeriesPicker, { NEW_SERIES } from '@/components/trips/SeriesPicker.vue'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -88,6 +89,29 @@ const readOnly = computed(() => trip.value?.status === TRIP_STATUS_ARCHIVED)
 const canRemove = computed(() => trip.value?.status === TRIP_STATUS_PLANNING)
 
 const name = ref('')
+
+/**
+ * FR-2.7/FR-13.1: the series, editable here as well as on M16 — the trip's
+ * own screen is where a user looks for it, and an earlier trip only reaches
+ * FR-9.5's radar once it belongs to one. Even on an archived trip: a series
+ * groups the record, it changes nothing in it.
+ */
+const seriesChoice = ref('')
+const newSeriesName = ref('')
+const seriesTaken = computed(() =>
+  seriesChoice.value === NEW_SERIES
+    ? (orchestrator.names.seriesNameCollision(newSeriesName.value) ?? null)
+    : null,
+)
+// The select follows the stored series, except while a new one is being
+// named: that draft is the user's until it is committed or abandoned.
+watch(
+  () => trip.value?.series_id,
+  (id) => {
+    if (seriesChoice.value !== NEW_SERIES) seriesChoice.value = id ?? ''
+  },
+  { immediate: true },
+)
 /**
  * FR-2.1b: the trip's year, editable here.
  *
@@ -156,6 +180,26 @@ function commitName(): void {
   const value = name.value.trim()
   if (!value || value === trip.value?.name) return
   orchestrator.tripLifecycle.updateTrip(props.tripId, { name: value })
+}
+
+/** A picked series (or none) commits at once; "new" waits for its name. */
+function pickSeries(choice: string): void {
+  seriesChoice.value = choice
+  if (choice === NEW_SERIES) return
+  newSeriesName.value = ''
+  const id = choice || null
+  if (id !== (trip.value?.series_id ?? null)) orchestrator.series.setTripSeries(props.tripId, id)
+}
+
+/** The typed name commits on blur/Enter, like the trip's own name. */
+function commitNewSeries(): void {
+  const value = newSeriesName.value.trim()
+  if (!value || seriesTaken.value) return
+  const id = orchestrator.series.createSeries(value)
+  if (!id) return
+  orchestrator.series.setTripSeries(props.tripId, id)
+  seriesChoice.value = id
+  newSeriesName.value = ''
 }
 
 /** Writes the picked range, unless it is the one the trip already has. */
@@ -330,6 +374,17 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
             />
           </IonItem>
         </IonList>
+        <SeriesPicker
+          testid="trip-edit-series"
+          lines="none"
+          :choice="seriesChoice"
+          :new-name="newSeriesName"
+          :taken="seriesTaken"
+          @pick="pickSeries"
+          @name="(value) => (newSeriesName = value)"
+          @enter="commitNewSeries"
+          @blur="commitNewSeries"
+        />
       </section>
 
       <section class="jp-card block">

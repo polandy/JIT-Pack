@@ -254,7 +254,7 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
   'tripEdit.sectionTrip': 'Reise',
   'tripEdit.sectionTravelers': 'Reisende',
   'tripEdit.year': 'Jahr',
-  'tripEdit.archivedNote': 'Diese Reise ist abgeschlossen, hier lässt sich nichts mehr ändern.',
+  'tripEdit.archivedNote': 'Diese Reise ist abgeschlossen, nur ihre Serie lässt sich noch ändern.',
   'tripEdit.name': 'Name',
   'tripEdit.dates': 'Reisedaten',
   'tripEdit.startDate': 'Beginn',

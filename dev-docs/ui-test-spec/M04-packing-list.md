@@ -554,3 +554,13 @@
 * **E2E-M4-157** `local` (FR-25.33) — **implemented** (`packing-list-sheet.spec.ts`): with *„Jeans"* typed into the
   note bar, its *Undo* closes the bar and puts *Lange Hose* back on the working list, without a note. Asserted
   before the act too: the packed row had left the list, so its return is the undo's.
+* **E2E-M4-158** `local` (FR-9.5) — **implemented** (`forgotten-radar.spec.ts`): *Samedan 2025* in the series
+  *Samedan* is started, *Ersatzakku* is quick-added on the road (flagged *Missing*) with the comment *„Akku am
+  zweiten Tag leer"*, and the trip is archived. The new planning trip *Samedan 2026* in the same series leads with
+  the radar: *Samedan 2025* as its heading, the series as the reason, *Ersatzakku* with *„Fehlte auf der Liste"* and
+  the comment, dated and with no author (Local Mode). *Auf die Liste* puts the row on the list and the card goes.
+  Asserted before the act too: the list holds no *Ersatzakku* row until the tap, so the row is the card's write.
+* **E2E-M4-159** `local` (FR-9.5) — **implemented** (`forgotten-radar.spec.ts`): *Ausblenden* hides the radar on
+  *Samedan 2026* and it stays hidden across a reload, while a second planning trip of the same series still shows
+  it — the muting is the trip's, not the series'. Asserted before the act too: the card is on the first trip until
+  the tap.

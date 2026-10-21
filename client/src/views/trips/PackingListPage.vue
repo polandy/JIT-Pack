@@ -60,6 +60,7 @@ import EmptyState from '@/components/global/EmptyState.vue'
 import RevealBar from '@/components/global/RevealBar.vue'
 import FilterSheet from '@/components/global/FilterSheet.vue'
 import ArchivedTripCard from '@/components/trips/ArchivedTripCard.vue'
+import ForgottenRadarCard from '@/components/trips/ForgottenRadarCard.vue'
 import ClosingPassBanner from '@/components/trips/ClosingPassBanner.vue'
 import PackingClosedCard from '@/components/trips/PackingClosedCard.vue'
 import ClosePackingSheet from '@/components/trips/ClosePackingSheet.vue'
@@ -83,7 +84,6 @@ import { buildPackingView } from '@/domain/packingView'
 import { t } from '@/i18n'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { useHeadScroll } from '@/composables/useHeadScroll'
-import { buildReviewProposals } from '@/domain/review'
 import GroupChangesProposal from '@/components/trips/GroupChangesProposal.vue'
 import InventoryNamesSheet from '@/components/trips/InventoryNamesSheet.vue'
 import type { InventoryRename } from '@/domain/inventoryNames'
@@ -100,6 +100,7 @@ import { useBrowseAdd } from './packing/useBrowseAdd'
 import { useForWhom } from './packing/useForWhom'
 import { usePackingClose } from './packing/usePackingClose'
 import { usePackingCore } from './packing/usePackingCore'
+import { usePackingHead } from './packing/usePackingHead'
 import { usePackingMenus } from './packing/usePackingMenus'
 import { usePackingTasks } from './packing/usePackingTasks'
 import { useRowActions } from './packing/useRowActions'
@@ -115,7 +116,6 @@ const route = useRoute()
 const core = usePackingCore(props.tripId, useTripScreen(props.tripId, useOrchestrator()))
 const {
   tripStore,
-  masterStore,
   orchestrator,
   trip,
   rowsLoaded,
@@ -373,31 +373,8 @@ async function reportGroupAnswer(message: string) {
   await presentToast({ message, positionAnchor: FAB_ANCHOR.m4 })
 }
 
-/**
- * FR-9.4: the first proposals the review would offer, for the closing card.
- *
- * UI-Spec M14 promises that the card *„teases the first two proposals"*: one
- * that names none says the same thing whether eleven suggestions are waiting
- * or none, which is the one question the tap answers. Two, because the card
- * is a tease and the list is one tap away.
- *
- * It calls the same rule M14 calls (invariant 4): a second, cheaper
- * approximation here would be a rule implemented twice, and the one that
- * drifts is always the summary.
- *
- * The computed is read only inside the card's own `v-if`, so on an active
- * trip — M4's ordinary state — it never runs.
- */
-const CLOSING_TEASER_COUNT = 2
-
-const closingProposals = computed(() =>
-  buildReviewProposals({
-    items: allItems.value,
-    templates: masterStore.templateList,
-    templateItems: (id) => masterStore.getTemplateItems(id),
-    masterItems: masterStore.itemList,
-  }).slice(0, CLOSING_TEASER_COUNT),
-)
+// The head cards: FR-9.4's review teaser, FR-9.5's forgotten radar.
+const { closingProposals, radar, onRadarAdd, onRadarHide } = usePackingHead(core)
 
 // --- App-bar cluster (G-12) --------------------------------------------
 
@@ -632,6 +609,8 @@ setHeaderTitle(
         :trip-id="tripId"
         :proposal-names="closingProposals.map((proposal) => proposal.itemName)"
       />
+
+      <ForgottenRadarCard v-if="radar" v-bind="radar" @add="onRadarAdd" @hide="onRadarHide" />
 
       <QuickAddItem
         v-if="!closingPass"

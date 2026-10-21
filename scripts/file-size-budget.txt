@@ -10,7 +10,7 @@
 1089 client/src/planner/IdeaDetail.vue
 1080 client/src/planner/DayEntrySheet.vue
 1068 client/src/components/global/QuickAddItem.vue
-1003 client/src/views/trips/PackingListPage.vue
+982 client/src/views/trips/PackingListPage.vue
 1008 client/src/meals/MealSheetBody.vue
 982 client/src/views/dashboard/DashboardPage.vue
 935 client/src/shopping/ShoppingPage.vue
