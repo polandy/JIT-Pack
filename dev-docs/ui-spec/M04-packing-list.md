@@ -147,6 +147,13 @@
     in the app is plain text, and the card already carries two button icons — with **"Vorlage aus
     dieser Reise erstellen →"** (M21, FR-27.5) and the M14 review suggestions beneath it. The packed list stays visible
     below as the trip's record.
+  * **A planning trip may lead with the forgotten radar (FR-9.5)** — *„Letztes Mal vergessen · n"*, the reference
+    trip's name as the heading and why it was chosen under it (*gleiche Serie „Samedan"* / *gleiche Vorlage
+    „Sommerferien"*), then one entry per missing item: its name, *„Fehlte auf der Liste"* or *„Vergessen
+    einzupacken"*, the comments written on that row with author (Server Mode only) and date, and a worded
+    *„Auf die Liste"*. The card's foot holds *„Ausblenden"*. An added entry leaves the card, and the snackbar names it;
+    with nothing left the card is absent. In Server Mode, until the reference trip's rows have arrived, the card holds
+    one line saying so in place of the entries. Mockup: the published *Forgotten Radar* artifact.
 * **Group presentation:** a category **heads** the rows under it and must look like it — uppercase micro-type
   *smaller* than the item names it introduces would invert the hierarchy it exists to state. Three levels, three
   weights: the group heading, then a per-person cluster's name (FR-25.1), then the rows; the cluster's name is never
