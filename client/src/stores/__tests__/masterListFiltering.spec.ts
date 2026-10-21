@@ -50,8 +50,8 @@ const COMPLETE_LIST_READERS: Record<string, string> = {
     'generateTripItems and resolveDependencies (its scope rows use the active list)',
   'src/views/trips/ReviewPage.vue':
     'buildReviewProposals (its retarget offer uses the active list)',
-  'src/views/trips/PackingListPage.vue':
-    "FR-9.4's closing-card teaser calls the same buildReviewProposals ReviewPage does, for the same reason: a trip's rows came from positions a retired Vorlage may still hold, and matching them against the active list alone would propose nothing for exactly the history the review is about. M4 offers no master rows of its own — the quick-add is QuickAddItem.vue's, and it is listed above.",
+  'src/views/trips/packing/usePackingHead.ts':
+    "FR-9.4's closing-card teaser calls the same buildReviewProposals ReviewPage does, for the same reason: a trip's rows came from positions a retired Vorlage may still hold, and matching them against the active list alone would propose nothing for exactly the history the review is about. FR-9.5's radar reads every template for the same history: two trips that shared a Vorlage since retired are still alike. M4 offers no master rows of its own — the quick-add is QuickAddItem.vue's, and it is listed above.",
   'src/views/trips/TemplateFromTripPage.vue': 'planTemplateFromTrip writes against every item',
   'src/views/templates/useTemplateGroups.ts':
     "M8's Gruppen picker — resolved preview lines of a group, retired or not (the picker's own group set is the active list)",

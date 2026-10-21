@@ -153,24 +153,37 @@ export function commentsOnItem(
         .filter((item) => item.source_item_id !== null && wanted.has(item.source_item_id))
         .map((item) => item.id),
     )
-    if (rows.size === 0) continue
-    for (const comment of trip.comments) {
-      if (comment.trip_item_id === null || !rows.has(comment.trip_item_id)) continue
-      out.push({
-        commentId: comment.id,
-        tripId: trip.tripId,
-        tripName: trip.tripName,
-        authorId: comment.author_id,
-        body: comment.body,
-        createdAt: comment.created_at,
-        writtenOn: writtenOn(comment.created_at),
-      })
-    }
+    if (rows.size > 0) out.push(...commentsOn(rows, trip))
   }
-  return out.sort((a, b) => {
-    if (a.createdAt === b.createdAt) return 0
-    if (a.createdAt === null) return 1
-    if (b.createdAt === null) return -1
-    return b.createdAt.localeCompare(a.createdAt)
-  })
+  return out.sort(newestFirst)
+}
+
+/**
+ * The comments written on these rows of one trip, newest first, undated last —
+ * {@link commentsOnItem}'s order, for a caller that already holds the rows
+ * themselves rather than an item to look them up by (FR-9.5).
+ */
+export function commentsOnRows(rowIds: ReadonlySet<string>, trip: TripComments): ItemComment[] {
+  return commentsOn(rowIds, trip).sort(newestFirst)
+}
+
+function commentsOn(rowIds: ReadonlySet<string>, trip: TripComments): ItemComment[] {
+  return trip.comments
+    .filter((comment) => comment.trip_item_id !== null && rowIds.has(comment.trip_item_id))
+    .map((comment) => ({
+      commentId: comment.id,
+      tripId: trip.tripId,
+      tripName: trip.tripName,
+      authorId: comment.author_id,
+      body: comment.body,
+      createdAt: comment.created_at,
+      writtenOn: writtenOn(comment.created_at),
+    }))
+}
+
+function newestFirst(a: ItemComment, b: ItemComment): number {
+  if (a.createdAt === b.createdAt) return 0
+  if (a.createdAt === null) return 1
+  if (b.createdAt === null) return -1
+  return b.createdAt.localeCompare(a.createdAt)
 }
