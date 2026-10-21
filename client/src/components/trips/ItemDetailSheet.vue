@@ -70,7 +70,7 @@ import {
   TASK_STATE_RESOLVED,
 } from '@/types/domain'
 import type { ItemMode, ReviewFlag, TripMemberProfile } from '@/types/domain'
-import { lockNoteText, nameFrom, packingRecordText } from '@/lib/rowFacts'
+import { lockNoteText, nameFrom, packingRecordText, packNoteText } from '@/lib/rowFacts'
 import { stateLabel as stateLabelFor } from '@/lib/stateLabels'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { useItemDiscussion } from '@/composables/useItemDiscussion'
@@ -170,6 +170,9 @@ const containerName = computed(
   () => containers.value.find((c) => c.id === item.value?.container_id)?.name ?? null,
 )
 
+/** FR-25.33: the note as M4's row reads it — quoted; its field is in Details. */
+const packNote = computed(() => packNoteText(item.value?.pack_note))
+
 /*
  * The glance names what is unusual about the item (UX-21). Packing is what
  * every item does unless it is bought, so the pack mode has no chip — a pill
@@ -185,7 +188,8 @@ const glanceSays = computed(() => {
     containerName.value !== null ||
     row.late_packer ||
     row.flag_missing ||
-    row.flag_unused
+    row.flag_unused ||
+    packNote.value !== null
   )
 })
 
@@ -464,8 +468,6 @@ const packedStamp = computed(() => (item.value ? packingRecordText(item.value, n
       {{ isSkipped ? t('packing.unskipAction') : t('packing.skipAction') }}
     </button>
 
-    <PackNoteField :item :locked="isLocked" />
-
     <!-- Read-only summary of everything Details can change (FR-25.14). -->
     <!-- FR-25.28: who the item is for is answered here, above the fold — the
          one control of the collapsed set that turned out to be reached often.
@@ -510,6 +512,7 @@ const packedStamp = computed(() => (item.value ? packingRecordText(item.value, n
         t('facet.flagMissing')
       }}</FactChip>
       <FactChip v-if="item.flag_unused" tone="warn" bordered>{{ t('facet.flagUnused') }}</FactChip>
+      <FactChip v-if="packNote" data-testid="m5-glance-pack-note">{{ packNote }}</FactChip>
     </div>
 
     <!-- FR-7.3: the work attached to the thing, before the thing's fields. -->
@@ -741,6 +744,9 @@ const packedStamp = computed(() => (item.value ? packingRecordText(item.value, n
           />
         </IonItem>
       </template>
+      <IonItem lines="none">
+        <PackNoteField :item :locked="isLocked" />
+      </IonItem>
       <IonItem v-if="packedStamp" lines="none">
         <IonNote data-testid="m5-stamp">{{ packedStamp }}</IonNote>
       </IonItem>

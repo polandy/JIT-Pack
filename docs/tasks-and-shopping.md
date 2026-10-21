@@ -198,8 +198,8 @@ message at the bottom offers **Notiz** beside **Rückgängig**: tap it, type up 
 Enter. Escape closes the field without saving, and **Rückgängig** still takes the packing back while it is open. The
 note then leads the row's *packed* line (*„Jeans" · Andy, heute 14:02*).
 
-Each traveller's share of a per-person item has its own note. The item's sheet has the same field (**Packnotiz**) for
-any row, packed or not — write the note there before packing, change it afterwards, or empty it to remove it.
+Each traveller's share of a per-person item has its own note. The item's sheet shows the note at the top and has the
+same field (**Packnotiz**) under **Details** for any row, packed or not — write the note there before packing, change it afterwards, or empty it to remove it.
 Everyone on the trip sees and can change every note. A trip copied from this one keeps its notes, so next time the
 list already says which trousers.
 

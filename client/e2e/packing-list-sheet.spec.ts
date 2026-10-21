@@ -741,6 +741,10 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
     await expect(row.getByTestId('m4-packed-stamp')).toContainText(/“Jeans” · .*\d{1,2}[:.]\d{2}/)
 
     await row.getByRole('heading').click()
+    // M5 says it in the glance row and holds the field under Details (FR-25.33).
+    await expect(page.getByTestId('m5-glance-pack-note')).toHaveText('“Jeans”')
+    await expect(page.getByTestId('m5-pack-note')).toHaveCount(0)
+    await page.getByTestId('m5-details').click()
     await expect(page.getByTestId('m5-pack-note')).toHaveJSProperty('value', 'Jeans')
   })
 
