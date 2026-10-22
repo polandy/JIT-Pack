@@ -242,10 +242,34 @@ A **⋮** menu only holds what belongs to the screen it sits on:
   **Ausflug bearbeiten**, **Als Gruppe speichern** and **Ausflug löschen**. Reach the luggage and the analytics through the packing list.
 - **The trip itself**: *Reise-Eigenschaften*, **Reise starten** and **Reise abschliessen** are on the trip list. Hold
   the trip (or right-click it); the card of the trip you are packing also shows them as buttons. **Reise abschliessen**
-  opens the packing list in its closing pass, where you mark what went unused; **Fertig** there finishes the trip.
+  opens the packing list in its closing pass, where you [judge the trip](#judging-a-trip-afterwards); **Fertig** there
+  finishes the trip.
+
+## Judging a trip afterwards
+
+**Reise abschliessen** opens the packing list in its closing pass. It shows what went along (**Eingepackt**) and what
+you left out on purpose (**Daheim geblieben**). Tap a row to give it one of three verdicts:
+
+- **Unnötig dabei** — packed and never used.
+- **Zu viel** — fewer would have done. Say how many you actually used (*Gebraucht 2 von 4*).
+- **Hätte mit gemusst** — left at home, and then you needed it.
+
+Each verdict takes a reason under **Warum?**, as one line or several. Something that was never on the list at all?
+**+ Fehlte, stand gar nicht auf der Liste** adds it, already judged as missing. Judging is optional: **Fertig** works
+with nothing marked.
+
+A row has one verdict at a time, and you can change or clear it later. On a finished trip, open the row and use
+**Urteil nach der Reise**.
+
+The verdicts never change your groups by themselves. **Fertig** opens the **Rückblick**, which turns them into
+suggestions you accept or skip one by one: *Zu viel* becomes *Menge in „Wandern" 4 → 2*, *Unnötig dabei* sets the
+amount to 0, *Hätte mit gemusst* adds the item. Each suggestion quotes the reasons written on its rows. The reasons
+are ordinary comments on the row. They appear in the item's **Kommentare aus Reisen** and on the next trip's
+**Letztes Mal vergessen** card.
 
 ## Single-User and Local Mode
 
 Both work the same in every mode: grouping, dragging, selecting, due dates and the finished packing all happen on your
-device. Only the reminders differ: a server sends them (a single-user one too), and Local Mode sends none — there, as
+device, and so do the verdicts and the review after a trip. On a server, a reason names who wrote it; on a
+single-user instance and in Local Mode it stands without a name. Only the reminders differ: a server sends them (a single-user one too), and Local Mode sends none — there, as
 everywhere, the overview's line under the greeting says what is due.

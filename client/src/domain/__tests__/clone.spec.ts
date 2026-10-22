@@ -161,6 +161,22 @@ describe('planClone — fresh pack state (FR-12.1)', () => {
     expect(plan.items.every((i) => !i.flag_unused && !i.flag_missing)).toBe(true)
     expect(plan.items[0]!.quantity).toBe(2)
   })
+
+  it('leaves the FR-9.6 *zu viel* verdict with the source trip', () => {
+    const plan = planClone(
+      {
+        trip: trip(),
+        travelers: [],
+        containers: [],
+        items: [tripItem({ state: 'packed', packed_count: 4, quantity: 4, needed_quantity: 2 })],
+      },
+      allOn,
+      noLookup,
+      4,
+    )
+
+    expect(plan.items[0]!.needed_quantity).toBeNull()
+  })
 })
 
 describe('planClone — the pack note carries over (FR-25.33)', () => {

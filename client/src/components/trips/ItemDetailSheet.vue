@@ -38,7 +38,6 @@ import {
   refreshOutline,
   linkOutline,
   lockClosedOutline,
-  removeCircleOutline,
   timeOutline,
 } from 'ionicons/icons'
 import { computed, ref } from 'vue'
@@ -69,12 +68,13 @@ import {
   STATE_SKIPPED,
   TASK_STATE_RESOLVED,
 } from '@/types/domain'
-import type { ItemMode, ReviewFlag, TripMemberProfile } from '@/types/domain'
+import type { ItemMode, TripMemberProfile } from '@/types/domain'
 import { lockNoteText, nameFrom, packingRecordText, packNoteText } from '@/lib/rowFacts'
 import { stateLabel as stateLabelFor } from '@/lib/stateLabels'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { useItemDiscussion } from '@/composables/useItemDiscussion'
 import SheetHead from '@/components/global/SheetHead.vue'
+import VerdictBlock from '@/components/trips/VerdictBlock.vue'
 import type { InventoryRename } from '@/domain/inventoryNames'
 
 const props = defineProps<{
@@ -189,6 +189,7 @@ const glanceSays = computed(() => {
     row.late_packer ||
     row.flag_missing ||
     row.flag_unused ||
+    row.needed_quantity !== null ||
     packNote.value !== null
   )
 })
@@ -273,10 +274,6 @@ function onContainerChange(id: string | null) {
 function onAssigneeChange(value: string | null) {
   if (item.value && !isLocked.value)
     orchestrator.packing.setPacker(item.value, value ? value : null)
-}
-
-function onReviewFlag(flag: ReviewFlag, value: boolean) {
-  if (item.value && !isLocked.value) orchestrator.packing.setReviewFlag(item.value, flag, value)
 }
 
 function onLatePacker(value: boolean) {
@@ -512,6 +509,9 @@ const packedStamp = computed(() => (item.value ? packingRecordText(item.value, n
         t('facet.flagMissing')
       }}</FactChip>
       <FactChip v-if="item.flag_unused" tone="warn" bordered>{{ t('facet.flagUnused') }}</FactChip>
+      <FactChip v-if="item.needed_quantity != null" tone="warn" bordered>{{
+        t('verdict.chipFewer', { n: item.needed_quantity, m: item.packed_count })
+      }}</FactChip>
       <FactChip v-if="packNote" data-testid="m5-glance-pack-note">{{ packNote }}</FactChip>
     </div>
 
@@ -712,38 +712,18 @@ const packedStamp = computed(() => (item.value ? packingRecordText(item.value, n
           @ion-change="(e: CustomEvent) => onLatePacker(e.detail.checked)"
         />
       </IonItem>
-      <!-- FR-9.1: the two review flags are what M14 harvests afterwards —
-           so they are controls here, not a readout. -->
-      <template v-if="judgeable">
-        <IonItem>
-          <IonIcon slot="start" :icon="removeCircleOutline" />
-          <IonLabel>
-            <h3>{{ t('facet.flagUnused') }}</h3>
-            <p>{{ t('row.flagUnusedHint') }}</p>
-          </IonLabel>
-          <IonToggle
-            slot="end"
-            :checked="item.flag_unused"
-            :disabled="isLocked"
-            data-testid="m5-flag-unused"
-            @ion-change="(e: CustomEvent) => onReviewFlag('unused', e.detail.checked)"
-          />
-        </IonItem>
-        <IonItem v-if="active">
-          <IonIcon slot="start" :icon="alertCircleOutline" />
-          <IonLabel>
-            <h3>{{ t('facet.flagMissing') }}</h3>
-            <p>{{ t('row.flagMissingHint') }}</p>
-          </IonLabel>
-          <IonToggle
-            slot="end"
-            :checked="item.flag_missing"
-            :disabled="isLocked"
-            data-testid="m5-flag-missing"
-            @ion-change="(e: CustomEvent) => onReviewFlag('missing', e.detail.checked)"
-          />
-        </IonItem>
-      </template>
+      <!-- FR-9.6: three verdicts and a reason — a control, not a readout,
+           because the closing pass is not the only surface that can judge
+           a row (M14 is the first place anyone reads what it was worth). -->
+      <IonItem v-if="judgeable" lines="none">
+        <VerdictBlock
+          :trip-id="tripId"
+          :item-id="itemId"
+          :item="item"
+          :trip-status="trip?.status"
+          :is-locked="isLocked"
+        />
+      </IonItem>
       <IonItem lines="none">
         <PackNoteField :item :locked="isLocked" />
       </IonItem>

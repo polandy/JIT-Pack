@@ -895,7 +895,7 @@ describe('grouping', () => {
   })
 })
 
-describe('the closing pass lists what was packed (FR-9.3)', () => {
+describe('the closing pass lists what was packed and what stayed home (FR-9.3, FR-9.6)', () => {
   it('keeps packed rows and drops what was never packed', () => {
     const names = visibleNames(
       [
@@ -903,7 +903,7 @@ describe('the closing pass lists what was packed (FR-9.3)', () => {
         item({ name: 'Zelt', packed_count: 1, quantity: 3 }),
         item({ name: 'Regenjacke' }),
       ],
-      { packedOnly: true, showDone: true },
+      { closingPass: true, showDone: true },
     )
 
     // A partly packed row was taken along, so it can have gone unused; a
@@ -918,18 +918,19 @@ describe('the closing pass lists what was packed (FR-9.3)', () => {
     // how the sink was found reaching in here at all.
     const names = visibleNames(
       [packed({ name: 'Stativ' }), item({ name: 'Zelt', packed_count: 1, quantity: 3 })],
-      { packedOnly: true, showDone: true },
+      { closingPass: true, showDone: true },
     )
     expect(names).toEqual(['Stativ', 'Zelt'])
   })
 
-  it('drops a consciously skipped row — that judgement is already made, and it is the opposite one', () => {
+  // FR-9.6: a row left at home is judged too — it may have been missing.
+  it('keeps a consciously skipped row: what stayed home takes its own verdict', () => {
     const names = visibleNames(
       [packed({ name: 'Stativ' }), item({ name: 'Drohne', state: 'skipped' })],
-      { packedOnly: true, showDone: true },
+      { closingPass: true, showDone: true },
     )
 
-    expect(names).toEqual(['Stativ'])
+    expect(names).toEqual(['Stativ', 'Drohne'])
   })
 
   it('keeps a per-person cluster, with only the travelers who packed theirs', () => {
@@ -942,7 +943,7 @@ describe('the closing pass lists what was packed (FR-9.3)', () => {
       })
 
     const result = view([shorts(andy.id, { packed_count: 1, state: 'packed' }), shorts(leo.id)], {
-      packedOnly: true,
+      closingPass: true,
       showDone: true,
     })
 

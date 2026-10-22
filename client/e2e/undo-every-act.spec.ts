@@ -156,18 +156,22 @@ test.describe('FR-25.31 — the list takes back what it wrote', () => {
 
   // E2E-M4-123: the closing pass's tap gets its snackbar too — one toast per
   // tap is accepted as the price of every act being undoable.
-  test('E2E-M4-123: a mark in the closing pass is undone @local @m4', async ({ page }) => {
+  test('E2E-M4-123: a verdict in the closing pass is undone @local @m4', async ({ page }) => {
     await tripWithRows(page, ['Stativ'], 'Rückgängigprobe')
     await startTrip(page)
     await packRow(page, 'Stativ')
     await tripAction(page, 'archive')
     await expect(visiblePage(page).getByTestId('m4-pass-banner')).toBeVisible()
 
-    const mark = page.getByTestId('m4-pass-toggle-Stativ')
-    await mark.click()
-    await expect(mark).toHaveAttribute('aria-pressed', 'true')
-    await undo(page, /marked as unused/i)
-    await expect(mark).toHaveAttribute('aria-pressed', 'false')
+    const chip = page.getByTestId('m4-pass-verdict-Stativ')
+    await chip.click()
+    await expect(page.getByTestId('m4-verdict-sheet')).toBeVisible()
+    await page.getByTestId('m4-verdict-unused').click()
+    await page.getByTestId('m4-verdict-save').click()
+
+    await expect(chip).toHaveText(/unused/i)
+    await undo(page, /verdict saved/i)
+    await expect(chip).toHaveText(/\+ verdict/i)
   })
 
   // ~~E2E-M4-124~~ moved 2026-09-21 to E2E-M25-06 (FR-7.7). The promise is

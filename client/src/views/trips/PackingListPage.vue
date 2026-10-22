@@ -70,6 +70,9 @@ import ItemDetailSheet from '@/components/trips/ItemDetailSheet.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
+import VerdictSheet from '@/components/trips/VerdictSheet.vue'
+import PassForgottenRow from '@/components/trips/PassForgottenRow.vue'
+import { VERDICT_WINDOW_AFTER } from '@/domain/verdict'
 import { SWITCH_KEYS, onlyOthersHidden as isOnlyOthersHidden } from '@/lib/packingFilterPanel'
 import { capabilitiesOf } from '@/mode'
 import { presentToast } from '@/composables/shared/toast'
@@ -86,7 +89,6 @@ import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { useHeadScroll } from '@/composables/useHeadScroll'
 import GroupChangesProposal from '@/components/trips/GroupChangesProposal.vue'
 import InventoryNamesSheet from '@/components/trips/InventoryNamesSheet.vue'
-import type { InventoryRename } from '@/domain/inventoryNames'
 import type { FacetKey, GroupBy } from '@/types/domain'
 import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
 import { ITEM_QUERY_PARAM, tripItemPath, tripPath, tripSubPath } from '@/router/paths'
@@ -107,6 +109,8 @@ import { useRowActions } from './packing/useRowActions'
 import { useRowFacts } from './packing/useRowFacts'
 import { usePackingListShape } from './packing/usePackingListShape'
 import { useRowQuantity } from './packing/useRowQuantity'
+import { usePackingVerdictSheet } from './packing/usePackingVerdictSheet'
+import { usePackingInventoryRenames } from './packing/usePackingInventoryRenames'
 
 const props = defineProps<{ tripId: string; itemId?: string }>()
 
@@ -127,9 +131,10 @@ const {
   travelers,
   active,
   packingClosed,
-  rowUndo,
   packAnnouncements,
-  announceRenamed,
+  // Unread here: PackingClosed.spec.ts reaches the page's undo through the instance.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  rowUndo,
 } = core
 
 onMounted(async () => {
@@ -228,7 +233,7 @@ const view = computed(() =>
     collapsedGroups: collapsedGroups.value,
     expandedClusters: expandedClusters.value,
     itemsWithOpenPrep: openPrepItems.value.map((entry) => entry.item.id),
-    packedOnly: closingPass.value,
+    closingPass: closingPass.value,
   }),
 )
 
@@ -254,6 +259,8 @@ function closeItem() {
 const forWhom = useForWhom(core, view)
 const facts = useRowFacts(core)
 const acts = useRowActions(core, facts, { openItemId, closeItem })
+const { verdictSheetRow, verdictSheetOpen, openVerdict, dismissVerdict, onVerdictSave } =
+  usePackingVerdictSheet(core, acts)
 const quantity = useRowQuantity(core.port)
 const menus = usePackingMenus(core, acts, quantity, forWhom)
 const browse = useBrowseAdd(core, facts)
@@ -326,37 +333,8 @@ const groupProposal = computed(
   () => orchestrator.groupRefresh.refreshProposals.value[props.tripId] ?? null,
 )
 
-/**
- * FR-27.16: the names on this trip the inventory has moved on from. Derived,
- * like the proposal above, and never stored — the ⋮ entry and M5's line both
- * read it, and it empties itself once the names match.
- */
-const inventoryRenames = computed(() =>
-  orchestrator.inventoryNames.inventoryRenamesOf(props.tripId),
-)
-const inventoryNamesOpen = ref(false)
-
-/** The choice the open row belongs to, for M5's own „Übernehmen". */
-const openItemRename = computed(
-  () =>
-    inventoryRenames.value.find((r) => r.rows.some((row) => row.id === openItemId.value)) ?? null,
-)
-
-/**
- * Takes the chosen names over, from the sheet or from M5's one-row line.
- * Armed with the snackbar's undo like a pack: taking every name over is one
- * tap on „Alle", and a tap that renames a dozen rows needs a way back.
- */
-function adoptInventoryNames(chosen: InventoryRename[]) {
-  inventoryNamesOpen.value = false
-  if (chosen.length === 0) return
-  const undo = orchestrator.inventoryNames.adoptInventoryNames(props.tripId, chosen)
-  rowUndo.armUndo(
-    undo.adoption.rows.map((r) => r.item),
-    () => orchestrator.inventoryNames.restoreInventoryNames(props.tripId, undo),
-  )
-  void announceRenamed(chosen.length)
-}
+const { inventoryRenames, inventoryNamesOpen, openItemRename, adoptInventoryNames } =
+  usePackingInventoryRenames(core, props.tripId, openItemId)
 
 async function applyGroupChanges() {
   const applied = orchestrator.groupRefresh.acceptTripRefresh(props.tripId)
@@ -643,7 +621,7 @@ setHeaderTitle(
         @toggle-for-whom="forWhom.toggle"
         @assign="acts.onAssignRow"
         @open="openItem"
-        @pass-toggle="acts.onPassToggle"
+        @verdict="openVerdict"
         @edit-quantity="quantity.open"
         @increment="acts.onIncrement"
         @decrement="acts.onDecrement"
@@ -707,6 +685,10 @@ setHeaderTitle(
           {{ t('packing.closeAction') }}
         </IonButton>
       </EmptyState>
+
+      <!-- FR-9.6: outside the list-state chain above, so it shows under
+           whichever state that chain lands on. -->
+      <PassForgottenRow v-if="closingPass" :trip-id="tripId" :active="active" />
 
       <!-- The bars run in the order the rows do: the two
            whose rows still ask for something first — packed on departure day
@@ -827,6 +809,17 @@ setHeaderTitle(
           />
         </aside>
       </Teleport>
+
+      <!-- FR-9.6: carries its own SheetModal, unlike M5's wrapped sheet. -->
+      <VerdictSheet
+        v-if="verdictSheetRow"
+        :is-open="verdictSheetOpen"
+        :item-name="verdictSheetRow.name"
+        :row="verdictSheetRow"
+        :window="VERDICT_WINDOW_AFTER"
+        @dismiss="dismissVerdict"
+        @save="onVerdictSave"
+      />
 
       <!-- FR-7.7: the task sheet, the same one M25 opens. -->
       <SheetModal

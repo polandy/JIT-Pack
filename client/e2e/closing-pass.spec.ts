@@ -74,7 +74,10 @@ test.describe('FR-9.3 — the trip is judged from the list @local @m4', () => {
     await expect(page.getByTestId('m5-sheet')).toBeVisible()
     await page.getByTestId('m5-details').click()
     await expect(page.getByTestId('m5-flag-unused')).toBeVisible()
-    await expect(page.getByTestId('m5-flag-missing')).toHaveCount(0)
+    // *Missing* stays on screen but disabled — a chip hidden outright would
+    // read as "no such verdict" rather than "not from here" (FR-9.6).
+    await expect(page.getByTestId('m5-flag-missing')).toBeVisible()
+    await expect(page.getByTestId('m5-flag-missing')).toBeDisabled()
   })
 
   // E2E-M4-53: the door asks; archiving does not happen on the tap itself.
@@ -95,9 +98,10 @@ test.describe('FR-9.3 — the trip is judged from the list @local @m4', () => {
     await expectTripActionOffered(page, 'archive')
   })
 
-  // E2E-M4-54: packed rows only. An unpacked row is either consciously
-  // skipped — the opposite judgement — or forgotten, and neither is unused.
-  test('E2E-M4-54: the pass lists what was packed, and marking there reaches M14', async ({
+  // E2E-M4-54: what has an outcome. Packed and skipped both do — FR-9.6
+  // reaches a skipped row for its own *missing* judgement — and an
+  // untouched row has none to give yet.
+  test('E2E-M4-54: the pass lists what was packed or skipped, and marking there reaches M14', async ({
     page,
   }) => {
     const path = await tripWithRows(page, ['Stativ', 'Regenjacke', 'Drohne'], 'Abschlussprobe')
@@ -111,12 +115,24 @@ test.describe('FR-9.3 — the trip is judged from the list @local @m4', () => {
 
     await expect(page.getByTestId('m4-row-Stativ')).toBeVisible()
     await expect(page.getByTestId('m4-row-Regenjacke')).toHaveCount(0)
-    await expect(page.getByTestId('m4-row-Drohne')).toHaveCount(0)
+    // Skipped, not packed — FR-9.6 moved it into *Daheim geblieben* rather
+    // than out of the pass; only *missing* is on offer there.
+    await expect(page.getByTestId('m4-row-Drohne')).toBeVisible()
+    await page.getByTestId('m4-pass-verdict-Drohne').click()
+    await expect(page.getByTestId('m4-verdict-sheet')).toBeVisible()
+    await expect(page.getByTestId('m4-verdict-missing')).toBeVisible()
+    await expect(page.getByTestId('m4-verdict-unused')).toHaveCount(0)
+    await expect(page.getByTestId('m4-verdict-fewer')).toHaveCount(0)
+    await page.getByTestId('m4-verdict-sheet-close').click()
 
     // One gesture, and it is the mark. Inside the pass the control *is*
-    // the mark, so the row does not carry it twice.
-    await page.getByTestId('m4-pass-toggle-Stativ').click()
-    await expect(page.getByTestId('m4-pass-toggle-Stativ')).toHaveAttribute('aria-pressed', 'true')
+    // the mark, so the row does not carry it twice — the chip opens the
+    // verdict sheet, which is where the tap actually lands.
+    await page.getByTestId('m4-pass-verdict-Stativ').click()
+    await expect(page.getByTestId('m4-verdict-sheet')).toBeVisible()
+    await page.getByTestId('m4-verdict-unused').click()
+    await page.getByTestId('m4-verdict-save').click()
+    await expect(page.getByTestId('m4-pass-verdict-Stativ')).toHaveText(/unused/i)
 
     await page.getByTestId('m4-pass-finish').click()
 

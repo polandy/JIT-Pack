@@ -31,6 +31,7 @@ function proposal(over: Partial<ReviewProposal> = {}): ReviewProposal {
     groupId: 'g1',
     groupName: 'Basis',
     flagCount: 1,
+    rowIds: ['ti-1'],
     ...over,
   }
 }

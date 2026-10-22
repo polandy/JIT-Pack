@@ -75,18 +75,21 @@
   FR-25.15). Absent under two travelers (G-8), where the membership glance chip is what is left to say *Gemeinsam*;
   read-only under a foreign claim on any instance (G-3). *Level 2 (behind Details ▾):*
   *Packed by* delegation picker **with a "niemand" clear** (FR-4.2/6.2); mode selector (🧳/🛒/📍, FR-3.1); **optional**
-  container picker default none (FR-10.2); Late Packer ⏰ flag; *Unused/Missing* flags (FR-9.1, active trips only);
+  container picker default none (FR-10.2); Late Packer ⏰ flag; the FR-9.6 verdict block (active and archived trips);
   history sparkline (FR-14.1).
-* **The FR-9.1 flags are controls, not a readout.** A readout would leave **no surface in the whole app that could
-  mark an item *unused*** — and *unused* is the flag M14's assistant is mostly about (FR-9.2 is written around
-  overpacking). They are two toggles with a one-line hint each („Mitgenommen, nie gebraucht" / „Gebraucht und nicht
-  dabei"), and both are revocable, because a flag set by mistake is otherwise permanent. **The two have different
-  windows (FR-9.3):** *unused* is offered
-  while the trip is active **and after it is archived**, because M14 — the first place anyone sees what the flag was
-  worth — runs on the archived trip, and FR-9.1's active-only rule was true of setting a judgement in the moment and
-  false of correcting it; *missing* keeps the active-only gate, since it is stamped by the FR-5.6 quick-add and a thing
-  bought after the trip is not a thing that was missing on it. A planning trip offers neither. Both flags show in the
-  glance chip row.
+* **The verdict is a control, not a readout (FR-9.6).** A readout would leave **no surface outside the closing pass
+  that could judge a row**. The block *„Urteil nach der Reise"* holds up to three chips — *„Hätte mit gemusst"*
+  (`m5-flag-missing`), *„Unnötig dabei"* (`m5-flag-unused`), *„Zu viel"* (`m5-flag-fewer`) — of which at most one is
+  pressed; pressing another moves the verdict, pressing the pressed one clears it. *Zu viel* shows the stepper
+  *„Gebraucht n von m"* (`m5-needed`). Under them the *„Warum?"* field (`m5-verdict-why`) posts its text as a row
+  comment, which then stands in the thread above. **The windows differ:** *unused* is offered while the trip is active
+  **and after it is archived**, because M14 — the first place anyone sees what it was worth — runs on the archived
+  trip; *zu viel* likewise, once two or more were packed; *missing* while the trip is active (it is stamped by the
+  FR-5.6 quick-add and may need clearing) and afterwards only on a skipped row — a thing bought after the trip was not
+  missing on it, a thing left home and then needed was. *Hätte mit gemusst* outside its window stays visible but
+  disabled, so *not now* reads differently from *no such verdict*; the other two are hidden where they do not apply.
+  The block is the same rule the pass uses (`verdictChoices`, invariant 4). A planning trip shows no block. The
+  verdict shows in the glance chip row.
 * **The packing block names itself (UX-10).** The stepper/checkbox box carries the same eyebrow label as
   *Vorbereitung* and *Notizen* („Einpacken"): on a quantity-1 row the block would otherwise render as an unlabelled
   outlined box holding only a checkbox and the state chip, readable as anything.

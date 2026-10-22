@@ -31,7 +31,9 @@ import {
   valuesOf,
   type FacetValue,
 } from './packingFacets'
-import { isFullyPacked, unitsOf } from './packState'
+import { isFullyPacked } from './packState'
+import { looseRowVerdict, passSection, passSectionGroup } from './verdict'
+import { tally, type Tallies } from './packingTally'
 
 /**
  * The row the packing view reads — its port (FR-25, FR-31.6). A trip item is
@@ -60,6 +62,7 @@ export type PackableRow = Pick<
       | 'late_packer'
       | 'flag_missing'
       | 'flag_unused'
+      | 'needed_quantity'
       | 'packer_user_id'
       | 'packed_by_user_id'
     >
@@ -231,11 +234,11 @@ export interface PackingViewInput<R extends PackableRow = PackableRow> {
   /** Ids of items carrying an unresolved preparation (FR-7.3). */
   itemsWithOpenPrep: string[]
   /**
-   * FR-9.3's closing pass: list only what was actually packed. An
-   * unpacked row is either consciously skipped — already a judgement, and
-   * the opposite one — or it was forgotten, and neither is *unused*.
+   * FR-9.3's closing pass: list only the rows with an outcome to judge —
+   * what went along and what stayed home ({@link passSection}, FR-9.6). A
+   * row neither packed nor skipped was forgotten, and has none.
    */
-  packedOnly?: boolean
+  closingPass?: boolean
 }
 
 /**
@@ -347,6 +350,11 @@ export function perPersonKey(item: PackableRow): string | null {
   return item.source_item_id ? `src:${item.source_item_id}` : `name:${item.name.toLowerCase()}`
 }
 
+/** Whether a row carries a verdict yet (FR-9.6) — the closing pass counts rows judged, not units. */
+export function rowJudged(row: PackableRow): boolean {
+  return looseRowVerdict(row) !== null
+}
+
 function groupOf(
   item: PackableRow,
   groupBy: GroupBy,
@@ -423,7 +431,7 @@ export function buildPackingView<R extends PackableRow>(
 }
 
 /** The lookups and per-row questions every phase of the view asks. */
-interface ViewRules {
+export interface ViewRules {
   travelerById: Map<string, Traveler>
   containerById: Map<string, Container>
   travelerOf(row: PackableRow): Traveler | null
@@ -483,6 +491,7 @@ function viewRules(input: PackingViewInput<PackableRow>): ViewRules {
     showOthers,
     showLate,
     itemsWithOpenPrep,
+    closingPass = false,
   } = input
 
   const travelerById = new Map(travelers.map((t) => [t.id, t]))
@@ -522,7 +531,11 @@ function viewRules(input: PackingViewInput<PackableRow>): ViewRules {
     hiddenAsLate: (row) =>
       !showLate && !searching && row.late_packer === true && !facets.flag.includes('late'),
     hiddenAsOthers: (row) => !showOthers && !searching && othersJob(row),
-    groupOf: (row) => groupOf(row, groupBy, travelerById, containerById),
+    // FR-9.3/9.6: the closing pass groups by outcome, not by whatever the
+    // caller's facet picker is set to — the pass asks "what happened", the
+    // ordinary list "where does it live" (ADR irrelevant to Local mode either way).
+    groupOf: (row) =>
+      closingPass ? passSectionGroup(row) : groupOf(row, groupBy, travelerById, containerById),
     byTravelerOrder: (a, b) =>
       (travelerOrder.get(a.traveler?.id ?? '') ?? Number.MAX_SAFE_INTEGER) -
       (travelerOrder.get(b.traveler?.id ?? '') ?? Number.MAX_SAFE_INTEGER),
@@ -542,15 +555,15 @@ interface Narrowed<R extends PackableRow> {
 }
 
 function narrow<R extends PackableRow>(input: PackingViewInput<R>, rules: ViewRules): Narrowed<R> {
-  const { items, memberProfiles, facets, showDone, showOthers, packedOnly = false } = input
+  const { items, memberProfiles, facets, showDone, showOthers, closingPass = false } = input
   const { done, searching, othersJob, revealedByStatus, hiddenAsLate, hiddenAsOthers } = rules
   const nameByUserId = new Map(memberProfiles.map((p) => [p.user_id, p.display_name]))
 
-  /** FR-9.3: taken along, in whole or in part — and not consciously left behind. */
-  const wasPacked = (row: PackableRow) => row.packed_count > 0 && row.state !== STATE_SKIPPED
-
   const matching = items.filter(
-    (row) => (!packedOnly || wasPacked(row)) && rules.passesFacets(row) && rules.matchesSearch(row),
+    (row) =>
+      (!closingPass || passSection(row) !== null) &&
+      rules.passesFacets(row) &&
+      rules.matchesSearch(row),
   )
 
   // Offered for reveal only what revealing would actually show: rows already
@@ -597,99 +610,6 @@ function narrow<R extends PackableRow>(input: PackingViewInput<R>, rules: ViewRu
   return { shown, visible, doneCount, hiddenOtherCount, hiddenOtherNames, lateCount }
 }
 
-/** What a head counts over the full set, done instances included. */
-interface ClusterTally {
-  units: { done: number; total: number }
-  /** In roster order, like {@link instanceIds}. */
-  faces: ClusterFace[]
-  instanceIds: string[]
-}
-
-/** The full-set counts every head answers with, and which items render as clusters. */
-interface Tallies {
-  /** By group key. */
-  groups: Map<string, { done: number; total: number }>
-  /** By `groupKey::clusterKey` — a cluster is scoped to its group. */
-  clusters: Map<string, ClusterTally>
-  /** The cluster key of a row that renders inside a cluster, or null for a flat row. */
-  clusterKeyOf(row: PackableRow): string | null
-}
-
-/**
- * Headers count over the full set — everything the filter lets through,
- * hidden done rows included — so a head can count what the list no longer
- * shows. A header counting rows a facet excluded would describe a different
- * list.
- *
- * Units, not rows (FR-25.22): the head has to answer with the same arithmetic
- * the rows under it and the trip line above it use, or a row that is one of
- * two packed counts as nothing for its group.
- */
-function tally(
-  input: PackingViewInput<PackableRow>,
-  rules: ViewRules,
-  shown: PackableRow[],
-): Tallies {
-  const { items, groupBy } = input
-
-  // Cluster sizes are measured before anything hides an instance: whether a
-  // per-person item renders as a cluster or as a flat row must not flip because
-  // one instance got packed, or because a facet hid a sibling. The one axis
-  // that does set the shape is the Person facet (FR-25.30): choosing whose
-  // things are on screen is choosing the list, and a cluster left with one
-  // person in it is a fold around a single row that has to be opened to tick.
-  const clusterSizes = new Map<string, number>()
-  if (groupBy !== 'person') {
-    for (const row of items.filter(rules.inPersonScope)) {
-      const key = perPersonKey(row)
-      if (key) clusterSizes.set(key, (clusterSizes.get(key) ?? 0) + 1)
-    }
-  }
-  const clusterKeyOf = (row: PackableRow) => {
-    const key = perPersonKey(row)
-    return key !== null && (clusterSizes.get(key) ?? 0) > 1 ? key : null
-  }
-
-  const groups = new Map<string, { done: number; total: number }>()
-  const instances = new Map<string, { id: string; traveler: Traveler | null; done: boolean }[]>()
-  const clusters = new Map<string, ClusterTally>()
-  for (const row of shown) {
-    const { key: groupKey } = rules.groupOf(row)
-    const units = unitsOf(row)
-    const group = groups.get(groupKey) ?? { done: 0, total: 0 }
-    group.total += units.total
-    group.done += units.done
-    groups.set(groupKey, group)
-
-    // The faces come from the same pass as the counts: a shut head stands in
-    // for every instance, so it must not answer over a narrower set than its
-    // own count does (FR-25.23).
-    const clusterKey = clusterKeyOf(row)
-    if (clusterKey === null) continue
-    const scopedKey = `${groupKey}::${clusterKey}`
-    const cluster = clusters.get(scopedKey) ?? {
-      units: { done: 0, total: 0 },
-      faces: [],
-      instanceIds: [],
-    }
-    cluster.units.total += units.total
-    cluster.units.done += units.done
-    clusters.set(scopedKey, cluster)
-    const list = instances.get(scopedKey) ?? []
-    list.push({ id: row.id, traveler: rules.travelerOf(row), done: rules.done(row) })
-    instances.set(scopedKey, list)
-  }
-
-  for (const [scopedKey, list] of instances) {
-    const cluster = clusters.get(scopedKey)!
-    list.sort(rules.byTravelerOrder)
-    cluster.faces = list.map(({ traveler, done }) => ({ traveler, done }))
-    cluster.instanceIds = list.map((instance) => instance.id)
-  }
-
-  return { groups, clusters, clusterKeyOf }
-}
-
 /** The groups, their clusters and rows, over the visible rows and the full-set tallies. */
 function grouping<R extends PackableRow>(
   input: PackingViewInput<R>,
@@ -697,7 +617,7 @@ function grouping<R extends PackableRow>(
   visible: R[],
   tallies: Tallies,
 ): PackingGroup<R>[] {
-  const { groupBy, collapsedGroups, expandedClusters = [], packedOnly = false } = input
+  const { groupBy, collapsedGroups, expandedClusters = [], closingPass = false } = input
   const folded = new Set(collapsedGroups)
   const opened = new Set(expandedClusters)
 
@@ -772,11 +692,11 @@ function grouping<R extends PackableRow>(
 
   /*
    * FR-9.3's closing pass is exempt, and its own test is what said so: there
-   * every visible row was packed, so "done" separates fully packed from
-   * partly packed — an axis nobody is working through. Sinking would sort a
-   * review list by something the reviewer did not ask about.
+   * every visible row went along or stayed home, so "done" separates fully
+   * packed from partly packed — an axis nobody is working through. Sinking
+   * would sort a review list by something the reviewer did not ask about.
    */
-  if (!packedOnly) {
+  if (!closingPass) {
     for (const group of groups.values()) {
       // Partitioned rather than sorted: three passes are obviously stable,
       // where a comparator's stability is a property of the engine rather

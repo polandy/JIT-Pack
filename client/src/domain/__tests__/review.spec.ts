@@ -10,7 +10,12 @@
  */
 import { describe, it, expect } from 'vitest'
 
-import { buildReviewProposals, dismissalKey, retargetGroups } from '@/domain/review'
+import {
+  buildReviewProposals,
+  dismissalKey,
+  fewerQuantities,
+  retargetGroups,
+} from '@/domain/review'
 import type { MasterItem, Template, TemplateItem, TripItem } from '@/types/domain'
 
 function tripItem(over: Partial<TripItem> = {}): TripItem {
@@ -388,5 +393,183 @@ describe('retargetGroups — what the per-row picker may offer (FR-27.11)', () =
     })
 
     expect(retargetGroups(p!, all, templateItems).some((g) => g.id === 'v1')).toBe(false)
+  })
+})
+
+describe("buildReviewProposals — fewer lowers the source group's line by the surplus (FR-9.6, ADR-103)", () => {
+  const socks = (over: Partial<TemplateItem> = {}) =>
+    templateItem({ id: 'g1-socks', template_id: 'g1', item_id: 'socks', quantity: 6, ...over })
+  const base = {
+    templates: [group('g1'), group('g2')],
+    templateItems: (id: string) => (id === 'g1' ? [socks()] : []),
+    masterItems: [masterItem('socks', 'Socken')],
+  }
+  const judged = (over: Partial<TripItem> = {}) =>
+    tripItem({
+      id: 'r1',
+      name: 'Socken',
+      source_item_id: 'socks',
+      source_template_id: 'g1',
+      quantity: 6,
+      packed_count: 6,
+      state: 'packed',
+      needed_quantity: 2,
+      ...over,
+    })
+
+  it('proposes the line at its quantity minus what went along unused', () => {
+    const proposals = buildReviewProposals({ ...base, items: [judged()] })
+
+    expect(proposals).toEqual([
+      expect.objectContaining({
+        kind: 'fewer',
+        itemId: 'socks',
+        groupId: 'g1',
+        fromQuantity: 6,
+        toQuantity: 2,
+        rowIds: ['r1'],
+      }),
+    ])
+  })
+
+  // The line is per person while the row packed fewer than it planned: the
+  // surplus is what the row carried unused, not the distance to the line.
+  it('subtracts the surplus from the line, not the needed number', () => {
+    const [p] = buildReviewProposals({
+      ...base,
+      items: [judged({ packed_count: 4, needed_quantity: 3 })],
+    })
+    expect(p).toMatchObject({ fromQuantity: 6, toQuantity: 5 })
+  })
+
+  // Zero is unused's proposal; fewer never takes a line off the list.
+  it('never proposes below 1', () => {
+    const items = [judged({ packed_count: 6, needed_quantity: 1 })]
+    const [p] = buildReviewProposals({
+      ...base,
+      templateItems: (id) => (id === 'g1' ? [socks({ quantity: 3 })] : []),
+      items,
+    })
+    expect(p).toMatchObject({ fromQuantity: 3, toQuantity: 1 })
+  })
+
+  it('proposes nothing where the line is already at or below the result', () => {
+    const proposals = buildReviewProposals({
+      ...base,
+      templateItems: (id) => (id === 'g1' ? [socks({ quantity: 1 })] : []),
+      items: [judged({ packed_count: 3, needed_quantity: 1 })],
+    })
+    expect(proposals).toEqual([])
+  })
+
+  it('proposes nothing without a group line to lower', () => {
+    expect(
+      buildReviewProposals({ ...base, items: [judged({ source_template_id: 'g2' })] }),
+    ).toEqual([])
+    expect(
+      buildReviewProposals({ ...base, items: [judged({ source_template_id: null })] }),
+    ).toEqual([])
+  })
+
+  it('ignores a number the row contradicts — needed at or above packed', () => {
+    expect(
+      buildReviewProposals({ ...base, items: [judged({ packed_count: 2, needed_quantity: 2 })] }),
+    ).toEqual([])
+  })
+
+  // One row per traveler: nobody is cut below what they used.
+  it('proposes the highest result once for several rows of one item from one group', () => {
+    const proposals = buildReviewProposals({
+      ...base,
+      items: [
+        judged({ id: 'andy', needed_quantity: 2 }),
+        judged({ id: 'leo', needed_quantity: 4 }),
+        judged({ id: 'mia', needed_quantity: null }),
+      ],
+    })
+
+    expect(proposals).toHaveLength(1)
+    expect(proposals[0]).toMatchObject({ toQuantity: 4, rowIds: ['andy', 'leo'] })
+  })
+
+  // A concurrent offline edit can leave a flag beside the number: both
+  // proposals show, and either applies cleanly (FR-9.6).
+  it('shows unused and fewer side by side when a row carries both', () => {
+    const proposals = buildReviewProposals({ ...base, items: [judged({ flag_unused: true })] })
+    expect(proposals.map((p) => p.kind)).toEqual(['unused', 'fewer'])
+  })
+
+  it('is dismissed on its own key, apart from unused for the same pair', () => {
+    const proposals = buildReviewProposals({
+      ...base,
+      items: [judged({ flag_unused: true })],
+      isDismissed: (key) => key === dismissalKey('socks', 'g1', 'fewer'),
+    })
+    expect(proposals.map((p) => p.kind)).toEqual(['unused'])
+    // The unused key keeps its stored shape, so earlier dismissals still hold.
+    expect(dismissalKey('socks', 'g1', 'unused')).toBe(dismissalKey('socks', 'g1'))
+  })
+
+  it('counts one trip — the flag history does not hold a number', () => {
+    const [p] = buildReviewProposals({ ...base, items: [judged()], flaggedTripCount: () => 5 })
+    expect(p?.flagCount).toBe(1)
+  })
+
+  it('moves only between groups whose line it would lower, recomputed against each', () => {
+    const lines = (id: string) =>
+      id === 'g1'
+        ? [socks()]
+        : id === 'g2'
+          ? [socks({ id: 'g2-socks', template_id: 'g2', quantity: 10 })]
+          : []
+    const groups = [group('g1'), group('g2'), group('g3')]
+    const [p] = buildReviewProposals({
+      ...base,
+      templates: groups,
+      templateItems: lines,
+      items: [judged()],
+    })
+
+    expect(retargetGroups(p!, groups, lines).map((g) => g.id)).toEqual(['g1', 'g2'])
+    expect(fewerQuantities(p!, 'g2', lines)).toEqual({ fromQuantity: 10, toQuantity: 6 })
+    expect(fewerQuantities(p!, 'g3', lines)).toBeNull()
+  })
+})
+
+describe('buildReviewProposals — every proposal names the rows it was built from (FR-9.6)', () => {
+  it('carries the row ids of an unused proposal, fan-out included', () => {
+    const proposals = buildReviewProposals({
+      templates: [group('g1')],
+      templateItems: (id: string) => (id === 'g1' ? [templateItem({ item_id: 'item1' })] : []),
+      masterItems: [],
+      items: [
+        tripItem({ id: 'a', flag_unused: true, source_item_id: 'item1', source_template_id: 'g1' }),
+        tripItem({ id: 'b', flag_unused: true, source_item_id: 'item1', source_template_id: 'g1' }),
+      ],
+    })
+    expect(proposals[0]?.rowIds).toEqual(['a', 'b'])
+  })
+
+  // The group already brings it; the radar (FR-9.5) carries it forward.
+  it('proposes no missing for a skipped row whose own group still holds the item', () => {
+    const proposals = buildReviewProposals({
+      templates: [group('g1'), group('g2')],
+      templateItems: (id: string) =>
+        id === 'g2' ? [templateItem({ template_id: 'g2', item_id: 'item9' })] : [],
+      masterItems: [masterItem('item9', 'Regenhose')],
+      items: [
+        tripItem({ id: 'a', source_template_id: 'g1', source_item_id: 'item1', name: 'Zelt' }),
+        tripItem({ id: 'b', source_template_id: 'g1', source_item_id: 'item2', name: 'Kocher' }),
+        tripItem({
+          id: 'c',
+          source_template_id: 'g2',
+          source_item_id: 'item9',
+          name: 'Regenhose',
+          state: 'skipped',
+          flag_missing: true,
+        }),
+      ],
+    })
+    expect(proposals).toEqual([])
   })
 })

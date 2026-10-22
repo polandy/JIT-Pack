@@ -407,6 +407,12 @@ CREATE TABLE trip_items (
     -- line; NULL for none, never blank. The client's to write, open or packed
     -- alike, and untouched by un-packing, which clears only the stamp beside it.
     pack_note            TEXT CHECK (pack_note IS NULL OR (length(pack_note) BETWEEN 1 AND 60)),
+    -- FR-9.6: the verdict *zu viel* — how many were actually used, so M14's
+    -- *fewer* proposal names the user's number rather than guessing a step
+    -- (ADR-103); NULL for no such verdict. The client keeps it below
+    -- packed_count; the column holds only the floor a single-field write
+    -- cannot violate.
+    needed_quantity      INTEGER CHECK (needed_quantity IS NULL OR needed_quantity >= 1),
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc          TEXT NOT NULL DEFAULT ''         -- NFR-4.2a
 );

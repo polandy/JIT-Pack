@@ -3,12 +3,15 @@
 * **Purpose:** Close the feedback loop into master templates (FR-9.2).
 * **A list, aimed at groups (FR-27.11).** The assistant is **a list, not a card stack**, and its proposals target
   **groups**, not the composed vacation template.
-* **Elements:** One row per proposal: a kind chip (*ungenutzt* / *fehlte*), the item name, why it is being proposed
-  ("auf dieser Reise nicht gebraucht", "unterwegs nachgekauft — fehlte auf der Liste"), and the **target group named in
+* **Elements:** One row per proposal: a kind chip (*ungenutzt* / *fehlte* / *weniger*), the item name, what it would
+  write for a *weniger* row (*„Menge in „Wandern" 4 → 2"*, `m14-fewer-change`), why it is being proposed
+  ("auf dieser Reise nicht gebraucht", "unterwegs nachgekauft — fehlte auf der Liste", „gebraucht 2 von 4"), **the
+  reasons written on its rows** (FR-9.6: the FR-7.1 comments, newest first, each a quoted line with FR-27.9's author
+  line — absent where nobody can be named; `m14-reason`), and the **target group named in
   a picker that offers groups only** (FR-27.11), beside which a chevron opens the FR-27.12 peek sheet on the chosen
   target — the row carries no summary line, because the proposal and its blast radius already own that space — for an
-  *ungenutzt* row only groups that actually carry the item (zeroing a position that does not exist would apply as
-  nothing, and a silent no-op is worse than a shorter picker). When the target group
+  *ungenutzt* or *weniger* row only groups that actually carry the item (zeroing a position that does not exist would
+  apply as nothing, and a silent no-op is worse than a shorter picker). When the target group
   reaches trips that still follow it, the row states the blast radius ("Wird N Reisen vorgeschlagen …", FR-27.4). Per
   row: *Übernehmen · Überspringen · Nie mehr fragen*, all three worded (FR-9.4: an unlabelled ✕ carrying only an
   `aria-label` is no label at all on a phone, and the third is the one action here that is permanent, device-local and

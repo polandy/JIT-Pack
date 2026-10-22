@@ -75,7 +75,9 @@ export function usePackingClose(core: PackingCore) {
    */
   async function archiveAndReview() {
     orchestrator.tripLifecycle.archiveTrip(tripId)
-    const flagged = tripStore.getItems(tripId).some((item) => item.flag_unused || item.flag_missing)
+    const flagged = tripStore
+      .getItems(tripId)
+      .some((item) => item.flag_unused || item.flag_missing || item.needed_quantity != null)
     if (!flagged) {
       await presentToast({ message: t('review.nothingToast') })
       return

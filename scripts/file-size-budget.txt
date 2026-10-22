@@ -5,12 +5,12 @@
 1294 client/src/views/templates/TemplateEditorPage.vue
 1170 client/src/views/trips/TripExcursionPage.vue
 1159 client/src/views/trips/TripListPage.vue
-807 client/src/types/domain.ts
-1053 client/src/components/trips/ItemDetailSheet.vue
+805 client/src/types/domain.ts
+1033 client/src/components/trips/ItemDetailSheet.vue
 1089 client/src/planner/IdeaDetail.vue
 1080 client/src/planner/DayEntrySheet.vue
 1068 client/src/components/global/QuickAddItem.vue
-982 client/src/views/trips/PackingListPage.vue
+975 client/src/views/trips/PackingListPage.vue
 1008 client/src/meals/MealSheetBody.vue
 982 client/src/views/dashboard/DashboardPage.vue
 935 client/src/shopping/ShoppingPage.vue

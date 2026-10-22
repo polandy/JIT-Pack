@@ -48,6 +48,14 @@ const orchestratorFake = {
   claims: {
     lockHolder: vi.fn(() => null as string | null),
   },
+  // FR-9.6: M5's verdict block writes directly (no save button, G-5), so
+  // the fake needs both namespaces the block calls.
+  verdicts: {
+    setVerdict: vi.fn(),
+  },
+  comments: {
+    addComment: vi.fn(),
+  },
 }
 
 /** Two accounts on the trip — what Server Mode looks like (FR-4.5). */
@@ -190,46 +198,36 @@ describe('M5 mode chip (FR-3.2)', () => {
   })
 })
 
-describe('M5 FR-9.1 flags', () => {
-  it('writes the unused flag through the orchestrator on an active trip', async () => {
+describe('M5 FR-9.6 verdict block', () => {
+  it('writes the unused verdict through the orchestrator on an active trip', async () => {
     seedTrip('active')
     const wrapper = await openDetails(mountSheet())
 
-    await wrapper.get('[data-testid="m5-flag-unused"]').trigger('ionChange', {
-      detail: { checked: true },
-    })
+    await wrapper.get('[data-testid="m5-flag-unused"]').trigger('click')
 
-    expect(orchestratorFake.packing.setReviewFlag).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'ti1' }),
+    expect(orchestratorFake.verdicts.setVerdict).toHaveBeenCalledWith(
+      't1',
+      'ti1',
       'unused',
-      true,
+      undefined,
     )
   })
 
-  // A view can name a key no catalogue defines; `t` then renders the key
-  // itself and the integrity test — which only compares the two catalogues
-  // to each other — stays green.
-  it('spells out what each flag means', async () => {
+  it('spells out what each verdict offers', async () => {
     seedTrip('active')
     const wrapper = await openDetails(mountSheet())
 
-    expect(wrapper.text()).toContain('Taken along, never needed')
-    expect(wrapper.text()).toContain('Was needed and was not there')
+    expect(wrapper.text()).toContain('Should have come along')
+    expect(wrapper.text()).toContain('Unnecessary')
   })
 
-  it('takes a flag back again — the control is a judgement, not a stamp', async () => {
+  it('takes a verdict back again — pressing the pressed chip clears it, it never stamps', async () => {
     seedTrip('active', { flag_missing: true })
     const wrapper = await openDetails(mountSheet())
 
-    await wrapper.get('[data-testid="m5-flag-missing"]').trigger('ionChange', {
-      detail: { checked: false },
-    })
+    await wrapper.get('[data-testid="m5-flag-missing"]').trigger('click')
 
-    expect(orchestratorFake.packing.setReviewFlag).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'ti1' }),
-      'missing',
-      false,
-    )
+    expect(orchestratorFake.verdicts.setVerdict).toHaveBeenCalledWith('t1', 'ti1', null)
   })
 
   it('offers no flag control before the trip runs (FR-9.1: active trips only)', async () => {
@@ -240,7 +238,7 @@ describe('M5 FR-9.1 flags', () => {
     expect(wrapper.find('[data-testid="m5-flag-missing"]').exists()).toBe(false)
   })
 
-  it('keeps the unused window open on the archived trip, where M14 shows what it was worth (FR-9.3)', async () => {
+  it('keeps the unused chip open on the archived trip, where M14 shows what it was worth (FR-9.3)', async () => {
     seedTrip('archived')
     const wrapper = await openDetails(mountSheet())
 
@@ -250,22 +248,28 @@ describe('M5 FR-9.1 flags', () => {
     // moment it could no longer be given or taken back.
     expect(wrapper.find('[data-testid="m5-flag-unused"]').exists()).toBe(true)
 
-    await wrapper.get('[data-testid="m5-flag-unused"]').trigger('ionChange', {
-      detail: { checked: true },
-    })
-    expect(orchestratorFake.packing.setReviewFlag).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'ti1' }),
+    await wrapper.get('[data-testid="m5-flag-unused"]').trigger('click')
+    expect(orchestratorFake.verdicts.setVerdict).toHaveBeenCalledWith(
+      't1',
+      'ti1',
       'unused',
-      true,
+      undefined,
     )
   })
 
-  it('offers no *missing* control once the trip is archived — it is stamped, not judged (FR-9.3)', async () => {
+  it('offers the *missing* chip disabled, not absent, once the trip is archived — it is stamped, not judged (FR-9.3)', async () => {
     seedTrip('archived')
     const wrapper = await openDetails(mountSheet())
 
-    // A thing bought after the trip is not a thing that was missing on it.
-    expect(wrapper.find('[data-testid="m5-flag-missing"]').exists()).toBe(false)
+    // A thing bought after the trip is not a thing that was missing on it —
+    // but the chip stays in place (disabled) rather than vanish, so a row
+    // that already carries the verdict from before archiving can still be
+    // read and, per `verdictChoices`, cleared.
+    const missing = wrapper.get('[data-testid="m5-flag-missing"]')
+    expect((missing.element as HTMLButtonElement).disabled).toBe(true)
+
+    await missing.trigger('click')
+    expect(orchestratorFake.verdicts.setVerdict).not.toHaveBeenCalled()
   })
 
   it('shows an unused flag in the glance row, like missing (UI-Spec M5)', () => {

@@ -185,6 +185,7 @@ export const sharedDe: Record<keyof typeof sharedEn, string> = {
   'fieldLabel.late_packer': 'Zuletzt packen',
   'fieldLabel.pack_note': 'Packnotiz',
   'fieldLabel.flag_unused': 'Als unbenutzt markiert',
+  'fieldLabel.needed_quantity': 'Gebrauchte Anzahl',
   'fieldLabel.flag_missing': 'Als fehlend markiert',
   'fieldLabel.body': 'Text',
   'fieldLabel.is_task': 'Ist eine Aufgabe',

@@ -9,6 +9,7 @@ import type { PackingRowNotes, RowEdgeAvatar } from '@/components/trips/PackingR
 import { borrowersByTripItem } from '@/domain/excursionSuitcase'
 import { rowEdgeAvatar, type PackableRow, type PackingCluster } from '@/domain/packingView'
 import { avatarAssignable } from '@/domain/rowMenu'
+import { rowVerdict } from '@/domain/verdict'
 import {
   lockNoteText,
   packedStampText,
@@ -33,6 +34,7 @@ export const NO_ROW_NOTES: PackingRowNotes = {
   packed: null,
   responsible: null,
   packNote: null,
+  verdictReason: null,
 }
 
 /**
@@ -99,6 +101,22 @@ export function useRowFacts(core: PackingCore): RowFacts {
     return responsibleNote(item, nameOf)
   }
 
+  /**
+   * FR-9.6: the pass reads the verdict's reason back from the row's own
+   * comments, newest first — an ordinary row comment (`domain/verdict.ts`),
+   * so there is nothing of the sheet's own to store or go stale. Shown only
+   * once the row carries a verdict, and only in the pass that asks for one;
+   * M5's thread is where a reason lives the rest of the time.
+   */
+  function verdictReasonFor(item: TripItem): string | null {
+    if (!core.closingPass.value || rowVerdict(item) === null) return null
+    const comments = tripStore.getItemComments(tripId, item.id)
+    const newest = [...comments].sort((a, b) =>
+      (b.created_at ?? '').localeCompare(a.created_at ?? ''),
+    )[0]
+    return newest?.body ?? null
+  }
+
   /** FR-31.12: which excursions ahead borrow each suitcase row. */
   const borrowers = computed(() =>
     borrowersByTripItem(
@@ -125,6 +143,7 @@ export function useRowFacts(core: PackingCore): RowFacts {
       packed: packedStamp(item),
       responsible: responsibleNoteFor(item),
       packNote: packNoteText(item.pack_note),
+      verdictReason: verdictReasonFor(item),
     }
   }
 

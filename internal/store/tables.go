@@ -438,7 +438,7 @@ var tableSpecs = map[string]tableSpec{
 			// packed_by_user_id is — listed so the stamp can be persisted.
 			"bought_at", "bought_by_user_id",
 			"assigned_traveler_id", "packer_user_id", "container_id",
-			"packing_now_by", "packing_now_at", "flag_unused", "flag_missing",
+			"packing_now_by", "packing_now_at", "flag_unused", "flag_missing", "needed_quantity",
 			"outbound_packed",
 			// Listed so the server's own stamp can be persisted through the
 			// push path; the stamp step discards any client-sent value first

@@ -53,6 +53,7 @@ function notes(overrides: Partial<PackingRowNotes> = {}): PackingRowNotes {
     packed: null,
     responsible: null,
     packNote: null,
+    verdictReason: null,
     ...overrides,
   }
 }
@@ -166,22 +167,44 @@ describe('PackingRow — the control column (UX-9)', () => {
     expect(wrapper.findComponent({ name: 'QuantityStepper' }).exists()).toBe(false)
   })
 
-  it("FR-9.3: the closing pass replaces the stepper with the row's keep/leave toggle", async () => {
+  it('FR-9.6: the closing pass replaces the stepper with the verdict chip', async () => {
     const wrapper = mountRow({ closingPass: true, item: item({ flag_unused: true }) })
-    const toggle = wrapper.get('[data-testid="m4-pass-toggle-Zelt"]')
+    const chip = wrapper.get('[data-testid="m4-pass-verdict-Zelt"]')
 
     expect(wrapper.findComponent({ name: 'QuantityStepper' }).exists()).toBe(false)
-    expect(toggle.attributes('aria-pressed')).toBe('true')
+    expect(chip.text()).toBe('unused')
 
-    await toggle.trigger('click')
-    expect(wrapper.emitted('passToggle')).toHaveLength(1)
+    await chip.trigger('click')
+    expect(wrapper.emitted('verdict')).toHaveLength(1)
   })
 
   it('the lock outranks the closing pass — a held row is not judged from here', () => {
     const wrapper = mountRow({ closingPass: true, locked: true })
 
     expect(wrapper.find('.lock').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="m4-pass-toggle-Zelt"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="m4-pass-verdict-Zelt"]').exists()).toBe(false)
+  })
+
+  it('FR-9.6: an unjudged row in the pass offers the dashed "+ Urteil" invitation', () => {
+    const wrapper = mountRow({ closingPass: true })
+
+    expect(wrapper.get('[data-testid="m4-pass-verdict-Zelt"]').classes()).toContain('none')
+  })
+
+  it("FR-9.6: a row's reason shows under its name once it carries a verdict", () => {
+    const wrapper = mountRow({
+      notes: notes({ verdictReason: 'Waschmaschine in der Ferienwohnung' }),
+    })
+
+    expect(wrapper.get('[data-testid="m4-pass-reason-Zelt"]').text()).toContain(
+      'Waschmaschine in der Ferienwohnung',
+    )
+  })
+
+  it('writes no reason line when the row carries none', () => {
+    const wrapper = mountRow()
+
+    expect(wrapper.find('[data-testid="m4-pass-reason-Zelt"]').exists()).toBe(false)
   })
 
   it('FR-25.24: the count opens the amount, and the row carries the tap onwards', async () => {

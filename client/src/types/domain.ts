@@ -164,17 +164,15 @@ export interface TripItem {
   packer_user_id: string | null
   /** Record of who actually packed it; server-stamped, never picked (FR-25.19). */
   packed_by_user_id: string | null
-  /**
-   * When it was packed (FR-25.17). Null on rows packed before migration
-   * 020 — the stamp then names the packer without a time rather than
-   * inventing one.
-   */
+  /** When it was packed (FR-25.17); null before migration 020 — the stamp names no invented time. */
   packed_at: string | null
   container_id: string | null
   packing_now_by: string | null
   packing_now_at: string | null
   flag_unused: boolean
   flag_missing: boolean
+  /** FR-9.6's *zu viel*: how many were used, 1 to `packed_count` − 1 (ADR-103); null or absent for none. */
+  needed_quantity?: number | null
   /**
    * FR-7.16: when closing the packing carried the row from *before
    * departure* to *at the destination*; null or absent for a row that was

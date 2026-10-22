@@ -398,6 +398,7 @@ export function itemRow(item: TripItem): Record<string, unknown> {
     carried_over_at: item.carried_over_at ?? null,
     shopping_position: item.shopping_position ?? null,
     pack_note: item.pack_note ?? null,
+    needed_quantity: item.needed_quantity ?? null,
     updated_hlc: item.updated_hlc,
   }
 }
