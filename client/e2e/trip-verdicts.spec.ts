@@ -83,6 +83,13 @@ test.describe('FR-9.6 — three verdicts and a reason @local', () => {
     await tripAction(page, 'archive')
     await expect(visible(page).getByTestId('m4-pass-banner')).toBeVisible()
 
+    // The skipped row is judged under *Daheim geblieben*, which counts it; no
+    // row was packed, so the pass has no *Eingepackt* section at all.
+    const stayedHome = page.getByTestId('m4-group-stayedHome')
+    await expect(stayedHome).toContainText(/stayed home/i)
+    await expect(stayedHome).toContainText('0 of 1 judged')
+    await expect(page.getByTestId('m4-group-packed')).toHaveCount(0)
+
     // Untouched so far, and the forgotten row has not been added yet.
     await expect(page.getByTestId('m4-pass-verdict-Kamera')).toHaveText(/\+ verdict/i)
     await expect(page.getByTestId('m4-pass-verdict-Sonnenbrille')).toHaveCount(0)
@@ -108,6 +115,7 @@ test.describe('FR-9.6 — three verdicts and a reason @local', () => {
     await page.getByTestId('m4-pass-forgotten-input').locator('input').fill('Sonnenbrille')
     await page.getByTestId('m4-pass-forgotten-submit').click()
     await expect(page.getByTestId('m4-pass-verdict-Sonnenbrille')).toHaveText(/missing/i)
+    await expect(stayedHome).toContainText('2 of 2 judged')
 
     await page.getByTestId('m4-pass-finish').click()
 

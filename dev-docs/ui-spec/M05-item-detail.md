@@ -86,9 +86,10 @@
   **and after it is archived**, because M14 — the first place anyone sees what it was worth — runs on the archived
   trip; *zu viel* likewise, once two or more were packed; *missing* while the trip is active (it is stamped by the
   FR-5.6 quick-add and may need clearing) and afterwards only on a skipped row — a thing bought after the trip was not
-  missing on it, a thing left home and then needed was. A chip outside its window stays visible but disabled, so *not
-  now* reads differently from *no such verdict*. The block is the same rule the pass uses (`verdictChoices`,
-  invariant 4). A planning trip shows no block. The verdict shows in the glance chip row.
+  missing on it, a thing left home and then needed was. *Hätte mit gemusst* outside its window stays visible but
+  disabled, so *not now* reads differently from *no such verdict*; the other two are hidden where they do not apply.
+  The block is the same rule the pass uses (`verdictChoices`, invariant 4). A planning trip shows no block. The
+  verdict shows in the glance chip row.
 * **The packing block names itself (UX-10).** The stepper/checkbox box carries the same eyebrow label as
   *Vorbereitung* and *Notizen* („Einpacken"): on a quantity-1 row the block would otherwise render as an unlabelled
   outlined box holding only a checkbox and the state chip, readable as anything.

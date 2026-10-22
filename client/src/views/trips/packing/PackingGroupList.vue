@@ -95,9 +95,8 @@ function onRowPress(item: R, event: PointerEvent): void {
 }
 
 /**
- * FR-9.3/9.6: the closing pass groups by `passSection`, whose key the
- * component — never `domain/` — turns into words ("Eingepackt" /
- * "Daheim geblieben"), per `closingPassGroupOf`'s own docstring.
+ * FR-9.3/9.6: the closing pass groups by `passSection`, whose key only the
+ * component turns into words ("Eingepackt" / "Daheim geblieben").
  */
 function groupName(group: PackingGroup<R>): string {
   if (props.closingPass) {
