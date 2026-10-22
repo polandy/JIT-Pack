@@ -10,6 +10,7 @@ import {
   type IdeaResult,
   type IdeaResultSource,
 } from '@/domain/shared/ideaBridge'
+import { isPreparationStep } from '@/domain/shared/ideaPreparation'
 import { tripExcursionsPath, tripSubPath } from '@/router/paths'
 import type { Excursion, OwnTask } from '@/types/domain'
 import { TASK_STATE_RESOLVED } from '@/types/domain'
@@ -35,7 +36,8 @@ export function createIdeaResultSource(reads: IdeaResultReads): IdeaResultSource
         }))
       const tasks = reads
         .getOwnTasks(tripId)
-        .filter((task) => task.idea_id === ideaId)
+        // FR-29.21: a preparation step is listed under the idea's own *Vorbereitung*.
+        .filter((task) => task.idea_id === ideaId && !isPreparationStep(task))
         .map((task) => ({
           key: `task:${task.id}`,
           kind: IDEA_RESULT_TASK,

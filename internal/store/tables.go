@@ -554,9 +554,9 @@ var tableSpecs = map[string]tableSpec{
 			"excursion_id",
 			// FR-7.17: the task's place inside its group (ADR-083).
 			"position",
-			// FR-29.13: the idea a trip task was made from; validIdeaResult
-			// checks it.
-			columnIdeaID,
+			// FR-29.13: the idea a trip task was made from (validIdeaResult
+			// checks it); FR-29.21: a preparation step's lead before its day.
+			columnIdeaID, "lead_days",
 		),
 		// FR-7.9: a note's per-person ticks hang off it (note_acks.comment_id
 		// ON DELETE CASCADE). A task's own resolution needs nothing here — it

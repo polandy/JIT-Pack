@@ -33,6 +33,7 @@ import TaskTagPicker from '@/views/trips/tasks/TaskTagPicker.vue'
 import { filedTagOf, type TripTask } from '@/domain/tripTasks'
 import { t } from '@/i18n'
 import type { NameOf } from '@/lib/rowFacts'
+import { shortDueDay } from '@/lib/taskDueText'
 import { createdStampText, resolvedStampText } from '@/lib/taskFacts'
 import {
   TASK_PHASE_BEFORE,
@@ -221,7 +222,13 @@ function factLine(key: string, icon: string, text: string | null) {
          finished task's date says when it was meant, nothing more to set. -->
     <section v-if="isOpen && !history" class="due">
       <div class="label jp-section-count">{{ t('tasks.dueField') }}</div>
+      <!-- FR-29.21: a preparation step's day is its idea's, less the lead —
+           moved by planning the idea, so there is none to pick here. -->
+      <p v-if="task.lead_days != null && task.due_date" class="lead" data-testid="task-sheet-lead">
+        {{ t('tasks.dueFromIdea', { day: shortDueDay(task.due_date), n: task.lead_days }) }}
+      </p>
       <DueChips
+        v-else
         :value="task.due_date"
         :today="today"
         :phase="task.phase"
@@ -308,6 +315,12 @@ function factLine(key: string, icon: string, text: string | null) {
 
 .due {
   margin-top: 16px;
+}
+
+.lead {
+  margin: 0;
+  color: var(--ct-subtext1);
+  font-size: var(--jp-text-sm);
 }
 
 .label {

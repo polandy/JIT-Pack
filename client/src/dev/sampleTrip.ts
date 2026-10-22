@@ -366,7 +366,9 @@ function seedMeals(tripId: string, orchestrator: Orchestrator): void {
  * tracks and no picture, a hike and a bike tour, so the board shows a line
  * as a banner and the map has two to choose between (FR-29.17). On the
  * shortlist one is planned on tomorrow and one waits without a day, so M29
- * has a line and a pool (FR-29.14). Written without an identity, as Local Mode
+ * has a line and a pool (FR-29.14). Both carry preparation (FR-29.21): the
+ * unplanned one a step that waits for its day, the planned one a step due
+ * today and one whose lead has already passed. Written without an identity, as Local Mode
  * writes; on a server the push stamps the account that seeded. Through the
  * module's own actions, for the reason `buyOneShoppingRow` gives.
  */
@@ -384,6 +386,8 @@ export const SEED_IDEAS: ReadonlyArray<{
   plannedIn?: number
   plannedAt?: string
   tracks?: boolean
+  /** FR-29.21: steps to take ahead of it, each with its lead in days. */
+  preparation?: ReadonlyArray<{ title: string; leadDays: number }>
 }> = [
   {
     title: 'Bernina Express nach Tirano',
@@ -392,6 +396,7 @@ export const SEED_IDEAS: ReadonlyArray<{
     state: IDEA_STATE_SHORTLISTED,
     voted: true,
     pictures: 1,
+    preparation: [{ title: 'Sitzplätze reservieren', leadDays: 14 }],
   },
   {
     title: 'Segantini-Museum in St. Moritz',
@@ -416,6 +421,10 @@ export const SEED_IDEAS: ReadonlyArray<{
     pictures: 4,
     plannedIn: 1,
     plannedAt: '09:00',
+    preparation: [
+      { title: 'Bergbahn-Tickets online kaufen', leadDays: 1 },
+      { title: 'Hüttenplatz telefonisch anmelden', leadDays: 3 },
+    ],
   },
   { title: 'Gleitschirm-Tandemflug', tag: null, state: IDEA_STATE_DROPPED },
 ]
@@ -454,6 +463,12 @@ function seedIdeas(tripId: string, orchestrator: Orchestrator): void {
     if (seed.comment) actions.addComment(tripId, idea.id, seed.comment, null)
     if (seed.pictures) void seedPictures(idea, seed.pictures, actions)
     if (seed.tracks) void seedTracks(idea, actions)
+    for (const step of seed.preparation ?? []) {
+      orchestrator.comments.addOwnTask(tripId, SEED_AUTHOR_ID, step.title, TASK_PHASE_BEFORE, {
+        ideaId: idea.id,
+        leadDays: step.leadDays,
+      })
+    }
   }
   // FR-29.15: an entry of the day plan's own, tonight.
   actions.addDayEntry(

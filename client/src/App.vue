@@ -73,7 +73,7 @@ import { composeModules, provideComposition } from '@/kernel/moduleContribution'
 import { kernelPorts } from '@/kernel/kernelPorts'
 import { FEATURE_MODULES } from '@/featureModules'
 import { defaultNowMs } from '@/lib/clock'
-import { tripTaskProgress } from '@/domain/tripTasks'
+import { tripTaskProgress, type TripTask } from '@/domain/tripTasks'
 import { useTripTasks } from '@/composables/useTripTasks'
 import { LIVE_LOCATION, browserGeo, createLiveLocation } from '@/composables/shared/useLiveLocation'
 import { useTripStore } from '@/stores/tripStore'
@@ -221,6 +221,13 @@ if (liveLocation) {
 }
 
 /*
+ * The root provides the idea lookup rather than injecting it, so its own task
+ * readers are handed the folded one — read when called, after the fold.
+ */
+const tripTasksOf = (tripId: string): TripTask[] =>
+  useTripTasks(composition?.ideaLookup ?? null).tasksOf(tripId)
+
+/*
  * FR-30.3 (ADR-066): the composition root folds the kernel's
  * ports and every module's contribution into one composition and provides
  * it, so neither the packing side nor a module imports the other — and the
@@ -234,7 +241,7 @@ const composition = orchestrator
         kernelPorts(
           {
             trips: useTripStore(),
-            tasksOf: (tripId) => useTripTasks().tasksOf(tripId),
+            tasksOf: (tripId) => tripTasksOf(tripId),
             myUserId: () => useIdentityStore().myUserId,
             now: clock,
             packing: orchestrator.packing,
@@ -256,7 +263,7 @@ if (orchestrator && composition) {
     // Without a planner there is no plan to open on.
     dayPlanEmpty: composition.dayPlanEmpty ?? (() => true),
     shoppingOpen: composition.viewCounts.shopping ?? (() => 0),
-    tasksOpen: (tripId) => tripTaskProgress(useTripTasks().tasksOf(tripId)).open,
+    tasksOpen: (tripId) => tripTaskProgress(tripTasksOf(tripId)).open,
   })
 }
 /** Components the modules mount once, beside the outlet. */

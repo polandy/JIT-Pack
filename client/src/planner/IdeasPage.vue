@@ -26,7 +26,7 @@ import {
   onIonViewWillLeave,
 } from '@ionic/vue'
 import { addOutline, bulbOutline, swapVerticalOutline, umbrellaOutline } from 'ionicons/icons'
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import ChoiceChip from '@/components/global/ChoiceChip.vue'
@@ -44,6 +44,7 @@ import { useTripScreen } from '@/composables/shared/useTripScreen'
 import { orderTracks } from '@/domain/shared/track'
 import { t } from '@/i18n'
 import { confirmDestructive } from '@/composables/shared/confirm'
+import { IDEA_PREPARATIONS } from '@/kernel/ideaBridge'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { PANEL_HOST_SELECTOR } from '@/lib/frameSlots'
 import { presentToast } from '@/composables/shared/toast'
@@ -337,6 +338,8 @@ function onEdit() {
   if (openIdea.value) editing.value = { idea: openIdea.value }
 }
 
+const preparations = inject(IDEA_PREPARATIONS, null)
+
 async function onRemove() {
   const idea = openIdea.value
   if (!idea) return
@@ -350,6 +353,8 @@ async function onRemove() {
   // The board shows the removal only once the sheet's route is gone, so
   // whatever is tapped next is not overtaken by the closing back step.
   await closeSheet()
+  // A step outliving its idea would turn into a loose task nobody wrote as one (FR-29.21).
+  preparations?.removeAll(idea.trip_id, idea.id)
   actions.removeIdea(idea)
 }
 

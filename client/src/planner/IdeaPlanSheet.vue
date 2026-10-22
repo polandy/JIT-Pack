@@ -3,20 +3,25 @@
  * M29's sheet for one idea from the shortlist (FR-29.14): the idea chosen,
  * its day and an optional time — what M28's *Einplanen…* opens. The day plan
  * behind it follows the day once it is saved, so the person lands where the
- * idea now stands; one already planned can lose its day here too.
+ * idea now stands; one already planned can lose its day here too. The idea's
+ * open preparation says, under the days, when each step falls due on the day
+ * chosen — or that its lead has already passed (FR-29.21).
  */
 import { IonButton, IonIcon } from '@ionic/vue'
-import { bulbOutline } from 'ionicons/icons'
-import { nextTick, ref, watch } from 'vue'
+import { alarmOutline, bulbOutline } from 'ionicons/icons'
+import { computed, inject, nextTick, ref, watch } from 'vue'
 
 import ChoiceChip from '@/components/global/ChoiceChip.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import TimeField from '@/components/global/TimeField.vue'
+import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { t } from '@/i18n'
+import { IDEA_PREPARATIONS } from '@/kernel/ideaBridge'
 import { shortDueDay } from '@/lib/taskDueText'
 import type { Idea } from './types'
 import { isPlanTime } from './domain/dayPlan'
+import { planNotes } from './preparationText'
 
 const props = defineProps<{
   /** The idea being planned; the sheet is open while there is one. */
@@ -53,6 +58,15 @@ watch(
   { immediate: true },
 )
 
+const preparations = inject(IDEA_PREPARATIONS, null)
+const orchestrator = useOrchestrator()
+
+const notes = computed(() => {
+  const idea = props.idea
+  if (!idea || !preparations) return []
+  return planNotes(preparations.steps(idea.trip_id, idea.id), day.value, orchestrator.today())
+})
+
 function save() {
   if (day.value) emit('save', day.value, isPlanTime(time.value) ? time.value : null)
 }
@@ -86,6 +100,18 @@ function save() {
           {{ shortDueDay(one) }}
         </ChoiceChip>
       </div>
+
+      <ul v-if="notes.length > 0" class="prep" data-testid="m29-idea-plan-prep">
+        <li
+          v-for="note in notes"
+          :key="note.id"
+          :class="{ late: note.late }"
+          :data-testid="`m29-idea-plan-prep-${note.id}`"
+        >
+          <IonIcon :icon="alarmOutline" aria-hidden="true" />
+          <span>{{ note.text }}</span>
+        </li>
+      </ul>
 
       <TimeField
         v-model="time"
@@ -151,6 +177,35 @@ function save() {
 
 .days > * {
   flex: none;
+}
+
+.prep {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 6px;
+  padding: 8px 12px;
+  border-radius: var(--jp-r-md);
+  background: color-mix(in srgb, var(--ct-straw) 14%, transparent);
+  color: var(--ct-text);
+  font-size: var(--jp-text-sm);
+  list-style: none;
+}
+
+.prep li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.prep ion-icon {
+  flex: none;
+  color: var(--ct-straw);
+}
+
+.prep li.late,
+.prep li.late ion-icon {
+  color: var(--ct-ember);
 }
 
 .time {

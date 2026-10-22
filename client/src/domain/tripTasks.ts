@@ -16,6 +16,7 @@ import { TASK_PHASE_BEFORE, TASK_STATE_OPEN, TASK_STATE_RESOLVED } from '@/types
 import { byDue, isDuePressing, pressingFirst } from './taskDue'
 import { daysBetween } from '@/domain/shared/calendar'
 import { byHand, dropInto, renumber, type Placement } from '@/domain/shared/handOrder'
+import { isPreparationStep, preparationDue, type IdeaDay } from '@/domain/shared/ideaPreparation'
 
 /** How far a trip's tasks are, as the two figures M1 states. */
 export interface TripTaskProgress {
@@ -115,6 +116,8 @@ export interface TripTask {
   position?: number | null
   /** FR-29.13: the idea a trip's own task was made from; absent for none. */
   idea_id?: string | null
+  /** FR-29.21: the lead before its idea's day, for a preparation step; absent otherwise. */
+  lead_days?: number | null
 }
 
 /**
@@ -144,17 +147,30 @@ export function tripTasks(
   ownTasks: readonly OwnTask[],
   prepTasks: readonly PrepTask[],
   rows: readonly TripTaskItem[],
+  ideaOf: (ideaId: string) => IdeaDay | undefined = () => undefined,
 ): TripTask[] {
   const byId = new Map(rows.map((row) => [row.id, row]))
 
-  const own: TripTask[] = ownTasks.map((task) => ({
-    id: task.id,
-    body: task.body,
-    task_state: task.task_state,
-    item: null,
-    ...factsOf(task),
-    ...(task.idea_id ? { idea_id: task.idea_id } : {}),
-  }))
+  const own: TripTask[] = []
+  for (const task of ownTasks) {
+    const projected: TripTask = {
+      id: task.id,
+      body: task.body,
+      task_state: task.task_state,
+      item: null,
+      ...factsOf(task),
+      ...(task.idea_id ? { idea_id: task.idea_id } : {}),
+    }
+    if (isPreparationStep(task)) {
+      // FR-29.21: a step waits on its idea, listed nowhere, until the idea
+      // has a day — and is due its lead before that day (ADR-104).
+      const due = preparationDue(task.lead_days!, ideaOf(task.idea_id!))
+      if (due === null) continue
+      projected.due_date = due
+      projected.lead_days = task.lead_days
+    }
+    own.push(projected)
+  }
 
   const prepared: TripTask[] = []
   for (const task of prepTasks) {

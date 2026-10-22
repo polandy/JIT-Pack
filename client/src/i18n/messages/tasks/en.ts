@@ -57,6 +57,8 @@ export const tasksEn = {
   'tasks.dueTomorrow': 'Tomorrow',
   'tasks.dueInDays': 'In {n} days',
   'tasks.dueField': 'Due',
+  'tasks.dueFromIdea':
+    '{day} · {n} day before the idea, moves with it | {day} · {n} days before the idea, moves with it',
   'tasks.dueSetToast': '“{body}” due {date}',
   'tasks.dueClearedToast': '“{body}” has no due date any more',
   'tasks.dueCount': '{n} task | {n} tasks',

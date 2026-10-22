@@ -217,6 +217,11 @@ export function createCommentActions(ctx: SyncContext) {
     write(mutations.setTaskBody(task.id, body))
   }
 
+  /** FR-29.21: a preparation step's lead before its idea's day — one field. */
+  function setTaskLead(task: OwnTask, leadDays: number) {
+    write(mutations.setTaskLead(task.id, leadDays))
+  }
+
   function deleteOwnTask(task: OwnTask) {
     write(mutations.deleteTask(task.id))
   }
@@ -241,6 +246,7 @@ export function createCommentActions(ctx: SyncContext) {
     placeTask,
     setTaskDueDate,
     setTaskBody,
+    setTaskLead,
     deleteOwnTask,
   }
 }

@@ -13,6 +13,10 @@ import (
 // (FR-29.2) — the move FR-29.8 tells the trip about.
 const IdeaStateShortlisted = "shortlisted"
 
+// IdeaStateDropped is the state of an idea set aside (FR-29.2); its
+// preparation steps wait again, unreminded (FR-29.21).
+const IdeaStateDropped = "dropped"
+
 // columnIdeaID names, on an excursion, a task or a shopping entry, the idea
 // it was made from (FR-29.13).
 const columnIdeaID = "idea_id"
