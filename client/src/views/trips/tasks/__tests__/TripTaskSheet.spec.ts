@@ -13,6 +13,7 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
 import type { TripTask } from '@/domain/tripTasks'
+import { shortDueDay } from '@/lib/taskDueText'
 import TripTaskSheet from '../TripTaskSheet.vue'
 
 function task(over: Partial<TripTask> = {}): TripTask {
@@ -56,7 +57,7 @@ describe('TripTaskSheet — an idea’s preparation step (FR-29.21)', () => {
     })
     expect(sheet.findComponent(DateFieldStub).exists()).toBe(false)
     const lead = sheet.find('[data-testid="task-sheet-lead"]')
-    expect(lead.text()).toContain('7')
+    expect(lead.text()).toBe(`${shortDueDay('2026-07-12')} · 7 days before the idea, moves with it`)
   })
 })
 
