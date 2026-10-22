@@ -55,7 +55,7 @@ defineEmits<{
   toggleForWhom: [entry: PackingEntry]
   assign: [item: R, traveler?: string]
   open: [itemId: string]
-  passToggle: [item: R]
+  verdict: [item: R]
   editQuantity: [item: R, event: MouseEvent]
   increment: [item: R]
   decrement: [item: R]
@@ -93,6 +93,19 @@ function onRowLeave(el: Element, done: () => void) {
 function onRowPress(item: R, event: PointerEvent): void {
   props.rowHold.down(item, event.clientX, event.clientY)
 }
+
+/**
+ * FR-9.3/9.6: the closing pass groups by `passSection`, whose key the
+ * component — never `domain/` — turns into words ("Eingepackt" /
+ * "Daheim geblieben"), per `closingPassGroupOf`'s own docstring.
+ */
+function groupName(group: PackingGroup<R>): string {
+  if (props.closingPass) {
+    if (group.name === 'packed') return t('verdict.sectionPacked')
+    if (group.name === 'stayedHome') return t('verdict.sectionHome')
+  }
+  return group.name ?? t('common.none')
+}
 </script>
 
 <template>
@@ -105,14 +118,16 @@ function onRowPress(item: R, event: PointerEvent): void {
         @click="$emit('toggleGroup', group.key)"
       >
         <IonIcon :icon="chevronDownOutline" class="caret" />
-        <span class="group-name">{{ group.name ?? t('common.none') }}</span>
+        <span class="group-name">{{ groupName(group) }}</span>
         <!-- Collapsed, the header is all that is left of the group, so it
              answers what the hidden rows would have (FR-25.16). -->
         <span class="group-count">
           {{
             group.collapsed
               ? t('packing.openCount', { n: group.openCount })
-              : `${group.doneCount}/${group.totalCount}`
+              : closingPass
+                ? t('verdict.judgedCount', { done: group.doneCount, total: group.totalCount })
+                : `${group.doneCount}/${group.totalCount}`
           }}
         </span>
       </button>
@@ -192,7 +207,7 @@ function onRowPress(item: R, event: PointerEvent): void {
                 @press-start="(e: PointerEvent) => onRowPress(child.item, e)"
                 @press-move="(e: PointerEvent) => rowHold.move(e.clientX, e.clientY)"
                 @press-end="rowHold.cancel()"
-                @pass-toggle="$emit('passToggle', child.item)"
+                @verdict="$emit('verdict', child.item)"
                 @edit-quantity="(e: MouseEvent) => $emit('editQuantity', child.item, e)"
                 @increment="$emit('increment', child.item)"
                 @decrement="$emit('decrement', child.item)"
@@ -238,7 +253,7 @@ function onRowPress(item: R, event: PointerEvent): void {
             @press-start="(e: PointerEvent) => onRowPress(entry.item, e)"
             @press-move="(e: PointerEvent) => rowHold.move(e.clientX, e.clientY)"
             @press-end="rowHold.cancel()"
-            @pass-toggle="$emit('passToggle', entry.item)"
+            @verdict="$emit('verdict', entry.item)"
             @edit-quantity="(e: MouseEvent) => $emit('editQuantity', entry.item, e)"
             @increment="$emit('increment', entry.item)"
             @decrement="$emit('decrement', entry.item)"

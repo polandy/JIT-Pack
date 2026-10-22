@@ -43,6 +43,7 @@ import { createGroupRefreshActions } from '@/app/actions/groupRefresh'
 import { createInventoryNameActions } from '@/app/actions/inventoryNames'
 import { createTripLifecycleActions } from '@/app/actions/tripLifecycle'
 import { createPostTripActions } from '@/app/actions/postTrip'
+import { createVerdictActions } from '@/app/actions/verdicts'
 import { createExcursionActions } from '@/app/actions/excursions'
 import { createTripCreationActions } from '@/app/actions/tripCreation'
 import { createClaimActions } from '@/app/actions/claims'
@@ -601,6 +602,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     tripCreation: tripCreationActions,
     tripLifecycle: tripLifecycleActions,
     postTrip: postTripActions,
+    verdicts: createVerdictActions(ctx, { comments: commentActions }),
     groupRefresh: groupRefreshActions,
     inventoryNames: inventoryNameActions,
     portable: portableActions,

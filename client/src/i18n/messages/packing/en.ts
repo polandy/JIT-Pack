@@ -96,6 +96,40 @@ export const packingEn = {
     'The item is used nowhere else and is deleted from the inventory too.',
   'packing.openPrep': '{n} preparation open | {n} preparations open',
 
+  // FR-9.6 — the three verdicts a row carries after the trip, and their reason
+  // (an ordinary comment). Shared wording between M4's sheet and M5's block,
+  // since the mockup gives both the same option labels.
+  'verdict.sectionPacked': 'Packed',
+  'verdict.sectionHome': 'Stayed home',
+  'verdict.judgedCount': '{done} of {total} judged',
+  'verdict.chipAdd': '+ Verdict',
+  'verdict.chipMissing': 'missing',
+  'verdict.chipUnused': 'unused',
+  'verdict.chipFewer': 'fewer · {n}/{m}',
+  'verdict.reasonQuoted': '“{reason}”',
+  'verdict.sheetSubtitlePacked': '{n} packed',
+  'verdict.sheetSubtitleHome': 'Stayed home',
+  'verdict.optionMissing': 'Should have come along',
+  'verdict.optionMissingHint': 'Stayed home, but was needed',
+  'verdict.optionUnused': 'Unnecessary',
+  'verdict.optionUnusedHint': 'Taken along, never needed',
+  'verdict.optionFewer': 'Too much',
+  'verdict.optionFewerHint': 'Next time, less',
+  'verdict.neededLabel': 'Needed {n} of {m}',
+  'verdict.neededWord': 'Needed',
+  'verdict.neededOf': 'of {m}',
+  'verdict.whyLabel': 'Why?',
+  'verdict.whyPlaceholder': 'e.g. washing machine at the rental',
+  'verdict.clear': 'No verdict',
+  'verdict.save': 'Save',
+  'verdict.forgottenAction': '+ Was missing, was not on the list',
+  'verdict.savedToast': '“{item}”: verdict saved',
+  'verdict.clearedToast': '“{item}”: verdict cleared',
+  // M5 only — the block sits under "Details" (row.details), not at the top
+  // of the sheet as the mockup draws it (effort trade-off, see the PR).
+  'verdict.blockTitle': 'Verdict after the trip',
+  'verdict.missingDisabledHint': 'Only for rows that stayed home',
+
   // M5 row detail.
   'row.details': 'Details',
   'row.detailsHint': 'Procurement · luggage · flags',
@@ -109,8 +143,6 @@ export const packingEn = {
   'row.assignedToNobody': 'nobody',
   'row.luggageOptional': 'Luggage · optional',
   'row.latePackerHint': 'Pack on departure day',
-  'row.flagUnusedHint': 'Taken along, never needed',
-  'row.flagMissingHint': 'Was needed and was not there',
   'row.saving': 'Saving…',
   'row.saved': 'Saved',
   'row.notFound': 'This item is not on the list.',
@@ -261,8 +293,12 @@ export const packingEn = {
   'review.open': 'Open',
   'review.kindUnused': 'unused',
   'review.kindMissing': 'missing',
+  'review.kindFewer': 'fewer',
   'review.whyUnused': 'not needed on this trip | not needed on {n} trips',
   'review.whyMissing': 'bought on the road — was not on the list | missing on {n} trips',
+  // FR-9.6: no plural form — it names the two counts a "fewer" verdict carries, not an occurrence count.
+  'review.whyFewer': 'used {n} of {m}',
+  'review.fewerChange': 'Quantity in “{group}” {from} → {to}',
   'review.targetFrom': 'From group',
   'review.targetTo': 'Into group',
   'review.blast':
@@ -279,6 +315,7 @@ export const packingEn = {
   'review.done': 'All done — every proposal has been handled.',
   'review.snackUnused': 'Set “{item}” to 0 in group “{group}”',
   'review.snackMissing': 'Added “{item}” to group “{group}”',
+  'review.snackFewer': 'Lowered “{item}” in group “{group}”',
   'review.snackNever': 'Won’t be suggested again for this item and group',
   'review.nothingToast': 'Nothing to review — no flags were set.',
 

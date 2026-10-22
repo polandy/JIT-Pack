@@ -17,6 +17,7 @@
  * The component reads no store: everything it renders is a prop, so its
  * branch chain is testable without a trip.
  */
+import { computed } from 'vue'
 import { IonBadge, IonIcon, IonItem, IonLabel } from '@ionic/vue'
 import {
   buildOutline,
@@ -32,6 +33,7 @@ import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import RowGlyphs from '@/components/trips/RowGlyphs.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { t } from '@/i18n'
+import { looseRowVerdict, VERDICT_FEWER, VERDICT_MISSING, VERDICT_UNUSED } from '@/domain/verdict'
 import type { PackableRow } from '@/domain/packingView'
 import type { MasterItem, Traveler } from '@/types/domain'
 
@@ -52,6 +54,8 @@ export interface PackingRowNotes {
    * the packed stamp, and on a row without one reads alone, as the plan.
    */
   packNote: string | null
+  /** FR-9.6: the verdict's reason, quoted under the name while the pass asks. */
+  verdictReason: string | null
 }
 
 /** Who the row's right edge names, and in which of the two roles (FR-25.19). */
@@ -135,7 +139,8 @@ const emit = defineEmits<{
   pressStart: [event: PointerEvent]
   pressMove: [event: PointerEvent]
   pressEnd: []
-  passToggle: []
+  /** FR-9.6: the pass's chip was tapped — open the verdict sheet for this row. */
+  verdict: []
   /** FR-25.25: the row is to be handed to somebody, picked at this event. */
   assign: [event: MouseEvent]
   /** FR-25.24: the row's planned amount is to be changed, at this event. */
@@ -146,6 +151,24 @@ const emit = defineEmits<{
   zero: []
   toggle: []
 }>()
+
+/** FR-9.6: the pass's chip reads the row's verdict, if any — see `looseRowVerdict`. */
+const verdict = computed(() => looseRowVerdict(props.item))
+const verdictLabel = computed(() => {
+  switch (verdict.value) {
+    case VERDICT_MISSING:
+      return t('verdict.chipMissing')
+    case VERDICT_UNUSED:
+      return t('verdict.chipUnused')
+    case VERDICT_FEWER:
+      return t('verdict.chipFewer', {
+        n: props.item.needed_quantity ?? 0,
+        m: props.item.packed_count,
+      })
+    default:
+      return t('verdict.chipAdd')
+  }
+})
 </script>
 
 <template>
@@ -221,6 +244,12 @@ const emit = defineEmits<{
       <p v-else-if="notes.packNote" class="stamp">
         <span class="pack-note" data-testid="m4-pack-note">{{ notes.packNote }}</span>
       </p>
+      <!-- FR-9.6: the reason under the name, quoted rather than italicised
+           (G-14/FR-21.6 bans the latter) — the same device M14 reads a
+           dismissed proposal's reason with. -->
+      <p v-if="notes.verdictReason" class="stamp reason" :data-testid="`m4-pass-reason-${testKey}`">
+        {{ t('verdict.reasonQuoted', { reason: notes.verdictReason }) }}
+      </p>
       <p
         v-if="!done && borrowedBy.length > 0"
         class="stamp borrowed"
@@ -290,14 +319,17 @@ const emit = defineEmits<{
         <IonIcon v-if="locked" :icon="lockClosedOutline" class="lock" />
         <button
           v-else-if="closingPass"
-          class="pass-toggle"
-          :class="{ on: item.flag_unused }"
-          :aria-pressed="item.flag_unused === true"
-          :aria-label="t('facet.flagUnused')"
-          :data-testid="`m4-pass-toggle-${testKey}`"
-          @click="emit('passToggle')"
+          class="verdict-chip"
+          :class="{
+            none: verdict === null,
+            missing: verdict === VERDICT_MISSING,
+            unused: verdict === VERDICT_UNUSED,
+            fewer: verdict === VERDICT_FEWER,
+          }"
+          :data-testid="`m4-pass-verdict-${testKey}`"
+          @click="emit('verdict')"
         >
-          <IonIcon :icon="removeCircleOutline" />
+          {{ verdictLabel }}
         </button>
         <QuantityStepper
           v-else
@@ -354,21 +386,39 @@ const emit = defineEmits<{
   padding: 8px;
 }
 
-.pass-toggle {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border: none;
-  border-radius: 50%;
+/* FR-9.6: the pass's per-row chip — dashed and empty until a verdict is
+   given, then colored by which of the three it carries (matching the
+   owner-approved mockup's tones). */
+.verdict-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--jp-r-pill);
   background: none;
-  color: var(--ct-overlay0);
-  font-size: var(--jp-icon-md);
+  font-size: var(--jp-text-xs);
+  font-weight: var(--jp-weight-semibold);
+  white-space: nowrap;
   cursor: pointer;
 }
 
-.pass-toggle.on {
+.verdict-chip.none {
+  border: 1px dashed var(--ct-overlay0);
+  color: var(--ct-overlay1);
+}
+
+.verdict-chip.missing {
+  border: 1px solid var(--ct-larch);
+  color: var(--ct-larch);
+}
+
+.verdict-chip.unused {
+  border: 1px solid var(--ct-heather);
   color: var(--ct-heather);
+}
+
+.verdict-chip.fewer {
+  border: 1px solid var(--ct-straw);
+  color: var(--ct-straw);
 }
 
 .unused-mark {
@@ -405,6 +455,10 @@ const emit = defineEmits<{
 .muted {
   color: var(--ct-subtext0);
   font-size: var(--jp-text-sm);
+}
+
+.reason {
+  color: var(--ct-subtext0);
 }
 
 /* The prep badge: one rule, beside the row that renders it. */

@@ -183,9 +183,9 @@
     sentence. Then, at the row's other edge: the chips — mode (BUY_BEFORE/BUY_LOCAL), Late Packer flag, packer avatar,
     ~~container tag~~ — **no container chip** (E2E-M4-03): M4 answers *which bag* by grouping (FR-8.2), and a fifth mark
     at this edge is exactly what FR-25.19 kept off the row; and **last, the control**: checkbox for quantity 1, stepper
-    per G-6 for quantity > 1 (showing "3/5"), the closing-pass toggle or the G-3 lock. The control is last so its outer
-    edge is the row's on every row, whatever precedes it — the thing you tap sits under the thumb rather than across the
-    screen from it.
+    per G-6 for quantity > 1 (showing "3/5"), the closing-pass verdict chip or the G-3 lock. The control is last so its
+    outer edge is the row's on every row, whatever precedes it — the thing you tap sits under the thumb rather than
+    across the screen from it.
     * **Why the control is last (UX-9).** A leading control column of one fixed width, sized to the stepper, would also
       give a straight name column, at the cost of a 108 px gap on every row that carries only a checkbox and the
       most-tapped control at the far edge from the thumb. With the control at the end the lead column holds the names,
@@ -459,6 +459,17 @@
   items, which are revealed with the other done rows carrying their reason (e.g., "weggelassen: „Drohne“ ist nicht
   dabei", FR-20.2); a quick-add that matches a master item pulls its missing required companions in automatically
   (FR-20.4).
+* **The closing pass (FR-9.3, FR-9.6).** Two sections, *Eingepackt* (rows with anything packed) and *Daheim geblieben*
+  (FR-5.5-skipped rows), each headed *„n von m beurteilt"*; a row neither packed nor skipped is absent. The row's last
+  slot is a **verdict chip** (`m4-pass-verdict-${key}`): dashed *„+ Urteil"* when unjudged, else *fehlte* /
+  *ungenutzt* / *weniger · n/m* in the verdict's colour, and the reason's first line in italics beneath the name. A tap
+  on the row opens the **verdict sheet** (`m4-verdict-sheet`): the item name and what happened to it (*„4 eingepackt"*
+  / *„Daheim geblieben"*), one radio card per verdict the row is offered (`m4-verdict-unused`, `m4-verdict-fewer`,
+  `m4-verdict-missing`) — *zu viel* unfolds a stepper *„Gebraucht n von m"* (`m4-verdict-needed`), 1 to m − 1 —, the
+  *„Warum?"* field (`m4-verdict-why`), *„Kein Urteil"* (`m4-verdict-clear`) and *„Speichern"* (`m4-verdict-save`).
+  Saving writes the verdict and, where the field holds text, one row comment, as one undoable act (FR-25.31). Under
+  the list *„+ Fehlte, stand gar nicht auf der Liste"* (`m4-pass-forgotten`) opens the quick-add as FR-5.11's
+  *Vergessen*: the new row lands under *Daheim geblieben* already judged *fehlte*.
 * **States:** Real-time: rows animate on remote changes with actor attribution ("packed by Sarah"); item blocked by open
   tasks shows a task badge and refuses completion with inline hint (FR-7.2); offline behaves identically (G-5).
 * **The excursions that borrow a row (FR-31.12 — *built*).** An open row — an item row or a cluster's child — that

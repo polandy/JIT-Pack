@@ -71,3 +71,7 @@ arrives here, that the row's controls write, and that the group is read back fro
   is not stored state — `buildReviewProposals` recomputes from current state, and both halves of "an applied row stops
   appearing" are pinned in `domain/__tests__/review.spec.ts` (*yields nothing when the group position is already
   zeroed*, *skips items the default group already contains*), which is the arithmetic an applied proposal produces.
+* **E2E-M14-09** `all` (FR-9.6) — **implemented** (`trip-verdicts.spec.ts`): a row from a group, judged *zu viel*
+  in the closing pass („gebraucht 2 von 4") with a reason, arrives in M14 as a *weniger* proposal naming the change
+  (*4 → 2*) and quoting the reason; *Übernehmen* writes the line, read back in M8's group editor as 2. The arithmetic
+  (surplus, floor at 1, several rows per item) is `domain/__tests__/review.spec.ts`'s.

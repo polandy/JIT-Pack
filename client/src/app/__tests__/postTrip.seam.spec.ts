@@ -69,6 +69,47 @@ describe('applyReviewProposal — FR-9.2, one row at a time', () => {
     expect(writes()).toEqual([[TABLE.templateItems, { quantity: 0 }]])
   })
 
+  it('lowers the target group’s line for a fewer proposal, recomputed against it (FR-9.6)', () => {
+    seedGroupWithPosition()
+    // Built against a line at 6, applied to the line as it stands now (2):
+    // the surplus of 1 is what the user said, the line is what is there.
+    const proposal = {
+      kind: 'fewer',
+      itemId: ITEM_ID,
+      itemName: 'Kamera',
+      surplus: 1,
+      fromQuantity: 6,
+      toQuantity: 5,
+    } as ReviewProposal
+
+    expect(build(ctx).applyReviewProposal(proposal, GROUP_ID)).toBe(GROUP_ID)
+    expect(writes()).toEqual([[TABLE.templateItems, { quantity: 1 }]])
+  })
+
+  it('writes nothing for a fewer proposal the target line no longer leaves room for', () => {
+    seedGroupWithPosition()
+    const proposal = {
+      kind: 'fewer',
+      itemId: ITEM_ID,
+      itemName: 'Kamera',
+      surplus: 1,
+    } as ReviewProposal
+    // Lowered to 1 on another device since the proposal was built.
+    pullIn(ctx.masterStore, TABLE.templateItems, 'pos-1', {
+      template_id: GROUP_ID,
+      item_id: ITEM_ID,
+      quantity: 1,
+      assignment: 'trip_global',
+      dedup: 'max',
+      default_mode: 'pack',
+      late_packer: 0,
+    })
+
+    build(ctx).applyReviewProposal(proposal, GROUP_ID)
+
+    expect(queued).toEqual([])
+  })
+
   it('writes nothing when the position it names is no longer in the group', () => {
     seedGroupWithPosition()
     const proposal = { kind: 'unused', itemId: 'item-gone', itemName: 'Stativ' } as ReviewProposal

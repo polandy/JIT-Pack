@@ -217,3 +217,7 @@ definition. The gate carries one rule and no escape hatch: a collision is resolv
   the master item, and M10 owns it (FR-28.7). *The photo rung of the same slot is asserted in the component unit rather
   than here: setting one through the UI needs a camera or a file upload, which is `item-detail.spec.ts`'s subject and
   not the mark's.*
+* **E2E-M5-36** `local` (FR-9.6) — **implemented** (`trip-verdicts.spec.ts`): on an archived trip a packed row's
+  verdict block offers *Unnötig dabei* and *Zu viel* but not *Hätte mit gemusst*; pressing *Zu viel* after *Unnötig
+  dabei* moves the verdict — *unused* is released, the stepper appears — and a reason typed in *„Warum?"* stands in the
+  row's thread. Asserted before the act too: *Unnötig dabei* is pressed until *Zu viel* is.

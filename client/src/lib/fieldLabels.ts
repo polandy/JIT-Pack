@@ -29,6 +29,7 @@ export const FIELD_LABELS: Partial<Record<string, MessageKey>> = {
   pack_note: 'fieldLabel.pack_note',
   flag_unused: 'fieldLabel.flag_unused',
   flag_missing: 'fieldLabel.flag_missing',
+  needed_quantity: 'fieldLabel.needed_quantity',
   body: 'fieldLabel.body',
   is_task: 'fieldLabel.is_task',
   task_state: 'fieldLabel.task_state',

@@ -265,8 +265,9 @@ needs a trip that follows the group (E2E-M21-03c).
   **nothing** until it is finished; cancelling leaves the trip active. The positive signal is the archived trip's own
   closing card being absent *and* the archive action still on offer — a pass that quietly archived would satisfy
   neither.
-* **E2E-M4-54** `all` (FR-9.3) — **implemented**: the pass lists what was **packed** — a never-packed
-  row and an FR-5.5-skipped row are both absent — one tap marks, and *Fertig* archives and lands on M14. The mark is
+* **E2E-M4-54** `all` (FR-9.3, FR-9.6) — **implemented**: the pass lists what was **packed** under *Eingepackt* — a
+  never-packed row is absent (a skipped row is E2E-M4-160's) — a tap and *„Unnötig dabei"* judge it, and *Fertig*
+  archives and lands on M14. The mark is
   read back **on the row afterwards**, not from the control that made it: the control's own state would prove nothing
   about what was written.
 * **E2E-M4-55** `all` (FR-9.3) — **implemented**: inside the pass the row's press-and-hold is inert

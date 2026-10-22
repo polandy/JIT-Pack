@@ -7,6 +7,7 @@
 import type { ComputedRef } from 'vue'
 
 import { removalNeedsConfirm } from '@/domain/rowRemoval'
+import type { RowVerdict } from '@/domain/verdict'
 import { t } from '@/i18n'
 import { confirmAction, confirmDestructive } from '@/composables/shared/confirm'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
@@ -40,6 +41,7 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
     liveRow,
     announceSkipped,
     announceRemoved,
+    announceAct,
   } = core
   const steps = useRowSteps(core.port)
 
@@ -302,17 +304,30 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
   }
 
   /**
-   * The pass's single gesture. It raises the same snackbar as the menu's
-   * entry (FR-25.31): one at a time, each replacing the last,
-   * so a run of taps leaves one undo for the latest rather than a stack.
+   * FR-9.6: the verdict sheet's save, its reason written in the same act
+   * (ADR-103) and taken back by the one undo every act on the list offers
+   * (FR-25.31) — a run of saves leaves one snackbar for the latest rather
+   * than a stack.
    */
-  function onPassToggle(item: TripItem) {
+  function onSetVerdict(
+    item: TripItem,
+    verdict: RowVerdict | null,
+    needed: number | undefined,
+    reason: string,
+  ) {
     // G-3 reaches into the leaf: a row somebody else is holding is theirs,
     // and the pass is no exception. A packed row rarely carries a live claim
     // — packing ends it — but this control must not be the one place that
     // decides otherwise.
     if (locked(item)) return
-    onFlagUnused(item, !item.flag_unused)
+    const undo = orchestrator.verdicts.setVerdict(tripId, item.id, verdict, needed, reason)
+    if (!undo) return
+    const message =
+      verdict === null
+        ? t('verdict.clearedToast', { item: item.name })
+        : t('verdict.savedToast', { item: item.name })
+    rowUndo.armAction(message, () => orchestrator.verdicts.undoVerdict(undo))
+    void announceAct(message)
   }
 
   function onLatePacker(item: TripItem, latePacker: boolean) {
@@ -351,7 +366,7 @@ export function useRowActions(core: PackingCore, facts: RowFacts, nav: DetailNav
     onRemoveItem,
     removeRows,
     onFlagUnused,
-    onPassToggle,
+    onSetVerdict,
     onLatePacker,
     onSetMode,
   }

@@ -169,7 +169,8 @@
 * **E2E-M4-122** `local` (FR-25.31 with FR-25.25) — **implemented** (`e2e/undo-every-act.spec.ts`):
   *Late packer on* from the row menu, undone; the menu then offers *on* again and no *off* — the row's own answer.
 * **E2E-M4-123** `local` (FR-25.31 with FR-9.3) — **implemented** (`e2e/undo-every-act.spec.ts`):
-  in the closing pass one tap on a row's mark raises the snackbar, and its undo leaves the mark unpressed.
+  in the closing pass a verdict saved from a row's sheet raises the snackbar, and its undo leaves the row's chip
+  unjudged again (FR-9.6).
 * ~~**E2E-M4-124**~~ **struck (FR-7.7): its promise moved to E2E-M25-06**, with the screen the trip's own tasks are
   removed on.
 * **E2E-M4-125** `local` (FR-25.31 with FR-5.5 and G-3) — **implemented**
@@ -564,3 +565,9 @@
   *Samedan 2026* and it stays hidden across a reload, while a second planning trip of the same series still shows
   it — the muting is the trip's, not the series'. Asserted before the act too: the card is on the first trip until
   the tap.
+* **E2E-M4-160** `all` (FR-9.6) — **implemented** (`trip-verdicts.spec.ts`): in the closing pass a skipped row
+  stands under *Daheim geblieben* and is offered only *„Hätte mit gemusst"*; judged so with a reason, its chip reads
+  *fehlte* and the reason shows under its name. *„+ Fehlte, stand gar nicht auf der Liste"* adds a row that lands under
+  *Daheim geblieben* already judged *fehlte*. *Fertig* lands on M14, where the added row is a *fehlte* proposal.
+  Asserted before the act too: the chip reads *„+ Urteil"* until the sheet is saved, and the added row is absent until
+  the quick-add.

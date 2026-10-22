@@ -17,7 +17,7 @@
  */
 import { IonPage, IonContent, IonButton, IonIcon, IonSelect, IonSelectOption } from '@ionic/vue'
 import { checkmarkCircleOutline, chevronForwardOutline } from 'ionicons/icons'
-import { computed, ref, watchEffect } from 'vue'
+import { computed, onMounted, ref, watchEffect } from 'vue'
 
 import { t } from '@/i18n'
 import { presentToast } from '@/composables/shared/toast'
@@ -25,10 +25,13 @@ import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
 import {
   buildReviewProposals,
   dismissalKey,
+  fewerQuantities,
   retargetGroups,
   type ReviewProposal,
+  type ReviewProposalKind,
 } from '@/domain/review'
 import { tripsReachedBy } from '@/domain/templates'
+import { commentsOnRows, type TripComments } from '@/domain/itemHistory'
 import GroupPeekSheet from '@/components/templates/GroupPeekSheet.vue'
 import FactChip from '@/components/global/FactChip.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
@@ -36,6 +39,7 @@ import { dismissProposal, isDismissed } from '@/local/reviewDismissals'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { useTripScreen } from '@/composables/shared/useTripScreen'
+import { useTripIdentity } from '@/composables/shared/useTripIdentity'
 import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import SectionHead from '@/components/global/SectionHead.vue'
@@ -56,6 +60,20 @@ function groupName(templateId: string): string {
 const orchestrator = useOrchestrator()
 
 const { trip } = useTripScreen(props.tripId, orchestrator)
+// FR-9.6's m14-reason names who wrote a row's comment — the FR-27.9 rule
+// (named on a server, omitted where there is nobody to name).
+const { nameOf, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator.identity)
+onMounted(() => {
+  void loadIdentity()
+})
+
+/** This trip's rows and comments, shaped for `commentsOnRows` (FR-9.6). */
+const tripComments = computed<TripComments>(() => ({
+  tripId: props.tripId,
+  tripName: trip.value?.name ?? '',
+  items: tripStore.getItems(props.tripId),
+  comments: tripStore.getComments(props.tripId),
+}))
 
 /**
  * Flag occurrences across the archived trips of the series synced to
@@ -136,9 +154,39 @@ const handledRows = computed(() => rows.value.filter((r) => r.state !== null))
 const appliedCount = computed(() => rows.value.filter((r) => r.state === 'applied').length)
 
 function whyText(p: ReviewProposal): string {
-  return p.kind === 'unused'
-    ? t('review.whyUnused', { n: p.flagCount })
-    : t('review.whyMissing', { n: p.flagCount })
+  if (p.kind === 'unused') return t('review.whyUnused', { n: p.flagCount })
+  if (p.kind === 'fewer') {
+    const rows = tripStore.getItems(props.tripId).filter((i) => p.rowIds.includes(i.id))
+    const needed = rows.reduce((sum, i) => sum + (i.needed_quantity ?? 0), 0)
+    const packed = rows.reduce((sum, i) => sum + i.packed_count, 0)
+    return t('review.whyFewer', { n: needed, m: packed })
+  }
+  return t('review.whyMissing', { n: p.flagCount })
+}
+
+/** The chip text for all three kinds (FR-9.1's two, FR-9.6's `fewer`). */
+function kindLabel(kind: ReviewProposalKind): string {
+  if (kind === 'unused') return t('review.kindUnused')
+  if (kind === 'fewer') return t('review.kindFewer')
+  return t('review.kindMissing')
+}
+
+/**
+ * `fewer` only: what the row's *selected* group's line would become —
+ * read live off `row.target`, same as `blastText`, so a retarget shows the
+ * group it is about to write to, not the one the proposal started from.
+ */
+function fewerChange(row: Row): { group: string; from: number; to: number } | null {
+  if (row.p.kind !== 'fewer') return null
+  const q = fewerQuantities(row.p, row.target, (id) => master.getTemplateItems(id))
+  if (!q) return null
+  const group = master.templateList.find((g) => g.id === row.target)?.name ?? row.p.groupName
+  return { group, from: q.fromQuantity, to: q.toQuantity }
+}
+
+/** `fewer` only: the rows' own reasons (FR-7.1 comments), newest first. */
+function reasons(row: Row) {
+  return commentsOnRows(new Set(row.p.rowIds), tripComments.value)
 }
 
 /** FR-27.11: the picker offers groups only; unused rows can move only
@@ -174,7 +222,9 @@ function apply(row: Row) {
   void toast(
     row.p.kind === 'unused'
       ? t('review.snackUnused', { item: row.p.itemName, group })
-      : t('review.snackMissing', { item: row.p.itemName, group }),
+      : row.p.kind === 'fewer'
+        ? t('review.snackFewer', { item: row.p.itemName, group })
+        : t('review.snackMissing', { item: row.p.itemName, group }),
   )
 }
 
@@ -219,17 +269,36 @@ setHeaderTitle(
             <!-- Caution, not error, for both kinds: the item was forgotten
                  or added off-list, nothing is broken (G-11). -->
             <FactChip class="chip-compact" :tone="row.p.kind" bordered>
-              {{ row.p.kind === 'unused' ? t('review.kindUnused') : t('review.kindMissing') }}
+              {{ kindLabel(row.p.kind) }}
             </FactChip>
             <div class="grow">
               <div class="name">{{ row.p.itemName }}</div>
               <div class="why">{{ whyText(row.p) }}</div>
+              <p v-if="fewerChange(row)" class="fewer-change" data-testid="m14-fewer-change">
+                {{
+                  t('review.fewerChange', {
+                    group: fewerChange(row)!.group,
+                    from: fewerChange(row)!.from,
+                    to: fewerChange(row)!.to,
+                  })
+                }}
+              </p>
+              <ul v-if="reasons(row).length > 0" class="reasons">
+                <li
+                  v-for="c in reasons(row)"
+                  :key="c.commentId"
+                  class="reason"
+                  data-testid="m14-reason"
+                >
+                  {{ [`„${c.body}“`, nameOf(c.authorId)].filter(Boolean).join(' — ') }}
+                </li>
+              </ul>
             </div>
           </div>
 
           <label class="target">
             <span>{{
-              row.p.kind === 'unused' ? t('review.targetFrom') : t('review.targetTo')
+              row.p.kind === 'missing' ? t('review.targetTo') : t('review.targetFrom')
             }}</span>
             <IonSelect v-model="row.target" interface="popover" data-testid="m14-target">
               <IonSelectOption v-for="g in pickerGroups(row)" :key="g.id" :value="g.id">
@@ -300,7 +369,7 @@ setHeaderTitle(
           data-testid="m14-handled-row"
         >
           <FactChip class="chip-compact" :tone="row.p.kind" bordered>
-            {{ row.p.kind === 'unused' ? t('review.kindUnused') : t('review.kindMissing') }}
+            {{ kindLabel(row.p.kind) }}
           </FactChip>
           <span class="grow">
             <span class="name">{{ row.p.itemName }}</span>
@@ -375,6 +444,23 @@ setHeaderTitle(
 
 .why {
   font-size: var(--jp-text-sm);
+  color: var(--ct-subtext0);
+}
+
+.fewer-change {
+  margin: 4px 0 0;
+  font-size: var(--jp-text-xs);
+  color: var(--ct-subtext0);
+}
+
+.reasons {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reason {
+  font-size: var(--jp-text-xs);
   color: var(--ct-subtext0);
 }
 

@@ -75,6 +75,8 @@ export interface ClonedItem {
   /** Always false — FR-9.1 flags belong to the source trip. */
   flag_unused: boolean
   flag_missing: boolean
+  /** Always null — FR-9.6's *zu viel* belongs to the source trip too. */
+  needed_quantity: null
   /** FR-25.33: last time's note, which the new trip reads as its plan. */
   pack_note: string | null
 }
@@ -136,6 +138,7 @@ export function planClone(
       packer_user_id: options.packerDelegations ? item.packer_user_id : null,
       flag_unused: false,
       flag_missing: false,
+      needed_quantity: null,
       pack_note: item.pack_note ?? null,
     }
   })

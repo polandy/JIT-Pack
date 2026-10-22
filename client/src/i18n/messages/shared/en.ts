@@ -186,6 +186,7 @@ export const sharedEn = {
   'fieldLabel.late_packer': 'Pack last',
   'fieldLabel.pack_note': 'Pack note',
   'fieldLabel.flag_unused': 'Flagged unused',
+  'fieldLabel.needed_quantity': 'Number needed',
   'fieldLabel.flag_missing': 'Flagged missing',
   'fieldLabel.body': 'Text',
   'fieldLabel.is_task': 'Is a task',

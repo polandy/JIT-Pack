@@ -11,7 +11,7 @@
  * e2e unit covers what is reachable; the list semantics live here.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
 import ReviewPage from '../ReviewPage.vue'
@@ -19,16 +19,22 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { isDismissed } from '@/local/reviewDismissals'
 import { t } from '@/i18n'
+import type { DirectoryUser } from '@/api/types'
 
 import { tripScreenStub } from '@/composables/shared/__tests__/tripScreenStub'
+import { identityStub } from '@/composables/shared/__tests__/identityStub'
 import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 
 vi.mock('@/composables/shared/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 
 const TODAY = '2026-01-15'
 
+/** FR-27.9: empty by default — a trip's reason quotes no author nobody named. */
+let directoryUsers: DirectoryUser[] = []
+
 const orchestratorFake = {
   ...tripScreenStub(),
+  identity: { ...identityStub(), fetchUsers: vi.fn(() => Promise.resolve(directoryUsers)) },
   postTrip: {
     applyReviewProposal: vi.fn(() => 'g1'),
   },
@@ -118,6 +124,64 @@ function seedTrip() {
   return trips
 }
 
+/**
+ * FR-9.6: a `fewer` row — three packed, one needed — whose group line
+ * (g1-item-2, quantity 3) a proposal can lower, with a reason attached
+ * (FR-7.1) for `m14-reason` to quote.
+ */
+function seedFewerRow(trips: ReturnType<typeof useTripStore>, authorId = 'u-sia') {
+  const master = useMasterStore()
+  master.applyChange({
+    seq: 0,
+    table: 'items',
+    id: 'item2',
+    deleted: false,
+    row: { name: 'Taschenmesser' },
+  })
+  master.applyChange({
+    seq: 0,
+    table: 'template_items',
+    id: 'g1-item-2',
+    deleted: false,
+    row: {
+      template_id: 'g1',
+      item_id: 'item2',
+      quantity: 3,
+      assignment: 'trip_global',
+      dedup: 'max',
+      default_mode: 'pack',
+      late_packer: 0,
+    },
+  })
+  trips.applyChange({
+    seq: 0,
+    table: 'trip_items',
+    id: 'ti3',
+    deleted: false,
+    row: {
+      trip_id: 't1',
+      name: 'Taschenmesser',
+      quantity: 3,
+      packed_count: 3,
+      needed_quantity: 1,
+      source_item_id: 'item2',
+      source_template_id: 'g1',
+    },
+  })
+  trips.applyChange({
+    seq: 0,
+    table: 'comments',
+    id: 'c1',
+    deleted: false,
+    row: {
+      trip_id: 't1',
+      trip_item_id: 'ti3',
+      author_id: authorId,
+      body: 'Eins hätte gereicht.',
+    },
+  })
+}
+
 function mountPage() {
   return mount(ReviewPage, {
     props: { tripId: 't1' },
@@ -129,6 +193,7 @@ beforeEach(() => {
   setActivePinia(createPinia())
   vi.clearAllMocks()
   localStorage.clear()
+  directoryUsers = []
 })
 
 describe('ReviewPage (M14, FR-27.11)', () => {
@@ -417,5 +482,79 @@ describe('ReviewPage (M14, FR-27.11)', () => {
     // one action on the screen that is permanent and device-local.
     expect(button.text().trim()).not.toBe('')
     expect(button.find('ion-icon[slot="icon-only"]').exists()).toBe(false)
+  })
+
+  // --- FR-9.6: a `fewer` proposal — the third verdict, beside unused/missing ---
+
+  it('a fewer row names its kind, its line change and quotes its reason', async () => {
+    seedMaster()
+    const trips = seedTrip()
+    seedFewerRow(trips)
+
+    const wrapper = mountPage()
+    await flushPromises()
+
+    const row = wrapper
+      .findAll('[data-testid="m14-open-row"]')
+      .find((r) => r.text().includes('Taschenmesser'))!
+    expect(row.text()).toContain(t('review.kindFewer'))
+    expect(row.text()).toContain(t('review.whyFewer', { n: 1, m: 3 }))
+    expect(row.get('[data-testid="m14-fewer-change"]').text()).toContain(
+      t('review.fewerChange', { group: 'Fotografie', from: 3, to: 1 }),
+    )
+    const reason = row.get('[data-testid="m14-reason"]')
+    expect(reason.text()).toContain('Eins hätte gereicht.')
+  })
+
+  it('omits the reason’s author where the instance names nobody (Local/Single-User, G-8)', async () => {
+    seedMaster()
+    const trips = seedTrip()
+    seedFewerRow(trips, 'u-sia')
+
+    const wrapper = mountPage()
+    await flushPromises()
+    const reason = wrapper
+      .findAll('[data-testid="m14-open-row"]')
+      .find((r) => r.text().includes('Taschenmesser'))!
+      .get('[data-testid="m14-reason"]')
+    expect(reason.text()).not.toContain('Sia')
+  })
+
+  it('names the reason’s author when the instance knows one (FR-27.9)', async () => {
+    seedMaster()
+    const trips = seedTrip()
+    seedFewerRow(trips, 'u-sia')
+    directoryUsers = [{ user_id: 'u-sia', display_name: 'Sia' }]
+
+    const wrapper = mountPage()
+    await flushPromises()
+    const reason = wrapper
+      .findAll('[data-testid="m14-open-row"]')
+      .find((r) => r.text().includes('Taschenmesser'))!
+      .get('[data-testid="m14-reason"]')
+    expect(reason.text()).toContain('Sia')
+  })
+
+  it('applying a fewer row lowers the group line and leaves it handled', async () => {
+    seedMaster()
+    const trips = seedTrip()
+    seedFewerRow(trips)
+
+    const wrapper = mountPage()
+    await flushPromises()
+    const applyButton = wrapper
+      .findAll('[data-testid="m14-open-row"]')
+      .find((r) => r.text().includes('Taschenmesser'))!
+      .get('[data-testid="m14-apply"]')
+    await applyButton.trigger('click')
+
+    expect(orchestratorFake.postTrip.applyReviewProposal).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'fewer', itemId: 'item2' }),
+      'g1',
+    )
+    const handled = wrapper
+      .findAll('[data-testid="m14-handled-row"]')
+      .find((r) => r.text().includes('Taschenmesser'))!
+    expect(handled.get('[data-testid="m14-state"]').text()).toContain('applied')
   })
 })

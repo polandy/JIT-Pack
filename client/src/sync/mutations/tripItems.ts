@@ -7,6 +7,7 @@
 import { TABLE } from '@/api/tables'
 import { stateFor } from '@/domain/packState'
 import type { GeneratedTripItemFields } from '@/domain/instantiate'
+import type { VerdictFields } from '@/domain/verdict'
 import { dbBool } from '@/sync/columns'
 import { newId } from '@/lib/ids'
 import type { Mutation } from '@/api/types'
@@ -76,6 +77,19 @@ export function createTripItemsMutations({ make, nowIso }: MutationContext) {
    */
   function setReviewFlag(itemId: string, flag: ReviewFlag, value: boolean): Mutation {
     return make('upsert', TABLE.tripItems, itemId, { [REVIEW_FLAG_FIELD[flag]]: dbBool(value) })
+  }
+
+  /**
+   * FR-9.6: a row's verdict, all three columns in one write so a row never
+   * carries one verdict half-replaced by another. The flags merge as
+   * setReviewFlag's do; `needed_quantity` is last-writer-wins.
+   */
+  function setVerdict(itemId: string, fields: VerdictFields): Mutation {
+    return make('upsert', TABLE.tripItems, itemId, {
+      flag_missing: dbBool(fields.flag_missing),
+      flag_unused: dbBool(fields.flag_unused),
+      needed_quantity: fields.needed_quantity,
+    })
   }
 
   /**
@@ -167,6 +181,7 @@ export function createTripItemsMutations({ make, nowIso }: MutationContext) {
       container_id: row.container_id,
       flag_unused: dbBool(row.flag_unused),
       flag_missing: dbBool(row.flag_missing),
+      needed_quantity: row.needed_quantity ?? null,
       bought_from: row.bought_from,
     })
   }
@@ -242,6 +257,7 @@ export function createTripItemsMutations({ make, nowIso }: MutationContext) {
       packer_user_id: item.packer_user_id,
       flag_unused: 0,
       flag_missing: 0,
+      needed_quantity: null,
       pack_note: item.pack_note,
     })
     return { mutation, id }
@@ -305,6 +321,7 @@ export function createTripItemsMutations({ make, nowIso }: MutationContext) {
     setLatePacker,
     setPackNote,
     setReviewFlag,
+    setVerdict,
     setPacker,
     addTripItem,
     deleteTripItem,

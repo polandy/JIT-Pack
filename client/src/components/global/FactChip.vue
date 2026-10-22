@@ -23,7 +23,17 @@
  */
 withDefaults(
   defineProps<{
-    tone?: 'accent' | 'buy' | 'warn' | 'done' | 'cond' | 'unused' | 'missing' | 'applied' | null
+    tone?:
+      | 'accent'
+      | 'buy'
+      | 'warn'
+      | 'done'
+      | 'cond'
+      | 'unused'
+      | 'missing'
+      | 'fewer'
+      | 'applied'
+      | null
     bordered?: boolean
   }>(),
   { tone: null, bordered: false },
@@ -71,6 +81,10 @@ withDefaults(
 }
 
 .chip.missing {
+  color: var(--ct-larch);
+}
+
+.chip.fewer {
   color: var(--ct-straw);
 }
 </style>

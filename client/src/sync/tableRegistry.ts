@@ -406,6 +406,7 @@ function rowToTripItem(id: string, row: Record<string, unknown>): TripItem {
     carried_over_at: (row['carried_over_at'] as string | null | undefined) ?? null,
     shopping_position: (row['shopping_position'] as number | null | undefined) ?? null,
     pack_note: (row['pack_note'] as string | null | undefined) ?? null,
+    needed_quantity: (row['needed_quantity'] as number | null | undefined) ?? null,
     updated_hlc: (row['updated_hlc'] as string) ?? '',
   }
 }

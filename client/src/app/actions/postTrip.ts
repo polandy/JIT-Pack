@@ -11,7 +11,8 @@
 import { foldName } from '@/domain/nameCollision'
 import { planTemplateFromTrip, recogniseTripComposition } from '@/domain/templateFromTrip'
 import type { DeviationChoice, PositionDraft } from '@/domain/templateFromTrip'
-import type { ReviewProposal } from '@/domain/review'
+import { fewerQuantities, type ReviewProposal } from '@/domain/review'
+import { VERDICT_FEWER, VERDICT_UNUSED } from '@/domain/verdict'
 import { TEMPLATE_KIND_GROUP, TEMPLATE_KIND_TEMPLATE } from '@/types/domain'
 import type { SyncContext } from '../context'
 import type { createMasterDataActions } from './masterData'
@@ -26,20 +27,30 @@ export function createPostTripActions(
 
   /**
    * applyReviewProposal writes one review row back to master data
-   * (FR-9.2). The target is a *group* (FR-27.11) — the row's picker may
+   * (FR-9.2, FR-9.6). The target is a *group* (FR-27.11) — the row's picker may
    * have moved it off the proposal's default, so the group id is passed
    * explicitly. Groups are shared instance-wide (FR-1.6 MVP), so the
    * change lands in place — there is no fork step. Returns the id of
    * the group that received the change.
    */
   function applyReviewProposal(proposal: ReviewProposal, groupId: string): string {
-    if (proposal.kind === 'unused') {
+    if (proposal.kind === VERDICT_UNUSED) {
       // Look the position up by item at apply time: the proposal may
       // predate an edit that replaced the row.
       const target = masterStore
         .getTemplateItems(groupId)
         .find((ti) => ti.item_id === proposal.itemId)
       if (target) masterDataActions.updateTemplateItem(target, { quantity: 0 })
+      return groupId
+    }
+    if (proposal.kind === VERDICT_FEWER) {
+      // FR-9.6: recomputed against the target's line as it stands — the
+      // picker may have moved it, or another device lowered it meanwhile.
+      const templateItems = (id: string) => masterStore.getTemplateItems(id)
+      const lowered = fewerQuantities(proposal, groupId, templateItems)
+      const target = templateItems(groupId).find((ti) => ti.item_id === proposal.itemId)
+      if (lowered && target)
+        masterDataActions.updateTemplateItem(target, { quantity: lowered.toQuantity })
       return groupId
     }
     const itemId = proposal.itemId ?? masterDataActions.createMasterItem(proposal.itemName)

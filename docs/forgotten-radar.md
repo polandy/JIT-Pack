@@ -24,7 +24,8 @@ Every item that trip recorded as *missing*:
 
 - **Fehlte auf der Liste** — added on the way, so it was bought or borrowed rather than
   packed;
-- **Vergessen einzupacken** — on the list, but it stayed at home.
+- **Vergessen einzupacken** — on the list, but it stayed at home. This includes a row you judged **Hätte mit
+  gemusst** when closing the trip ([Judging a trip afterwards](tasks-and-shopping.md#judging-a-trip-afterwards)).
 
 Under each item stand the comments written on it during that trip, newest first, with
 the date and, on a shared server, who wrote it.
