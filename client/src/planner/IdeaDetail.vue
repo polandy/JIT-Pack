@@ -15,10 +15,8 @@
  * dropped idea says so there, with its one way back. The seldom moves, the
  * edit and the delete sit behind the head's ⋮.
  *
- * *Daraus gemacht* (FR-29.13) names what came of the idea — read through the
- * kernel's sources, since the results are the packing side's and the
- * shopping module's rows — and, on the shortlist, offers what it can still
- * become: each a link to the screen that makes it, its creator pre-filled.
+ * Under the votes stand the idea's *Vorbereitung* (FR-29.21,
+ * `IdeaPreparationList`) and *Daraus gemacht* (FR-29.13, `IdeaResults`).
  */
 import {
   IonButton,
@@ -31,8 +29,6 @@ import {
 import {
   calendarOutline,
   cameraOutline,
-  cartOutline,
-  checkboxOutline,
   checkmarkOutline,
   createOutline,
   ellipsisVertical,
@@ -46,11 +42,10 @@ import {
   starOutline,
   thumbsDownOutline,
   thumbsUpOutline,
-  trailSignOutline,
   trashOutline,
   umbrellaOutline,
 } from 'ionicons/icons'
-import { computed, inject, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import SectionHead from '@/components/global/SectionHead.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
@@ -59,13 +54,6 @@ import { MAX_TRACKS, orderTracks } from '@/domain/shared/track'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { t } from '@/i18n'
 import { useTileState } from '@/composables/shared/mapTiles'
-import {
-  IDEA_RESULT_EXCURSION,
-  IDEA_RESULT_SHOPPING,
-  IDEA_RESULT_TASK,
-  type IdeaResultKind,
-} from '@/domain/shared/ideaBridge'
-import { IDEA_RESULT_SCREEN, IDEA_RESULT_SOURCES } from '@/kernel/ideaBridge'
 import { writtenMeta } from '@/lib/noteFacts'
 import type { NameOf } from '@/lib/rowFacts'
 import { shortDueDay } from '@/lib/taskDueText'
@@ -80,7 +68,6 @@ import {
   IDEA_VOTE_UP,
 } from './types'
 import { ideaBridgePath } from '@/router/paths'
-import { offeredResults } from './domain/bridge'
 import { isPlanTime } from './domain/dayPlan'
 import {
   IDEA_STEP_PLAN,
@@ -95,6 +82,8 @@ import {
 import { MAX_IDEA_IMAGES, canAddPicture, ideaPictures } from './domain/pictures'
 import IdeaMosaic from './IdeaMosaic.vue'
 import IdeaPictureViewer from './IdeaPictureViewer.vue'
+import IdeaPreparationList from './IdeaPreparationList.vue'
+import IdeaResults from './IdeaResults.vue'
 import { usePlannerStore } from './store'
 
 const props = defineProps<{
@@ -271,27 +260,6 @@ function onPictureFile(event: Event) {
 
 /** The picture the viewer is open on, or null while it is closed. */
 const viewing = ref<number | null>(null)
-
-const resultSources = inject(IDEA_RESULT_SOURCES, [])
-
-/** FR-29.13: what came of the idea, and what it can still become. */
-const results = computed(() =>
-  idea.value
-    ? resultSources.flatMap((source) => source.results(idea.value!.trip_id, idea.value!.id))
-    : [],
-)
-const offered = computed(() => (idea.value ? offeredResults(idea.value.state, results.value) : []))
-
-const RESULT_ICON: Record<IdeaResultKind, string> = {
-  [IDEA_RESULT_EXCURSION]: trailSignOutline,
-  [IDEA_RESULT_TASK]: checkboxOutline,
-  [IDEA_RESULT_SHOPPING]: cartOutline,
-}
-
-function make(kind: IdeaResultKind) {
-  if (idea.value)
-    emit('go', ideaBridgePath(idea.value.trip_id, IDEA_RESULT_SCREEN[kind], idea.value.id))
-}
 
 const discussion = computed(() =>
   idea.value ? ideaDiscussion(idea.value.id, plannerStore.getComments(idea.value.trip_id)) : [],
@@ -631,39 +599,9 @@ async function openCommentMenu(comment: IdeaComment) {
       <span v-if="forLine" class="for-line" data-testid="idea-vote-names">{{ forLine }}</span>
     </div>
 
-    <section
-      v-if="results.length > 0 || offered.length > 0"
-      class="results"
-      data-testid="idea-results"
-    >
-      <SectionHead :title="t('ideas.results')" />
-      <div class="result-chips">
-        <button
-          v-for="result in results"
-          :key="result.key"
-          type="button"
-          class="result"
-          :class="{ done: result.done }"
-          :data-testid="`idea-result-${result.key}`"
-          @click="emit('go', result.path)"
-        >
-          <IonIcon :icon="RESULT_ICON[result.kind]" aria-hidden="true" />
-          <span class="result-title">{{ result.title }}</span>
-        </button>
-        <button
-          v-for="kind in offered"
-          :key="kind"
-          type="button"
-          class="result offer"
-          :aria-label="t(`ideas.makeLabel.${kind}`)"
-          :data-testid="`idea-make-${kind}`"
-          @click="make(kind)"
-        >
-          <IonIcon :icon="RESULT_ICON[kind]" aria-hidden="true" />
-          {{ t(`ideas.make.${kind}`) }}
-        </button>
-      </div>
-    </section>
+    <IdeaPreparationList :idea="idea" />
+
+    <IdeaResults :idea="idea" @go="(path) => emit('go', path)" />
 
     <section class="discussion" data-testid="idea-discussion">
       <SectionHead :title="t('ideas.discussion')" :count="discussion.length || null" />
@@ -766,59 +704,6 @@ async function openCommentMenu(comment: IdeaComment) {
 
 .chip.rain {
   color: var(--jp-action);
-}
-
-.results {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.result-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-/* A result is a solid chip that leads to it; what the idea can still become
-   is the same chip dashed (planner-concept §4.2). */
-.result {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  max-width: 100%;
-  padding: 5px 11px;
-  border: 1px solid var(--jp-surface-sunken);
-  border-radius: var(--jp-r-pill);
-  background: var(--jp-surface-sunken);
-  color: var(--ct-text);
-  font: inherit;
-  font-size: var(--jp-text-sm);
-  cursor: pointer;
-}
-
-.result ion-icon {
-  flex: none;
-  color: var(--jp-action);
-  font-size: var(--jp-icon-xs);
-}
-
-.result-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.result.done .result-title {
-  color: var(--ct-subtext0);
-  text-decoration: line-through;
-}
-
-.result.offer {
-  border-style: dashed;
-  border-color: var(--ct-overlay0);
-  background: transparent;
-  color: var(--ct-subtext1);
 }
 
 .picture-coming {

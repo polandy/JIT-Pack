@@ -21,6 +21,7 @@ import {
   type TripTask,
 } from '../tripTasks'
 import type { PrepTask, TaskPhase, TaskState, OwnTask } from '@/types/domain'
+import { PREPARATION_LEADS, preparationDue, type IdeaDay } from '@/domain/shared/ideaPreparation'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING } from '@/types/domain'
 
 /** FR-7.11: the day every due rule below is read against. */
@@ -212,6 +213,64 @@ describe('tripTasks (FR-7.6): one list, two kinds of task', () => {
 
   it('is empty for a trip with neither kind', () => {
     expect(tripTasks([], [], [row('i1', 'Camera')])).toEqual([])
+  })
+})
+
+describe('tripTasks (FR-29.21): an idea’s preparation steps', () => {
+  const step = (id: string, ideaId: string | null, leadDays: number, due: string | null = null) =>
+    ({
+      id,
+      trip_id: 'trip',
+      author_id: 'someone',
+      body: `Step ${id}`,
+      task_state: 'open',
+      assignee_user_id: null,
+      due_date: due,
+      idea_id: ideaId,
+      lead_days: leadDays,
+    }) as OwnTask
+  const ideas: Record<string, IdeaDay> = {
+    planned: { plannedOn: '2026-11-04', dropped: false },
+    unplanned: { plannedOn: null, dropped: false },
+    dropped: { plannedOn: '2026-11-04', dropped: true },
+  }
+  const ideaOf = (ideaId: string) => ideas[ideaId]
+
+  it('is due its lead before the idea’s day, whatever due day the row carries', () => {
+    const [task] = tripTasks([step('s1', 'planned', 7, '2026-10-01')], [], [], ideaOf)
+    expect(task).toMatchObject({ due_date: '2026-10-28', lead_days: 7, idea_id: 'planned' })
+  })
+
+  it('waits on the idea, unlisted, while it has no day, is dropped or is not on the device', () => {
+    const tasks = tripTasks(
+      [step('s1', 'unplanned', 7), step('s2', 'dropped', 7), step('s3', 'not-here', 7)],
+      [],
+      [],
+      ideaOf,
+    )
+    expect(tasks).toEqual([])
+  })
+
+  it('is an ordinary task again once its idea is gone', () => {
+    const [task] = tripTasks([step('s1', null, 7, '2026-10-30')], [], [], ideaOf)
+    expect(task?.due_date).toBe('2026-10-30')
+  })
+})
+
+describe('preparationDue (FR-29.21)', () => {
+  it('counts the lead back from the idea’s day, across a month', () => {
+    expect(preparationDue(7, { plannedOn: '2026-11-04', dropped: false })).toBe('2026-10-28')
+    expect(preparationDue(1, { plannedOn: '2026-11-01', dropped: false })).toBe('2026-10-31')
+  })
+
+  it('has none for an idea without a day, a dropped one, or one not held', () => {
+    expect(preparationDue(3, { plannedOn: null, dropped: false })).toBeNull()
+    expect(preparationDue(3, { plannedOn: '2026-11-04', dropped: true })).toBeNull()
+    expect(preparationDue(3, undefined)).toBeNull()
+  })
+
+  it('offers four leads, the day before first', () => {
+    expect(PREPARATION_LEADS).toEqual([1, 3, 7, 14])
   })
 })
 

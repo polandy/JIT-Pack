@@ -99,7 +99,10 @@
   Shortlist einplanen* (`m29-idea-plan-idea`), *Tag* as one sideways-scrolling row of day chips
   (`m29-idea-plan-day-<YYYY-MM-DD>`, the idea's own day pressed, else the plan's chosen one), *Uhrzeit (optional)*
   (`m29-idea-plan-time`), *Einplanen* (`m29-idea-plan-save`) and, once it has a day, *Kein Tag*
-  (`m29-idea-plan-none`); taking the day away takes the time with it. Saving shows the idea's day with its line
+  (`m29-idea-plan-none`); taking the day away takes the time with it. Under the days, on a straw tint, the idea's
+  open preparation (FR-29.21, `m29-idea-plan-prep`): one line per step, ⏰ *„Bus reservieren · fällig Fr., 2.10."*
+  for the day chosen, or in the overdue ink *„„…" (1 Woche vorher) ist für diesen Tag schon überfällig"*
+  (`m29-idea-plan-prep-<id>`); absent while there is none. Saving shows the idea's day with its line
   centred and toasts *„„…" steht am Do., 8.10."*; *Kein Tag* toasts *„„…" hat keinen Tag mehr"*. The Shortlist's card
   shows *📅 Fr., 2.10. · 09:00*, or *noch nicht eingeplant* with a dashed edge (`idea-card-plan-<id>`).
 * **Connections (FR-29.18, ADR-086)** — what an entry carries:

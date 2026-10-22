@@ -164,5 +164,17 @@
   M25's and M6's composer — see there), and `‹` there returns to the idea. The section is absent while there is neither.
   The idea opens only once the board has entered: a link from another screen lands with `?idea=` set, and the sheet or
   panel waits for the transition; a sheet closed because the route moved on closes nothing.
-* (E2E-M28-01…05, E2E-M28-07, E2E-M28-10, E2E-M28-12, E2E-M28-22…24 `local`, E2E-M28-06, E2E-M28-08,
+* **Vorbereitung (FR-29.21):** in the detail, in every state, before *Daraus gemacht* (`idea-prep`): the heading
+  with *„n offen"* or *„erledigt"*, then one row per step in M25's line — the tick at the edge, the words (a tap opens
+  the sheet), the lead under them (*1 Woche vorher*, `idea-prep-lead-<title>`) and, while the idea has no day or is
+  dropped, a dashed *sobald eingeplant* (`idea-prep-waits-<title>`); once it has one, FR-7.11's due pill
+  (`idea-prep-due-<title>`). The longest lead first. A quiet *＋ Vorbereitung* (`idea-prep-add`) opens the sheet
+  (`idea-prep-sheet`): *Vorbereitung* for *„…"*, *Was ist vorher zu tun?* (`idea-prep-title`), *Wann?* as four chips
+  — *Am Vortag · 3 Tage · 1 Woche · 2 Wochen vorher* (`idea-prep-lead-choice-<n>`, *1 Woche* pressed for a new step)
+  — and under them what the lead makes due (`idea-prep-lead-out`): *„Fällig Fr., 2.10. · verschiebt sich mit dem Tag
+  der Idee"*, *„Fällig wird sie, sobald die Idee einen Tag hat."*, *„Sie wartet, solange die Idee verworfen ist."* or
+  *„Schon überfällig – der Vorlauf reicht nicht mehr."*. *Hinzufügen* / *Speichern* (`idea-prep-save`), and for a
+  step written *Vorbereitung löschen* (`idea-prep-remove`). The card carries ⏰ *„2 Vorbereitungen offen"* in the
+  straw ink while any is open (`idea-card-prep-<id>`). Deleting the idea deletes its steps.
+* (E2E-M28-01…05, E2E-M28-07, E2E-M28-10, E2E-M28-12, E2E-M28-22…24, E2E-M28-26…27 `local`, E2E-M28-06, E2E-M28-08,
   E2E-M28-09, E2E-M28-11, E2E-M28-13 `server`, E2E-G12-07)

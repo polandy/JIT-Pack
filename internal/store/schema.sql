@@ -494,6 +494,13 @@ CREATE TABLE comments (
     -- FR-29.13: the idea a trip task was made from — excursions.idea_id's
     -- shape.
     idea_id      TEXT REFERENCES ideas(id) ON DELETE SET NULL,
+    -- FR-29.21: a trip task that is an idea's preparation step says how many
+    -- days before the idea's day it is due. Its due day is read off the idea
+    -- (planned_on minus the lead), never stored, so moving the idea moves the
+    -- step (ADR-104); due_date stays unused on such a row. NULL: an ordinary
+    -- task. Free of a CHECK like every column here; the client offers four
+    -- leads only.
+    lead_days    INTEGER,
     created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc  TEXT NOT NULL DEFAULT '',

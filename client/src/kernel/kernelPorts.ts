@@ -2,7 +2,7 @@
  * The kernel's own side of the module contracts (ADR-066): the
  * packing and excursion lines on the shopping list (FR-30.2, FR-31.8), the
  * excursions and tasks on the day plan (FR-29.15), what came of an idea on
- * the packing side (FR-29.13), the switcher's kernel counts, and what the
+ * the packing side (FR-29.13) and its preparation steps (FR-29.21), the switcher's kernel counts, and what the
  * meal plan reads of the trip (§3.33). Folded first, like any contribution,
  * so the composition root holds none of it.
  *
@@ -28,6 +28,7 @@ import {
   type ExcursionShoppingReads,
   type ExcursionShoppingWrites,
 } from './excursionShoppingSource'
+import { createIdeaPreparations, type IdeaPreparationWrites } from './ideaPreparations'
 import { createIdeaResultSource, type IdeaResultReads } from './ideaResultSource'
 import type { FoldedSources, KernelPorts } from './moduleContribution'
 import {
@@ -60,7 +61,7 @@ export interface KernelPortDeps {
   now(): number
   packing: PackingShoppingWrites
   excursions: ExcursionShoppingWrites
-  comments: TaskTickWrites
+  comments: TaskTickWrites & IdeaPreparationWrites
 }
 
 /** The kernel's ports, reading the folded lists where another contributor's lines count too. */
@@ -112,6 +113,7 @@ export function kernelPorts(deps: KernelPortDeps, sources: FoldedSources): Kerne
         ),
       ],
       ideaResults: [createIdeaResultSource(trips)],
+      ideaPreparations: createIdeaPreparations(trips, deps.comments),
       viewCounts: {
         // FR-31.10: excursions ahead that still have something to pack or buy.
         excursions: (tripId) =>

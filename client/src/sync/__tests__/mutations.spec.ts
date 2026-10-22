@@ -484,6 +484,25 @@ describe('createMutations', () => {
     expect(m.setTaskDueDate('task1', null).table).toBe(TABLE.comments)
   })
 
+  // FR-29.21: an idea's preparation step is written with its idea and its
+  // lead in one insert, and its lead changed alone — never a due day, which
+  // is read off the idea (ADR-104).
+  it('addTask files a preparation step with its idea and lead, and no due day', () => {
+    const m = mutations()
+    const { mutation } = m.addTask('t1', null, 'u1', 'Bus reservieren', 'before', {
+      ideaId: 'idea-1',
+      leadDays: 7,
+    })
+    expect(mutation.fields).toMatchObject({ idea_id: 'idea-1', lead_days: 7 })
+    expect(mutation.fields).not.toHaveProperty('due_date')
+  })
+
+  it('setTaskLead writes the lead alone', () => {
+    const m = mutations()
+    expect(m.setTaskLead('task1', 3).fields).toEqual({ lead_days: 3 })
+    expect(m.setTaskLead('task1', 3).table).toBe(TABLE.comments)
+  })
+
   // FR-7.14: the words alone, with no note's edit stamp — a task is shared
   // work, not a signed entry.
   it('setTaskBody writes the words alone', () => {

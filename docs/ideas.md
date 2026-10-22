@@ -154,6 +154,22 @@ On the **Shortlist**, while the trip has both dates, **Einplanen…** gives the 
 on — and, if you like, a time. It opens the [Day plan](day-plan.md) with the idea chosen; after **Einplanen** you
 are on that day, and **‹** takes you back to the idea, whose button now shows the day.
 
+## Preparing an idea
+
+Some ideas need something done well ahead — a bus reserved, a place booked by phone. Open the idea and tap
+**＋ Vorbereitung** under **Vorbereitung**: write what has to be done and choose how long before the idea's day —
+**Am Vortag**, **3 Tage**, **1 Woche** or **2 Wochen vorher**. This works in every state, so you can note it as soon as
+someone thinks of it.
+
+As long as the idea has no day, the step waits: it shows **sobald eingeplant** and stays off the task list. Once the
+idea is planned on a day (see [Day plan](day-plan.md)), the step is due that long before it — the sheet for planning
+the idea already lists when each open step falls due, and warns when the lead has already run out. The step then
+stands on the [task list](tasks-and-shopping.md) like any other task, with the light-bulb line naming the idea, and
+the morning reminder on a server comes for it too. Plan the idea on another day and every step moves with it; drop
+the idea and its steps wait again. Tick a step off on the idea or on the task list — it is the same task.
+
+The idea's card says how many steps are still open. Deleting the idea deletes its preparation too.
+
 ## Making something of an idea
 
 Once an idea is on the **Shortlist**, it can become what you need to actually do it. Under the votes, **Daraus

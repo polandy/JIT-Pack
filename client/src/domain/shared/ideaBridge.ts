@@ -15,7 +15,10 @@
  *    its rows — never a list on the idea;
  *  - **the idea's day, written from the packing side** (`IdeaPlanWrites`):
  *    an excursion made from an idea is its line on the day plan, so deleting
- *    the excursion takes the idea's day with it (FR-29.15).
+ *    the excursion takes the idea's day with it (FR-29.15);
+ *  - **the idea's preparation steps, read and written from the planner**
+ *    (`IdeaPreparations`): each is a trip task the packing side owns, written
+ *    on the idea's detail (FR-29.21).
  */
 
 /** The three kinds of result, in the order the idea offers them. */
@@ -36,6 +39,8 @@ export interface IdeaSeed {
   title: string
   /** The day it is planned on (FR-29.14), `YYYY-MM-DD`; null while it has none. */
   plannedOn: string | null
+  /** Whether it is set aside (FR-29.2) — its preparation steps then wait again (FR-29.21). */
+  dropped: boolean
 }
 
 /** The planner's answer to „which idea is this?", bound by the composition root. */
@@ -65,4 +70,36 @@ export interface IdeaResult {
 /** One kind of result's rows, for one idea. */
 export interface IdeaResultSource {
   results(tripId: string, ideaId: string): IdeaResult[]
+}
+
+/** One preparation step of an idea (FR-29.21), as the idea's detail lists it. */
+export interface IdeaPreparation {
+  id: string
+  title: string
+  /** Days before the idea's day it is due — one of `PREPARATION_LEADS`. */
+  leadDays: number
+  /** Whether it is ticked off. */
+  done: boolean
+}
+
+/**
+ * The packing side's answer for an idea's preparation steps (FR-29.21), bound
+ * by the composition root. A step is a trip task, so the side that owns trip
+ * tasks writes it; the planner only names the idea.
+ */
+export interface IdeaPreparations {
+  /** The idea's steps, in the order they fall due — the longest lead first. */
+  steps(tripId: string, ideaId: string): IdeaPreparation[]
+  /**
+   * Writes a step. `due` is the day it falls due as things stand, null while
+   * the idea has no day — what the task's phase is written from (FR-7.7).
+   */
+  add(tripId: string, ideaId: string, title: string, leadDays: number, due: string | null): void
+  /** Changes a step's words and lead; nothing for a step this device does not hold. */
+  edit(tripId: string, stepId: string, title: string, leadDays: number): void
+  /** Ticks a step off, or back on. */
+  toggle(tripId: string, stepId: string): void
+  remove(tripId: string, stepId: string): void
+  /** Every step of the idea, removed with the idea itself. */
+  removeAll(tripId: string, ideaId: string): void
 }

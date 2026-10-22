@@ -728,6 +728,7 @@ function rowToOwnTask(id: string, row: Record<string, unknown>): OwnTask {
     task_state: (row['task_state'] as OwnTask['task_state']) ?? TASK_STATE_OPEN,
     ...taskFacts(row),
     idea_id: (row['idea_id'] as string | null | undefined) ?? null,
+    lead_days: (row['lead_days'] as number | null | undefined) ?? null,
   }
 }
 

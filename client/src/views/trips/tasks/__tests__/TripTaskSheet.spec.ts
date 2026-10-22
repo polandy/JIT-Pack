@@ -13,6 +13,7 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
 import type { TripTask } from '@/domain/tripTasks'
+import { shortDueDay } from '@/lib/taskDueText'
 import TripTaskSheet from '../TripTaskSheet.vue'
 
 function task(over: Partial<TripTask> = {}): TripTask {
@@ -48,6 +49,17 @@ function mountSheet(props: Record<string, unknown>) {
     global: { stubs: { DateField: DateFieldStub } },
   })
 }
+
+describe('TripTaskSheet — an idea’s preparation step (FR-29.21)', () => {
+  it('states the day its idea sets instead of offering one to pick', () => {
+    const sheet = mountSheet({
+      task: task({ idea_id: 'idea-1', lead_days: 7, due_date: '2026-07-12' }),
+    })
+    expect(sheet.findComponent(DateFieldStub).exists()).toBe(false)
+    const lead = sheet.find('[data-testid="task-sheet-lead"]')
+    expect(lead.text()).toBe(`${shortDueDay('2026-07-12')} · 7 days before the idea, moves with it`)
+  })
+})
 
 describe('TripTaskSheet — the day a task is due (FR-7.11)', () => {
   it('shows the day it has, and reports a picked one as the day', async () => {

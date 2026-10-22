@@ -7,14 +7,22 @@
  * the rule needs: the rows a preparation can hang off, each with the mark it
  * inherits from its master item (FR-28.7). Four surfaces ask for the list —
  * M4's section and header figure, M1's card and each trip card's line — so
- * the join is written once.
+ * the join is written once. An idea's preparation step reads its due day
+ * off the idea (FR-29.21), which the planner answers for through the bridge.
  */
+import { inject } from 'vue'
+
+import type { IdeaLookup } from '@/domain/shared/ideaBridge'
+import { IDEA_LOOKUP } from '@/kernel/ideaBridge'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { tripTasks, type TripTask, type TripTaskItem } from '@/domain/tripTasks'
 
-/** Reader for the trip tasks of any trip this device holds. */
-export function useTripTasks() {
+/**
+ * Reader for the trip tasks of any trip this device holds. Without the
+ * planner (no lookup) an idea's preparation steps wait, listed nowhere.
+ */
+export function useTripTasks(ideas: IdeaLookup | null = inject(IDEA_LOOKUP, null)) {
   const tripStore = useTripStore()
   const masterStore = useMasterStore()
 
@@ -33,7 +41,12 @@ export function useTripTasks() {
 
   /** Every task of the trip, in FR-7.6's order. */
   function tasksOf(tripId: string): TripTask[] {
-    return tripTasks(tripStore.getOwnTasks(tripId), tripStore.getPrepTasks(tripId), rowsOf(tripId))
+    return tripTasks(
+      tripStore.getOwnTasks(tripId),
+      tripStore.getPrepTasks(tripId),
+      rowsOf(tripId),
+      (ideaId) => ideas?.idea(tripId, ideaId),
+    )
   }
 
   return { tasksOf }

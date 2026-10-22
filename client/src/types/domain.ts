@@ -6,6 +6,7 @@
 
 import type { TrackKind } from '@/api/types'
 import type { ColumnEnum } from '@/api/tables'
+import type { IdeaTaskLink } from './ideaTask'
 
 /** `repack` stays in the schema only so old rows remain readable; no client writes it. */
 export type TripStatus = Exclude<ColumnEnum<'trips', 'status'>, 'repack'>
@@ -455,14 +456,12 @@ export interface PrepTask extends TaskFacts {
  * Kept apart from `PrepTask` because nothing the packing list measures may
  * count it: a row's doneness, the ring and the prep KPI read `PrepTask` only.
  */
-export interface OwnTask extends TaskFacts {
+export interface OwnTask extends TaskFacts, IdeaTaskLink {
   id: string
   trip_id: string
   author_id: string
   body: string
   task_state: TaskState
-  /** FR-29.13: the idea it was made from; null or absent for none, or one since deleted. */
-  idea_id?: string | null
 }
 
 // --- What the kernel serves a feature module: picture and track files (ADR-002, ADR-085) ---

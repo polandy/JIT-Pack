@@ -25,24 +25,31 @@ type DueTask struct {
 }
 
 // DueTasks returns the open tasks of every trip that is not archived whose
-// due_date is one of days (YYYY-MM-DD), both kinds — a row's preparation
+// due day is one of days (YYYY-MM-DD), both kinds — a row's preparation
 // (FR-7.3) and the trip's own (FR-7.4) — in a stable order. No days, no
-// tasks.
+// tasks. An idea's preparation step (FR-29.21) is due its lead before the
+// idea's day, and not at all while the idea has none or is dropped (ADR-104);
+// a step whose idea is gone is an ordinary task again.
 func (s *Store) DueTasks(ctx context.Context, days ...string) ([]DueTask, error) {
 	if len(days) == 0 {
 		return nil, nil
 	}
-	args := make([]any, 0, len(days)+1)
-	args = append(args, TripStatusArchived)
+	args := make([]any, 0, len(days)+2)
+	args = append(args, IdeaStateDropped, TripStatusArchived)
 	for _, d := range days {
 		args = append(args, d)
 	}
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT c.id, c.trip_id, c.body, c.due_date, COALESCE(c.assignee_user_id, '')
-		   FROM comments c JOIN trips t ON t.id = c.trip_id
-		  WHERE c.is_task = 1 AND c.task_state = 'open' AND t.status <> ?
-		    AND c.due_date IN (?`+strings.Repeat(", ?", len(days)-1)+`)
-		  ORDER BY c.trip_id, c.due_date, c.id`, args...)
+		`SELECT id, trip_id, body, due, assignee FROM (
+		   SELECT c.id, c.trip_id, c.body, COALESCE(c.assignee_user_id, '') AS assignee,
+		          CASE WHEN c.lead_days IS NULL OR c.idea_id IS NULL THEN c.due_date
+		               WHEN i.state = ? THEN NULL
+		               ELSE date(i.planned_on, '-' || c.lead_days || ' days') END AS due
+		     FROM comments c JOIN trips t ON t.id = c.trip_id
+		     LEFT JOIN ideas i ON i.id = c.idea_id
+		    WHERE c.is_task = 1 AND c.task_state = 'open' AND t.status <> ?)
+		  WHERE due IN (?`+strings.Repeat(", ?", len(days)-1)+`)
+		  ORDER BY trip_id, due, id`, args...)
 	if err != nil {
 		return nil, fmt.Errorf("due tasks: %w", err)
 	}

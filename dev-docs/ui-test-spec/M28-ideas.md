@@ -129,3 +129,11 @@
   idea chosen, and saving a day and *15:00* lands on M29 at that day with the idea's line at *15:00*; `‹` returns to the
   idea, whose button names the day and the time; the sheet opened again shows both and *Kein Tag* takes the day away.
   The pure rules are `planner/domain/__tests__/ideas.spec.ts` (the step ahead, the way back, the ⋮'s moves).
+* **E2E-M28-26** `local` (FR-29.21) — **implemented** (`planner/preparation.spec.ts`): a step written on an undecided
+  idea with *1 Woche vorher* shows its lead and the dashed *once planned*, no due pill, and the card counts it; the plan
+  sheet says when it falls due on the day chosen; once planned the step carries its pill, and M25 lists it with its day
+  and the 💡 line naming the idea. The derivation is `domain/__tests__/tripTasks.spec.ts` and
+  `internal/store/taskdue_test.go`; the port `kernel/__tests__/ideaPreparations.spec.ts`; the plan sheet's words
+  `planner/__tests__/preparationText.spec.ts`; M25's sheet `views/trips/tasks/__tests__/TripTaskSheet.spec.ts`.
+* **E2E-M28-27** `local` (FR-29.21) — **implemented** (`planner/preparation.spec.ts`): a step due on M25 is gone from it
+  once its idea is deleted — unlike a task made from the idea (E2E-M28-23).

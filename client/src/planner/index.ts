@@ -16,7 +16,7 @@ import ExcursionConnections from './ExcursionConnections.vue'
 import { excursionJourneyLine } from './journeyLine'
 import PlannerTodayCard from './PlannerTodayCard.vue'
 import { plannerFeatureStore, usePlannerStore } from './store'
-import { IDEA_STATE_SHORTLISTED } from './types'
+import { IDEA_STATE_DROPPED, IDEA_STATE_SHORTLISTED } from './types'
 
 export { usePlannerStore }
 export { createPlannerActions }
@@ -81,7 +81,14 @@ export function ideaLookup(): IdeaLookup {
   return {
     idea(tripId, ideaId) {
       const idea = plannerStore.getIdeas(tripId).find((candidate) => candidate.id === ideaId)
-      return idea && { id: idea.id, title: idea.title, plannedOn: idea.planned_on ?? null }
+      return (
+        idea && {
+          id: idea.id,
+          title: idea.title,
+          plannedOn: idea.planned_on ?? null,
+          dropped: idea.state === IDEA_STATE_DROPPED,
+        }
+      )
     },
   }
 }

@@ -71,6 +71,16 @@ describe('createIdeaResultSource (FR-29.13)', () => {
     ])
   })
 
+  // FR-29.21: a preparation step is the idea's own, listed under its
+  // *Vorbereitung* — not something made from it.
+  it("leaves out the idea's preparation steps", () => {
+    const withStep = createIdeaResultSource({
+      getExcursions: () => [],
+      getOwnTasks: () => [{ ...task('to-4', 'idea-1'), lead_days: 7 }, task('to-5', 'idea-1')],
+    })
+    expect(withStep.results('t', 'idea-1').map((result) => result.key)).toEqual(['task:to-5'])
+  })
+
   it('lists nothing for an idea nothing came of', () => {
     expect(source.results('t', 'idea-3')).toEqual([])
   })

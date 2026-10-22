@@ -6,6 +6,7 @@
  * the first track's distance and climb as chips, and a foot with the two tallies and the discussion's size.
  * Tapping it opens the idea. On the shortlist, while the trip has its dates,
  * it also says which day it is planned on, or that it has none (FR-29.14).
+ * An idea with preparation still open says how much, in every state (FR-29.21).
  *
  * The tallies show who voted, as avatars, because votes are open (FR-29.3);
  * where nobody else votes — Local and Single-User Mode, a trip nobody shares
@@ -13,6 +14,7 @@
  */
 import { IonIcon, IonSpinner } from '@ionic/vue'
 import {
+  alarmOutline,
   calendarOutline,
   bicycleOutline,
   chatbubbleOutline,
@@ -23,13 +25,14 @@ import {
   umbrellaOutline,
 } from 'ionicons/icons'
 
-import { computed } from 'vue'
+import { computed, inject } from 'vue'
 
 import TrackLines from '@/components/global/track/TrackLines.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { trackHueClass } from '@/lib/trackColors'
 import { decodeLine } from '@/domain/shared/track'
 import { t } from '@/i18n'
+import { IDEA_PREPARATIONS } from '@/kernel/ideaBridge'
 import type { NameOf } from '@/lib/rowFacts'
 import { shortDueDay } from '@/lib/taskDueText'
 import { tracksSummary } from '@/lib/trackFormat'
@@ -63,6 +66,15 @@ const lines = computed(() =>
     hueClass: trackHueClass(index),
     chosen: index === 0,
   })),
+)
+
+const preparations = inject(IDEA_PREPARATIONS, null)
+
+/** The idea's preparation steps not yet done (FR-29.21). */
+const prepOpen = computed(
+  () =>
+    preparations?.steps(props.card.idea.trip_id, props.card.idea.id).filter((step) => !step.done)
+      .length ?? 0,
 )
 
 /** The first track's figures, and how many more there are. */
@@ -142,6 +154,14 @@ const trackFacts = computed(() => tracksSummary(props.tracks))
         <template v-if="isPlanTime(card.idea.planned_at)"> · {{ card.idea.planned_at }}</template>
       </template>
       <template v-else>{{ t('ideas.notPlanned') }}</template>
+    </span>
+    <span
+      v-if="prepOpen > 0"
+      class="prep-open jp-num"
+      :data-testid="`idea-card-prep-${card.idea.id}`"
+    >
+      <IonIcon :icon="alarmOutline" aria-hidden="true" />
+      {{ t('ideas.prep.cardOpen', { n: prepOpen }) }}
     </span>
     <span v-if="votesShown || card.comments > 0" class="foot jp-num">
       <template v-if="votesShown">
@@ -275,6 +295,14 @@ const trackFacts = computed(() => tracksSummary(props.tracks))
   border-color: var(--ct-surface2);
   background: transparent;
   color: var(--ct-subtext0);
+}
+
+.prep-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ct-straw);
+  font-size: var(--jp-text-xs);
 }
 
 .chips,

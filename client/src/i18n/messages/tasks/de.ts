@@ -61,6 +61,8 @@ export const tasksDe: Record<keyof typeof tasksEn, string> = {
   'tasks.dueTomorrow': 'Morgen',
   'tasks.dueInDays': 'In {n} Tagen',
   'tasks.dueField': 'Fällig',
+  'tasks.dueFromIdea':
+    '{day} · {n} Tag vor der Idee, verschiebt sich mit ihr | {day} · {n} Tage vor der Idee, verschiebt sich mit ihr',
   'tasks.dueSetToast': '„{body}" fällig am {date}',
   'tasks.dueClearedToast': '„{body}" hat kein Fälligkeitsdatum mehr',
   'tasks.dueCount': '{n} Aufgabe | {n} Aufgaben',

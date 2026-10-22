@@ -9,6 +9,7 @@ import type { InjectionKey } from 'vue'
 import type {
   IdeaLookup,
   IdeaPlanWrites,
+  IdeaPreparations,
   IdeaResultKind,
   IdeaResultSource,
 } from '@/domain/shared/ideaBridge'
@@ -36,3 +37,6 @@ export const IDEA_PLAN_WRITES = Symbol('ideaPlanWrites') as InjectionKey<IdeaPla
 export const IDEA_RESULT_SOURCES = Symbol('ideaResultSources') as InjectionKey<
   readonly IdeaResultSource[]
 >
+
+/** The injection key the planner reads and writes an idea's preparation steps through (FR-29.21). */
+export const IDEA_PREPARATIONS = Symbol('ideaPreparations') as InjectionKey<IdeaPreparations>

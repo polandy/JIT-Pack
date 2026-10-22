@@ -55,6 +55,50 @@ func TestDueTasks_FR7_11_OpenTasksOnTheAskedDaysOnly(t *testing.T) {
 	}
 }
 
+// FR-29.21: a preparation step of an idea is due its lead before the idea's
+// day — read off the idea, so moving the idea moves the reminder — and not at
+// all while the idea has no day or is dropped.
+func TestDueTasks_FR29_21_AStepIsDueItsLeadBeforeItsIdeasDay(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	idea := func(id, state string, plannedOn any) {
+		t.Helper()
+		mustExec(t, s, `INSERT INTO ideas (id, trip_id, author_id, title, state, planned_on)
+			VALUES (?, ?, ?, ?, ?, ?)`, id, testTrip, testUser, "idea "+id, state, plannedOn)
+	}
+	idea("i-planned", "shortlisted", "2026-07-15")
+	idea("i-unplanned", "shortlisted", nil)
+	idea("i-dropped", "dropped", "2026-07-15")
+	step := func(id string, ideaID any, lead int, due any) {
+		t.Helper()
+		mustExec(t, s, `INSERT INTO comments (id, trip_id, author_id, body, is_task, task_state, idea_id, lead_days, due_date)
+			VALUES (?, ?, ?, ?, 1, 'open', ?, ?, ?)`, id, testTrip, testUser, "body "+id, ideaID, lead, due)
+	}
+	step("c-week", "i-planned", 7, nil)
+	step("c-eve", "i-planned", 1, nil)
+	// A stored due day does not count for a step: the idea's day decides.
+	step("c-stale", "i-planned", 3, "2026-07-08")
+	step("c-waiting", "i-unplanned", 7, "2026-07-08")
+	step("c-dropped", "i-dropped", 7, nil)
+
+	got, err := s.DueTasks(ctx, "2026-07-08", "2026-07-09")
+	if err != nil {
+		t.Fatalf("DueTasks: %v", err)
+	}
+	want := []DueTask{{ID: "c-week", TripID: testTrip, Body: "body c-week", DueDate: "2026-07-08"}}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("DueTasks = %+v\nwant %+v", got, want)
+	}
+
+	eve, err := s.DueTasks(ctx, "2026-07-14")
+	if err != nil {
+		t.Fatalf("DueTasks: %v", err)
+	}
+	if len(eve) != 1 || eve[0].ID != "c-eve" {
+		t.Errorf("DueTasks(2026-07-14) = %+v; want c-eve alone", eve)
+	}
+}
+
 func TestClaimTaskReminderDay_FR7_11_OncePerDay(t *testing.T) {
 	s := openTestStore(t)
 	ctx := context.Background()

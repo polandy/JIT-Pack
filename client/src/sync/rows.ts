@@ -181,6 +181,7 @@ export function ownTaskRow(task: OwnTask): Record<string, unknown> {
     task_state: task.task_state,
     ...taskFactRow(task),
     idea_id: task.idea_id ?? null,
+    lead_days: task.lead_days ?? null,
   }
 }
 

@@ -168,6 +168,9 @@ On the morning before and on the day itself, the person the task is handed to is
 if nobody has it yet (see [Notifications & Push](notifications.md)). In Local Mode, where there is no server to send
 a reminder, the app says how many tasks are due when you open it.
 
+A step that prepares an [idea](ideas.md#preparing-an-idea) takes its day from the idea: its sheet shows the day and
+how long before the idea it lies, and it moves when the idea is planned on another day.
+
 ## When a purchase is due
 
 Something on the shopping list can have a day too: pick it with the day chips under the field as you type, or tap an

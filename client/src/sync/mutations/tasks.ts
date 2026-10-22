@@ -20,6 +20,8 @@ export interface TaskFiling {
   position?: number
   /** FR-29.13: the idea a trip task is made from. */
   ideaId?: string | null
+  /** FR-29.21: as that idea's preparation step, its lead in days before the idea's day. */
+  leadDays?: number | null
 }
 
 export function createTasksMutations({ make, nowIso }: MutationContext) {
@@ -68,6 +70,8 @@ export function createTasksMutations({ make, nowIso }: MutationContext) {
       ...(filed.position !== undefined ? { position: filed.position } : {}),
       // FR-29.13: made from an idea, it names the idea.
       ...(filed.ideaId ? { idea_id: filed.ideaId } : {}),
+      // FR-29.21: a preparation step names its lead, never a due day (ADR-104).
+      ...(filed.leadDays != null ? { lead_days: filed.leadDays } : {}),
     })
     return { mutation, id }
   }
@@ -175,6 +179,11 @@ export function createTasksMutations({ make, nowIso }: MutationContext) {
     return make('upsert', TABLE.comments, taskId, { body })
   }
 
+  /** FR-29.21: a preparation step's lead before its idea's day, changed — one field. */
+  function setTaskLead(taskId: string, leadDays: number): Mutation {
+    return make('upsert', TABLE.comments, taskId, { lead_days: leadDays })
+  }
+
   return {
     addTask,
     resolveTask,
@@ -187,5 +196,6 @@ export function createTasksMutations({ make, nowIso }: MutationContext) {
     setTaskDueDate,
     placeTask,
     setTaskBody,
+    setTaskLead,
   }
 }
