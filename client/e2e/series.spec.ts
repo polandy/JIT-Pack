@@ -230,10 +230,15 @@ test.describe('M16 series & destination profile @local @m16', () => {
     await expect(sheet).toBeVisible()
     await fillIonic(sheet.getByTestId('m16-task-sheet-text'), 'Reserve the ibex hike')
     await sheet.getByTestId('m16-task-sheet-lead-28').click()
-    await expect(sheet.getByTestId('m16-task-sheet-lead-28')).toHaveAttribute('aria-pressed', 'true')
+    await expect(sheet.getByTestId('m16-task-sheet-lead-28')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
     await sheet.getByTestId('m16-task-sheet-close').click()
     await expect(sheet).toBeHidden()
-    const typed = visible(page).getByTestId('m16-task-row').filter({ hasText: 'Reserve the ibex hike' })
+    const typed = visible(page)
+      .getByTestId('m16-task-row')
+      .filter({ hasText: 'Reserve the ibex hike' })
     await expect(typed.getByTestId('m16-task-lead')).toHaveText('4 weeks before departure')
     await expect(visible(page).getByTestId('m16-task-row')).toHaveCount(2)
 
