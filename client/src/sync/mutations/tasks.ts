@@ -154,10 +154,25 @@ export function createTasksMutations({ make, nowIso }: MutationContext) {
   /**
    * FR-7.11: the day a task is due, `YYYY-MM-DD`, or `null` for none. One
    * field, like the tag: a date set on one device and a tag on another
-   * both stand (NFR-4.2a).
+   * both stand (NFR-4.2a). Taking the day off takes FR-7.18's time with it —
+   * a time without a day means nothing — while a moved day keeps its time.
    */
   function setTaskDueDate(taskId: string, dueDate: string | null): Mutation {
-    return make('upsert', TABLE.comments, taskId, { due_date: dueDate })
+    return make(
+      'upsert',
+      TABLE.comments,
+      taskId,
+      dueDate === null ? { due_date: null, due_time: null } : { due_date: dueDate },
+    )
+  }
+
+  /**
+   * FR-7.18: the time a task's reminder arrives on its day, `HH:MM`, or
+   * `null` for none. One field, apart from the day, so a time set here and a
+   * day moved on another device both stand.
+   */
+  function setTaskDueTime(taskId: string, dueTime: string | null): Mutation {
+    return make('upsert', TABLE.comments, taskId, { due_time: dueTime })
   }
 
   /**
@@ -194,6 +209,7 @@ export function createTasksMutations({ make, nowIso }: MutationContext) {
     createTaskTag,
     setTaskTag,
     setTaskDueDate,
+    setTaskDueTime,
     placeTask,
     setTaskBody,
     setTaskLead,

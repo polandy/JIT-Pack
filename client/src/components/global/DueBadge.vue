@@ -6,9 +6,13 @@
  *
  * Overdue is the one loud state, in red; today and soon
  * wear the action colour, a date further out stays quiet.
+ *
+ * A task's reminder time follows the day („Heute 14:00", FR-7.18) — except
+ * once overdue, where the hour has nothing left to announce.
  */
 import { computed } from 'vue'
 
+import { DUE_OVERDUE } from '@/domain/shared/dueDay'
 import { dueLabel } from '@/lib/taskDueText'
 
 const props = defineProps<{
@@ -16,15 +20,22 @@ const props = defineProps<{
   day: string | null
   /** Today as the device reckons it (`orchestrator.today()`). */
   today: string
+  /** The time its reminder arrives on that day (a task's, FR-7.18), or none. */
+  time?: string | null
   testid?: string
 }>()
 
 const label = computed(() => dueLabel(props.day, props.today))
+const text = computed(() =>
+  label.value && props.time && label.value.state !== DUE_OVERDUE
+    ? `${label.value.text} ${props.time}`
+    : label.value?.text,
+)
 </script>
 
 <template>
   <span v-if="label" class="due-badge" :data-due="label.state" :data-testid="testid">{{
-    label.text
+    text
   }}</span>
 </template>
 

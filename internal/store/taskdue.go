@@ -1,12 +1,15 @@
 // taskdue.go reads what FR-7.11's daily reminder needs: the
 // open tasks, the open shopping entries (FR-30.10) and the excursions still
-// to pack (FR-31.9) due on the days it asks about, and the record of which
-// day it last ran for.
+// to pack (FR-31.9) due on the days it asks about, the record of which
+// day it last ran for, and FR-7.18's mark of how far the timed reminders
+// have been sent.
 
 package store
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -15,12 +18,18 @@ import (
 // FR-7.11 reminder ran for.
 const taskReminderDayKey = "task_reminder_day"
 
+// timedReminderMarkKey names the server_keys row holding the moment, as
+// `YYYY-MM-DD HH:MM` on the server's clock, up to which FR-7.18's timed
+// reminders have been sent.
+const timedReminderMarkKey = "task_reminder_moment"
+
 // DueTask is one open task due on a day the reminder asks about (FR-7.11).
 type DueTask struct {
 	ID       string
 	TripID   string
 	Body     string
 	DueDate  string
+	DueTime  string // FR-7.18, HH:MM; empty: no time, the daily run's alone
 	Assignee string // empty: nobody's in particular, so everybody's
 }
 
@@ -29,7 +38,8 @@ type DueTask struct {
 // (FR-7.3) and the trip's own (FR-7.4) — in a stable order. No days, no
 // tasks. An idea's preparation step (FR-29.21) is due its lead before the
 // idea's day, and not at all while the idea has none or is dropped (ADR-104);
-// a step whose idea is gone is an ordinary task again.
+// a step whose idea is gone is an ordinary task again. A task's time comes
+// with its day (FR-7.18); a step has none, its day being its idea's.
 func (s *Store) DueTasks(ctx context.Context, days ...string) ([]DueTask, error) {
 	if len(days) == 0 {
 		return nil, nil
@@ -40,8 +50,10 @@ func (s *Store) DueTasks(ctx context.Context, days ...string) ([]DueTask, error)
 		args = append(args, d)
 	}
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, trip_id, body, due, assignee FROM (
+		`SELECT id, trip_id, body, due, due_time, assignee FROM (
 		   SELECT c.id, c.trip_id, c.body, COALESCE(c.assignee_user_id, '') AS assignee,
+		          CASE WHEN c.lead_days IS NULL OR c.idea_id IS NULL THEN COALESCE(c.due_time, '')
+		               ELSE '' END AS due_time,
 		          CASE WHEN c.lead_days IS NULL OR c.idea_id IS NULL THEN c.due_date
 		               WHEN i.state = ? THEN NULL
 		               ELSE date(i.planned_on, '-' || c.lead_days || ' days') END AS due
@@ -58,7 +70,7 @@ func (s *Store) DueTasks(ctx context.Context, days ...string) ([]DueTask, error)
 	var out []DueTask
 	for rows.Next() {
 		var d DueTask
-		if err := rows.Scan(&d.ID, &d.TripID, &d.Body, &d.DueDate, &d.Assignee); err != nil {
+		if err := rows.Scan(&d.ID, &d.TripID, &d.Body, &d.DueDate, &d.DueTime, &d.Assignee); err != nil {
 			return nil, fmt.Errorf("due tasks: %w", err)
 		}
 		out = append(out, d)
@@ -186,4 +198,37 @@ func (s *Store) ClaimTaskReminderDay(ctx context.Context, day string) (bool, err
 		return false, fmt.Errorf("claim task reminder day: %w", err)
 	}
 	return n > 0, nil
+}
+
+// AdvanceTimedReminderMark moves FR-7.18's mark forward to `to`
+// (`YYYY-MM-DD HH:MM`) and returns where it stood, the window (from, to]
+// the caller is now to send for. ok is false — nothing to send — when the
+// mark is already there or past it (a second wake-up in the minute, a clock
+// set back), and on the very first call, which only sets it: a time already
+// passed when the server first counts is not owed. The read and the write
+// share one transaction, so two callers cannot both claim a window.
+func (s *Store) AdvanceTimedReminderMark(ctx context.Context, to string) (from string, ok bool, err error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return "", false, fmt.Errorf("advance timed reminder mark: %w", err)
+	}
+	defer tx.Rollback() //nolint:errcheck // no-op after a successful Commit
+	err = tx.QueryRowContext(ctx, `SELECT value FROM server_keys WHERE name = ?`, timedReminderMarkKey).Scan(&from)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		from = ""
+	case err != nil:
+		return "", false, fmt.Errorf("advance timed reminder mark: %w", err)
+	case from >= to:
+		return from, false, nil
+	}
+	if _, err := tx.ExecContext(ctx,
+		`INSERT INTO server_keys (name, value) VALUES (?, ?)
+		 ON CONFLICT(name) DO UPDATE SET value = excluded.value`, timedReminderMarkKey, to); err != nil {
+		return "", false, fmt.Errorf("advance timed reminder mark: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return "", false, fmt.Errorf("advance timed reminder mark: %w", err)
+	}
+	return from, from != "", nil
 }

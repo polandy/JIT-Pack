@@ -21,6 +21,11 @@ import type { PackingCore } from './usePackingCore'
 export function usePackingTasks(core: PackingCore) {
   const { tripId, orchestrator } = core
   const { tasksOf } = useTripTasks()
+  /**
+   * FR-7.4: the user's own fold of *Aufgaben für die Reise* this visit; null
+   * while untouched, and then the tasks decide (`tripTasksUnfolded`).
+   */
+  const fold = ref<boolean | null>(null)
 
   /**
    * FR-7.6: every task of the trip, its own and its rows' preparations, in one
@@ -101,6 +106,11 @@ export function usePackingTasks(core: PackingCore) {
     if (opened.value) acts.setDue(opened.value, dueDate)
   }
 
+  /** FR-7.18: the time on the due day, from the sheet, which stays up. */
+  function onDueTime(dueTime: string | null) {
+    if (opened.value) acts.setDueTime(opened.value, dueTime)
+  }
+
   /** FR-7.14: finished from the sheet, which closes as the line leaves the window. */
   function onToggleFromSheet() {
     const task = opened.value
@@ -120,6 +130,7 @@ export function usePackingTasks(core: PackingCore) {
   }
 
   return {
+    fold,
     windowTasks,
     state,
     line,
@@ -129,6 +140,7 @@ export function usePackingTasks(core: PackingCore) {
     close,
     onMove,
     onDue,
+    onDueTime,
     onToggleFromSheet,
     onRename,
     onRemoveFromSheet,

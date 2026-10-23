@@ -189,11 +189,6 @@ const {
 })
 const filterOpen = ref(false)
 const quickAdd = ref<InstanceType<typeof QuickAddItem> | null>(null)
-/**
- * FR-7.4: the user's own fold of *Aufgaben für die Reise* this visit; null
- * while untouched, and then the tasks decide (`tripTasksUnfolded`).
- */
-const tripTasksFold = ref<boolean | null>(null)
 /** FR-7.4: the section itself, which the header figure scrolls to. */
 const tasksSection = ref<InstanceType<typeof TripTasksSection> | null>(null)
 
@@ -202,7 +197,7 @@ const tasksSection = ref<InstanceType<typeof TripTasksSection> | null>(null)
  * because the header line stays while the section may be scrolled past.
  */
 function revealTripTasks() {
-  tripTasksFold.value = true
+  tasks.fold.value = true
   tasksSection.value?.scrollIntoView()
 }
 
@@ -526,7 +521,7 @@ setHeaderTitle(
       <TripTasksSection
         v-if="rowsLoaded && !closingPass"
         ref="tasksSection"
-        v-model:fold="tripTasksFold"
+        v-model:fold="tasks.fold.value"
         :trip-id="tripId"
         :tasks="tasks.windowTasks.value"
         :state="tasks.state.value"
@@ -836,6 +831,7 @@ setHeaderTitle(
           :trip-start="trip?.start_date ?? null"
           @close="tasks.close"
           @due="tasks.onDue"
+          @due-time="tasks.onDueTime"
           @move="tasks.onMove"
           @remove="tasks.onRemoveFromSheet"
           @toggle="tasks.onToggleFromSheet"

@@ -226,6 +226,7 @@ describe('tripTasks (FR-29.21): an idea’s preparation steps', () => {
       task_state: 'open',
       assignee_user_id: null,
       due_date: due,
+      due_time: null,
       idea_id: ideaId,
       lead_days: leadDays,
     }) as OwnTask
@@ -239,6 +240,26 @@ describe('tripTasks (FR-29.21): an idea’s preparation steps', () => {
   it('is due its lead before the idea’s day, whatever due day the row carries', () => {
     const [task] = tripTasks([step('s1', 'planned', 7, '2026-10-01')], [], [], ideaOf)
     expect(task).toMatchObject({ due_date: '2026-10-28', lead_days: 7, idea_id: 'planned' })
+  })
+
+  it('FR-7.18: carries no time, whatever time the row carries — its day is the lead’s', () => {
+    const [task] = tripTasks(
+      [{ ...step('s1', 'planned', 7, '2026-10-01'), due_time: '14:00' }],
+      [],
+      [],
+      ideaOf,
+    )
+    expect(task?.due_time).toBeNull()
+  })
+
+  it('FR-7.18: an ordinary task carries its time through', () => {
+    const [task] = tripTasks(
+      [{ ...step('s1', null, 7, '2026-10-30'), due_time: '14:00' }],
+      [],
+      [],
+      ideaOf,
+    )
+    expect(task?.due_time).toBe('14:00')
   })
 
   it('waits on the idea, unlisted, while it has no day, is dropped or is not on the device', () => {
@@ -313,6 +334,7 @@ describe('the two windows on one list (FR-7.7)', () => {
     resolved_by_user_id: null,
     task_tag_id: null,
     due_date: opts.due ?? null,
+    due_time: null,
   })
 
   const camera = { id: 'i1', name: 'Camera', icon: null }
@@ -388,6 +410,7 @@ describe('taskGroups (FR-7.8): one tag, and the headings it makes', () => {
       resolved_by_user_id: null,
       task_tag_id: over.tag ?? null,
       due_date: over.due ?? null,
+      due_time: null,
     }) as TripTask
 
   const camera = { id: 'i1', name: 'Kamera', icon: null }
@@ -499,6 +522,7 @@ describe('dashboardTasks (FR-7.10): what the hero lists of a trip’s tasks', ()
       assignee?: string | null
       state?: TaskState
       due?: string | null
+      time?: string | null
     } = {},
   ): TripTask => ({
     id,
@@ -513,8 +537,22 @@ describe('dashboardTasks (FR-7.10): what the hero lists of a trip’s tasks', ()
     resolved_by_user_id: null,
     task_tag_id: null,
     due_date: opts.due ?? null,
+    due_time: opts.time ?? null,
   })
   const ids = (list: TripTask[]) => list.map((entry) => entry.id)
+
+  it('FR-7.18: within a pressing day, lists the timed tasks first by their time', () => {
+    const got = dashboardTasks(
+      [
+        task('untimed-today', { due: TODAY }),
+        task('late-today', { due: TODAY, time: '18:00' }),
+        task('early-today', { due: TODAY, time: '08:00' }),
+        task('overdue', { due: '2026-07-01', time: '23:00' }),
+      ],
+      { phaseInFront: TASK_PHASE_BEFORE, myUserId: null, limit: 10, today: TODAY },
+    )
+    expect(ids(got.rows)).toEqual(['overdue', 'early-today', 'late-today', 'untimed-today'])
+  })
 
   it('lists only open tasks and counts them all, whatever the limit', () => {
     const got = dashboardTasks(
@@ -602,6 +640,7 @@ describe('a batch of tasks (FR-7.8): only what changes is written', () => {
     resolved_by_user_id: null,
     task_tag_id: over.tag ?? null,
     due_date: null,
+    due_time: null,
   })
 
   it.each([
@@ -677,6 +716,7 @@ describe('a task placed by hand (FR-7.17)', () => {
     resolved_by_user_id: null,
     task_tag_id: null,
     due_date: due,
+    due_time: null,
     position,
   })
   const names = (tasks: readonly TripTask[]) => tasks.map((t) => t.id)

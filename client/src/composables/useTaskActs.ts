@@ -42,6 +42,15 @@ export interface TaskActDeps {
   removing: Ref<Set<string>>
 }
 
+/**
+ * A due day and the time on it, as the batch reads and writes them. Only a
+ * day taken off carries its time, for the undo to write back.
+ */
+interface DueMoment {
+  day: string | null
+  time?: string | null
+}
+
 /** useTaskActs binds the acts to one trip and one screen's seams. */
 export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
   const orchestrator = useOrchestrator()
@@ -194,21 +203,47 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
 
   /**
    * FR-7.11: the day a task is due, set, moved or taken off. The undo writes
-   * the date it had — null included, which is a state and not a gap.
+   * the date it had — null included, which is a state and not a gap. Taking
+   * the day off takes its time with it (FR-7.18), so that undo writes the
+   * time back too.
    */
   function setDue(task: TripTask, dueDate: string | null) {
     const live = liveTask(task)
     if (!live || live.due_date === dueDate) return
     const previous = live.due_date
+    const previousTime = dueDate === null ? live.due_time : null
     rowUndo.armAction(live.body, () => {
       const row = liveTask(task)
-      if (row) orchestrator.comments.setTaskDueDate(row, previous)
+      if (!row) return
+      orchestrator.comments.setTaskDueDate(row, previous)
+      if (previousTime) orchestrator.comments.setTaskDueTime(row, previousTime)
     })
     orchestrator.comments.setTaskDueDate(live, dueDate)
     void announceAct(
       dueDate === null
         ? t('tasks.dueClearedToast', { body: live.body })
         : t('tasks.dueSetToast', { body: live.body, date: shortDueDay(dueDate) }),
+    )
+  }
+
+  /**
+   * FR-7.18: the time on the due day its reminder arrives, set, moved or
+   * taken off. The undo writes the time it had.
+   */
+  function setDueTime(task: TripTask, dueTime: string | null) {
+    const live = liveTask(task)
+    if (!live) return
+    const previous = live.due_time ?? null
+    if (previous === dueTime) return
+    rowUndo.armAction(live.body, () => {
+      const row = liveTask(task)
+      if (row) orchestrator.comments.setTaskDueTime(row, previous)
+    })
+    orchestrator.comments.setTaskDueTime(live, dueTime)
+    void announceAct(
+      dueTime === null
+        ? t('tasks.dueTimeClearedToast', { body: live.body })
+        : t('tasks.dueTimeSetToast', { body: live.body, time: dueTime }),
     )
   }
 
@@ -306,13 +341,21 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     )
   }
 
-  /** FR-7.14: the selection's *Fällig* — one day for all of them, or none. */
+  /**
+   * FR-7.14: the selection's *Fällig* — one day for all of them, or none.
+   * A day moved keeps each task's time; a day taken off takes it along, and
+   * the undo writes each one's back (FR-7.18).
+   */
   function dueMany(tasks: readonly TripTask[], dueDate: string | null): number {
-    return writeBatch(
+    return writeBatch<DueMoment>(
       tasks.filter((task) => task.due_date !== dueDate),
-      (task) => task.due_date,
-      (task, value) => orchestrator.comments.setTaskDueDate(task, value),
-      dueDate,
+      (task) =>
+        dueDate === null ? { day: task.due_date, time: task.due_time } : { day: task.due_date },
+      (task, value) => {
+        orchestrator.comments.setTaskDueDate(task, value.day)
+        if (value.time) orchestrator.comments.setTaskDueTime(task, value.time)
+      },
+      { day: dueDate },
       (n) =>
         dueDate === null
           ? t('tasks.bulkDueCleared', { n })
@@ -418,6 +461,7 @@ export function useTaskActs(tripId: () => string, deps: TaskActDeps) {
     remove,
     move,
     setDue,
+    setDueTime,
     retag,
     place,
     retagMany,

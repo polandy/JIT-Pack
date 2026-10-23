@@ -74,6 +74,38 @@ describe('FR-7.11 byDue', () => {
   })
 })
 
+describe('FR-7.18 byDue within one day', () => {
+  const timed = (
+    id: string,
+    due: string,
+    time: string | null,
+    state: 'open' | 'resolved' = 'open',
+  ) => ({
+    ...task(id, due, state),
+    due_time: time,
+  })
+
+  it('puts the timed tasks of a day first, earliest time first, ahead of the untimed', () => {
+    const tasks = [
+      timed('untimed', '2026-07-08', null),
+      timed('afternoon', '2026-07-08', '14:00'),
+      timed('tomorrow-early', '2026-07-09', '07:00'),
+      timed('morning', '2026-07-08', '09:30'),
+    ]
+    expect(byDue(tasks, TODAY).map((t) => t.id)).toEqual([
+      'morning',
+      'afternoon',
+      'untimed',
+      'tomorrow-early',
+    ])
+  })
+
+  it('never lets a time outrank the day', () => {
+    const tasks = [timed('tomorrow', '2026-07-09', '06:00'), timed('today', '2026-07-08', '23:00')]
+    expect(byDue(tasks, TODAY).map((t) => t.id)).toEqual(['today', 'tomorrow'])
+  })
+})
+
 describe('FR-7.11 pressingFirst', () => {
   it('moves the groups with something pressing to the top, order kept in both halves', () => {
     const groups = [

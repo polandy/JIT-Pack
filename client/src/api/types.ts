@@ -1,5 +1,5 @@
 /**
- * Generated from internal/api/wire.go, internal/api/wire_ws.go by cmd/wiregen. Do not edit.
+ * Generated from internal/api/wire.go, internal/api/wire_notify.go, internal/api/wire_ws.go by cmd/wiregen. Do not edit.
  *
  * This file is the client's half of the one contract (NFR-4.14): the Go
  * declaration is the source, and `make wire` regenerates it. A hand edit here is
@@ -276,159 +276,6 @@ export interface AdminUserListResponse {
 }
 
 /**
- * NotificationEntry is one notification. It is not named Notification because
- * that is a DOM global on the client, and a generated type shadowing it would
- * be a trap rather than a contract.
- */
-export interface NotificationEntry {
-  id: string
-  kind: NotificationKind
-  // The teaser the toast and the OS notification render; the deep link
-  // carries the rest. Null where the stored payload was empty.
-  payload: Record<string, unknown> | null
-  created_at: string
-  // Absent while unread.
-  read_at?: string
-}
-
-/**
- * NotificationKind is what a notification is about (FR-6.2, UI-Spec M17).
- */
-export type NotificationKind =
-  | 'delegation'
-  | 'mention'
-  | 'task'
-  | 'lock_taken'
-  | 'note'
-  | 'note_reply'
-  | 'task_due'
-  | 'shopping_due'
-  | 'excursion_due'
-  | 'idea'
-  | 'idea_comment'
-  | 'idea_shortlisted'
-
-export const NOTIFICATION_KIND = {
-  delegation: 'delegation',
-  mention: 'mention',
-  task: 'task',
-  lock_taken: 'lock_taken',
-  note: 'note',
-  note_reply: 'note_reply',
-  task_due: 'task_due',
-  shopping_due: 'shopping_due',
-  excursion_due: 'excursion_due',
-  idea: 'idea',
-  idea_comment: 'idea_comment',
-  idea_shortlisted: 'idea_shortlisted',
-} as const
-
-/**
- * NotificationPayloadKey is a key of NotificationEntry.Payload. The payload
- * stays a map because each kind fills a different subset; the keys are
- * internal/notify's, held equal by TestWireNotificationPayload_MirrorNotify.
- */
-export type NotificationPayloadKey =
-  | 'trip_id'
-  | 'item_id'
-  | 'item_name'
-  | 'actor_id'
-  | 'actor_name'
-  | 'comment_id'
-  | 'preview'
-  | 'thread_id'
-  | 'thread'
-  | 'idea_id'
-  | 'due'
-  | 'entry_id'
-  | 'excursion_id'
-
-export const NOTIFICATION_PAYLOAD_KEY = {
-  trip_id: 'trip_id',
-  item_id: 'item_id',
-  item_name: 'item_name',
-  actor_id: 'actor_id',
-  actor_name: 'actor_name',
-  comment_id: 'comment_id',
-  preview: 'preview',
-  thread_id: 'thread_id',
-  thread: 'thread',
-  idea_id: 'idea_id',
-  due: 'due',
-  entry_id: 'entry_id',
-  excursion_id: 'excursion_id',
-} as const
-
-/**
- * NotificationDue is a reminder's `due` value: the day it is about, as a word.
- */
-export type NotificationDue = 'today' | 'tomorrow'
-
-export const NOTIFICATION_DUE = {
-  today: 'today',
-  tomorrow: 'tomorrow',
-} as const
-
-/**
- * NotificationListResponse is the list envelope, newest first.
- */
-export interface NotificationListResponse {
-  notifications: NotificationEntry[]
-}
-
-/**
- * NotificationPrefs is the per-kind toggle set (UI-Spec M17). The server
- * answers all three keys always — a kind the stored value omits comes back
- * enabled — so none of them is optional on the wire.
- */
-export interface NotificationPrefs {
-  delegation: boolean
-  mention: boolean
-  task: boolean
-  // FR-5.7: somebody took over a row this user had claimed.
-  lock_taken: boolean
-  // FR-7.9: a co-traveller wrote a new trip note.
-  note: boolean
-  // FR-7.13: somebody else replied in a thread this user took part in.
-  note_reply: boolean
-  // FR-7.11: a task this user is to do is due tomorrow or today.
-  task_due: boolean
-  // FR-30.10: a shopping entry of one of this user's trips is due
-  // tomorrow or today.
-  shopping_due: boolean
-  // FR-31.9: an excursion of one of this user's trips starts tomorrow or
-  // today and still has things to pack.
-  excursion_due: boolean
-  // FR-29.8: a co-traveller put up a new idea.
-  idea: boolean
-  // FR-29.8: somebody else wrote about an idea this user wrote or wrote
-  // about.
-  idea_comment: boolean
-  // FR-29.8: a co-traveller moved an idea to the shortlist.
-  idea_shortlisted: boolean
-}
-
-/**
- * VAPIDKeyResponse carries the instance's public VAPID key, generated on
- * first use and persisted beside the database.
- */
-export interface VAPIDKeyResponse {
-  key: string
-}
-
-/**
- * WebPushMessage is the encrypted body of one push, read by client/public/sw.js
- * (held to these names by notifications/__tests__/workerWire.spec.ts).
- * internal/notify marshals it from its own pushMessage, which cannot import
- * this package; TestWireWebPushMessage_MirrorNotify holds the two equal.
- */
-export interface WebPushMessage {
-  notification_id: string
-  kind: NotificationKind
-  payload: Record<string, unknown> | null
-}
-
-/**
  * AuthConfigResponse tells the client where to send the user to log in. A
  * server without OIDC answers 501 `not_configured` instead, which is how
  * Single-User Mode is discovered (invariant 5).
@@ -459,12 +306,17 @@ export interface AuthConfigResponse {
  * of a route it edits (FR-29.20, ADR-088), asked by the device itself.
  * Empty where the operator turned routing off: the points are then joined
  * by straight lines.
+ *
+ * ReminderTime is when the daily task reminder runs (FR-7.11), `HH:MM` in
+ * the server's zone — the clock a task's own time is read on too (FR-7.18,
+ * ADR-105) — for the task sheet to say which reminders come.
  */
 export interface InstanceConfigResponse {
   currency: string
   map_tiles: boolean
   timetable: boolean
   routing_url: string
+  reminder_time: string
 }
 
 /**
@@ -730,6 +582,163 @@ export interface ActivityEntry {
 export interface ActivityListResponse {
   entries: ActivityEntry[]
   before: number
+}
+
+/**
+ * NotificationEntry is one notification. It is not named Notification because
+ * that is a DOM global on the client, and a generated type shadowing it would
+ * be a trap rather than a contract.
+ */
+export interface NotificationEntry {
+  id: string
+  kind: NotificationKind
+  // The teaser the toast and the OS notification render; the deep link
+  // carries the rest. Null where the stored payload was empty.
+  payload: Record<string, unknown> | null
+  created_at: string
+  // Absent while unread.
+  read_at?: string
+}
+
+/**
+ * NotificationKind is what a notification is about (FR-6.2, UI-Spec M17).
+ */
+export type NotificationKind =
+  | 'delegation'
+  | 'mention'
+  | 'task'
+  | 'lock_taken'
+  | 'note'
+  | 'note_reply'
+  | 'task_due'
+  | 'shopping_due'
+  | 'excursion_due'
+  | 'idea'
+  | 'idea_comment'
+  | 'idea_shortlisted'
+
+export const NOTIFICATION_KIND = {
+  delegation: 'delegation',
+  mention: 'mention',
+  task: 'task',
+  lock_taken: 'lock_taken',
+  note: 'note',
+  note_reply: 'note_reply',
+  task_due: 'task_due',
+  shopping_due: 'shopping_due',
+  excursion_due: 'excursion_due',
+  idea: 'idea',
+  idea_comment: 'idea_comment',
+  idea_shortlisted: 'idea_shortlisted',
+} as const
+
+/**
+ * NotificationPayloadKey is a key of NotificationEntry.Payload. The payload
+ * stays a map because each kind fills a different subset; the keys are
+ * internal/notify's, held equal by TestWireNotificationPayload_MirrorNotify.
+ */
+export type NotificationPayloadKey =
+  | 'trip_id'
+  | 'item_id'
+  | 'item_name'
+  | 'actor_id'
+  | 'actor_name'
+  | 'comment_id'
+  | 'preview'
+  | 'thread_id'
+  | 'thread'
+  | 'idea_id'
+  | 'due'
+  | 'entry_id'
+  | 'excursion_id'
+  | 'time'
+
+export const NOTIFICATION_PAYLOAD_KEY = {
+  trip_id: 'trip_id',
+  item_id: 'item_id',
+  item_name: 'item_name',
+  actor_id: 'actor_id',
+  actor_name: 'actor_name',
+  comment_id: 'comment_id',
+  preview: 'preview',
+  thread_id: 'thread_id',
+  thread: 'thread',
+  idea_id: 'idea_id',
+  due: 'due',
+  entry_id: 'entry_id',
+  excursion_id: 'excursion_id',
+  time: 'time',
+} as const
+
+/**
+ * NotificationDue is a reminder's `due` value: the day it is about, as a
+ * word — or, for a timed task's push at its time, „now".
+ */
+export type NotificationDue = 'today' | 'tomorrow' | 'now'
+
+export const NOTIFICATION_DUE = {
+  today: 'today',
+  tomorrow: 'tomorrow',
+  now: 'now',
+} as const
+
+/**
+ * NotificationListResponse is the list envelope, newest first.
+ */
+export interface NotificationListResponse {
+  notifications: NotificationEntry[]
+}
+
+/**
+ * NotificationPrefs is the per-kind toggle set (UI-Spec M17). The server
+ * answers all three keys always — a kind the stored value omits comes back
+ * enabled — so none of them is optional on the wire.
+ */
+export interface NotificationPrefs {
+  delegation: boolean
+  mention: boolean
+  task: boolean
+  // FR-5.7: somebody took over a row this user had claimed.
+  lock_taken: boolean
+  // FR-7.9: a co-traveller wrote a new trip note.
+  note: boolean
+  // FR-7.13: somebody else replied in a thread this user took part in.
+  note_reply: boolean
+  // FR-7.11: a task this user is to do is due tomorrow or today.
+  task_due: boolean
+  // FR-30.10: a shopping entry of one of this user's trips is due
+  // tomorrow or today.
+  shopping_due: boolean
+  // FR-31.9: an excursion of one of this user's trips starts tomorrow or
+  // today and still has things to pack.
+  excursion_due: boolean
+  // FR-29.8: a co-traveller put up a new idea.
+  idea: boolean
+  // FR-29.8: somebody else wrote about an idea this user wrote or wrote
+  // about.
+  idea_comment: boolean
+  // FR-29.8: a co-traveller moved an idea to the shortlist.
+  idea_shortlisted: boolean
+}
+
+/**
+ * VAPIDKeyResponse carries the instance's public VAPID key, generated on
+ * first use and persisted beside the database.
+ */
+export interface VAPIDKeyResponse {
+  key: string
+}
+
+/**
+ * WebPushMessage is the encrypted body of one push, read by client/public/sw.js
+ * (held to these names by notifications/__tests__/workerWire.spec.ts).
+ * internal/notify marshals it from its own pushMessage, which cannot import
+ * this package; TestWireWebPushMessage_MirrorNotify holds the two equal.
+ */
+export interface WebPushMessage {
+  notification_id: string
+  kind: NotificationKind
+  payload: Record<string, unknown> | null
 }
 
 /**

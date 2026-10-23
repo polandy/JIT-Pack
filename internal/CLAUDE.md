@@ -75,6 +75,6 @@ ADR-085), and an excursion's in `excursion_tracks` (FR-31.15, ADR-089).
   and Web Push through `pushSender`, each send bounded by a timeout. No HTTP.
 - `internal/api` — HTTP handlers, WebSocket hub, session auth + OIDC broker (ADR-007), the notification endpoints, admin,
   export. **`wire.go` is the contract** — envelopes, conflict shapes, error vocabulary, routes; `wire_ws.go` the
-  WebSocket frames, `wire_mirror_test.go` holds the notification words to `store`/`notify`. **Export only** —
+  WebSocket frames, `wire_notify.go` notifications and Web Push, `wire_mirror_test.go` holds the notification words to `store`/`notify`. **Export only** —
   importing is the client's (invariant 4, ADR-025). Every route carries a request-scoped `*slog.Logger` — method,
   route, `request_id`, and `caller` once `authed` has run — read back with `logger(ctx)` (ARCH-08b).

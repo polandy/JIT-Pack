@@ -19,6 +19,8 @@ publish/fork ownership model. Each carries a revisit trigger in its stub.
 - **The item merge moves master data only** (FR-24.15, ADR-069): trip history keeps naming the row it was packed from,
   and `items.merged_into_id` makes the two pasts read as one.
 - **The task due-day reminder is the one notification Single-User sends** (FR-7.12, ADR-076).
+- **A shopping entry carries a due day, never a time** (owner's decision, FR-7.18, ADR-105): only a task's reminder
+  comes at a time of its own.
 
 ## The closed items
 

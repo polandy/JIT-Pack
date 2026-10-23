@@ -458,6 +458,13 @@ CREATE TABLE comments (
     -- field-level LWW's sake; the client writes only what its date field
     -- produces, and the reminder scheduler compares strings.
     due_date     TEXT,
+    -- FR-7.18: the time of day the task's reminder arrives on its due day,
+    -- `HH:MM` on the 24-hour clock, read in the server's own zone like the
+    -- daily run (ADR-105). NULL is „no time", and a time without a day means
+    -- nothing — the day's field and this one merge apart (NFR-4.2a), so a
+    -- day taken off on one device and a time set on another can leave one
+    -- behind. Free of a CHECK for field-level LWW's sake, like due_date.
+    due_time     TEXT,
     -- FR-7.7: the resolution record, the FR-25.17 packing record's shape
     -- applied to a task. The *when* may be named by the client, because a
     -- task is ticked off away from a network; the *who* is stamped by the

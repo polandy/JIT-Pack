@@ -34,18 +34,32 @@ export type NotificationBodyName = `${BodyKind}` | `${BodyKind}Plain` | 'generic
 const TASK_DUE_TOMORROW = 'task_dueTomorrow'
 const SHOPPING_DUE_TOMORROW = 'shopping_dueTomorrow'
 const EXCURSION_DUE_TOMORROW = 'excursion_dueTomorrow'
+/** FR-7.18: a task's day-before sentence when it has a time, and its push at that time. */
+const TASK_DUE_TOMORROW_AT = 'task_dueTomorrowAt'
+const TASK_DUE_NOW = 'task_dueNow'
 type TomorrowBody =
   typeof TASK_DUE_TOMORROW | typeof SHOPPING_DUE_TOMORROW | typeof EXCURSION_DUE_TOMORROW
-type BodyKind = NotificationKind | TomorrowBody
+type TimedBody = typeof TASK_DUE_TOMORROW_AT | typeof TASK_DUE_NOW
+type BodyKind = NotificationKind | TomorrowBody | TimedBody
 
 /**
  * How each kind's sentence is chosen: whether it quotes the body's preview
  * rather than naming an item (a mention, FR-7.9's note, FR-7.13's reply), and
- * a reminder's tomorrow sentence (FR-7.11, FR-30.10, FR-31.9). A record over
- * the generated kinds, so a kind the server adds fails the type check here.
+ * a reminder's tomorrow sentence (FR-7.11, FR-30.10, FR-31.9) — and for a
+ * task with a time, the tomorrow sentence naming it and the one sent at it
+ * (FR-7.18). A record over the generated kinds, so a kind the server adds
+ * fails the type check here.
  */
 const KIND_BODIES: Readonly<
-  Record<NotificationKind, { quotes: boolean; tomorrow?: TomorrowBody }>
+  Record<
+    NotificationKind,
+    {
+      quotes: boolean
+      tomorrow?: TomorrowBody
+      tomorrowAt?: typeof TASK_DUE_TOMORROW_AT
+      now?: typeof TASK_DUE_NOW
+    }
+  >
 > = {
   [NOTIFICATION_KIND.delegation]: { quotes: false },
   [NOTIFICATION_KIND.mention]: { quotes: true },
@@ -53,7 +67,12 @@ const KIND_BODIES: Readonly<
   [NOTIFICATION_KIND.lock_taken]: { quotes: false },
   [NOTIFICATION_KIND.note]: { quotes: true },
   [NOTIFICATION_KIND.note_reply]: { quotes: true },
-  [NOTIFICATION_KIND.task_due]: { quotes: false, tomorrow: TASK_DUE_TOMORROW },
+  [NOTIFICATION_KIND.task_due]: {
+    quotes: false,
+    tomorrow: TASK_DUE_TOMORROW,
+    tomorrowAt: TASK_DUE_TOMORROW_AT,
+    now: TASK_DUE_NOW,
+  },
   [NOTIFICATION_KIND.shopping_due]: { quotes: false, tomorrow: SHOPPING_DUE_TOMORROW },
   [NOTIFICATION_KIND.excursion_due]: { quotes: false, tomorrow: EXCURSION_DUE_TOMORROW },
   [NOTIFICATION_KIND.idea]: { quotes: false },
@@ -69,6 +88,8 @@ const BODY_KINDS: readonly BodyKind[] = [
   TASK_DUE_TOMORROW,
   SHOPPING_DUE_TOMORROW,
   EXCURSION_DUE_TOMORROW,
+  TASK_DUE_TOMORROW_AT,
+  TASK_DUE_NOW,
 ]
 
 function isKind(kind: string): kind is NotificationKind {
@@ -94,8 +115,10 @@ export function bodyMessageKey(name: NotificationBodyName): MessageKey {
 export function notificationDetail(payload: Record<string, unknown> | null): {
   item: string
   preview: string
-  /** FR-7.11: which day a reminder names — `today` or `tomorrow`. */
+  /** FR-7.11: which day a reminder names — `today`, `tomorrow` or `now` (FR-7.18). */
   due: string
+  /** FR-7.18: the time a task's reminder names, `HH:MM`, or empty. */
+  time: string
 } {
   const str = (key: string) => {
     const value = payload?.[key]
@@ -105,6 +128,7 @@ export function notificationDetail(payload: Record<string, unknown> | null): {
     item: str(NOTIFICATION_PAYLOAD_KEY.item_name),
     preview: str(NOTIFICATION_PAYLOAD_KEY.preview),
     due: str(NOTIFICATION_PAYLOAD_KEY.due),
+    time: str(NOTIFICATION_PAYLOAD_KEY.time),
   }
 }
 
@@ -115,12 +139,16 @@ export function notificationDetail(payload: Record<string, unknown> | null): {
  */
 export function notificationBodyName(
   kind: string,
-  detail: { item: string; preview: string; due?: string },
+  detail: { item: string; preview: string; due?: string; time?: string },
 ): NotificationBodyName {
   if (!isKind(kind)) return 'generic'
-  const { quotes, tomorrow } = KIND_BODIES[kind]
+  const { quotes, tomorrow, tomorrowAt, now } = KIND_BODIES[kind]
   const named = quotes ? detail.preview : detail.item
-  const body = (detail.due === NOTIFICATION_DUE.tomorrow && tomorrow) || kind
+  const body =
+    (detail.due === NOTIFICATION_DUE.now && detail.time && now) ||
+    (detail.due === NOTIFICATION_DUE.tomorrow && detail.time && tomorrowAt) ||
+    (detail.due === NOTIFICATION_DUE.tomorrow && tomorrow) ||
+    kind
   return (named ? body : `${body}Plain`) as NotificationBodyName
 }
 
@@ -138,5 +166,7 @@ export function notificationParams(
     preview: detail.preview,
     // FR-7.13: what the thread a reply answers is called.
     thread: typeof thread === 'string' ? thread : '',
+    // FR-7.18: the time a task's reminder names.
+    time: detail.time,
   }
 }

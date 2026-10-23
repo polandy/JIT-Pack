@@ -299,6 +299,8 @@ func (c Config) apiOptions(version string) api.Options {
 		NoMapTiles:  !c.MapTiles,
 		NoTimetable: !c.Timetable,
 		RoutingURL:  c.RoutingURL,
+
+		TaskReminderAt: c.TaskReminderAt,
 	}
 	if c.LinkPreviews {
 		opts.LinkPreviews = linkpreview.NewFetcher()

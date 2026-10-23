@@ -9,6 +9,11 @@
  * M6's composer and entry sheet (FR-30.10) — which is why it is
  * a shared component and works out its chips itself: the shopping module may
  * not reach `domain/` (ADR-066).
+ *
+ * FR-7.18: given a `time`, a task's sheet also offers the time its reminder
+ * arrives — a dashed *Uhrzeit…* chip once a day stands, opening the app's
+ * clock in the row, then the time as its own chip with a ✕. Without the
+ * prop (M6, the composer, a selection) there is no such chip.
  */
 import { IonIcon } from '@ionic/vue'
 import { closeOutline } from 'ionicons/icons'
@@ -16,6 +21,7 @@ import { computed, ref } from 'vue'
 
 import ChoiceChip from '@/components/global/ChoiceChip.vue'
 import DateField from '@/components/global/DateField.vue'
+import TimeField from '@/components/global/TimeField.vue'
 import {
   QUICK_DAY_BEFORE_DEPARTURE,
   QUICK_DAY_TODAY,
@@ -24,6 +30,7 @@ import {
   type QuickDayKey,
 } from '@/domain/taskQuickDays'
 import { t, type MessageKey } from '@/i18n'
+import { isClockTime } from '@/lib/clockTime'
 import { dueLabel, shortDueDay } from '@/lib/taskDueText'
 import type { TaskPhase } from '@/types/domain'
 
@@ -44,9 +51,33 @@ const props = defineProps<{
    * `${testid}-picker`, so `setDateField` drives it as it drives a field.
    */
   testid: string
+  /**
+   * FR-7.18: the time in force, `HH:MM`, or null for none; absent where a
+   * time is not offered at all.
+   */
+  time?: string | null
 }>()
 
-const emit = defineEmits<{ update: [day: string | null] }>()
+const emit = defineEmits<{
+  update: [day: string | null]
+  /** FR-7.18: a time set, or null for one taken off. */
+  time: [time: string | null]
+}>()
+
+/** Whether the clock is open in the row, in place of the *Uhrzeit…* chip. */
+const editingTime = ref(false)
+const typedTime = ref('')
+
+function openTime() {
+  typedTime.value = ''
+  editingTime.value = true
+}
+
+/** A settled time is the answer; empty or past the clock closes the field unanswered. */
+function onTimeSettled(value: string) {
+  editingTime.value = false
+  if (isClockTime(value) && value !== props.time) emit('time', value)
+}
 
 const QUICK_LABEL: Record<QuickDayKey, MessageKey> = {
   [QUICK_DAY_TODAY]: 'tasks.dueToday',
@@ -102,6 +133,30 @@ function onPicked(iso: string) {
     <ChoiceChip add :data-testid="testid" @click="picker?.openPicker()">
       {{ t('tasks.quickPick') }}
     </ChoiceChip>
+    <template v-if="time !== undefined && value">
+      <TimeField
+        v-if="editingTime"
+        v-model="typedTime"
+        autofocus
+        class="time-field"
+        :aria-label="t('tasks.dueTimeField')"
+        :data-testid="`${testid}-time-field`"
+        @settle="onTimeSettled"
+      />
+      <ChoiceChip
+        v-else-if="time"
+        pressed
+        :label="t('tasks.dueTimeClear', { time })"
+        :data-testid="`${testid}-time`"
+        @click="emit('time', null)"
+      >
+        {{ time }}
+        <IonIcon :icon="closeOutline" aria-hidden="true" />
+      </ChoiceChip>
+      <ChoiceChip v-else add :data-testid="`${testid}-time`" @click="openTime">
+        {{ t('tasks.dueTimeAdd') }}
+      </ChoiceChip>
+    </template>
     <DateField
       ref="picker"
       bare
@@ -117,6 +172,19 @@ function onPicked(iso: string) {
 .due-chips {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
+}
+
+/* As wide as a chip holding `HH:MM`, so the row does not reflow as it opens. */
+.time-field {
+  flex: none;
+  width: 5.5em;
+  --padding-start: 8px;
+  --padding-end: 8px;
+  min-height: 0;
+  border: 1px solid var(--jp-action);
+  border-radius: var(--jp-r-pill);
+  font-size: var(--jp-text-sm);
 }
 </style>

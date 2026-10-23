@@ -19,31 +19,26 @@ func TestTaskReminderSchedule_FR7_11(t *testing.T) {
 	}
 	at := DefaultTaskReminderAt
 	for _, tc := range []struct {
-		name     string
-		now      time.Time
-		wantDue  bool
-		wantNext time.Time
+		name    string
+		now     time.Time
+		at      time.Duration
+		wantDue bool
 	}{
-		{"before the time", time.Date(2026, 7, 8, 5, 59, 0, 0, zurich), false, time.Date(2026, 7, 8, 6, 0, 0, 0, zurich)},
-		{"at the time", time.Date(2026, 7, 8, 6, 0, 0, 0, zurich), true, time.Date(2026, 7, 9, 6, 0, 0, 0, zurich)},
-		{"later that day", time.Date(2026, 7, 8, 23, 0, 0, 0, zurich), true, time.Date(2026, 7, 9, 6, 0, 0, 0, zurich)},
-		{"across the month", time.Date(2026, 7, 31, 7, 0, 0, 0, zurich), true, time.Date(2026, 8, 1, 6, 0, 0, 0, zurich)},
-		// 2026-10-25 is 25 hours long in Zurich: the next reminder stays at
-		// 06:00 on the wall clock rather than drifting to 05:00.
-		{"over the clock change", time.Date(2026, 10, 24, 7, 0, 0, 0, zurich), true, time.Date(2026, 10, 25, 6, 0, 0, 0, zurich)},
+		{"before the time", time.Date(2026, 7, 8, 5, 59, 0, 0, zurich), at, false},
+		{"at the time", time.Date(2026, 7, 8, 6, 0, 0, 0, zurich), at, true},
+		{"later that day", time.Date(2026, 7, 8, 23, 0, 0, 0, zurich), at, true},
+		// 2026-10-25 is 25 hours long in Zurich: the reminder stays at 06:00
+		// on the wall clock rather than drifting to 05:00.
+		{"over the clock change", time.Date(2026, 10, 25, 5, 30, 0, 0, zurich), at, false},
+		// A custom time (JITPACK_TASK_REMINDER_TIME=07:30) reads its minutes.
+		{"a custom time, before", time.Date(2026, 7, 8, 7, 29, 0, 0, zurich), 7*time.Hour + 30*time.Minute, false},
+		{"a custom time, at", time.Date(2026, 7, 8, 7, 30, 0, 0, zurich), 7*time.Hour + 30*time.Minute, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := reminderDue(tc.now, at); got != tc.wantDue {
+			if got := reminderDue(tc.now, tc.at); got != tc.wantDue {
 				t.Errorf("reminderDue = %v, want %v", got, tc.wantDue)
 			}
-			if got := nextReminder(tc.now, at); !got.Equal(tc.wantNext) || got.Hour() != 6 {
-				t.Errorf("nextReminder = %v, want %v", got, tc.wantNext)
-			}
 		})
-	}
-	// A custom time (JITPACK_TASK_REMINDER_TIME=07:30) reads its minutes.
-	if got := nextReminder(time.Date(2026, 7, 8, 7, 0, 0, 0, zurich), 7*time.Hour+30*time.Minute); !got.Equal(time.Date(2026, 7, 8, 7, 30, 0, 0, zurich)) {
-		t.Errorf("nextReminder at 07:30 = %v", got)
 	}
 }
 

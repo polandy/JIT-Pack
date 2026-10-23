@@ -65,6 +65,8 @@ export const tasksDe: Record<keyof typeof tasksEn, string> = {
     '{day} · {n} Tag vor der Idee, verschiebt sich mit ihr | {day} · {n} Tage vor der Idee, verschiebt sich mit ihr',
   'tasks.dueSetToast': '„{body}" fällig am {date}',
   'tasks.dueClearedToast': '„{body}" hat kein Fälligkeitsdatum mehr',
+  'tasks.dueTimeSetToast': '„{body}": Erinnerung am Tag um {time}',
+  'tasks.dueTimeClearedToast': '„{body}" hat keine Erinnerungszeit mehr',
   'tasks.dueCount': '{n} Aufgabe | {n} Aufgaben',
   'tasks.beforeLocked':
     'Die Packliste ist abgeschlossen — hier steht, was vor der Reise erledigt wurde.',
@@ -82,6 +84,14 @@ export const tasksDe: Record<keyof typeof tasksEn, string> = {
   'tasks.quickBeforeDeparture': 'Vor Abreise',
   'tasks.quickPick': 'Datum…',
   'tasks.dueClear': 'Fällig {day} – entfernen',
+  'tasks.dueTimeAdd': 'Uhrzeit…',
+  'tasks.dueTimeField': 'Uhrzeit',
+  'tasks.dueTimeClear': 'Uhrzeit {time} – entfernen',
+  'tasks.reminderHintDay': 'Erinnerung am Vortag und am Tag, um {daily}.',
+  'tasks.reminderHintTime': 'Erinnerung am Vortag um {daily} und am Tag um {time}.',
+  'tasks.reminderLocalDay': 'Ohne Server erinnert die App nicht; der Tag steht an der Aufgabe.',
+  'tasks.reminderLocalTime':
+    'Ohne Server erinnert die App nicht; die Uhrzeit steht an der Aufgabe.',
   'tasks.dueGroup': 'Fällig',
   'tasks.beforeHistory': 'Vor der Reise · {n} erledigt',
   'tasks.beforeHistoryEmpty': 'Vor der Reise · abgeschlossen',

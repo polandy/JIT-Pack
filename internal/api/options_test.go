@@ -42,7 +42,9 @@ func fullOptions() Options {
 		NoMapTiles:    true,
 		NoTimetable:   true,
 		RoutingURL:    "https://router.example/brouter",
-		Logger:        testLogger,
+		// 07:30, not the 06:00 default, so the field is seen arriving.
+		TaskReminderAt: 7*time.Hour + 30*time.Minute,
+		Logger:         testLogger,
 		OIDC: &OIDCConfig{
 			Discovery: Discovery{
 				Issuer:       "https://idp.example",
@@ -64,6 +66,10 @@ var applied = map[string]func(*Server) bool{
 	"NoMapTiles":  func(s *Server) bool { return !s.instance.MapTiles },
 	"NoTimetable": func(s *Server) bool { return !s.instance.Timetable },
 	"RoutingURL":  func(s *Server) bool { return s.instance.RoutingURL == "https://router.example/brouter" },
+	// The run keeps to it, and the task sheet reads it off the instance (FR-7.18).
+	"TaskReminderAt": func(s *Server) bool {
+		return s.reminderAt == 7*time.Hour+30*time.Minute && s.instance.ReminderTime == "07:30"
+	},
 	"PushContact": func(s *Server) bool { return s.notifier.Contact() == "mailto:ops@example.com" },
 	"WSIdle":      func(s *Server) bool { return s.wsIdle() == 42*time.Millisecond },
 	// Lowercased on the way in, which is what the FR-23.1 match relies on.

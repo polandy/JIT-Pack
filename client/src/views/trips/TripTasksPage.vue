@@ -458,6 +458,11 @@ function onSheetDue(dueDate: string | null) {
   if (opened.value) acts.setDue(opened.value, dueDate)
 }
 
+/** FR-7.18: the time on the due day, likewise one fact of several. */
+function onSheetDueTime(dueTime: string | null) {
+  if (opened.value) acts.setDueTime(opened.value, dueTime)
+}
+
 /** FR-7.14: finished from the sheet — it closes, as the tick's row leaves the list. */
 function onSheetToggle() {
   const task = opened.value
@@ -698,6 +703,7 @@ function onSheetRemove() {
           :trip-start="tripStart"
           @close="openedId = null"
           @due="onSheetDue"
+          @due-time="onSheetDueTime"
           @move="onSheetMove"
           @remove="onSheetRemove"
           @toggle="onSheetToggle"

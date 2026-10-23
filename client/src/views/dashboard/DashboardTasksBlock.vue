@@ -126,6 +126,7 @@ function add(text: string) {
         <DueBadge
           :day="openDueDay(task)"
           :today="orchestrator.today()"
+          :time="task.due_time"
           :testid="`due-${testid}-${task.body}`"
         />
       </template>

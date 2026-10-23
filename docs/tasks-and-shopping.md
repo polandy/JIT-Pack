@@ -156,17 +156,23 @@ still opens the picker for that one row.
 ## When a task is due
 
 Tap a task's words to open it, and pick the day it has to be done by under **Fällig** — **Heute**, **Morgen**,
-**Vor Abreise**, or any day from **Datum…**. A day, no time. The chosen day is its own chip; tap it to take the date
-off again. A task with a date wears a small label on its line: **Überfällig** in red once
+**Vor Abreise**, or any day from **Datum…**. The chosen day is its own chip; tap it to take the date
+off again — its time goes with it. A task with a date wears a small label on its line: **Überfällig** in red once
 the day has passed, **Heute**, **Morgen** or **In 2 Tagen** when it is close, and the date itself further out.
+
+Once a day stands, **Uhrzeit…** beside it gives the task a time on that day — *the office opens at 14:00*. The label
+then reads **Heute 14:00**, and inside its day a task with a time comes first. Tap the time's chip to take it off;
+moving the task to another day keeps it. A line under the chips says when the reminder will come.
 
 What is due comes first: overdue tasks and those due within two days stand in the **Fällig** block at the top of the
 task list, and inside a group the dated tasks lead, earliest first. The packing list's task window and the task block on the overview put
 them first too.
 
 On the morning before and on the day itself, the person the task is handed to is reminded — or everyone on the trip,
-if nobody has it yet (see [Notifications & Push](notifications.md)). In Local Mode, where there is no server to send
-a reminder, the app says how many tasks are due when you open it.
+if nobody has it yet (see [Notifications & Push](notifications.md)). A task with a time is reminded on its day at that
+time instead of in the morning, and the reminder the evening before names it (*„morgen um 14:00"*). In Local Mode,
+where there is no server to send a reminder, the time stays on the task and the app says how many tasks are due when
+you open it. Entries on the shopping list take a day only, never a time.
 
 A step that prepares an [idea](ideas.md#preparing-an-idea) takes its day from the idea: its sheet shows the day and
 how long before the idea it lies, and it moves when the idea is planned on another day.

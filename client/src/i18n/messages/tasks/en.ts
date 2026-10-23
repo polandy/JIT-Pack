@@ -61,6 +61,8 @@ export const tasksEn = {
     '{day} · {n} day before the idea, moves with it | {day} · {n} days before the idea, moves with it',
   'tasks.dueSetToast': '“{body}” due {date}',
   'tasks.dueClearedToast': '“{body}” has no due date any more',
+  'tasks.dueTimeSetToast': '“{body}”: reminder on the day at {time}',
+  'tasks.dueTimeClearedToast': '“{body}” has no reminder time any more',
   'tasks.dueCount': '{n} task | {n} tasks',
   'tasks.beforeLocked': 'The packing is finished — this is what was done before the trip.',
 
@@ -77,6 +79,14 @@ export const tasksEn = {
   'tasks.quickBeforeDeparture': 'Before departure',
   'tasks.quickPick': 'Date…',
   'tasks.dueClear': 'Due {day} — remove',
+  'tasks.dueTimeAdd': 'Time…',
+  'tasks.dueTimeField': 'Time',
+  'tasks.dueTimeClear': 'Time {time} — remove',
+  'tasks.reminderHintDay': 'Reminded the day before and on the day, at {daily}.',
+  'tasks.reminderHintTime': 'Reminded the day before at {daily} and on the day at {time}.',
+  'tasks.reminderLocalDay': 'Without a server the app does not remind; the day stays on the task.',
+  'tasks.reminderLocalTime':
+    'Without a server the app does not remind; the time stays on the task.',
   'tasks.dueGroup': 'Due',
   'tasks.beforeHistory': 'Before the trip · {n} done',
   'tasks.beforeHistoryEmpty': 'Before the trip · closed',

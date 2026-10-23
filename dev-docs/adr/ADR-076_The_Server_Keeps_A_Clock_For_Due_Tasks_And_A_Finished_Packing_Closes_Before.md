@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Related:** FR-7.11, FR-7.12, FR-7.14, FR-7.7, FR-5.10, FR-30.8, FR-17.3, FR-6.2, NFR-4.6, FR-30.3, ADR-066, ADR-071,
-ADR-037, `internal/notify/due.go`, `internal/store/taskdue.go`, `client/src/domain/taskDue.ts`,
+ADR-037, ADR-105, `internal/notify/due.go`, `internal/store/taskdue.go`, `client/src/domain/taskDue.ts`,
 `client/src/domain/closePacking.ts`, `client/src/domain/shared/tripPhase.ts`, `client/src/kernel/packingClose.ts`,
 `client/src/composables/useDueLine.ts`, UI-Spec M1, migration `005_task_due_date.sql`
 
@@ -150,7 +150,8 @@ With no server there is no push, so the app says what is due when it is open.
 ## Decision
 
 The server runs FR-7.11's reminder itself, once a day at `JITPACK_TASK_REMINDER_TIME` (default 06:00) in its own zone,
-claiming the day in `server_keys` so it is sent once and never lost to a restart; Single-User is reminded too. Local
+claiming the day in `server_keys` so it is sent once and never lost to a restart; Single-User is reminded too. A
+task with a time of its own is reminded on its day at that time instead (ADR-105). Local
 Mode has no reminder: M1's page head says what is due instead, in every mode. The lock on *before* is read off the trip
 row, never stored. Once the trip is under way — started, its first day come, or its packing closed (`beforeIsOver`) —
 the composers and moves offer *before* nothing new, every other writer of a new task writes it for the road
@@ -181,6 +182,5 @@ the composers and moves offer *before* nothing new, every other writer of a new 
 
 ## Revisit Trigger
 
-A second server instance on one database (the claim then needs a real lease), a request for a reminder *time* per
-task rather than a day, or a web platform API that can fire a notification at a set time with the app closed (then
-Local Mode could be reminded properly).
+A second server instance on one database (the claim then needs a real lease), or a web platform API that can fire a
+notification at a set time with the app closed (then Local Mode could be reminded properly).
