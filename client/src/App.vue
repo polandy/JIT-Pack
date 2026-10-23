@@ -14,6 +14,7 @@ import type { InstanceConfigResponse } from '@/api/types'
 import { setCurrency } from '@/i18n/currency'
 import { setMapTiles } from '@/composables/shared/mapTiles'
 import { setTimetable } from '@/composables/shared/timetable'
+import { setReminderTime } from '@/composables/shared/reminderTime'
 import { DEFAULT_ROUTER_URL, setRouting } from '@/composables/routing'
 import { IonApp, IonRouterOutlet, toastController } from '@ionic/vue'
 import AppHeader from '@/components/shell/AppHeader.vue'
@@ -302,6 +303,7 @@ onMounted(async () => {
         setMapTiles(config.map_tiles)
         setTimetable(config.timetable)
         setRouting(config.routing_url)
+        setReminderTime(config.reminder_time)
       }
     } catch {
       // Server unreachable — keep the last known label.

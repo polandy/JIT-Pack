@@ -18,6 +18,11 @@ function hourLength(digits: string): number {
   return digits[0]! > TWO_DIGIT_HOUR_MAX_LEAD ? 1 : 2
 }
 
+/** Whether `text` is a time on the 24-hour clock, `HH:MM`. */
+export function isClockTime(text: string): boolean {
+  return HH_MM.test(text)
+}
+
 /** What the field shows while typing: the colon set as soon as the hour is complete. */
 export function typedTime(text: string): string {
   let digits = digitsOf(text)

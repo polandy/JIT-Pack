@@ -53,6 +53,7 @@ function task(id: string, due: string | null, state: TripTask['task_state'] = 'o
     resolved_by_user_id: null,
     task_tag_id: null,
     due_date: due,
+    due_time: null,
   }
 }
 

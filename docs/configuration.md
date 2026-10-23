@@ -27,7 +27,7 @@ This page is the full reference. For how the modes below differ and how to wire 
 | `JITPACK_TIMETABLE` | no | on | When somebody adds a [connection](day-plan.md#adding-a-connection), their device can search the Swiss public-transport timetable at transport.opendata.ch. `false` turns that off; unset or `true` leaves it on; any other value is a **startup error**. See [Timetable](#timetable). |
 | `JITPACK_ROUTING` | no | on | When somebody [edits or draws a route](ideas.md#changing-a-route-or-drawing-one), their device asks a BRouter route planner for the way along the paths. `false` turns that off; unset or `true` leaves it on; any other value is a **startup error**. See [Route planning](#route-planning). |
 | `JITPACK_ROUTING_URL` | no | `https://brouter.de/brouter` | The BRouter the devices ask, for example one you run yourself. It must be an `http` or `https` address; anything else is a **startup error**. |
-| `JITPACK_TASK_REMINDER_TIME` | no | `06:00` | The time of day, as `HH:MM`, at which the server reminds people of the tasks and shopping-list entries due tomorrow and today. It is read in the server's time zone — in the published image UTC unless you set `TZ` (for example `TZ=Europe/Zurich`). See [Task reminders](#task-reminders). |
+| `JITPACK_TASK_REMINDER_TIME` | no | `06:00` | The time of day, as `HH:MM`, at which the server reminds people of the tasks and shopping-list entries due tomorrow and today (a task with a time of its own is reminded at that time on its day). It is read in the server's time zone — in the published image UTC unless you set `TZ` (for example `TZ=Europe/Zurich`). See [Task reminders](#task-reminders). |
 | `JITPACK_CURRENCY` | no | — | The currency your item values are in, as a three-letter ISO 4217 code such as `CHF` or `EUR`. Amounts are shown with it everywhere they appear. Leave it unset and amounts stay bare numbers. See [Currency](#currency). |
 
 Trailing slashes on `JITPACK_OIDC_ISSUER` are stripped before use, so `https://auth.example.com/` and `https://auth.example.com` are equivalent.
@@ -271,7 +271,9 @@ What to know before you decide:
 ## Task reminders
 
 A task can carry the day it is due, and so can an entry on a trip's shopping list. Once a day the server reminds
-whoever the task is for — and everyone on the trip of a due purchase: **the day before, and on the day itself**. Nothing is sent again once the day has passed — the task then shows as *Überfällig* in the app.
+whoever the task is for — and everyone on the trip of a due purchase: **the day before, and on the day itself**. A
+task given a time of its own is reminded on its day at that time instead, in the same zone; the reminder the day
+before still comes at the daily time and names it. Nothing is sent again once the day has passed — the task then shows as *Überfällig* in the app.
 
 ```bash
 JITPACK_TASK_REMINDER_TIME=07:30   # default 06:00
@@ -284,7 +286,9 @@ TZ=Europe/Zurich                   # the zone that time is read in; the image is
   single-user instance sends. It reaches a closed app through push like any other notification (see
   [Notifications & Push](notifications.md)).
 - **A restart does not repeat or lose it.** The server records the day it last sent the reminder. Started after the
-  time, it sends that day's reminder at once; restarted again the same day, it sends nothing more.
+  time, it sends that day's reminder at once; restarted again the same day, it sends nothing more. For tasks with a
+  time it records the last minute it looked at: whatever fell due while it was down that day is sent on start-up —
+  not a past day's, though. A time moved later is reminded again; one set to a minute already gone is not.
 - **The startup log says when**, e.g. `task reminders daily at 06:00 CEST (FR-7.11)` — the zone is whatever `TZ`
   resolved to, `UTC` when it is unset, so this line tells you whether `TZ` took.
 

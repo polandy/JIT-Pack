@@ -84,7 +84,9 @@
   * **The due pill (FR-7.11)**: *Überfällig* in the danger ink on its tint, *Heute* / *Morgen* / *In 2 Tagen* in the
     action ink, a short date (*„Fr., 17.7."*) quiet on the sunken plane further out. It stays visible while
     selecting — when a task is due is part of choosing it. Inside a group the dated open tasks lead, earliest first —
-    among the tasks never put in place by hand, which read before the placed ones (FR-7.17).
+    among the tasks never put in place by hand, which read before the placed ones (FR-7.17). A task with a reminder
+    time (FR-7.18) wears it after the day's word (*„Heute 14:00"*, *„Fr., 17.7. 14:00"*) and leads its day, earliest
+    time first; an overdue pill reads *Überfällig* alone.
 * **Before the trip, closed (FR-7.12, placed by FR-7.14).** Once the packing is finished, *Vor der Reise* is history,
   and history comes after the work: *Während der Reise* is the first section, and *Vor der Reise* is **one folded line
   at the end** (`m25-before-fold`, the same `RestLine` an empty phase folds to): *„Vor der Reise · N erledigt"*, or *„·
@@ -124,6 +126,13 @@
     Morgen"*), then *Heute*, *Morgen*, *Vor Abreise* (the day before the trip's start, for a task before the trip,
     when that day is later than tomorrow) and *Datum…*, which opens the app's calendar (`DateField`'s bare shape,
     ADR-035). A picked day is written at once, the sheet stays up, and the undo writes the day the task had before.
+    **Once a day stands** a last chip *Uhrzeit…* (`task-sheet-due-time`, FR-7.18) opens a time field
+    (`task-sheet-due-time-field`); a time written turns it into the pressed chip *„14:00"* with ✕, which takes the time
+    off. Clearing the day clears its time too, and that undo writes both back; moving the day keeps the time. Under the
+    chips one quiet line says when the reminder comes (`task-sheet-reminder-hint`): *„Erinnerung am Vortag und am Tag,
+    um 06:00."*, with a time *„Erinnerung am Vortag um 06:00 und am Tag um 14:00."* (06:00 is the instance's daily
+    time) — and in Local Mode *„Ohne Server erinnert die App nicht; die Uhrzeit steht an der Aufgabe."* (*der Tag*
+    without a time).
     **An idea's preparation step** (FR-29.21) has no chips: its day is its idea's less the lead, stated as
     *„Fr., 2.10. · 7 Tage vor der Idee, verschiebt sich mit ihr"* (`task-sheet-lead`); the batch's *Fällig* leaves
     it as it is. A step whose idea has no day yet is not on this screen.

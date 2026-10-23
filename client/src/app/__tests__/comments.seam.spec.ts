@@ -340,6 +340,32 @@ describe('createCommentActions without an orchestrator', () => {
     expect(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!.due_date).toBeNull()
   })
 
+  it('setTaskDueTime writes the time alone; taking the day off takes the time with it (FR-7.18)', () => {
+    pullIn(ctx.tripStore, TABLE.comments, 'tt-1', {
+      trip_id: TRIP_ID,
+      trip_item_id: null,
+      author_id: AUTHOR,
+      body: 'Tierarzt',
+      is_task: 1,
+      task_state: 'open',
+      due_date: '2026-07-09',
+    })
+
+    const actions = createCommentActions(ctx)
+    actions.setTaskDueTime(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!, '14:00')
+    // One field: a time set here and a day moved on another device both stand.
+    expect(queued[0]!.muts[0]!.mutation.fields).toEqual({ due_time: '14:00' })
+    expect(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!.due_time).toBe('14:00')
+
+    actions.setTaskDueDate(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!, '2026-07-10')
+    expect(queued[1]!.muts[0]!.mutation.fields).toEqual({ due_date: '2026-07-10' })
+    expect(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!.due_time).toBe('14:00')
+
+    actions.setTaskDueDate(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!, null)
+    expect(queued[2]!.muts[0]!.mutation.fields).toEqual({ due_date: null, due_time: null })
+    expect(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!.due_time).toBeNull()
+  })
+
   /*
    * FR-7.12, FR-7.14: once the trip is under way *before the trip* takes
    * nothing new. Every writer of a new task — M5's preparation, a composer, a

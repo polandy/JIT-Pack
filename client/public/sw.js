@@ -182,9 +182,13 @@ function bodyName(kind, payload) {
   // FR-7.13: a reply, like a note and a mention, is about its own words.
   const quoted = kind === 'mention' || kind === 'note' || kind === 'note_reply'
   const named = quoted ? payload.preview : payload.item_name
-  // FR-7.11/FR-30.10/FR-31.9: a reminder's day picks one of two sentences.
+  // FR-7.11/FR-30.10/FR-31.9: a reminder's day picks one of two sentences;
+  // FR-7.18: a task's time, one of two more.
   const reminder = kind === 'task_due' || kind === 'shopping_due' || kind === 'excursion_due'
-  const body = reminder && payload.due === 'tomorrow' ? kind + 'Tomorrow' : kind
+  const timed = kind === 'task_due' && payload.time
+  let body = kind
+  if (timed && payload.due === 'now') body = kind + 'Now'
+  else if (reminder && payload.due === 'tomorrow') body = kind + (timed ? 'TomorrowAt' : 'Tomorrow')
   return named ? body : body + 'Plain'
 }
 
@@ -206,6 +210,7 @@ function notificationBody(data, mirror) {
     item: payload.item_name || '',
     preview: payload.preview || '',
     thread: payload.thread || '',
+    time: payload.time || '',
   })
 }
 

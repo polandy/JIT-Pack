@@ -6,7 +6,8 @@
  * **Ordered by how often each act is wanted (FR-7.14).**
  * The task's words are its title and are edited in place, so fixing a typo
  * keeps the task's tag and day.
- * *Erledigt* is the one primary act, then the due day as chips, then the tag;
+ * *Erledigt* is the one primary act, then the due day as chips — with the
+ * time its reminder arrives beside them once a day stands (FR-7.18) — then the tag;
  * the phase move, the rarest act, is a secondary row under them, and the
  * removal the quiet last line. The facts that do not fit a list line — the
  * row it prepares, who wrote it, who finished it — sit between the two.
@@ -21,6 +22,8 @@ import {
   arrowUndoOutline,
   checkmarkOutline,
   createOutline,
+  notificationsOffOutline,
+  notificationsOutline,
   checkmarkCircleOutline,
   cubeOutline,
   trashOutline,
@@ -34,6 +37,7 @@ import { filedTagOf, type TripTask } from '@/domain/tripTasks'
 import { t } from '@/i18n'
 import type { NameOf } from '@/lib/rowFacts'
 import { shortDueDay } from '@/lib/taskDueText'
+import { useDailyReminder } from '@/composables/shared/reminderTime'
 import { createdStampText, resolvedStampText } from '@/lib/taskFacts'
 import {
   TASK_PHASE_BEFORE,
@@ -84,6 +88,8 @@ const emit = defineEmits<{
   newTag: [name: string]
   /** FR-7.11: the day it is due, `YYYY-MM-DD`, or null to take the date off. */
   due: [dueDate: string | null]
+  /** FR-7.18: the time its reminder arrives, `HH:MM`, or null to take it off. */
+  dueTime: [dueTime: string | null]
 }>()
 
 /** FR-7.12: a task left in a closed *before* is read, not worked. */
@@ -135,6 +141,17 @@ const noTagLabel = computed(() => (props.task.item ? t('tasks.fromPacking') : t(
 function onDue(day: string | null) {
   if (day !== props.task.due_date) emit('due', day)
 }
+
+/** FR-7.18: when the daily reminder runs, or null where nothing reminds (Local Mode). */
+const dailyReminder = useDailyReminder()
+
+/** FR-7.18: which reminders the day and time will bring, or that none will. */
+const reminderHint = computed(() => {
+  const time = props.task.due_time ?? null
+  const daily = dailyReminder.value
+  if (daily === null) return t(time ? 'tasks.reminderLocalTime' : 'tasks.reminderLocalDay')
+  return time ? t('tasks.reminderHintTime', { daily, time }) : t('tasks.reminderHintDay', { daily })
+})
 
 /** Whether the phase move is offered: never into a *before* that is over (FR-7.12, FR-7.14). */
 const canMove = computed(
@@ -218,8 +235,9 @@ function factLine(key: string, icon: string, text: string | null) {
       </IonButton>
     </div>
 
-    <!-- FR-7.11: a day, not a time — and only while the task is open: a
-         finished task's date says when it was meant, nothing more to set. -->
+    <!-- FR-7.11, FR-7.18: a day, and the time its reminder arrives — only
+         while the task is open: a finished task's date says when it was
+         meant, nothing more to set. -->
     <section v-if="isOpen && !history" class="due">
       <div class="label jp-section-count">{{ t('tasks.dueField') }}</div>
       <!-- FR-29.21: a preparation step's day is its idea's, less the lead —
@@ -227,15 +245,25 @@ function factLine(key: string, icon: string, text: string | null) {
       <p v-if="task.lead_days != null && task.due_date" class="lead" data-testid="task-sheet-lead">
         {{ t('tasks.dueFromIdea', { day: shortDueDay(task.due_date), n: task.lead_days }) }}
       </p>
-      <DueChips
-        v-else
-        :value="task.due_date"
-        :today="today"
-        :phase="task.phase"
-        :trip-start="tripStart ?? null"
-        testid="task-sheet-due"
-        @update="onDue"
-      />
+      <template v-else>
+        <DueChips
+          :value="task.due_date"
+          :time="task.due_time ?? null"
+          :today="today"
+          :phase="task.phase"
+          :trip-start="tripStart ?? null"
+          testid="task-sheet-due"
+          @update="onDue"
+          @time="emit('dueTime', $event)"
+        />
+        <p v-if="task.due_date" class="hint" data-testid="task-sheet-reminder-hint">
+          <IonIcon
+            :icon="dailyReminder === null ? notificationsOffOutline : notificationsOutline"
+            aria-hidden="true"
+          />
+          <span>{{ reminderHint }}</span>
+        </p>
+      </template>
     </section>
 
     <TaskTagPicker
@@ -315,6 +343,21 @@ function factLine(key: string, icon: string, text: string | null) {
 
 .due {
   margin-top: 16px;
+}
+
+.hint {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  margin: 8px 0 0;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-xs);
+}
+
+.hint ion-icon {
+  flex: none;
+  margin-top: 2px;
+  font-size: var(--jp-icon-xs);
 }
 
 .lead {

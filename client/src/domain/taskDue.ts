@@ -3,7 +3,8 @@
  *
  * The day arithmetic is `domain/shared/dueDay.ts`'s (shared with FR-30.10's
  * shopping entries); what is a task's own is which task has a day worth
- * reading — an open one. A resolved task is never overdue.
+ * reading — an open one. A resolved task is never overdue. FR-7.18's time of
+ * day only orders a day's tasks; every reading stays the day's.
  */
 import {
   DUE_LATER,
@@ -26,6 +27,8 @@ export type { DueState }
 /** What the rules read off a task. */
 export interface DueFacts {
   due_date: string | null
+  /** FR-7.18: the time its reminder arrives, `HH:MM`; null or absent for none. */
+  due_time?: string | null
   task_state: TaskState
 }
 
@@ -42,11 +45,24 @@ export function isDuePressing(task: DueFacts, today: string): boolean {
 /**
  * byDue puts the open dated tasks first, earliest date first — which reads
  * overdue, today, soon, later — and leaves everything else in the order it
- * came in (FR-7.6's). Stable, so two tasks due the same day keep that order
- * too.
+ * came in (FR-7.6's). Within a day the timed tasks lead, earliest time first
+ * (FR-7.18); otherwise stable, so two tasks due the same day keep that order.
  */
 export function byDue<T extends DueFacts>(tasks: readonly T[], today: string): T[] {
-  return sortByDue(tasks, today, openDueDay)
+  return sortByDue(tasks, today, openDueDay, byDueTime)
+}
+
+/**
+ * FR-7.18: two tasks due the same day, the timed one first and the earlier
+ * time before the later; 0 where neither or both carry the same time.
+ */
+export function byDueTime(a: DueFacts, b: DueFacts): number {
+  const at = a.due_time ?? null
+  const bt = b.due_time ?? null
+  if (at === bt) return 0
+  if (at === null) return 1
+  if (bt === null) return -1
+  return at < bt ? -1 : 1
 }
 
 /**

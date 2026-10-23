@@ -20,6 +20,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import TripTasksPage from '../TripTasksPage.vue'
 import TaskComposer from '@/views/trips/tasks/TaskComposer.vue'
 import TripTaskSheet from '@/views/trips/tasks/TripTaskSheet.vue'
+import DueChips from '@/components/global/DueChips.vue'
 import { identityStub } from '@/composables/shared/__tests__/identityStub'
 import { STUB_TODAY, tripScreenStub } from '@/composables/shared/__tests__/tripScreenStub'
 import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
@@ -85,6 +86,7 @@ const acts = {
     assignPrepTask: vi.fn(),
     setTaskPhase: vi.fn(),
     setTaskDueDate: vi.fn(),
+    setTaskDueTime: vi.fn(),
     setTaskBody: vi.fn(),
   },
   masterData: {
@@ -477,6 +479,73 @@ describe('M25 — the two phases of a trip (FR-7.7)', () => {
     expect(page.get('[data-testid="m25-during-fold"]').text()).toBe(
       'During the trip · nothing open',
     )
+  })
+})
+
+describe('M25 — the time a task’s reminder arrives (FR-7.18)', () => {
+  it('writes the time the sheet was given, and the undo writes the one it had', async () => {
+    seedTrip()
+    seedTask('Pass holen', { due_date: '2026-07-09', due_time: '09:00' })
+
+    const page = mountPage()
+    await flushPromises()
+    await page.get('[data-testid="trip-task-open-Pass holen"]').trigger('click')
+    await flushPromises()
+    page.findComponent(TripTaskSheet).vm.$emit('dueTime', '14:00')
+    await flushPromises()
+
+    expect(acts.comments.setTaskDueTime).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'Pass holen' }),
+      '14:00',
+    )
+    acts.comments.setTaskDueTime.mockClear()
+    ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
+    expect(acts.comments.setTaskDueTime).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'Pass holen' }),
+      '09:00',
+    )
+  })
+
+  it('a day taken off comes back with its time on undo', async () => {
+    seedTrip()
+    seedTask('Pass holen', { due_date: '2026-07-09', due_time: '14:00' })
+
+    const page = mountPage()
+    await flushPromises()
+    await page.get('[data-testid="trip-task-open-Pass holen"]').trigger('click')
+    await flushPromises()
+    page.findComponent(TripTaskSheet).vm.$emit('due', null)
+    await flushPromises()
+    expect(acts.comments.setTaskDueTime).not.toHaveBeenCalled()
+
+    ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
+    expect(acts.comments.setTaskDueDate).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: 'Pass holen' }),
+      '2026-07-09',
+    )
+    expect(acts.comments.setTaskDueTime).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'Pass holen' }),
+      '14:00',
+    )
+  })
+
+  it('a day moved keeps its time, and its undo writes no time', async () => {
+    seedTrip()
+    seedTask('Pass holen', { due_date: '2026-07-09', due_time: '14:00' })
+
+    const page = mountPage()
+    await flushPromises()
+    await page.get('[data-testid="trip-task-open-Pass holen"]').trigger('click')
+    await flushPromises()
+    page.findComponent(TripTaskSheet).vm.$emit('due', '2026-07-10')
+    await flushPromises()
+    ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
+
+    expect(acts.comments.setTaskDueDate).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: 'Pass holen' }),
+      '2026-07-09',
+    )
+    expect(acts.comments.setTaskDueTime).not.toHaveBeenCalled()
   })
 })
 
@@ -975,6 +1044,33 @@ describe('M25 — several tasks at once (FR-7.8)', () => {
 
     expect(acts.comments.setTaskDueDate).toHaveBeenCalledTimes(2)
     for (const call of acts.comments.setTaskDueDate.mock.calls) expect(call[1]).toBe('2026-07-09')
+  })
+
+  it('a batch that takes the day off brings each task’s time back with it on undo (FR-7.18)', async () => {
+    seedTrip()
+    seedTask('Salbe holen', { due_date: '2026-07-09', due_time: '14:00' })
+    seedTask('Pass holen', { due_date: '2026-07-10' })
+
+    const page = mountPage()
+    await flushPromises()
+    await page.get('[data-testid="trip-task-Salbe holen"] ion-label').trigger('contextmenu')
+    await barAll()
+    await page.get('[data-testid="m25-bulk-due"]').trigger('click')
+    await flushPromises()
+    page
+      .findAllComponents(DueChips)
+      .find((chips) => chips.props('testid') === 'm25-bulk-when')!
+      .vm.$emit('update', null)
+    await flushPromises()
+    expect(acts.comments.setTaskDueDate).toHaveBeenCalledTimes(2)
+    expect(acts.comments.setTaskDueTime).not.toHaveBeenCalled()
+
+    ;(page.vm as unknown as { rowUndo: RowUndo }).rowUndo.undo()
+    expect(acts.comments.setTaskDueTime).toHaveBeenCalledTimes(1)
+    expect(acts.comments.setTaskDueTime).toHaveBeenCalledWith(
+      expect.objectContaining({ body: 'Salbe holen' }),
+      '14:00',
+    )
   })
 
   it('hands the whole selection to one person, skipping who already has it, with one undo (FR-7.14)', async () => {

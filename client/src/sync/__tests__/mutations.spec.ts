@@ -476,12 +476,21 @@ describe('createMutations', () => {
   })
 
   // FR-7.11: a day or none, and nothing beside it — a date set on one device
-  // and a tag set on another must both survive the merge (NFR-4.2a).
-  it('setTaskDueDate writes the day alone, and can write it away', () => {
+  // and a tag set on another must both survive the merge (NFR-4.2a). A day
+  // taken off takes its time along (FR-7.18): a time on no day reminds of
+  // nothing.
+  it('setTaskDueDate writes the day alone, and writes it away with its time', () => {
     const m = mutations()
     expect(m.setTaskDueDate('task1', '2026-07-09').fields).toEqual({ due_date: '2026-07-09' })
-    expect(m.setTaskDueDate('task1', null).fields).toEqual({ due_date: null })
+    expect(m.setTaskDueDate('task1', null).fields).toEqual({ due_date: null, due_time: null })
     expect(m.setTaskDueDate('task1', null).table).toBe(TABLE.comments)
+  })
+
+  // FR-7.18: the time alone, so a day moved elsewhere keeps it.
+  it('setTaskDueTime writes the time alone, and can write it away', () => {
+    const m = mutations()
+    expect(m.setTaskDueTime('task1', '14:00').fields).toEqual({ due_time: '14:00' })
+    expect(m.setTaskDueTime('task1', null).fields).toEqual({ due_time: null })
   })
 
   // FR-29.21: an idea's preparation step is written with its idea and its

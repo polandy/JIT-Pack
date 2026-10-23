@@ -796,6 +796,66 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
   })
 
   /**
+   * E2E-M25-22 (FR-7.18): a task with a day takes a time — the moment its
+   * reminder comes on that day. The time is a chip beside the day's, offered
+   * only once a day stands, typed on the 24-hour clock; the pill on the list
+   * reads the day and the time (*Today 14:00*), and both survive a reload.
+   * Local Mode has no server to remind, so the sheet says the time stays on
+   * the task and nothing more. Taking the time off leaves the day alone.
+   */
+  test('E2E-M25-22: a time is set beside the due day, worn on the pill, and taken off again', async ({
+    page,
+  }) => {
+    await tripWithRows(page, ['Zelt'], 'Uhrzeit')
+    await addOwnTask(page, 'Renew the passport')
+
+    const before = await openTasks(page, 'before')
+    await before.getByTestId('trip-task-open-Renew the passport').click()
+    const sheet = page.getByTestId('task-sheet')
+    await expect(sheet).toBeVisible()
+    // No day, no time: the chip waits for the day.
+    await expect(sheet.getByTestId('task-sheet-due-time')).toHaveCount(0)
+    await sheet.getByTestId('due-chip-today').click()
+    await expect(sheet.getByTestId('task-sheet-due-current')).toBeVisible()
+
+    await sheet.getByTestId('task-sheet-due-time').click()
+    const field = sheet.getByTestId('task-sheet-due-time-field')
+    await fillIonic(field, '14:00')
+    await field.locator('input').press('Enter')
+    await expect(sheet.getByTestId('task-sheet-due-time')).toHaveText('14:00')
+    await expect(sheet.getByTestId('task-sheet-due-time')).toHaveAttribute('aria-pressed', 'true')
+    await expect(sheet.getByTestId('task-sheet-reminder-hint')).toHaveText(
+      'Without a server the app does not remind; the time stays on the task.',
+    )
+    await sheet.getByTestId('task-sheet-close').click()
+    await expect(sheet).toHaveCount(0)
+
+    const pill = visible(page)
+      .getByTestId('m25-due')
+      .getByTestId('trip-task-due-Renew the passport')
+    await expect(pill).toHaveText('Today 14:00')
+    await writesLanded(page)
+    await page.reload()
+    await expect(
+      visible(page).getByTestId('m25-due').getByTestId('trip-task-due-Renew the passport'),
+    ).toHaveText('Today 14:00')
+
+    // The time's own ✕ takes the time and leaves the day.
+    await visible(page)
+      .getByTestId('m25-due')
+      .getByTestId('trip-task-open-Renew the passport')
+      .click()
+    await expect(sheet).toBeVisible()
+    await sheet.getByTestId('task-sheet-due-time').click()
+    await expect(sheet.getByTestId('task-sheet-due-time')).toHaveText('Time…')
+    await expect(sheet.getByTestId('task-sheet-due-current')).toBeVisible()
+    await sheet.getByTestId('task-sheet-close').click()
+    await expect(
+      visible(page).getByTestId('m25-due').getByTestId('trip-task-due-Renew the passport'),
+    ).toHaveText('Today')
+  })
+
+  /**
    * E2E-M25-14 (FR-7.14): a task is filed as it is typed, and what is due
    * leads. The one composer sits on top; its chips name the phase, the tag
    * and the day, and *＋ Tag* opens M6's entry sheet with what was typed. The

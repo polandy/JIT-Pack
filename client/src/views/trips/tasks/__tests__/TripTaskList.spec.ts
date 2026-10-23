@@ -42,6 +42,7 @@ const FACTS = {
   resolved_at: null,
   resolved_by_user_id: null,
   due_date: null,
+  due_time: null,
 } as const
 
 /** A row's preparation (FR-7.3), as FR-7.6 lists it. */
@@ -322,6 +323,7 @@ describe('TripTaskList — when a task is due (FR-7.11)', () => {
   const dated = (body: string, due: string, state: 'open' | 'resolved' = 'open'): TripTask => ({
     ...ownTask(body, state),
     due_date: due,
+    due_time: null,
   })
 
   it('wears the day on an open task, red once it has passed', () => {

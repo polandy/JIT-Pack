@@ -202,9 +202,17 @@ export function createCommentActions(ctx: SyncContext) {
     write(mutations.setTaskTag(task.id, taskTagId))
   }
 
-  /** FR-7.11: the day a task is due, set, moved or taken off — one field. */
+  /**
+   * FR-7.11: the day a task is due, set, moved or taken off — one field, and
+   * the time with it when the day goes (FR-7.18).
+   */
   function setTaskDueDate(task: PrepTask | OwnTask, dueDate: string | null) {
     write(mutations.setTaskDueDate(task.id, dueDate))
+  }
+
+  /** FR-7.18: the time a task's reminder arrives, set, moved or taken off — one field. */
+  function setTaskDueTime(task: PrepTask | OwnTask, dueTime: string | null) {
+    write(mutations.setTaskDueTime(task.id, dueTime))
   }
 
   /** FR-7.17: a task's place inside its group, either kind — one field. */
@@ -245,6 +253,7 @@ export function createCommentActions(ctx: SyncContext) {
     setTaskTag,
     placeTask,
     setTaskDueDate,
+    setTaskDueTime,
     setTaskBody,
     setTaskLead,
     deleteOwnTask,

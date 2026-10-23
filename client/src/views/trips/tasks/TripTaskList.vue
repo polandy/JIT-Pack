@@ -248,6 +248,7 @@ function hasFacts(task: TripTask): boolean {
             v-if="today"
             :day="openDueDay(task)"
             :today="today"
+            :time="task.due_time"
             :testid="`trip-task-due-${task.body}`"
           />
           <TaskItemChip
@@ -293,6 +294,7 @@ function hasFacts(task: TripTask): boolean {
               v-if="today"
               :day="openDueDay(task)"
               :today="today"
+              :time="task.due_time"
               :testid="`trip-task-due-${task.body}`"
             />
             <TaskItemChip

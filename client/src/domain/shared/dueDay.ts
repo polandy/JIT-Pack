@@ -55,12 +55,15 @@ export function isDueByTomorrow(day: string | null, today: string): boolean {
  * sortByDue puts the things with a day first, earliest first — which reads
  * overdue, today, soon, later — and leaves everything else in the order it
  * came in. Stable, so two things due the same day keep that order too.
- * `dayOf` answers null for a thing without a day or already done.
+ * `dayOf` answers null for a thing without a day or already done; `withinDay`,
+ * where given, orders two things due the same day before their incoming order
+ * does.
  */
 export function sortByDue<T>(
   items: readonly T[],
   today: string,
   dayOf: (item: T) => string | null,
+  withinDay: (a: T, b: T) => number = () => 0,
 ): T[] {
   const rank = (item: T) => {
     const day = dayOf(item)
@@ -68,7 +71,12 @@ export function sortByDue<T>(
   }
   return items
     .map((item, index) => ({ item, index, rank: rank(item) }))
-    .sort((a, b) => a.rank - b.rank || a.index - b.index)
+    .sort(
+      (a, b) =>
+        a.rank - b.rank ||
+        (a.rank === Number.POSITIVE_INFINITY ? 0 : withinDay(a.item, b.item)) ||
+        a.index - b.index,
+    )
     .map(({ item }) => item)
 }
 

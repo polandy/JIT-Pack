@@ -6,7 +6,7 @@
 
 import type { TrackKind } from '@/api/types'
 import type { ColumnEnum } from '@/api/tables'
-import type { IdeaTaskLink } from './ideaTask'
+import type { IdeaTaskLink, TaskTime } from './taskColumns'
 
 /** `repack` stays in the schema only so old rows remain readable; no client writes it. */
 export type TripStatus = Exclude<ColumnEnum<'trips', 'status'>, 'repack'>
@@ -414,7 +414,7 @@ export type TaskPhase = (typeof TASK_PHASES)[number]
  * `phase` is null on a task written before FR-7.7 and reads as *before*
  * (`taskPhaseOf`); the resolution pair is null while the task is open.
  */
-export interface TaskFacts {
+export interface TaskFacts extends TaskTime {
   /**
    * FR-7.8: the one tag the task carries, or null for none. „Exactly one"
    * means at most one, never two — so a column and not a set. Null is a real

@@ -122,6 +122,56 @@ func TestClaimTaskReminderDay_FR7_11_OncePerDay(t *testing.T) {
 	}
 }
 
+// FR-7.18: a task's time travels with its day; a preparation step has none
+// to give, since its day is its idea's (ADR-104).
+func TestDueTasks_FR7_18_CarryTheirTime(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	mustExec(t, s, `INSERT INTO comments (id, trip_id, author_id, body, is_task, task_state, due_date, due_time)
+		VALUES ('c-timed', ?, ?, 'Tierarzt', 1, 'open', '2026-07-08', '14:00'),
+		       ('c-plain', ?, ?, 'Pass', 1, 'open', '2026-07-08', NULL)`, testTrip, testUser, testTrip, testUser)
+
+	got, err := s.DueTasks(ctx, "2026-07-08")
+	if err != nil {
+		t.Fatalf("DueTasks: %v", err)
+	}
+	want := []DueTask{
+		{ID: "c-plain", TripID: testTrip, Body: "Pass", DueDate: "2026-07-08"},
+		{ID: "c-timed", TripID: testTrip, Body: "Tierarzt", DueDate: "2026-07-08", DueTime: "14:00"},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("DueTasks = %+v\nwant %+v", got, want)
+	}
+}
+
+// FR-7.18: the timed reminder's mark moves forward only, and hands back
+// where it stood — the window the run sends for. The first call ever only
+// sets it: nothing before the server knew of times is owed.
+func TestAdvanceTimedReminderMark_FR7_18_ForwardOnly(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	steps := []struct {
+		to       string
+		wantFrom string
+		wantOK   bool
+	}{
+		{"2026-07-08 13:59", "", false},                 // first run ever
+		{"2026-07-08 14:00", "2026-07-08 13:59", true},  // the next minute
+		{"2026-07-08 14:00", "2026-07-08 14:00", false}, // a second wake-up in it
+		{"2026-07-08 13:30", "2026-07-08 14:00", false}, // the clock set back
+		{"2026-07-08 16:20", "2026-07-08 14:00", true},  // after a downtime
+	}
+	for _, st := range steps {
+		from, ok, err := s.AdvanceTimedReminderMark(ctx, st.to)
+		if err != nil {
+			t.Fatalf("AdvanceTimedReminderMark(%s): %v", st.to, err)
+		}
+		if from != st.wantFrom || ok != st.wantOK {
+			t.Errorf("AdvanceTimedReminderMark(%s) = %q, %v; want %q, %v", st.to, from, ok, st.wantFrom, st.wantOK)
+		}
+	}
+}
+
 func TestDueShoppingEntries_FR30_10_OpenEntriesOnTheAskedDaysOnly(t *testing.T) {
 	s := openTestStore(t)
 	ctx := context.Background()

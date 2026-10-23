@@ -23,7 +23,8 @@ trigger a notification, and only these:
 - **Shortlist** — an idea is moved to the shortlist. Everyone on the trip is told except whoever moved it. Votes
   notify nobody.
 - **Task due** — a task is due tomorrow or today. Nobody sets this one off: the server sends it once a day at the time
-  you configure (see [Task reminders](configuration.md#task-reminders)), to the person the task is handed to, or to
+  you configure (see [Task reminders](configuration.md#task-reminders)) — on the day itself at the task's own time,
+  when it has one — to the person the task is handed to, or to
   everyone on the trip when it is nobody's in particular. Tapping it opens the trip's **Aufgaben**.
 - **Purchase due** — something on a trip's shopping list is due tomorrow or today. The same daily run sends it, to
   the person it is handed to, or to everyone on the trip when it is nobody's in particular. Tapping it opens the

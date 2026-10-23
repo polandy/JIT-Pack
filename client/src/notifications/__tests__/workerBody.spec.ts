@@ -77,6 +77,11 @@ const CASES: ServerNotification[] = [
   notif('task_due', { item_name: 'Pass holen', due: 'tomorrow' }),
   notif('task_due', { due: 'tomorrow' }),
   notif('task_due', {}),
+  // FR-7.18: a task's time is named the day before, and sent at.
+  notif('task_due', { item_name: 'Pass holen', due: 'tomorrow', time: '14:00' }),
+  notif('task_due', { item_name: 'Pass holen', due: 'now', time: '14:00' }),
+  notif('task_due', { due: 'now', time: '14:00' }),
+  notif('task_due', { due: 'tomorrow', time: '14:00' }),
   // FR-30.10: a purchase's reminder, the same day rule.
   notif('shopping_due', { item_name: 'Milch', due: 'today' }),
   notif('shopping_due', { item_name: 'Milch', due: 'tomorrow' }),

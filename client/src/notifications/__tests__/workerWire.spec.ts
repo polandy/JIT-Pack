@@ -51,7 +51,7 @@ describe('the service worker reads the push body by the contract’s names (NFR-
     const knownKinds: readonly string[] = Object.values(NOTIFICATION_KIND)
     expect(kinds.filter((k) => !knownKinds.includes(k))).toEqual([])
     const dues = matches(/payload\.due === '([a-z]+)'/g)
-    expect(dues).toEqual([NOTIFICATION_DUE.tomorrow])
+    expect(dues.sort()).toEqual([NOTIFICATION_DUE.now, NOTIFICATION_DUE.tomorrow].sort())
   })
 
   it('knows exactly the kinds the server sends', () => {

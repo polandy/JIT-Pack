@@ -46,8 +46,10 @@ type Server struct {
 	// than a field each, so no switch of the operator's sits on the Server
 	// as a bool a handler could branch on.
 	instance InstanceConfigResponse
-	hub      *Hub
-	oidc     *oidcBroker
+	// reminderAt is Options.TaskReminderAt, the daily reminder's time.
+	reminderAt time.Duration
+	hub        *Hub
+	oidc       *oidcBroker
 	// wsIdleOverride shrinks the §9 WebSocket idle timeout
 	// (Options.WSIdle); zero means the wsIdleTimeout constant.
 	wsIdleOverride time.Duration
@@ -83,10 +85,15 @@ func (s *Server) WaitDetached(ctx context.Context) error {
 	return s.notifier.Wait(ctx)
 }
 
-// RunTaskReminders runs FR-7.11's daily reminder at `at` past midnight
-// until ctx ends — notify.Notifier.RunReminders.
-func (s *Server) RunTaskReminders(ctx context.Context, at time.Duration) {
-	s.notifier.RunReminders(ctx, at)
+// RunTaskReminders runs FR-7.11's daily reminder at Options.TaskReminderAt
+// and FR-7.18's timed ones until ctx ends — notify.Notifier.RunReminders.
+func (s *Server) RunTaskReminders(ctx context.Context) {
+	s.notifier.RunReminders(ctx, s.reminderAt)
+}
+
+// clockOf is a time past midnight on the 24-hour clock, `HH:MM`.
+func clockOf(at time.Duration) string {
+	return fmt.Sprintf("%02d:%02d", int(at/time.Hour), int(at%time.Hour/time.Minute))
 }
 
 // isAdminEmail resolves the FR-23.1 allowlist; a token without an
@@ -107,7 +114,8 @@ func (s *Server) isAdminEmail(email string, verified bool) bool {
 func newServer(st *store.Store, opts Options) *Server {
 	s := &Server{
 		store:          st,
-		instance:       InstanceConfigResponse{Currency: opts.Currency, MapTiles: !opts.NoMapTiles, Timetable: !opts.NoTimetable, RoutingURL: opts.RoutingURL},
+		instance:       InstanceConfigResponse{Currency: opts.Currency, MapTiles: !opts.NoMapTiles, Timetable: !opts.NoTimetable, RoutingURL: opts.RoutingURL, ReminderTime: clockOf(opts.TaskReminderAt)},
+		reminderAt:     opts.TaskReminderAt,
 		wsIdleOverride: opts.WSIdle,
 		wsIdleWatch:    idleDeadline,
 		adminEmails:    emailSet(opts.AdminEmails),

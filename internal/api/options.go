@@ -70,6 +70,12 @@ type Options struct {
 	// lines. cmd/jitpackd sets the public BRouter unless the operator
 	// switches it off or names another.
 	RoutingURL string
+	// TaskReminderAt is when FR-7.11's daily reminder runs, past midnight
+	// in the server's zone: RunTaskReminders keeps to it, and the
+	// instance's config names it to the task sheet (FR-7.18). The zero
+	// value is midnight; cmd/jitpackd sets notify.DefaultTaskReminderAt
+	// unless the operator names another.
+	TaskReminderAt time.Duration
 	// OIDC turns on the /auth/token, /auth/refresh and /auth/config
 	// endpoints, brokering logins against the discovered IdP as a
 	// confidential client (client_secret_basic, ADR-007). Nil leaves

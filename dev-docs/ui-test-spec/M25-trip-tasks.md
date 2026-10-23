@@ -86,6 +86,10 @@ went.
   the composer open and **no** ＋; it stays open after the first task; ✕ closes it and the ＋ comes back, named *„Add a
   task"*. After a reload, with a task on the trip, the composer is closed; the ＋ opens it with the field focused and
   empty and steps aside; Escape closes it again.
+* **E2E-M25-22** `local` (FR-7.18) — **implemented** (`trip-tasks.spec.ts`): the sheet of a task without a day offers
+  no time chip; after *Heute* it does. A time written presses the chip (*„14:00"*), the Local Mode hint says nothing
+  fires, and the pill reads *„Today 14:00"* — still after a reload. The chip's ✕ takes the time off with the day kept,
+  and the pill reads *„Today"* again.
 * **E2E-M25-18** `server` (FR-7.14) — **implemented** (`e2e/server/multi-user.spec.ts`): on a trip
   shared with a second account, a task with nothing to say under its words shows its empty seat and **no** facts
   line, and its row is exactly as tall as a shopping entry's with its own seat. Fails on a build that seats the person

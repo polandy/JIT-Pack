@@ -524,11 +524,12 @@ func TestConfig_APIOptions(t *testing.T) {
 			cfg: Config{
 				Currency: "CHF", PushContact: "mailto:ops@example.com", AdminEmails: []string{"a@example.com"},
 				UpdateCheck: true, LinkPreviews: true, MapTiles: true, Timetable: true,
-				RoutingURL: "https://brouter.de/brouter",
+				RoutingURL: "https://brouter.de/brouter", TaskReminderAt: 7 * time.Hour,
 			},
 			want: api.Options{
 				Currency: "CHF", PushContact: "mailto:ops@example.com", AdminEmails: []string{"a@example.com"},
 				Version: "v1.2.3", UpdateCheck: true, RoutingURL: "https://brouter.de/brouter",
+				TaskReminderAt: 7 * time.Hour,
 			},
 		},
 		{

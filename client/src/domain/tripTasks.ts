@@ -13,7 +13,7 @@
  */
 import type { PrepTask, TaskPhase, TaskTag, TaskState, OwnTask } from '@/types/domain'
 import { TASK_PHASE_BEFORE, TASK_STATE_OPEN, TASK_STATE_RESOLVED } from '@/types/domain'
-import { byDue, isDuePressing, pressingFirst } from './taskDue'
+import { byDue, byDueTime, isDuePressing, pressingFirst } from './taskDue'
 import { daysBetween } from '@/domain/shared/calendar'
 import { byHand, dropInto, renumber, type Placement } from '@/domain/shared/handOrder'
 import { isPreparationStep, preparationDue, type IdeaDay } from '@/domain/shared/ideaPreparation'
@@ -112,6 +112,8 @@ export interface TripTask {
   task_tag_id: string | null
   /** FR-7.11: the day it is due, `YYYY-MM-DD`, or null for none. */
   due_date: string | null
+  /** FR-7.18: the time its reminder arrives on that day, `HH:MM`; null for none. */
+  due_time: string | null
   /** FR-7.17: where it stands inside its group, by hand; null or absent for never placed. */
   position?: number | null
   /** FR-29.13: the idea a trip's own task was made from; absent for none. */
@@ -167,6 +169,7 @@ export function tripTasks(
       const due = preparationDue(task.lead_days!, ideaOf(task.idea_id!))
       if (due === null) continue
       projected.due_date = due
+      projected.due_time = null // a lead counts days; the step's day has no hour
       projected.lead_days = task.lead_days
     }
     own.push(projected)
@@ -199,6 +202,7 @@ function factsOf(task: PrepTask | OwnTask) {
   return {
     task_tag_id: task.task_tag_id,
     due_date: task.due_date,
+    due_time: task.due_time ?? null,
     assignee_user_id: task.assignee_user_id,
     phase: taskPhaseOf(task),
     author_id: task.author_id,
@@ -274,7 +278,12 @@ export function dashboardTasks(
         Number(opts.myUserId === null || task.assignee_user_id !== opts.myUserId)
   const ordered = open
     .map((task, index) => ({ task, index }))
-    .sort((a, b) => rank(a.task) - rank(b.task) || a.index - b.index)
+    .sort(
+      (a, b) =>
+        rank(a.task) - rank(b.task) ||
+        (isDuePressing(a.task, opts.today) ? byDueTime(a.task, b.task) : 0) ||
+        a.index - b.index,
+    )
     .map(({ task }) => task)
   const rows = ordered.slice(0, opts.limit)
   return { rows, open: open.length, rest: open.length - rows.length }

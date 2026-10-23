@@ -189,6 +189,17 @@ describe('the body speaks the app’s language', () => {
       'Sarah hat „Zelt“ von dir übernommen',
     ],
     ['shiny_new_kind', { actor_name: 'Andy' }, 'Andy hat dir eine Benachrichtigung geschickt'],
+    // FR-7.18: a task's time, named the day before and sent at it.
+    [
+      'task_due',
+      { item_name: 'Pass holen', due: 'tomorrow', time: '14:00' },
+      '„Pass holen“ ist morgen um 14:00 fällig',
+    ],
+    [
+      'task_due',
+      { item_name: 'Pass holen', due: 'now', time: '14:00' },
+      '„Pass holen“ — jetzt, 14:00',
+    ],
     // The actor fallback is a word, so it is translated too — „Someone
     // mentioned you" in a German sentence is the half-translation the NFR
     // exists to prevent.

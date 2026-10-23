@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"testing"
+	"time"
 
 	"jitpack/internal/api"
 	"jitpack/internal/store"
@@ -108,6 +109,22 @@ func TestInstanceConfig_TimetableOnUnlessTurnedOff_FR29_18(t *testing.T) {
 	t.Cleanup(srv.Close)
 	if instanceConfig(t, srv).Timetable {
 		t.Error("timetable = true with NoTimetable, want false")
+	}
+}
+
+// FR-7.18: a task's sheet names the daily run's time beside its own, so the
+// device has to be told it; `HH:MM`, the clock the timed ones are read on.
+func TestInstanceConfig_NamesTheDailyReminderTime_FR7_18(t *testing.T) {
+	st, err := store.OpenForTest(t.TempDir())
+	if err != nil {
+		t.Fatalf("store.OpenForTest: %v", err)
+	}
+	t.Cleanup(func() { st.Close() })
+	at := 7*time.Hour + 30*time.Minute
+	srv := httptest.NewServer(api.NewSingleUser(st, "local-user", api.Options{TaskReminderAt: at}).Handler())
+	t.Cleanup(srv.Close)
+	if got := instanceConfig(t, srv).ReminderTime; got != "07:30" {
+		t.Errorf("reminder_time = %q, want %q", got, "07:30")
 	}
 }
 

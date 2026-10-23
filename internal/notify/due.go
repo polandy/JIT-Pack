@@ -7,7 +7,7 @@ package notify
 // one notification no push sets off — every other kind is a person's act
 // (rules.go) — so it has a clock of its own. The schedule and the recipient
 // rule are pure functions; the loop and the store reads around them are the
-// I/O. See ADR-076.
+// I/O. See ADR-076; a task's own time is timed.go's (FR-7.18).
 
 import (
 	"context"
@@ -59,18 +59,6 @@ func reminderDue(now time.Time, at time.Duration) bool {
 	return !now.Before(reminderTime(now, at))
 }
 
-// nextReminder is the first reminder moment strictly after now, in now's
-// zone. Built from the calendar rather than by adding 24 hours, so a
-// daylight-saving change moves the interval and not the time of day.
-func nextReminder(now time.Time, at time.Duration) time.Time {
-	today := reminderTime(now, at)
-	if now.Before(today) {
-		return today
-	}
-	y, m, d := now.Date()
-	return reminderTime(time.Date(y, m, d+1, 0, 0, 0, 0, now.Location()), at)
-}
-
 // reminderTime is the day's reminder moment for the day now falls on.
 func reminderTime(now time.Time, at time.Duration) time.Time {
 	y, m, d := now.Date()
@@ -95,9 +83,15 @@ func planTaskDue(
 		if !ok {
 			continue
 		}
+		if due == dueToday && task.DueTime != "" {
+			continue // FR-7.18: its own time sends it (planTimedTaskDue)
+		}
 		payload := map[string]any{
 			payloadTripID: task.TripID, payloadCommentID: task.ID,
 			payloadItemName: truncate(task.Body, previewLen), payloadDue: due,
+		}
+		if task.DueTime != "" {
+			payload[payloadTime] = task.DueTime
 		}
 		for _, userID := range dueRecipients(task.Assignee, members(task.TripID)) {
 			plan = append(plan, plannedNotification{UserID: userID, Kind: store.NotifyTaskDue, Payload: payload})
@@ -181,6 +175,23 @@ func planExcursionDue(
 	return plan
 }
 
+// tripMembers looks a trip's members up once per run, for every reminder
+// on that trip.
+func (n *Notifier) tripMembers(ctx context.Context) func(tripID string) []store.MemberName {
+	byTrip := map[string][]store.MemberName{}
+	return func(tripID string) []store.MemberName {
+		if list, ok := byTrip[tripID]; ok {
+			return list
+		}
+		list, err := n.store.TripMemberNames(ctx, tripID)
+		if err != nil {
+			slog.Error("reminder members", "trip", tripID, "error", err)
+		}
+		byTrip[tripID] = list
+		return list
+	}
+}
+
 // remindDue sends the day's reminders — tasks, shopping entries and
 // excursions — if the day's time has come and they have not been sent yet,
 // and reports whether it sent them. Safe to
@@ -218,18 +229,7 @@ func (n *Notifier) remindDue(ctx context.Context, at time.Duration) bool {
 		slog.Error("excursion reminder lookup", "day", today, "error", err)
 		return false
 	}
-	byTrip := map[string][]store.MemberName{}
-	members := func(tripID string) []store.MemberName {
-		if list, ok := byTrip[tripID]; ok {
-			return list
-		}
-		list, err := n.store.TripMemberNames(ctx, tripID)
-		if err != nil {
-			slog.Error("task reminder members", "trip", tripID, "error", err)
-		}
-		byTrip[tripID] = list
-		return list
-	}
+	members := n.tripMembers(ctx)
 	plan := planTaskDue(tasks, today, tomorrow, members)
 	plan = append(plan, planShoppingDue(entries, today, tomorrow, members)...)
 	plan = append(plan, planExcursionDue(excursions, today, tomorrow, members)...)
@@ -237,15 +237,18 @@ func (n *Notifier) remindDue(ctx context.Context, at time.Duration) bool {
 	return true
 }
 
-// RunReminders runs FR-7.11's daily reminder until ctx ends: at `at`
-// past midnight in the server's own time zone (the zone of its clock), and
-// at once on start when that time has already passed today and the day's
-// reminder is still owed.
+// RunReminders runs FR-7.11's daily reminder and FR-7.18's timed ones
+// until ctx ends, in the server's own time zone (the zone of its clock): it
+// wakes at every whole minute, since a task's time may be any of them, and
+// each run decides from the store whether anything is owed — so a start
+// after the day's time still sends that day's reminder, late rather than
+// never.
 func (n *Notifier) RunReminders(ctx context.Context, at time.Duration) {
 	for {
 		n.remindDue(ctx, at)
+		n.remindTimed(ctx)
 		now := n.now()
-		timer := time.NewTimer(nextReminder(now, at).Sub(now))
+		timer := time.NewTimer(nextTick(now).Sub(now))
 		select {
 		case <-ctx.Done():
 			timer.Stop()

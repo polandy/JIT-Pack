@@ -537,9 +537,9 @@ var tableSpecs = map[string]tableSpec{
 			// about what it is about — nothing to stamp (invariant 3 is about
 			// identity, and a tag is not one).
 			"task_tag_id",
-			// FR-7.11: the day it is due — the client's to choose, like
-			// the phase; the reminder scheduler only reads it.
-			"due_date",
+			// FR-7.11/7.18: the day it is due and the time its reminder comes
+			// on it — the client's, like the phase; the scheduler only reads them.
+			"due_date", "due_time",
 			// FR-7.7: the moment the task was written. The client names it
 			// (Local Mode has no server to default it), and the column's own
 			// DEFAULT still covers a mutation that omits it — the same shape

@@ -45,6 +45,7 @@ import { initCurrency } from './i18n/currency'
 import { initMapTiles } from './composables/shared/mapTiles'
 import { initTimetable } from './composables/shared/timetable'
 import { initRouting } from './composables/routing'
+import { initReminderTime } from './composables/shared/reminderTime'
 import { markPresentedActionSheets } from './lib/presented'
 
 /* App shell + push worker (NFR-4.13/NFR-4.6): registered unconditionally at
@@ -62,6 +63,7 @@ initCurrency()
 initMapTiles()
 initTimetable()
 initRouting()
+initReminderTime()
 markPresentedActionSheets()
 if (import.meta.env.PROD) registerAppServiceWorker()
 

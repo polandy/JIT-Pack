@@ -10,11 +10,21 @@
  * packing has closed is not offered.
  */
 import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { TripTask } from '@/domain/tripTasks'
 import { shortDueDay } from '@/lib/taskDueText'
 import TripTaskSheet from '../TripTaskSheet.vue'
+
+/** When the server's daily reminder runs as the sheet reads it; null is Local Mode. */
+const daily = vi.hoisted(() => ({ value: '06:00' as string | null }))
+vi.mock('@/composables/shared/reminderTime', async () => {
+  const { ref } = await import('vue')
+  return { useDailyReminder: () => ref(daily.value) }
+})
+beforeEach(() => {
+  daily.value = '06:00'
+})
 
 function task(over: Partial<TripTask> = {}): TripTask {
   return {
@@ -30,6 +40,7 @@ function task(over: Partial<TripTask> = {}): TripTask {
     resolved_by_user_id: null,
     task_tag_id: null,
     due_date: null,
+    due_time: null,
     ...over,
   }
 }
@@ -41,12 +52,19 @@ const DateFieldStub = {
   template: '<div :data-testid="testid" :data-value="value" />',
 }
 
+const TimeFieldStub = {
+  name: 'TimeField',
+  props: ['modelValue'],
+  emits: ['settle', 'update:modelValue'],
+  template: '<input :value="modelValue" />',
+}
+
 const TODAY = '2026-07-08'
 
 function mountSheet(props: Record<string, unknown>) {
   return mount(TripTaskSheet, {
     props: { task: task(), nameOf: () => null, today: TODAY, ...props },
-    global: { stubs: { DateField: DateFieldStub } },
+    global: { stubs: { DateField: DateFieldStub, TimeField: TimeFieldStub } },
   })
 }
 
@@ -102,6 +120,81 @@ describe('TripTaskSheet — the day a task is due (FR-7.11)', () => {
   it('offers no date on a finished task', () => {
     const sheet = mountSheet({ task: task({ task_state: 'resolved', due_date: '2026-07-09' }) })
     expect(sheet.findComponent(DateFieldStub).exists()).toBe(false)
+  })
+})
+
+describe('TripTaskSheet — the time its reminder arrives (FR-7.18)', () => {
+  const TIME = '[data-testid="task-sheet-due-time"]'
+
+  it('offers a time only once a day stands', () => {
+    expect(mountSheet({ task: task() }).find(TIME).exists()).toBe(false)
+    const dated = mountSheet({ task: task({ due_date: '2026-07-09' }) })
+    expect(dated.find(TIME).text()).toBe('Time…')
+    expect(dated.findComponent(TimeFieldStub).exists()).toBe(false)
+  })
+
+  it('opens the clock in the row, and reports a settled time', async () => {
+    const sheet = mountSheet({ task: task({ due_date: '2026-07-09' }) })
+    await sheet.find(TIME).trigger('click')
+    const field = sheet.findComponent(TimeFieldStub)
+    expect(field.exists()).toBe(true)
+
+    field.vm.$emit('settle', '14:00')
+    expect(sheet.emitted('dueTime')).toEqual([['14:00']])
+  })
+
+  it('reports nothing for a field left empty or past the clock, and closes it', async () => {
+    const sheet = mountSheet({ task: task({ due_date: '2026-07-09' }) })
+    await sheet.find(TIME).trigger('click')
+    sheet.findComponent(TimeFieldStub).vm.$emit('settle', '')
+    await sheet.vm.$nextTick()
+    expect(sheet.findComponent(TimeFieldStub).exists()).toBe(false)
+
+    await sheet.find(TIME).trigger('click')
+    sheet.findComponent(TimeFieldStub).vm.$emit('settle', '27:90')
+    expect(sheet.emitted('dueTime')).toBeUndefined()
+  })
+
+  it('shows the time it has as its chip, and takes it off with one tap', async () => {
+    const sheet = mountSheet({ task: task({ due_date: '2026-07-09', due_time: '14:00' }) })
+    expect(sheet.find(TIME).text()).toBe('14:00')
+    await sheet.find(TIME).trigger('click')
+    expect(sheet.emitted('dueTime')).toEqual([[null]])
+  })
+
+  it('says which reminders will come: the day before at the daily time, and on the day at its own', () => {
+    const HINT = '[data-testid="task-sheet-reminder-hint"]'
+    expect(mountSheet({ task: task() }).find(HINT).exists()).toBe(false)
+    expect(
+      mountSheet({ task: task({ due_date: '2026-07-09' }) })
+        .find(HINT)
+        .text(),
+    ).toBe('Reminded the day before and on the day, at 06:00.')
+    expect(
+      mountSheet({ task: task({ due_date: '2026-07-09', due_time: '14:00' }) })
+        .find(HINT)
+        .text(),
+    ).toBe('Reminded the day before at 06:00 and on the day at 14:00.')
+  })
+
+  it('says, without a server, that nothing will remind — the time stays on the task', () => {
+    const HINT = '[data-testid="task-sheet-reminder-hint"]'
+    daily.value = null
+    const local = (over: Partial<TripTask>) =>
+      mountSheet({ task: task({ due_date: '2026-07-09', ...over }) })
+    expect(local({}).find(HINT).text()).toBe(
+      'Without a server the app does not remind; the day stays on the task.',
+    )
+    expect(local({ due_time: '14:00' }).find(HINT).text()).toBe(
+      'Without a server the app does not remind; the time stays on the task.',
+    )
+  })
+
+  it('offers no time on a preparation step, whose day its idea sets', () => {
+    const sheet = mountSheet({
+      task: task({ idea_id: 'idea-1', lead_days: 7, due_date: '2026-07-12' }),
+    })
+    expect(sheet.find(TIME).exists()).toBe(false)
   })
 })
 

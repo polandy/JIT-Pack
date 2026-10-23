@@ -134,7 +134,7 @@ func main() {
 	defer stop()
 
 	// FR-7.11: the daily task reminder, stopped by the same signal.
-	go srv.RunTaskReminders(ctx, cfg.TaskReminderAt)
+	go srv.RunTaskReminders(ctx)
 	// The zone's abbreviation rather than time.Local, whose name is always
 	// "Local" and would not tell an operator whether TZ took.
 	zone, _ := time.Now().Zone()

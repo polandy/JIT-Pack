@@ -579,6 +579,7 @@ function taskFacts(row: Record<string, unknown>): TaskFacts {
     task_tag_id: (row['task_tag_id'] as string | null | undefined) ?? null,
     phase: (row['phase'] as TaskPhase | null | undefined) ?? null,
     due_date: (row['due_date'] as string | null | undefined) ?? null,
+    due_time: (row['due_time'] as string | null | undefined) ?? null,
     created_at: (row['created_at'] as string | null | undefined) ?? null,
     assignee_user_id: (row['assignee_user_id'] as string | null | undefined) ?? null,
     resolved_at: (row['resolved_at'] as string | null | undefined) ?? null,

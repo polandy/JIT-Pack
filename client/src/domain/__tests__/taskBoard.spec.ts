@@ -24,6 +24,7 @@ function task(
     resolved_by_user_id: null,
     task_tag_id: null,
     due_date: over.due ?? null,
+    due_time: null,
   }
 }
 
