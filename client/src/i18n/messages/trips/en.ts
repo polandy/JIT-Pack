@@ -243,7 +243,7 @@ export const tripsEn = {
   'series.checklistMode': 'Mode',
   // FR-13.4 — series tasks, between the checklist and the trip history.
   'series.sectionTasks': 'Tasks for every trip',
-  'series.taskAdd': '+ Task',
+  'series.taskAdd': 'Task',
   'series.taskQuietNote':
     'Every new trip in this series gets these tasks. Due counts back from departure.',
   'series.taskSheetNew': 'New series task',

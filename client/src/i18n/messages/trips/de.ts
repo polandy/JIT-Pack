@@ -245,7 +245,7 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
   'series.checklistMode': 'Art',
   // FR-13.4 — Serien-Aufgaben, zwischen der Checkliste und der Reisenhistorie.
   'series.sectionTasks': 'Aufgaben für jede Reise',
-  'series.taskAdd': '+ Aufgabe',
+  'series.taskAdd': 'Aufgabe',
   'series.taskQuietNote':
     'Jede neue Reise dieser Serie bekommt diese Aufgaben. Fällig rechnet von der Abreise aus.',
   'series.taskSheetNew': 'Neue Serien-Aufgabe',
