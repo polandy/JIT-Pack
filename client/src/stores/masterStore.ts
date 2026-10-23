@@ -253,6 +253,24 @@ export const useMasterStore = defineStore('master', () => {
     return [...destinationTasks.value.values()].filter((t) => t.profile_id === profileId)
   }
 
+  function getDestinationTask(id: string): DestinationTask | undefined {
+    return destinationTasks.value.get(id)
+  }
+
+  /**
+   * FR-13.4: the series a destination task belongs to — resolves M25's origin
+   * line (`task-origin-series`) by chaining `destination_task_id → profile →
+   * series_id`. `undefined` while any link in that chain is gone, which is
+   * the row's own cue to render nothing (ON DELETE SET NULL, like `idea_id`).
+   */
+  function getSeriesOfDestinationTask(taskId: string): TripSeries | undefined {
+    const task = destinationTasks.value.get(taskId)
+    if (!task) return undefined
+    const profile = profiles.value.get(task.profile_id)
+    if (!profile) return undefined
+    return series.value.get(profile.series_id)
+  }
+
   // --- Item dependencies (Addendum 3.20, FR-20.1) ---
 
   const dependencyList = computed(() => [...dependencies.value.values()])
@@ -382,6 +400,8 @@ export const useMasterStore = defineStore('master', () => {
     getDestinationProfile,
     getChecklistItems,
     getDestinationTasks,
+    getDestinationTask,
+    getSeriesOfDestinationTask,
     dependencyList,
     getItemDependencies,
     getCompanionDependencies,

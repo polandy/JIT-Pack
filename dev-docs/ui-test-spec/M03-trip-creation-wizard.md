@@ -84,6 +84,7 @@
   holds (empty name), the same keypress on the same field advances once it opens, and a step-2 traveller name fires the
   same way; step 3's single-item search is G-16-exempt, so Enter there does not advance — proven live by the button
   click that then does.
-* **E2E-M3-26** `all` (FR-13.4): a trip generated into a series with two tasks — one also a Vorlage trip task by
-  text — reports *„1 Aufgaben aus der Serie …"* beside FR-7.4's line, and M25 holds each text once; the series task
-  with a lead shows its day on M25, and in Server Mode its default assignee, who is a member, sits in its seat.
+* **E2E-M3-26** `all` (FR-13.4) — **implemented** (local leg `trip-composition.spec.ts`): a trip generated into a series
+  with two tasks — one also a Vorlage trip task by text — reports *„1 Aufgaben aus der Serie …"* beside FR-7.4's line,
+  and M25 holds each text once; the series task with a lead shows its day on M25, and in Server Mode its default
+  assignee, who is a member, sits in its seat.

@@ -63,6 +63,30 @@ export const tasksDe: Record<keyof typeof tasksEn, string> = {
   'tasks.dueField': 'Fällig',
   'tasks.dueFromIdea':
     '{day} · {n} Tag vor der Idee, verschiebt sich mit ihr | {day} · {n} Tage vor der Idee, verschiebt sich mit ihr',
+  // FR-13.4 — die Serien-Aufgaben-Frist (ADR-106): die Zeile im Aufgabenblatt
+  // (`task-sheet-lead`) und die bloßen Mengen, die sie und M16s Chips nennen.
+  'tasks.seriesLead.1': '1 Tag',
+  'tasks.seriesLead.3': '3 Tage',
+  'tasks.seriesLead.7': '1 Woche',
+  'tasks.seriesLead.14': '2 Wochen',
+  'tasks.seriesLead.28': '4 Wochen',
+  'tasks.seriesLead.56': '8 Wochen',
+  'tasks.seriesLead.n': '{n} Tage',
+  'tasks.seriesLeadChip1': 'Am Vortag',
+  'tasks.seriesLeadNone': 'Kein Termin',
+  'tasks.seriesLeadLine': '{lead} vor Abreise',
+  'tasks.dueFromSeries': '{day} · {lead} vor Abreise, verschiebt sich mit ihr',
+  'tasks.dueFromSeriesUndated': '{lead} vor Abreise — sobald die Reise Daten hat',
+  // FR-13.4 — M22/M16s Angebotsblatt, eine später beitretende Reise übernimmt die Aufgaben einer Serie.
+  'tasks.offerTitle': 'Aufgaben der Serie übernehmen?',
+  'tasks.offerUndated': 'ohne Termin',
+  'tasks.offerDueDay': 'fällig {day}',
+  'tasks.offerOverdue': 'überfällig',
+  'tasks.offerAlready': 'schon auf der Reise',
+  'tasks.offerApply': '{n} übernehmen',
+  'tasks.offerSkip': 'Nicht jetzt',
+  'tasks.offerAppliedToast':
+    'Eine Aufgabe aus der Serie übernommen | {n} Aufgaben aus der Serie übernommen',
   'tasks.dueSetToast': '„{body}" fällig am {date}',
   'tasks.dueClearedToast': '„{body}" hat kein Fälligkeitsdatum mehr',
   'tasks.dueTimeSetToast': '„{body}": Erinnerung am Tag um {time}',

@@ -8,6 +8,7 @@ import {
   expectTripActionOffered,
   createTripViaWizard,
   chooseInSelect,
+  setClock,
 } from './fixtures'
 import {
   addPosition,
@@ -17,6 +18,8 @@ import {
 } from './fixtures'
 import type { Locator, Page } from '@playwright/test'
 import { PATH } from './routes'
+import { addOwnTask, openTasks } from './helpers/m4'
+import { addSeriesTask, openSeries } from './helpers/m16'
 
 /**
  * FR-2.7 / M22 — a trip's properties and its travellers, changed after the
@@ -463,6 +466,99 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     // The trip row is the positive signal the header's absence is read against.
     await expect(visible(page).getByTestId('trip-row-Engadin 2024')).toBeVisible()
     await expect(visible(page).getByTestId('series-header-Engadin')).toHaveCount(0)
+  })
+
+  /**
+   * E2E-M22-16 (FR-13.4, ADR-106): a dated trip joining a series afterwards
+   * is offered the series' tasks — never one it already holds — and takes
+   * over exactly the ones left ticked. „Not now" sets the series and writes
+   * nothing; an archived trip, whose tasks are history, is offered nothing.
+   *
+   * Each M25 count is read before and after, so the one task taken over is
+   * the difference rather than a total that would also fit a concatenation.
+   */
+  test('E2E-M22-16: a trip picking a series is offered its tasks, and takes the ticked ones', async ({
+    page,
+  }) => {
+    await setClock(page, '2026-10-05T09:00:00+02:00')
+    await createTripViaWizard(page, { name: 'Samedan 2026', series: 'Samedan Sommer' })
+    await openSeries(page, 'Samedan Sommer')
+    await addSeriesTask(page, 'Book the hotel')
+    await addSeriesTask(page, 'Renew the vignette', 7)
+    await addSeriesTask(page, 'Buy the ferry tickets', 14)
+
+    const dated = { startDate: '2026-11-02', endDate: '2026-11-08' }
+    const taskLines = (section: Locator) => section.locator('[data-testid^="trip-task-open-"]')
+
+    await createTripViaWizard(page, { name: 'Samedan 2027', ...dated })
+    await addOwnTask(page, 'Book the hotel')
+    await expect(taskLines(await openTasks(page, 'before'))).toHaveCount(1)
+    await openTripEdit(page)
+    await chooseInSelect(page, 'trip-edit-series', 'Samedan Sommer')
+    const sheet = page.getByTestId('series-offer-sheet')
+    await expect(sheet).toBeVisible()
+    await expect(sheet.getByTestId('series-offer-already-Book the hotel')).toContainText(
+      'already on the trip',
+    )
+    await expect(sheet.getByTestId('series-offer-task-Book the hotel')).toHaveCount(0)
+    const vignette = sheet.getByTestId('series-offer-task-Renew the vignette')
+    const ferry = sheet.getByTestId('series-offer-task-Buy the ferry tickets')
+    await expect(vignette).toContainText('due Mon, 26.10')
+    await expect(ferry).toContainText('due Mon, 19.10')
+    await expect(vignette.locator('button.tick')).toHaveAttribute('aria-pressed', 'true')
+    await expect(ferry.locator('button.tick')).toHaveAttribute('aria-pressed', 'true')
+
+    await ferry.locator('button.tick').click()
+    await expect(ferry.locator('button.tick')).toHaveAttribute('aria-pressed', 'false')
+    await expect(sheet.getByTestId('series-offer-apply')).toHaveText('Take over 1')
+    await sheet.getByTestId('series-offer-apply').click()
+    await expect(sheet).toBeHidden()
+    await localWriteSettled(page)
+
+    await page.getByTestId('header-back').click()
+    const before = await openTasks(page, 'before')
+    await expect(taskLines(before)).toHaveCount(2)
+    await expect(before.getByTestId('trip-task-open-Renew the vignette')).toBeVisible()
+    await expect(before.getByTestId('trip-task-open-Buy the ferry tickets')).toHaveCount(0)
+
+    // „Not now": the series is set, the trip's tasks untouched.
+    await createTripViaWizard(page, { name: 'Samedan 2028', ...dated })
+    await addOwnTask(page, 'Pack the bikes')
+    await openTripEdit(page)
+    await chooseInSelect(page, 'trip-edit-series', 'Samedan Sommer')
+    await expect(sheet).toBeVisible()
+    await sheet.getByTestId('series-offer-skip').click()
+    await expect(sheet).toBeHidden()
+    await localWriteSettled(page)
+    await page.getByTestId('header-back').click()
+    const skipped = await openTasks(page, 'before')
+    await expect(skipped.getByTestId('trip-task-open-Pack the bikes')).toBeVisible()
+    await expect(taskLines(skipped)).toHaveCount(1)
+    await openTripEditFromList(page, 'Samedan 2028')
+    await expect(visible(page).getByTestId('trip-edit-series').locator('.select-text')).toHaveText(
+      'Samedan Sommer',
+    )
+
+    // An archived trip takes the series and is offered nothing: the select
+    // reading the new name is the positive signal the sheet's absence is
+    // read against. Undated, as E2E-M22-15's is — an undated live trip is
+    // still offered the tasks (with no day), so the status is what refuses.
+    await createTripViaWizard(page, { name: 'Samedan 2025' })
+    await tripAction(page, 'start')
+    await expectTripActionOffered(page, 'archive')
+    await tripAction(page, 'archive')
+    await page.getByTestId('m4-pass-finish').click()
+    // M2's menu rather than M4's: the archived banner is what M4 shows now,
+    // and the list is where an archived trip is found again.
+    await openTripEditFromList(page, 'Samedan 2025')
+    await expect(visible(page).getByTestId('trip-edit-archived-note')).toBeVisible()
+    await chooseInSelect(page, 'trip-edit-series', 'Samedan Sommer')
+    await expect(visible(page).getByTestId('trip-edit-series').locator('.select-text')).toHaveText(
+      'Samedan Sommer',
+    )
+    // The modal stays mounted while closed; the pick opens it synchronously
+    // when there is an offer, so hidden after the select moved is the answer.
+    await expect(sheet).toBeHidden()
   })
 
   // E2E-M22-12 (FR-2.1b/FR-2.7): the year is editable after creation.

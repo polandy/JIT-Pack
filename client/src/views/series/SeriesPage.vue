@@ -22,28 +22,46 @@ import {
   IonNote,
 } from '@ionic/vue'
 import { addOutline, closeOutline, copyOutline, trendingUpOutline } from 'ionicons/icons'
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import { t } from '@/i18n'
 import { formatTripPeriod } from '@/lib/format'
 import { modeLabel } from '@/lib/modeLabels'
+import { seriesLeadChipName, seriesLeadLineText } from '@/lib/seriesTaskText'
+import { shortDueDay } from '@/lib/taskDueText'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import type { ItemMode, Trip } from '@/types/domain'
+import type { DestinationTask, ItemMode, Trip } from '@/types/domain'
 import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL, ITEM_MODE_PACK } from '@/types/domain'
 import { setHeaderTitle } from '@/composables/shared/useHeaderTitle'
 import { tripOrderKey } from '@/domain/trips'
+import { tripMemberProfiles } from '@/domain/members'
+import {
+  SERIES_TASK_LEADS,
+  seriesTaskDue,
+  type SeriesTaskDraft,
+  type SeriesTaskMaterialization,
+} from '@/domain/shared/seriesTask'
 import { presentToast } from '@/composables/shared/toast'
 import { PATH, tripOpenPath, tripSubPath } from '@/router/paths'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
+import { useIdentity } from '@/composables/shared/useTripIdentity'
+import AssigneeSeat from '@/components/global/AssigneeSeat.vue'
+import ChipRow from '@/components/global/ChipRow.vue'
+import ChoiceChip from '@/components/global/ChoiceChip.vue'
 import SectionHead from '@/components/global/SectionHead.vue'
+import SheetHead from '@/components/global/SheetHead.vue'
+import SheetModal from '@/components/global/SheetModal.vue'
+import SeriesTaskOfferSheet from '@/views/trips/SeriesTaskOfferSheet.vue'
 
 const props = defineProps<{ seriesId: string }>()
 
 const master = useMasterStore()
 const tripStore = useTripStore()
 const orchestrator = useOrchestrator()
+const { directory, load: loadIdentity } = useIdentity(orchestrator.identity)
+onMounted(loadIdentity)
 
 const series = computed(() => master.getSeries(props.seriesId))
 const profile = computed(() => master.getDestinationProfile(props.seriesId))
@@ -138,6 +156,147 @@ const trendTripId = computed(() => seriesTrips.value[0]?.id ?? null)
 const cloneSource = computed(
   () => seriesTrips.value.find((t) => t.status === TRIP_STATUS_ARCHIVED) ?? null,
 )
+
+// --- Series tasks (FR-13.4, ADR-106) ---
+
+const seriesTasks = computed(() =>
+  profile.value ? master.getDestinationTasks(profile.value.id) : [],
+)
+
+/** The series' soonest trip still ahead of today — the task sheet's preview is read against it. */
+const nextTrip = computed(() => {
+  const today = orchestrator.today()
+  return (
+    seriesTrips.value
+      .filter(
+        (trip) =>
+          trip.status !== TRIP_STATUS_ARCHIVED && trip.start_date && trip.start_date >= today,
+      )
+      .sort((a, b) => (a.start_date as string).localeCompare(b.start_date as string))[0] ?? null
+  )
+})
+
+/** The row's assignee seat, G-8-hidden with the rest while the directory is empty. */
+function seatOf(task: DestinationTask) {
+  if (directory.value.length === 0 || !task.assignee_user_id) return null
+  const person = directory.value.find((u) => u.user_id === task.assignee_user_id)
+  return person
+    ? { variant: 'assignee' as const, id: person.user_id, name: person.display_name }
+    : null
+}
+
+const LEAD_OPTIONS = [null, ...SERIES_TASK_LEADS] as const satisfies readonly (number | null)[]
+
+const taskSheetOpen = ref(false)
+const editingTaskId = ref<string | null>(null)
+const draftText = ref('')
+const draftLead = ref<number | null>(null)
+const draftAssignee = ref<string | null>(null)
+
+function openNewTask() {
+  editingTaskId.value = null
+  draftText.value = ''
+  draftLead.value = null
+  draftAssignee.value = null
+  taskSheetOpen.value = true
+}
+
+function openEditTask(task: DestinationTask) {
+  editingTaskId.value = task.id
+  draftText.value = task.task
+  draftLead.value = task.lead_days
+  draftAssignee.value = task.assignee_user_id
+  taskSheetOpen.value = true
+}
+
+function closeTaskSheet() {
+  taskSheetOpen.value = false
+}
+
+/** The text field writes a brand-new task into being, or renames the one already there. */
+function commitTaskText() {
+  const text = draftText.value.trim()
+  if (editingTaskId.value) {
+    const current = master.getDestinationTask(editingTaskId.value)
+    if (!current) return
+    if (text && text !== current.task)
+      orchestrator.series.updateDestinationTask(current, { task: text })
+    else draftText.value = current.task
+    return
+  }
+  if (!text) return
+  editingTaskId.value = orchestrator.series.addDestinationTask(
+    props.seriesId,
+    text,
+    draftLead.value,
+    draftAssignee.value,
+  )
+}
+
+/** A chip writes immediately once the task exists; before that it is only the next write's value. */
+function pickLead(lead: number | null) {
+  draftLead.value = lead
+  if (!editingTaskId.value) return
+  const current = master.getDestinationTask(editingTaskId.value)
+  if (current) orchestrator.series.updateDestinationTask(current, { lead_days: lead })
+}
+
+function pickAssignee(userId: string | null) {
+  draftAssignee.value = userId
+  if (!editingTaskId.value) return
+  const current = master.getDestinationTask(editingTaskId.value)
+  if (current) orchestrator.series.updateDestinationTask(current, { assignee_user_id: userId })
+}
+
+function removeTask() {
+  if (editingTaskId.value) orchestrator.series.deleteDestinationTask(editingTaskId.value)
+  taskSheetOpen.value = false
+}
+
+/** The sheet's line naming the day the chip in hand would give the series' next trip. */
+const nextTripDayText = computed(() => {
+  if (draftLead.value === null) return t('tasks.seriesLeadNone')
+  const trip = nextTrip.value
+  const due = trip ? seriesTaskDue(draftLead.value, trip.start_date) : null
+  if (!trip || !due) return t('series.taskNoNextTrip')
+  return t('series.taskNextTripDay', { day: shortDueDay(due), trip: trip.name })
+})
+
+// --- M16's attach raises M22's own offer sheet alike (FR-13.4, ADR-106) ---
+
+const seriesOffer = ref<SeriesTaskMaterialization | null>(null)
+const seriesOfferOpen = ref(false)
+const seriesOfferTripId = ref<string | null>(null)
+
+function attachTrip(tripId: string) {
+  orchestrator.series.setTripSeries(tripId, props.seriesId)
+  seriesOfferTripId.value = tripId
+  seriesOffer.value = orchestrator.series.offerSeriesTasks(tripId)
+  seriesOfferOpen.value = seriesOffer.value !== null
+}
+
+/** Who the offer sheet's seats may show — the picked trip's own members (G-8). */
+const offerAssignees = computed(() => {
+  const tripId = seriesOfferTripId.value
+  if (!tripId) return []
+  const members = tripStore.getMembers(tripId)
+  const memberIds = new Set(members.map((member) => member.user_id))
+  return tripMemberProfiles(directory.value, members).filter((person) =>
+    memberIds.has(person.user_id),
+  )
+})
+
+const offerTripStartDate = computed(() =>
+  seriesOfferTripId.value ? (tripStore.getTrip(seriesOfferTripId.value)?.start_date ?? null) : null,
+)
+
+async function applySeriesOffer(drafts: SeriesTaskDraft[]) {
+  seriesOfferOpen.value = false
+  const tripId = seriesOfferTripId.value
+  if (drafts.length === 0 || !tripId) return
+  orchestrator.series.applySeriesTaskOffer(tripId, drafts)
+  await presentToast({ message: t('tasks.offerAppliedToast', { n: drafts.length }) })
+}
 
 // ADR-050: the frame renders this page head, above the outlet.
 setHeaderTitle(() => series.value?.name ?? t('series.section'))
@@ -273,6 +432,32 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
           </IonButton>
         </div>
 
+        <SectionHead :title="t('series.sectionTasks')" />
+        <IonList v-if="seriesTasks.length > 0">
+          <IonItem
+            v-for="task in seriesTasks"
+            :key="task.id"
+            button
+            data-testid="m16-task-row"
+            @click="openEditTask(task)"
+          >
+            <IonLabel>
+              <h3>{{ task.task }}</h3>
+              <p data-testid="m16-task-lead">{{ seriesLeadLineText(task.lead_days) }}</p>
+            </IonLabel>
+            <span v-if="directory.length > 0" slot="end" data-testid="m16-task-seat">
+              <AssigneeSeat :avatar="seatOf(task)" @assign="openEditTask(task)" />
+            </span>
+          </IonItem>
+        </IonList>
+        <div class="add-row">
+          <IonButton fill="outline" size="small" data-testid="m16-task-add" @click="openNewTask">
+            <IonIcon slot="start" :icon="addOutline" />
+            {{ t('series.taskAdd') }}
+          </IonButton>
+        </div>
+        <IonNote>{{ t('series.taskQuietNote') }}</IonNote>
+
         <SectionHead :title="t('series.sectionTrips')" />
         <IonList v-if="seriesTrips.length > 0">
           <IonItem
@@ -307,10 +492,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
               :label="t('series.attach')"
               interface="popover"
               :value="''"
-              @ionChange="
-                (e: CustomEvent) =>
-                  e.detail.value && orchestrator.series.setTripSeries(e.detail.value, seriesId)
-              "
+              @ionChange="(e: CustomEvent) => e.detail.value && attachTrip(e.detail.value)"
             >
               <IonSelectOption value="">{{ t('wizard.unset') }}</IonSelectOption>
               <IonSelectOption v-for="trip in attachableTrips" :key="trip.id" :value="trip.id">
@@ -351,10 +533,102 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
       </template>
       <IonNote v-else>{{ t('series.notFound') }}</IonNote>
     </IonContent>
+
+    <SheetModal :is-open="taskSheetOpen" testid="m16-task-sheet" @dismiss="closeTaskSheet">
+      <div class="sheet">
+        <SheetHead
+          :title="t(editingTaskId ? 'series.taskSheetEdit' : 'series.taskSheetNew')"
+          close-testid="m16-task-sheet-close"
+          @close="closeTaskSheet"
+        />
+        <IonItem>
+          <IonInput
+            data-testid="m16-task-sheet-text"
+            :label="t('series.taskText')"
+            label-placement="stacked"
+            :placeholder="t('series.taskTextPlaceholder')"
+            :value="draftText"
+            @ionInput="(e: CustomEvent) => (draftText = e.detail.value ?? '')"
+            @ionBlur="commitTaskText"
+            @keyup.enter="commitTaskText"
+          />
+        </IonItem>
+
+        <ChipRow :label="t('tasks.dueField')" class="lead-chips">
+          <ChoiceChip
+            v-for="lead in LEAD_OPTIONS"
+            :key="lead ?? 'none'"
+            :pressed="draftLead === lead"
+            :data-testid="`m16-task-sheet-lead-${lead ?? 'none'}`"
+            @click="pickLead(lead)"
+          >
+            {{ seriesLeadChipName(lead) }}
+          </ChoiceChip>
+        </ChipRow>
+
+        <p class="next-day" data-testid="m16-task-sheet-next-day">{{ nextTripDayText }}</p>
+
+        <IonItem v-if="directory.length > 0">
+          <IonSelect
+            data-testid="m16-task-sheet-who"
+            :label="t('series.taskWho')"
+            interface="popover"
+            :value="draftAssignee ?? ''"
+            @ionChange="(e: CustomEvent) => pickAssignee(e.detail.value || null)"
+          >
+            <IonSelectOption value="">{{ t('series.taskWhoNobody') }}</IonSelectOption>
+            <IonSelectOption v-for="user in directory" :key="user.user_id" :value="user.user_id">
+              {{ user.display_name }}
+            </IonSelectOption>
+          </IonSelect>
+        </IonItem>
+
+        <IonButton
+          v-if="editingTaskId"
+          class="remove"
+          expand="block"
+          fill="clear"
+          data-testid="m16-task-sheet-remove"
+          @click="removeTask"
+        >
+          <IonIcon slot="start" :icon="closeOutline" />
+          {{ t('tripTasks.remove') }}
+        </IonButton>
+      </div>
+    </SheetModal>
+
+    <SeriesTaskOfferSheet
+      :is-open="seriesOfferOpen"
+      :offer="seriesOffer"
+      :trip-start-date="offerTripStartDate"
+      :today="orchestrator.today()"
+      :assignees="offerAssignees"
+      @dismiss="seriesOfferOpen = false"
+      @apply="applySeriesOffer"
+    />
   </IonPage>
 </template>
 
 <style scoped>
+.sheet {
+  padding: 4px 0 12px;
+}
+
+.lead-chips {
+  margin-top: 16px;
+}
+
+.next-day {
+  margin: 10px 0 0;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
+}
+
+.remove {
+  --color: var(--ct-ember);
+  margin-top: 16px;
+}
+
 .add-row {
   display: flex;
   align-items: center;

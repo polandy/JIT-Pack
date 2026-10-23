@@ -1,4 +1,11 @@
-import { test, expect, visiblePage as visible } from './fixtures'
+import {
+  test,
+  expect,
+  setClock,
+  setDateRange,
+  tripAction,
+  visiblePage as visible,
+} from './fixtures'
 import {
   addPrepTask,
   addOwnTask,
@@ -15,6 +22,7 @@ import { openListComposer } from './helpers/composer'
 import { browserDay, expectFiguresPaired, writesLanded } from './helpers/page'
 import { fillIonic, setDateField } from './helpers/ionic'
 import { dropBeside } from './helpers/drag'
+import { addSeriesTask, openSeries } from './helpers/m16'
 import { PATH } from './routes'
 
 /**
@@ -793,6 +801,64 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
     // M1's due line (UX-15): the head says it, for as long as it is true.
     await page.goto(PATH.dashboard)
     await expect(page.getByTestId('header-meta')).toHaveText('1 task due')
+  })
+
+  /**
+   * E2E-M25-23 (FR-13.4, ADR-106): a series task names its series and wears
+   * a day derived from the trip's start, so moving the start moves the pill
+   * with nothing written to the task — the sheet's lead line is what says it
+   * still follows. A day chosen on the sheet ends that: the chip shows the
+   * day, the lead line is gone, and the next start change leaves it alone.
+   */
+  test("E2E-M25-23: a series task's day follows the start until a day is chosen", async ({
+    page,
+  }) => {
+    await setClock(page, '2026-10-05T09:00:00+02:00')
+    await createTripViaWizard(page, { name: 'Samedan 2026', series: 'Samedan Sommer' })
+    await openSeries(page, 'Samedan Sommer')
+    await addSeriesTask(page, 'Renew the vignette', 7)
+    await createTripViaWizard(page, {
+      name: 'Samedan 2027',
+      series: 'Samedan Sommer',
+      startDate: '2026-11-02',
+      endDate: '2026-11-08',
+    })
+
+    const moveStart = async (start: string, end: string) => {
+      await tripAction(page, 'edit')
+      await expect(visible(page).getByTestId('trip-edit-name')).toBeVisible()
+      await setDateRange(page, 'trip-edit-dates', { start, end })
+      await writesLanded(page)
+      await page.getByTestId('header-back').click()
+    }
+    const pill = () => visible(page).getByTestId('trip-task-due-Renew the vignette')
+
+    const before = await openTasks(page, 'before')
+    const row = before.getByTestId('trip-task-Renew the vignette')
+    await expect(row.getByTestId('task-origin-series')).toHaveText('Samedan Sommer')
+    await expect(pill()).toHaveText('Mon, 26.10')
+
+    await moveStart('2026-11-09', '2026-11-15')
+    await openTasks(page, 'before')
+    await expect(pill()).toHaveText('Mon, 02.11')
+
+    await visible(page).getByTestId('trip-task-open-Renew the vignette').click()
+    const sheet = page.getByTestId('task-sheet')
+    await expect(sheet).toBeVisible()
+    await expect(sheet.getByTestId('task-sheet-lead')).toHaveText(
+      'Mon, 02.11 · 1 week before departure, moves with it',
+    )
+    await sheet.getByTestId('due-chip-tomorrow').click()
+    await expect(sheet.getByTestId('task-sheet-due-current')).toContainText('Tue, 06.10')
+    await expect(sheet.getByTestId('task-sheet-lead')).toHaveCount(0)
+    await sheet.getByTestId('task-sheet-close').click()
+    await expect(sheet).toHaveCount(0)
+    await expect(pill()).toHaveText('Tomorrow')
+
+    // The chosen day is the task's own now: a second move leaves it.
+    await moveStart('2026-11-16', '2026-11-22')
+    await openTasks(page, 'before')
+    await expect(pill()).toHaveText('Tomorrow')
   })
 
   /**

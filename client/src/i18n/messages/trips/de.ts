@@ -75,6 +75,8 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
     '{n} Vorbereitungs-Aufgabe übernommen | {n} Vorbereitungs-Aufgaben übernommen',
   'wizard.tripTaskCount':
     '{n} Aufgabe für die Reise übernommen | {n} Aufgaben für die Reise übernommen',
+  'wizard.seriesTaskCount':
+    '{n} Aufgabe aus der Serie „{series}“ übernommen | {n} Aufgaben aus der Serie „{series}“ übernommen',
   'wizard.mergesTitle': 'Nur einmal dabei',
   'wizard.excludedSummary': '{n} durch Bedingungen ausgeschlossen',
   'wizard.excludedLine': '{item} — übersprungen: {reason}',
@@ -241,6 +243,19 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
   'series.checklistEmpty': 'Wird angeboten, sobald eine neue Reise in dieser Serie entsteht.',
   'series.checklistAdd': 'Punkt hinzufügen…',
   'series.checklistMode': 'Art',
+  // FR-13.4 — Serien-Aufgaben, zwischen der Checkliste und der Reisenhistorie.
+  'series.sectionTasks': 'Aufgaben für jede Reise',
+  'series.taskAdd': '+ Aufgabe',
+  'series.taskQuietNote':
+    'Jede neue Reise dieser Serie bekommt diese Aufgaben. Fällig rechnet von der Abreise aus.',
+  'series.taskSheetNew': 'Neue Serien-Aufgabe',
+  'series.taskSheetEdit': 'Serien-Aufgabe bearbeiten',
+  'series.taskText': 'Aufgabe',
+  'series.taskTextPlaceholder': 'z. B. Flüge buchen',
+  'series.taskWho': 'Wer macht’s?',
+  'series.taskWhoNobody': 'Niemand',
+  'series.taskNextTripDay': '{day} für „{trip}"',
+  'series.taskNoNextTrip': 'Noch keine kommende Reise in dieser Serie.',
   'series.sectionTrips': 'Reisen dieser Serie',
   'series.detach': 'Aus der Serie lösen',
   'series.noTrips': 'Noch keine Reisen in dieser Serie.',
