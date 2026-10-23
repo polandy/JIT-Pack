@@ -116,3 +116,7 @@ went.
   the other. The sheet's own promise rides along: it names the row the task prepares and who wrote it, which is what
   the line has no room for. The undo is asserted too, and it returns the task to M4's window rather than to „no phase
   at all".
+* **E2E-M25-23** `all` (FR-13.4, ADR-106): a series task's row carries *„🔁 Samedan Sommer"* and its due pill; moving
+  the trip's start a week on M22 moves the pill a week with nothing written to the task, and the sheet's lead line
+  says so. Choosing a fixed day on the sheet replaces the lead line by the chips' day; a second start change no
+  longer moves it.

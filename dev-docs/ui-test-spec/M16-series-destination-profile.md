@@ -46,3 +46,7 @@ destination profile created on first use, its checklist, attach and detach), and
   an archived trip) is likewise left: it is a router-link to M2-04's screen, which that case owns.
   Neither carries a `data-testid`, deliberately — a hook nothing addresses is the same „kept for
   later" as dead code.
+* **E2E-M16-05** `all` (FR-13.4): with no profile, *„+ Aufgabe"* writes a series task through the lazy profile; its
+  line names the chosen lead, the sheet's day line names the next trip's day, and an edit changes the lead in place;
+  read back after leaving and returning. Server leg: the seat shows the picked user; local leg: no seat at all — the
+  absence asserted against the lead text on the same line, which is the positive signal.
