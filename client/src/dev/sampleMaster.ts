@@ -57,6 +57,8 @@ export interface SampleMaster {
   groups: Record<string, string>
   /** Master item name → id, same reason. */
   items: Record<string, string>
+  /** FR-13.4: the series seeded below, so a caller can navigate to M16. */
+  seriesId: string
   /** What the caller reports back to whoever pressed the button. */
   itemCount: number
 }
@@ -365,6 +367,38 @@ const RETIRE_DEMO = {
   loose: ['Wärmflasche', 'Ohrstöpsel'],
 } as const
 
+/**
+ * FR-13.4: a series with a destination profile carrying two series tasks, so
+ * M16's „Aufgaben für jede Reise" section and a generated trip's M25 origin
+ * line can be looked at without typing a series by hand. No default
+ * assignee — the seed runs in Local Mode too, which has no accounts at all
+ * (G-8), and `addDestinationTask`'s default is already "none". No trip is
+ * attached here: the seed's own trips stay outside the series, so the
+ * later-join M22 offer sheet is still reachable on a fresh device.
+ */
+const SERIES = {
+  name: 'Samedan Sommer',
+  tasks: [
+    { task: 'Steinbock-Wanderung reservieren', leadDays: 28 },
+    { task: 'Bergbahn-Abo prüfen', leadDays: null },
+  ] as const,
+}
+
+/**
+ * Adopts the series on a second run rather than duplicating its tasks — the
+ * same `templates.name` collision pattern `seedTemplate` uses above, since
+ * `tripSeries.name` is UNIQUE instance-wide too (FR-13.1).
+ */
+function seedSeries(orchestrator: Orchestrator): string {
+  const existing = orchestrator.names.seriesNameCollision(SERIES.name)
+  if (existing) return existing.id
+  const id = orchestrator.series.createSeries(SERIES.name)!
+  for (const { task, leadDays } of SERIES.tasks) {
+    orchestrator.series.addDestinationTask(id, task, leadDays)
+  }
+  return id
+}
+
 function seedRetiredRows(
   orchestrator: Orchestrator,
   itemIds: Map<string, string>,
@@ -494,10 +528,13 @@ export function seedSampleMaster(
   // name taken and would otherwise add a second pair of retired rows.
   if (created.size > 0) seedRetiredRows(orchestrator, itemIds, tagIds)
 
+  const seriesId = seedSeries(orchestrator)
+
   return {
     vacationTemplateId,
     groups: Object.fromEntries(groupIds),
     items: Object.fromEntries(itemIds),
+    seriesId,
     itemCount: itemIds.size,
   }
 }
