@@ -30,6 +30,7 @@ import type {
   Container,
   DestinationChecklistItem,
   DestinationProfile,
+  DestinationTask,
   GeneratedPosition,
   ItemComment,
   ItemDependency,
@@ -78,6 +79,7 @@ import {
   commentRow,
   containerRow,
   dependencyRow,
+  destinationTaskRow,
   masterItemRow,
   memberRow,
   noteAckRow,
@@ -284,6 +286,16 @@ function rowToChecklistItem(id: string, row: Record<string, unknown>): Destinati
     profile_id: row['profile_id'] as string,
     label: row['label'] as string,
     mode: (row['mode'] as DestinationChecklistItem['mode']) ?? ITEM_MODE_BUY_LOCAL,
+  }
+}
+
+function rowToDestinationTask(id: string, row: Record<string, unknown>): DestinationTask {
+  return {
+    id,
+    profile_id: row['profile_id'] as string,
+    task: row['task'] as string,
+    lead_days: (row['lead_days'] as number | null | undefined) ?? null,
+    assignee_user_id: (row['assignee_user_id'] as string | null | undefined) ?? null,
   }
 }
 
@@ -647,6 +659,12 @@ export const KERNEL_TABLE_SPECS = {
     encode: checklistItemRow,
     cascadeParents: [goesWith('profile_id', TABLE.destinationProfiles)],
   },
+  [TABLE.destinationTasks]: {
+    ...MASTER_DATA,
+    parse: rowToDestinationTask,
+    encode: destinationTaskRow,
+    cascadeParents: [goesWith('profile_id', TABLE.destinationProfiles)],
+  },
   [TABLE.trips]: { owner: 'trip', parse: rowToTrip, encode: tripRow },
   [TABLE.tripMembers]: { ...TRIP_ROWS, parse: rowToMember, encode: memberRow },
   [TABLE.tripTemplateSources]: {
@@ -730,6 +748,10 @@ function rowToOwnTask(id: string, row: Record<string, unknown>): OwnTask {
     ...taskFacts(row),
     idea_id: (row['idea_id'] as string | null | undefined) ?? null,
     lead_days: (row['lead_days'] as number | null | undefined) ?? null,
+    // FR-13.4: the series task this todo was materialised from, and its lead
+    // before the trip's own start (ADR-106) — `idea_id`/`lead_days`'s shape.
+    destination_task_id: (row['destination_task_id'] as string | null | undefined) ?? null,
+    start_lead_days: (row['start_lead_days'] as number | null | undefined) ?? null,
   }
 }
 

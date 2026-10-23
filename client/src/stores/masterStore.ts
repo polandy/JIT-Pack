@@ -11,6 +11,7 @@ import { ref, computed } from 'vue'
 import type {
   DestinationChecklistItem,
   DestinationProfile,
+  DestinationTask,
   ItemDependency,
   ItemTag,
   MasterItem,
@@ -52,6 +53,7 @@ export const useMasterStore = defineStore('master', () => {
   const series = ref<Map<string, TripSeries>>(new Map())
   const profiles = ref<Map<string, DestinationProfile>>(new Map())
   const checklistItems = ref<Map<string, DestinationChecklistItem>>(new Map())
+  const destinationTasks = ref<Map<string, DestinationTask>>(new Map())
   const dependencies = ref<Map<string, ItemDependency>>(new Map())
 
   // --- Getters ---
@@ -246,6 +248,11 @@ export const useMasterStore = defineStore('master', () => {
     return [...checklistItems.value.values()].filter((c) => c.profile_id === profileId)
   }
 
+  /** FR-13.4: a destination profile's series tasks. */
+  function getDestinationTasks(profileId: string): DestinationTask[] {
+    return [...destinationTasks.value.values()].filter((t) => t.profile_id === profileId)
+  }
+
   // --- Item dependencies (Addendum 3.20, FR-20.1) ---
 
   const dependencyList = computed(() => [...dependencies.value.values()])
@@ -316,6 +323,7 @@ export const useMasterStore = defineStore('master', () => {
     [TABLE.tripSeries]: keyedSink(series),
     [TABLE.destinationProfiles]: keyedSink(profiles),
     [TABLE.destinationChecklistItems]: keyedSink(checklistItems),
+    [TABLE.destinationTasks]: keyedSink(destinationTasks),
     [TABLE.itemDependencies]: keyedSink(dependencies),
   })
 
@@ -373,6 +381,7 @@ export const useMasterStore = defineStore('master', () => {
     getSeries,
     getDestinationProfile,
     getChecklistItems,
+    getDestinationTasks,
     dependencyList,
     getItemDependencies,
     getCompanionDependencies,

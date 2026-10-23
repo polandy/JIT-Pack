@@ -76,6 +76,7 @@ function fakeMasterReads(templates: Template[] = []): MasterReads {
     getTemplate: () => undefined,
     getTemplateItems: () => [],
     getDestinationProfile: () => undefined,
+    getDestinationTasks: () => [],
     sinks: {},
   }
 }

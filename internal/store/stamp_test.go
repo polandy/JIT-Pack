@@ -39,13 +39,14 @@ func TestServerOwned_ColumnsAreSyncableAndStamped_Invariant3(t *testing.T) {
 // decides, each with the reason: they say whom a row is *for*, a choice the
 // writer makes, never who wrote it.
 var chosenPeople = map[string]map[string]string{
-	TableComments:        {"assignee_user_id": "a task's assignee is whoever the writer hands it to (FR-7.5)"},
-	TableItems:           {DefaultAssigneeColumn: "the packer an item suggests for its trip rows (FR-1.9)"},
-	TableMeals:           {"cook_user_id": "who cooks is planned by whoever plans the meal (FR-33.1)"},
-	TableShoppingEntries: {"assignee_user_id": "who is to buy an entry is handed to them (FR-30.12)"},
-	TableTravelers:       {"linked_user_id": "which account a traveller is; the guard holds it to the trip's members"},
-	TableTripItems:       {"packer_user_id": "who is to pack a row is assigned; who did is stamped (FR-25.19)"},
-	TableTripMembers:     {"user_id": "the account being added; the guard decides who may add one"},
+	TableComments:         {"assignee_user_id": "a task's assignee is whoever the writer hands it to (FR-7.5)"},
+	TableDestinationTasks: {"assignee_user_id": "a series task's optional default assignee, applied only when they are a trip member (FR-13.4)"},
+	TableItems:            {DefaultAssigneeColumn: "the packer an item suggests for its trip rows (FR-1.9)"},
+	TableMeals:            {"cook_user_id": "who cooks is planned by whoever plans the meal (FR-33.1)"},
+	TableShoppingEntries:  {"assignee_user_id": "who is to buy an entry is handed to them (FR-30.12)"},
+	TableTravelers:        {"linked_user_id": "which account a traveller is; the guard holds it to the trip's members"},
+	TableTripItems:        {"packer_user_id": "who is to pack a row is assigned; who did is stamped (FR-25.19)"},
+	TableTripMembers:      {"user_id": "the account being added; the guard decides who may add one"},
 }
 
 // G-2 for invariant 3. Stripping and stamping are declared per table, and the

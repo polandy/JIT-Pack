@@ -106,6 +106,11 @@ const PAIRS: Array<{ table: SyncTable; parse: string; encode: string; encodeOnly
     parse: 'rowToChecklistItem',
     encode: 'checklistItemRow',
   },
+  {
+    table: TABLE.destinationTasks,
+    parse: 'rowToDestinationTask',
+    encode: 'destinationTaskRow',
+  },
   { table: TABLE.trips, parse: 'rowToTrip', encode: 'tripRow' },
   { table: TABLE.tripMembers, parse: 'rowToMember', encode: 'memberRow' },
   { table: TABLE.tripItems, parse: 'rowToTripItem', encode: 'itemRow' },

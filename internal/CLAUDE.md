@@ -23,7 +23,7 @@ word. Whoever merges second renumbers.
 ## Invariant 3 — the client's identity claims are never trusted
 
 The server stamps actor columns itself. Which columns a table owns is declared once, as `serverOwned` on its
-`tableSpec` (`internal/store/tables.go`, rules in `stamp.go`); the store's write pipeline strips them from every
+`tableSpec` (`internal/store/tables_registry.go`, rules in `stamp.go`); the store's write pipeline strips them from every
 mutation and stamps them back from the actor before the scope rule runs — on a push of either partition and on a
 conflict revert alike. Among them: comment `author_id` and the task's resolution record, `note_acks.user_id`
 (FR-7.9), an idea's, its discussion's and a day entry's `author_id` and `idea_votes.user_id` (§3.29), the packing

@@ -34,12 +34,15 @@ type DueTask struct {
 }
 
 // DueTasks returns the open tasks of every trip that is not archived whose
-// due day is one of days (YYYY-MM-DD), both kinds — a row's preparation
-// (FR-7.3) and the trip's own (FR-7.4) — in a stable order. No days, no
-// tasks. An idea's preparation step (FR-29.21) is due its lead before the
-// idea's day, and not at all while the idea has none or is dropped (ADR-104);
-// a step whose idea is gone is an ordinary task again. A task's time comes
-// with its day (FR-7.18); a step has none, its day being its idea's.
+// due day is one of days (YYYY-MM-DD), three kinds — a row's preparation
+// (FR-7.3), the trip's own (FR-7.4) and a series task materialised onto it
+// (FR-13.4) — in a stable order. No days, no tasks. An idea's preparation
+// step (FR-29.21) is due its lead before the idea's day, and not at all
+// while the idea has none or is dropped (ADR-104); a step whose idea is gone
+// is an ordinary task again. A series task (ADR-106) is due its lead before
+// the trip's own start_date, and not at all while the trip has none. A
+// task's time comes with its day (FR-7.18); a step or a series task has
+// none, its day being derived.
 func (s *Store) DueTasks(ctx context.Context, days ...string) ([]DueTask, error) {
 	if len(days) == 0 {
 		return nil, nil
@@ -54,7 +57,10 @@ func (s *Store) DueTasks(ctx context.Context, days ...string) ([]DueTask, error)
 		   SELECT c.id, c.trip_id, c.body, COALESCE(c.assignee_user_id, '') AS assignee,
 		          CASE WHEN c.lead_days IS NULL OR c.idea_id IS NULL THEN COALESCE(c.due_time, '')
 		               ELSE '' END AS due_time,
-		          CASE WHEN c.lead_days IS NULL OR c.idea_id IS NULL THEN c.due_date
+		          CASE WHEN c.start_lead_days IS NOT NULL THEN
+		                   CASE WHEN t.start_date IS NULL THEN NULL
+		                        ELSE date(t.start_date, '-' || c.start_lead_days || ' days') END
+		               WHEN c.lead_days IS NULL OR c.idea_id IS NULL THEN c.due_date
 		               WHEN i.state = ? THEN NULL
 		               ELSE date(i.planned_on, '-' || c.lead_days || ' days') END AS due
 		     FROM comments c JOIN trips t ON t.id = c.trip_id

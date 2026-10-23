@@ -5,7 +5,6 @@
 1294 client/src/views/templates/TemplateEditorPage.vue
 1170 client/src/views/trips/TripExcursionPage.vue
 1159 client/src/views/trips/TripListPage.vue
-804 client/src/types/domain.ts
 1033 client/src/components/trips/ItemDetailSheet.vue
 974 client/src/planner/IdeaDetail.vue
 1080 client/src/planner/DayEntrySheet.vue
@@ -14,7 +13,6 @@
 1008 client/src/meals/MealSheetBody.vue
 982 client/src/views/dashboard/DashboardPage.vue
 935 client/src/shopping/ShoppingPage.vue
-925 internal/store/tables.go
 863 client/src/planner/ConnectionSearch.vue
 844 client/src/meals/MealPlanPage.vue
 810 client/src/app/actions/packing.ts

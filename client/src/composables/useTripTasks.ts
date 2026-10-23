@@ -46,6 +46,7 @@ export function useTripTasks(ideas: IdeaLookup | null = inject(IDEA_LOOKUP, null
       tripStore.getPrepTasks(tripId),
       rowsOf(tripId),
       (ideaId) => ideas?.idea(tripId, ideaId),
+      tripStore.getTrip(tripId)?.start_date ?? null,
     )
   }
 

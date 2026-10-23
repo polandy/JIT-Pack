@@ -51,6 +51,7 @@ describe('write partitions (Sync-API P-3)', () => {
     TABLE.tripSeries,
     TABLE.destinationProfiles,
     TABLE.destinationChecklistItems,
+    TABLE.destinationTasks,
     TABLE.trips,
     TABLE.tripMembers,
     TABLE.tripTemplateSources,

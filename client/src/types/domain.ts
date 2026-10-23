@@ -6,7 +6,13 @@
 
 import type { TrackKind } from '@/api/types'
 import type { ColumnEnum } from '@/api/tables'
-import type { IdeaTaskLink, TaskTime } from './taskColumns'
+import type { IdeaTaskLink, SeriesTaskLink, TaskTime } from './taskColumns'
+export type {
+  TripSeries,
+  DestinationProfile,
+  DestinationChecklistItem,
+  DestinationTask,
+} from './seriesColumns'
 
 /** `repack` stays in the schema only so old rows remain readable; no client writes it. */
 export type TripStatus = Exclude<ColumnEnum<'trips', 'status'>, 'repack'>
@@ -456,7 +462,7 @@ export interface PrepTask extends TaskFacts {
  * Kept apart from `PrepTask` because nothing the packing list measures may
  * count it: a row's doneness, the ring and the prep KPI read `PrepTask` only.
  */
-export interface OwnTask extends TaskFacts, IdeaTaskLink {
+export interface OwnTask extends TaskFacts, IdeaTaskLink, SeriesTaskLink {
   id: string
   trip_id: string
   author_id: string
@@ -666,28 +672,6 @@ export interface TemplateTask {
   task: string
   /** FR-7.7: the phase the instantiated task starts in; null reads as *before*. */
   phase: TaskPhase | null
-}
-
-// --- Trip series & destination profiles (FR-13.1/13.2) ---
-
-export interface TripSeries {
-  id: string
-  owner_id: string
-  name: string
-  default_attributes: Record<string, unknown> | null
-}
-
-export interface DestinationProfile {
-  id: string
-  series_id: string
-  notes: string | null
-}
-
-export interface DestinationChecklistItem {
-  id: string
-  profile_id: string
-  label: string
-  mode: ItemMode
 }
 
 // --- Item dependencies / companion items (Addendum 3.20, FR-20.1) ---

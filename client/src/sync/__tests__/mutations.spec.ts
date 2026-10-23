@@ -475,14 +475,22 @@ describe('createMutations', () => {
     expect(m.setTaskTag('task1', null).table).toBe(TABLE.comments)
   })
 
-  // FR-7.11: a day or none, and nothing beside it — a date set on one device
-  // and a tag set on another must both survive the merge (NFR-4.2a). A day
-  // taken off takes its time along (FR-7.18): a time on no day reminds of
-  // nothing.
-  it('setTaskDueDate writes the day alone, and writes it away with its time', () => {
+  // FR-7.11: a day or none, and nothing beside it bar the lead it clears —
+  // a date set on one device and a tag set on another must both survive the
+  // merge (NFR-4.2a). A day taken off takes its time along (FR-7.18): a time
+  // on no day reminds of nothing. Either way `start_lead_days` clears
+  // (FR-13.4, ADR-106): a fixed day is the todo's own choice from here on.
+  it('setTaskDueDate writes the day and clears any lead, and writes it away with its time', () => {
     const m = mutations()
-    expect(m.setTaskDueDate('task1', '2026-07-09').fields).toEqual({ due_date: '2026-07-09' })
-    expect(m.setTaskDueDate('task1', null).fields).toEqual({ due_date: null, due_time: null })
+    expect(m.setTaskDueDate('task1', '2026-07-09').fields).toEqual({
+      due_date: '2026-07-09',
+      start_lead_days: null,
+    })
+    expect(m.setTaskDueDate('task1', null).fields).toEqual({
+      due_date: null,
+      due_time: null,
+      start_lead_days: null,
+    })
     expect(m.setTaskDueDate('task1', null).table).toBe(TABLE.comments)
   })
 

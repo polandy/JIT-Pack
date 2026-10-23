@@ -13,6 +13,7 @@ import {
   type Container,
   type DestinationChecklistItem,
   type DestinationProfile,
+  type DestinationTask,
   type ItemMode,
   type Trip,
   TRIP_STATUS_ARCHIVED,
@@ -41,6 +42,11 @@ export type DestinationProfileEdit = Partial<Pick<DestinationProfile, 'notes'>>
 
 /** FR-13.3's checklist entry. */
 export type ChecklistItemEdit = Partial<Pick<DestinationChecklistItem, 'label' | 'mode'>>
+
+/** FR-13.4's series task. `profile_id` is fixed at creation. */
+export type DestinationTaskEdit = Partial<
+  Pick<DestinationTask, 'task' | 'lead_days' | 'assignee_user_id'>
+>
 
 export function createTripsMutations({ make }: MutationContext) {
   function addTraveler(
@@ -251,6 +257,32 @@ export function createTripsMutations({ make }: MutationContext) {
     return make('delete', TABLE.destinationChecklistItems, itemId)
   }
 
+  // --- Series task mutations (FR-13.4) ---
+
+  function addDestinationTask(
+    profileId: string,
+    task: string,
+    leadDays: number | null,
+    assigneeUserId: string | null,
+  ): { mutation: Mutation; id: string } {
+    const id = newId()
+    const mutation = make('insert', TABLE.destinationTasks, id, {
+      profile_id: profileId,
+      task,
+      lead_days: leadDays,
+      assignee_user_id: assigneeUserId,
+    })
+    return { mutation, id }
+  }
+
+  function updateDestinationTask(taskId: string, fields: DestinationTaskEdit): Mutation {
+    return make('upsert', TABLE.destinationTasks, taskId, rowFrom(fields))
+  }
+
+  function deleteDestinationTask(taskId: string): Mutation {
+    return make('delete', TABLE.destinationTasks, taskId)
+  }
+
   // --- Trip membership mutations (FR-4.5/4.7, master partition) ---
 
   function addTripMember(
@@ -299,6 +331,9 @@ export function createTripsMutations({ make }: MutationContext) {
     addChecklistItem,
     updateChecklistItem,
     deleteChecklistItem,
+    addDestinationTask,
+    updateDestinationTask,
+    deleteDestinationTask,
     addTripMember,
     setTripMemberRole,
     removeTripMember,

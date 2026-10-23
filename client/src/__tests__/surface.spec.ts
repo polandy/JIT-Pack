@@ -103,6 +103,10 @@ const WIRE_ONLY =
 const VERDICT_UI_PENDING =
   'read by the FR-9.6 verdict sheet (M4 closing pass, M5), built on this branch'
 
+/** FR-13.4's series-task lead choices, ahead of the M16 sheet that offers them. */
+const SERIES_TASK_UI_PENDING =
+  'read by the FR-13.4 series-task sheet (M16), built on a later branch'
+
 const exportsWithNoProductionReader: Record<string, string> = {
   'api/types.ts#PushRequest': WIRE_ONLY,
   'api/types.ts#MasterDeleteResponse': WIRE_ONLY,
@@ -128,6 +132,7 @@ const exportsWithNoProductionReader: Record<string, string> = {
   // closing pass groups rows through `passSection` (singular) row by row,
   // so the batch helper has no caller yet.
   'domain/verdict.ts#passSections': VERDICT_UI_PENDING,
+  'domain/shared/seriesTask.ts#SERIES_TASK_LEADS': SERIES_TASK_UI_PENDING,
 }
 
 /** Matches a top-level `export const|let|function|async function|class|type|interface|enum NAME`. */

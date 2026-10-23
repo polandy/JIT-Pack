@@ -51,6 +51,7 @@ export type {
   SeriesEdit,
   DestinationProfileEdit,
   ChecklistItemEdit,
+  DestinationTaskEdit,
 } from './mutations/trips'
 export type { MasterItemEdit, ItemDependencyEdit } from './mutations/masterData'
 export type { TemplateEdit, TemplateItemEdit } from './mutations/templates'

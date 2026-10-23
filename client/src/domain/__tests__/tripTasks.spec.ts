@@ -20,8 +20,14 @@ import {
   tripTasksUnfolded,
   type TripTask,
 } from '../tripTasks'
-import type { PrepTask, TaskPhase, TaskState, OwnTask } from '@/types/domain'
+import type { DestinationTask, PrepTask, TaskPhase, TaskState, OwnTask } from '@/types/domain'
 import { PREPARATION_LEADS, preparationDue, type IdeaDay } from '@/domain/shared/ideaPreparation'
+import {
+  SERIES_TASK_LEADS,
+  isSeriesTask,
+  materializeSeriesTasks,
+  seriesTaskDue,
+} from '@/domain/shared/seriesTask'
 import { TASK_PHASE_BEFORE, TASK_PHASE_DURING } from '@/types/domain'
 
 /** FR-7.11: the day every due rule below is read against. */
@@ -278,6 +284,57 @@ describe('tripTasks (FR-29.21): an idea’s preparation steps', () => {
   })
 })
 
+describe('tripTasks (FR-13.4): a series task materialised from a destination profile', () => {
+  const seriesTask = (
+    id: string,
+    leadDays: number,
+    due: string | null = null,
+    destinationTaskId: string | null = 'dt1',
+  ) =>
+    ({
+      id,
+      trip_id: 'trip',
+      author_id: 'someone',
+      body: `Task ${id}`,
+      task_state: 'open',
+      assignee_user_id: null,
+      due_date: due,
+      due_time: null,
+      destination_task_id: destinationTaskId,
+      start_lead_days: leadDays,
+    }) as OwnTask
+
+  it('is due its lead before the trip’s own start, whatever due day the row carries', () => {
+    const [task] = tripTasks([seriesTask('s1', 28, '2026-10-01')], [], [], undefined, '2026-11-04')
+    expect(task).toMatchObject({
+      due_date: '2026-10-07',
+      start_lead_days: 28,
+      destination_task_id: 'dt1',
+    })
+  })
+
+  it('FR-7.18: carries no time, whatever time the row carries — its day is the trip’s', () => {
+    const [task] = tripTasks(
+      [{ ...seriesTask('s1', 7, '2026-10-01'), due_time: '14:00' }],
+      [],
+      [],
+      undefined,
+      '2026-11-04',
+    )
+    expect(task?.due_time).toBeNull()
+  })
+
+  it('has no due day, but is still listed, while the trip has no start date', () => {
+    const [task] = tripTasks([seriesTask('s1', 7)], [], [], undefined, null)
+    expect(task).toMatchObject({ body: 'Task s1', due_date: null })
+  })
+
+  it('reads overdue rather than clamped once its lead has passed', () => {
+    const [task] = tripTasks([seriesTask('s1', 1)], [], [], undefined, '2026-07-01')
+    expect(task?.due_date).toBe('2026-06-30')
+  })
+})
+
 describe('preparationDue (FR-29.21)', () => {
   it('counts the lead back from the idea’s day, across a month', () => {
     expect(preparationDue(7, { plannedOn: '2026-11-04', dropped: false })).toBe('2026-10-28')
@@ -292,6 +349,101 @@ describe('preparationDue (FR-29.21)', () => {
 
   it('offers four leads, the day before first', () => {
     expect(PREPARATION_LEADS).toEqual([1, 3, 7, 14])
+  })
+})
+
+describe('seriesTaskDue (FR-13.4)', () => {
+  it('counts the lead back from the trip’s own start, across a month', () => {
+    expect(seriesTaskDue(28, '2026-11-04')).toBe('2026-10-07')
+    expect(seriesTaskDue(1, '2026-11-01')).toBe('2026-10-31')
+  })
+
+  it('has none while the trip carries no start date', () => {
+    expect(seriesTaskDue(7, null)).toBeNull()
+  })
+
+  it('offers six leads, the day before first and two longer than FR-29.21’s', () => {
+    expect(SERIES_TASK_LEADS).toEqual([1, 3, 7, 14, 28, 56])
+  })
+})
+
+describe('isSeriesTask (FR-13.4)', () => {
+  it('is true only once a lead is set, idea links aside', () => {
+    expect(isSeriesTask({ start_lead_days: 7 })).toBe(true)
+    expect(isSeriesTask({ start_lead_days: null })).toBe(false)
+    expect(isSeriesTask({})).toBe(false)
+  })
+})
+
+describe('materializeSeriesTasks (FR-13.4): the wizard’s, the clone’s and the offer sheet’s one dedup', () => {
+  const steinbock: DestinationTask = {
+    id: 'dt-1',
+    profile_id: 'prof-1',
+    task: 'Steinbock-Wanderung reservieren',
+    lead_days: 28,
+    assignee_user_id: 'user-a',
+  }
+  const waschmaschine: DestinationTask = {
+    id: 'dt-2',
+    profile_id: 'prof-1',
+    task: 'Waschmaschine anmelden',
+    lead_days: null,
+    assignee_user_id: null,
+  }
+
+  it('drafts a todo per series task, carrying its origin and its lead', () => {
+    const result = materializeSeriesTasks([steinbock, waschmaschine], [])
+    expect(result.toCreate).toEqual([
+      {
+        destination_task_id: 'dt-1',
+        body: 'Steinbock-Wanderung reservieren',
+        start_lead_days: 28,
+        assignee_user_id: null,
+      },
+      {
+        destination_task_id: 'dt-2',
+        body: 'Waschmaschine anmelden',
+        start_lead_days: null,
+        assignee_user_id: null,
+      },
+    ])
+    expect(result.alreadyOnTrip).toEqual([])
+  })
+
+  it('keeps the default assignee only when they are a trip member (FR-7.5)', () => {
+    expect(materializeSeriesTasks([steinbock], [], ['user-a']).toCreate[0]?.assignee_user_id).toBe(
+      'user-a',
+    )
+    expect(materializeSeriesTasks([steinbock], [], ['user-b']).toCreate[0]?.assignee_user_id).toBe(
+      null,
+    )
+    // Local and Single-User Mode offer no roster at all (G-8) — same outcome.
+    expect(materializeSeriesTasks([steinbock], []).toCreate[0]?.assignee_user_id).toBe(null)
+  })
+
+  it('leaves out a series task already on the trip, by exact trimmed text', () => {
+    const result = materializeSeriesTasks(
+      [steinbock, waschmaschine],
+      ['  Steinbock-Wanderung reservieren  '],
+    )
+    expect(result.toCreate).toEqual([
+      {
+        destination_task_id: 'dt-2',
+        body: 'Waschmaschine anmelden',
+        start_lead_days: null,
+        assignee_user_id: null,
+      },
+    ])
+    expect(result.alreadyOnTrip).toEqual([steinbock])
+  })
+
+  it('offers nothing once every series task is already on the trip', () => {
+    const result = materializeSeriesTasks(
+      [steinbock, waschmaschine],
+      ['Steinbock-Wanderung reservieren', 'Waschmaschine anmelden'],
+    )
+    expect(result.toCreate).toEqual([])
+    expect(result.alreadyOnTrip).toEqual([steinbock, waschmaschine])
   })
 })
 

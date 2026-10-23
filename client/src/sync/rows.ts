@@ -13,6 +13,7 @@ import type {
   Container,
   DestinationChecklistItem,
   DestinationProfile,
+  DestinationTask,
   ItemComment,
   ItemDependency,
   PrepTask,
@@ -182,6 +183,10 @@ export function ownTaskRow(task: OwnTask): Record<string, unknown> {
     ...taskFactRow(task),
     idea_id: task.idea_id ?? null,
     lead_days: task.lead_days ?? null,
+    // FR-13.4: carried back so an optimistic merge does not read a series
+    // task as having lost its origin or its lead while the push is in flight.
+    destination_task_id: task.destination_task_id ?? null,
+    start_lead_days: task.start_lead_days ?? null,
   }
 }
 
@@ -216,6 +221,16 @@ export function checklistItemRow(item: DestinationChecklistItem): Record<string,
     profile_id: item.profile_id,
     label: item.label,
     mode: item.mode,
+  }
+}
+
+/** FR-13.4's series task — `checklistItemRow`'s shape, one column more. */
+export function destinationTaskRow(task: DestinationTask): Record<string, unknown> {
+  return {
+    profile_id: task.profile_id,
+    task: task.task,
+    lead_days: task.lead_days,
+    assignee_user_id: task.assignee_user_id,
   }
 }
 

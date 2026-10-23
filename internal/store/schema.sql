@@ -508,6 +508,20 @@ CREATE TABLE comments (
     -- task. Free of a CHECK like every column here; the client offers four
     -- leads only.
     lead_days    INTEGER,
+    -- FR-13.4: a trip task materialised from a destination profile's series
+    -- task says how many days before the trip's start it is due. Its due
+    -- day is read off the trip (start_date minus the lead), never stored,
+    -- so moving the trip moves the todo (ADR-106); due_date stays unused on
+    -- such a row. NULL: not a series lead, including a series task with no
+    -- lead at all. Choosing a fixed day on the todo's sheet drops the lead
+    -- (clears this column); free of a CHECK like lead_days, for field-level
+    -- LWW's sake.
+    start_lead_days INTEGER,
+    -- FR-13.4: the series task a trip task was materialised from,
+    -- idea_id's shape — carries the origin line on M25, named after the
+    -- trip's series. ON DELETE SET NULL: the todo outlives the series task
+    -- it came from.
+    destination_task_id TEXT REFERENCES destination_tasks(id) ON DELETE SET NULL,
     created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc  TEXT NOT NULL DEFAULT '',
@@ -1034,6 +1048,26 @@ CREATE TABLE destination_checklist_items (        -- FR-13.3
     label       TEXT NOT NULL,
     mode        TEXT NOT NULL DEFAULT 'buy_local'
                 CHECK (mode IN ('pack','buy_before','buy_local')),
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
+    updated_hlc TEXT NOT NULL DEFAULT ''
+);
+
+-- FR-13.4: a task that belongs to the destination, not the luggage —
+-- template_tasks' shape and reason (two devices, two tasks, no overwrite).
+-- Writing the first one creates the profile lazily, as a note or a
+-- checklist entry does.
+CREATE TABLE destination_tasks (
+    id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    profile_id  TEXT NOT NULL REFERENCES destination_profiles(id) ON DELETE CASCADE,
+    task        TEXT NOT NULL,
+    -- FR-13.4: a lead before the trip's start, or NULL for no due day —
+    -- comments.lead_days' shape, FR-29.21's four leads and two longer ones.
+    -- Free of a CHECK for field-level LWW's sake.
+    lead_days   INTEGER,
+    -- FR-13.4: an optional default assignee, applied only when they are a
+    -- member of the trip a task materialises on (FR-7.5); a series has no
+    -- roster of its own. G-8: Local and Single-User Mode store none.
+    assignee_user_id TEXT REFERENCES users(id),
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT ''
 );

@@ -99,6 +99,56 @@ func TestDueTasks_FR29_21_AStepIsDueItsLeadBeforeItsIdeasDay(t *testing.T) {
 	}
 }
 
+// FR-13.4: a series task materialised onto a trip is due its lead before the
+// trip's own start — read off the trip, so moving the trip moves the todo
+// (ADR-106) — and not at all while the trip has no start date.
+func TestDueTasks_FR13_4_ASeriesTaskIsDueItsLeadBeforeTheTripsStart(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	mustExec(t, s, `INSERT INTO trips (id, name, year, start_date, end_date)
+		VALUES ('trip-undated', 'Ohne Start', 2026, NULL, NULL)`)
+	seriesTask := func(id, trip string, lead int, due any) {
+		t.Helper()
+		mustExec(t, s, `INSERT INTO comments (id, trip_id, author_id, body, is_task, task_state, start_lead_days, due_date)
+			VALUES (?, ?, ?, ?, 1, 'open', ?, ?)`, id, trip, testUser, "body "+id, lead, due)
+	}
+	// A stored due day does not count for a series task: the trip's start decides.
+	seriesTask("c-week", testTrip, 7, "2026-07-08")
+	seriesTask("c-undated", "trip-undated", 7, nil)
+
+	got, err := s.DueTasks(ctx, "2026-07-03")
+	if err != nil {
+		t.Fatalf("DueTasks: %v", err)
+	}
+	want := []DueTask{{ID: "c-week", TripID: testTrip, Body: "body c-week", DueDate: "2026-07-03"}}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("DueTasks(2026-07-03) = %+v\nwant %+v", got, want)
+	}
+
+	// Moving the trip's start moves the todo: the lead is read off the
+	// trip afresh, never pinned to the day it was first computed on.
+	mustExec(t, s, `UPDATE trips SET start_date = '2026-07-17' WHERE id = ?`, testTrip)
+	moved, err := s.DueTasks(ctx, "2026-07-03", "2026-07-10")
+	if err != nil {
+		t.Fatalf("DueTasks: %v", err)
+	}
+	if len(moved) != 1 || moved[0].ID != "c-week" || moved[0].DueDate != "2026-07-10" {
+		t.Errorf("DueTasks after move = %+v; want c-week alone, due 2026-07-10", moved)
+	}
+
+	// A trip with no start date gives its series task no due day at all,
+	// on any day asked about.
+	none, err := s.DueTasks(ctx, "2026-07-03", "2026-07-10", "2026-08-01")
+	if err != nil {
+		t.Fatalf("DueTasks: %v", err)
+	}
+	for _, d := range none {
+		if d.ID == "c-undated" {
+			t.Errorf("DueTasks includes c-undated, whose trip has no start date: %+v", none)
+		}
+	}
+}
+
 func TestClaimTaskReminderDay_FR7_11_OncePerDay(t *testing.T) {
 	s := openTestStore(t)
 	ctx := context.Background()

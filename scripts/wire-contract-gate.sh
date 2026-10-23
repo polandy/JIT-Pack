@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The client's wire types and path builders are generated from
 # internal/api/wire*.go (NFR-4.14, ADR-026/027), and its table contract from
-# internal/store/tables.go and schema.sql (ARCH-11). This regenerates them and
+# internal/store/tables*.go and schema.sql (ARCH-11). This regenerates them and
 # fails when a checked-in file differs. client/public/sw.js cannot import the
 # generated types; workerWire.spec.ts holds its push-body names to them.
 #
@@ -55,4 +55,4 @@ check() {
 
 check "$types_target" "$fresh_types" "internal/api/wire*.go"
 check "$routes_target" "$fresh_routes" internal/api/wire.go
-check "$tables_target" "$fresh_tables" "internal/store/tables.go and schema.sql"
+check "$tables_target" "$fresh_tables" "internal/store/tables*.go and schema.sql"

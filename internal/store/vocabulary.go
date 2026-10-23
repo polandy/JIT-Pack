@@ -32,6 +32,7 @@ const (
 	TableTripSeries                = "trip_series"
 	TableDestinationProfiles       = "destination_profiles"
 	TableDestinationChecklistItems = "destination_checklist_items"
+	TableDestinationTasks          = "destination_tasks"
 	TableTripItems                 = "trip_items"
 	TableTravelers                 = "travelers"
 	TableContainers                = "containers"
