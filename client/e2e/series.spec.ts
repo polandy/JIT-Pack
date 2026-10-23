@@ -224,6 +224,19 @@ test.describe('M16 series & destination profile @local @m16', () => {
     await expect(row.getByTestId('m16-task-lead')).toHaveText('2 weeks before departure')
     await expect(visible(page).getByTestId('m16-task-row')).toHaveCount(1)
 
+    // Typed and then a chip at once: the chip's own press is what blurs the
+    // field and writes the task, and the chip still lands.
+    await add.click()
+    await expect(sheet).toBeVisible()
+    await fillIonic(sheet.getByTestId('m16-task-sheet-text'), 'Reserve the ibex hike')
+    await sheet.getByTestId('m16-task-sheet-lead-28').click()
+    await expect(sheet.getByTestId('m16-task-sheet-lead-28')).toHaveAttribute('aria-pressed', 'true')
+    await sheet.getByTestId('m16-task-sheet-close').click()
+    await expect(sheet).toBeHidden()
+    const typed = visible(page).getByTestId('m16-task-row').filter({ hasText: 'Reserve the ibex hike' })
+    await expect(typed.getByTestId('m16-task-lead')).toHaveText('4 weeks before departure')
+    await expect(visible(page).getByTestId('m16-task-row')).toHaveCount(2)
+
     // Read back from the store after leaving the screen. Local Mode has no
     // directory, so the line carries no seat — read against its lead text.
     await writesLanded(page)

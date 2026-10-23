@@ -189,12 +189,20 @@ const LEAD_OPTIONS = [null, ...SERIES_TASK_LEADS] as const satisfies readonly (n
 
 const taskSheetOpen = ref(false)
 const editingTaskId = ref<string | null>(null)
+/**
+ * The sheet's shape is fixed by what it was opened for, not by whether the
+ * text has been written yet: the sheet is auto-height, and a remove button
+ * appearing on the field's blur would lift the chips out from under the very
+ * press that blurred it.
+ */
+const openedForEdit = ref(false)
 const draftText = ref('')
 const draftLead = ref<number | null>(null)
 const draftAssignee = ref<string | null>(null)
 
 function openNewTask() {
   editingTaskId.value = null
+  openedForEdit.value = false
   draftText.value = ''
   draftLead.value = null
   draftAssignee.value = null
@@ -203,6 +211,7 @@ function openNewTask() {
 
 function openEditTask(task: DestinationTask) {
   editingTaskId.value = task.id
+  openedForEdit.value = true
   draftText.value = task.task
   draftLead.value = task.lead_days
   draftAssignee.value = task.assignee_user_id
@@ -537,7 +546,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
     <SheetModal :is-open="taskSheetOpen" testid="m16-task-sheet" @dismiss="closeTaskSheet">
       <div class="sheet">
         <SheetHead
-          :title="t(editingTaskId ? 'series.taskSheetEdit' : 'series.taskSheetNew')"
+          :title="t(openedForEdit ? 'series.taskSheetEdit' : 'series.taskSheetNew')"
           close-testid="m16-task-sheet-close"
           @close="closeTaskSheet"
         />
@@ -584,7 +593,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
         </IonItem>
 
         <IonButton
-          v-if="editingTaskId"
+          v-if="openedForEdit"
           class="remove"
           expand="block"
           fill="clear"
