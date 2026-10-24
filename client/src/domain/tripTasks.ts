@@ -17,6 +17,7 @@ import { byDue, byDueTime, isDuePressing, pressingFirst } from './taskDue'
 import { daysBetween } from '@/domain/shared/calendar'
 import { byHand, dropInto, renumber, type Placement } from '@/domain/shared/handOrder'
 import { isPreparationStep, preparationDue, type IdeaDay } from '@/domain/shared/ideaPreparation'
+import { isSeriesTask, seriesTaskDue } from '@/domain/shared/seriesTask'
 
 /** How far a trip's tasks are, as the two figures M1 states. */
 export interface TripTaskProgress {
@@ -120,6 +121,10 @@ export interface TripTask {
   idea_id?: string | null
   /** FR-29.21: the lead before its idea's day, for a preparation step; absent otherwise. */
   lead_days?: number | null
+  /** FR-13.4: the series task this todo was materialised from; absent for none. */
+  destination_task_id?: string | null
+  /** FR-13.4: the lead before the trip's start, for a series task; absent otherwise. */
+  start_lead_days?: number | null
 }
 
 /**
@@ -144,12 +149,18 @@ export function taskPhaseOf(task: { phase: TaskPhase | null }): TaskPhase {
  * with it (the server cascades, §3.25), and a device that has not pulled that
  * delete yet would otherwise keep listing a task for a row it no longer shows
  * — a task nobody could reach, since the chip leads to a row that is gone.
+ *
+ * `tripStartDate` is the trip's own `start_date` (FR-2.1a), which a series
+ * task's due day is read off (ADR-106) — unlike a preparation step, a series
+ * task is not hidden while it waits: it is already an open trip task, simply
+ * with no due day until the trip has a start.
  */
 export function tripTasks(
   ownTasks: readonly OwnTask[],
   prepTasks: readonly PrepTask[],
   rows: readonly TripTaskItem[],
   ideaOf: (ideaId: string) => IdeaDay | undefined = () => undefined,
+  tripStartDate: string | null = null,
 ): TripTask[] {
   const byId = new Map(rows.map((row) => [row.id, row]))
 
@@ -162,6 +173,7 @@ export function tripTasks(
       item: null,
       ...factsOf(task),
       ...(task.idea_id ? { idea_id: task.idea_id } : {}),
+      ...(task.destination_task_id ? { destination_task_id: task.destination_task_id } : {}),
     }
     if (isPreparationStep(task)) {
       // FR-29.21: a step waits on its idea, listed nowhere, until the idea
@@ -171,6 +183,11 @@ export function tripTasks(
       projected.due_date = due
       projected.due_time = null // a lead counts days; the step's day has no hour
       projected.lead_days = task.lead_days
+    } else if (isSeriesTask(task)) {
+      // FR-13.4: read off the trip's own start, never stored (ADR-106).
+      projected.due_date = seriesTaskDue(task.start_lead_days!, tripStartDate)
+      projected.due_time = null // a lead counts days; the trip's start has no hour
+      projected.start_lead_days = task.start_lead_days
     }
     own.push(projected)
   }

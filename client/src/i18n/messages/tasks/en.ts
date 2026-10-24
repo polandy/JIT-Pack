@@ -59,6 +59,30 @@ export const tasksEn = {
   'tasks.dueField': 'Due',
   'tasks.dueFromIdea':
     '{day} · {n} day before the idea, moves with it | {day} · {n} days before the idea, moves with it',
+  // FR-13.4 — a series task's lead (ADR-106): the sheet's `task-sheet-lead` line and the
+  // bare quantities it and M16's lead chips both name.
+  'tasks.seriesLead.1': '1 day',
+  'tasks.seriesLead.3': '3 days',
+  'tasks.seriesLead.7': '1 week',
+  'tasks.seriesLead.14': '2 weeks',
+  'tasks.seriesLead.28': '4 weeks',
+  'tasks.seriesLead.56': '8 weeks',
+  'tasks.seriesLead.n': '{n} days',
+  'tasks.seriesLeadChip1': 'The day before',
+  'tasks.seriesLeadNone': 'No due day',
+  'tasks.seriesLeadLine': '{lead} before departure',
+  'tasks.dueFromSeries': '{day} · {lead} before departure, moves with it',
+  'tasks.dueFromSeriesUndated': '{lead} before departure — once the trip has dates',
+  // FR-13.4 — M22/M16's offer sheet, a later-joining trip taking over a series' tasks.
+  'tasks.offerTitle': 'Take over the series’ tasks?',
+  'tasks.offerUndated': 'no due day',
+  'tasks.offerDueDay': 'due {day}',
+  'tasks.offerOverdue': 'overdue',
+  'tasks.offerAlready': 'already on the trip',
+  'tasks.offerApply': 'Take over {n}',
+  'tasks.offerSkip': 'Not now',
+  'tasks.offerAppliedToast':
+    'One task taken over from the series | {n} tasks taken over from the series',
   'tasks.dueSetToast': '“{body}” due {date}',
   'tasks.dueClearedToast': '“{body}” has no due date any more',
   'tasks.dueTimeSetToast': '“{body}”: reminder on the day at {time}',

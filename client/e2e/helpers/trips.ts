@@ -36,6 +36,11 @@ export interface TripSeed {
    * series…"; later seeds with the same name pick the existing one.
    */
   series?: string
+  /**
+   * Runs on step 3 before the wizard moves on — where a case picks a template
+   * and reads what the composition carries over.
+   */
+  onCompose?: (page: Page) => Promise<void>
 }
 
 /**
@@ -81,6 +86,7 @@ export async function createTripViaWizard(page: Page, trip: TripSeed): Promise<s
   await page.getByTestId('wizard-next').click()
 
   await expect(page.getByTestId('wizard-step-3')).toBeVisible()
+  await trip.onCompose?.(page)
   await page.getByTestId('wizard-next').click()
 
   await expect(page.getByTestId('wizard-step-4')).toBeVisible()

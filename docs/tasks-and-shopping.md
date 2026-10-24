@@ -177,6 +177,30 @@ you open it. Entries on the shopping list take a day only, never a time.
 A step that prepares an [idea](ideas.md#preparing-an-idea) takes its day from the idea: its sheet shows the day and
 how long before the idea it lies, and it moves when the idea is planned on another day.
 
+## Tasks every trip of a series gets
+
+Some tasks come back every year: *book the hotel*, *renew the vignette*. Write them once on the series. Open it from
+the trip list by tapping the series heading. Under **Aufgaben für jede Reise**, **+ Aufgabe** opens a sheet with the
+words, how long before departure the task is due (**Kein Termin**, **Am Vortag**, **3 Tage**, **1 Woche**,
+**2 Wochen**, **4 Wochen** or **8 Wochen**) and, on a server with more than one account, **Wer macht’s?**. A line on the sheet names the day this
+gives the series' next trip. The list shows each task with its lead (*„1 Woche vor Abreise"*). Tap a task to change it.
+
+A new trip created in the series gets these tasks automatically. The wizard's last step says how many it is carrying
+over, beside the tasks from the Vorlagen. A task whose words are already on the trip from a Vorlage is not added a
+second time. The person a task is handed to keeps it only if they travel on the new trip; otherwise it starts with
+nobody.
+
+On the trip, such a task names its series under its words (*„🔁 Samedan Sommer"*). Its day is counted back from the
+trip's start, so **moving the trip's dates moves the task's day too**. Its sheet says so: *„… · 1 Woche vor
+Abreise, verschiebt sich mit ihr"*. On a trip without dates yet, the line says the day will follow once the trip has
+dates. Choosing a day yourself under **Fällig** fixes that day, and later date changes no longer move it.
+
+A trip that joins a series later — picked under **Serie** in the trip's properties — is offered the series' tasks in
+a sheet. Each one is ticked and shows its day. A task the trip already has reads **schon auf der Reise** and is not
+added again. Untick what you don't want and tap **N übernehmen**, or **Nicht jetzt** to keep the trip as it is; the
+trip stays in the series either way. A finished (archived) trip joins without the sheet, since it needs no
+preparation anymore.
+
 ## When a purchase is due
 
 Something on the shopping list can have a day too: pick it with the day chips under the field as you type, or tap an

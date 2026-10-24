@@ -173,6 +173,50 @@ describe('createTripFromWizard on the seam (FR-2.x)', () => {
     expect(ctx.tripStore.getPrepTasks(tripId)).toEqual([])
   })
 
+  it(
+    "materialises the series' own tasks, deduplicated against the template's " +
+      'own trip tasks by exact trimmed text (FR-13.4)',
+    () => {
+      pullIn(ctx.masterStore, TABLE.destinationProfiles, 'prof-1', { series_id: 'ser-1' })
+      pullIn(ctx.masterStore, TABLE.destinationTasks, 'dt-1', {
+        profile_id: 'prof-1',
+        task: 'Schneeketten prüfen',
+        lead_days: 28,
+        assignee_user_id: 'u2',
+      })
+      pullIn(ctx.masterStore, TABLE.destinationTasks, 'dt-2', {
+        profile_id: 'prof-1',
+        // Already named by the template's own trip task below — left out.
+        task: '  Pflanzen giessen  ',
+        lead_days: null,
+        assignee_user_id: null,
+      })
+      const actions = createTripCreationActions(ctx)
+
+      const tripId = actions.createTripFromWizard({
+        name: 'Engadin',
+        year: 2026,
+        startDate: '2026-08-01',
+        endDate: '2026-08-10',
+        attributes: null,
+        seriesId: 'ser-1',
+        members: [{ userId: 'u2', role: 'editor' }],
+        travelers: [],
+        items: [],
+        tripTasks: [{ body: 'Pflanzen giessen', phase: 'before' }],
+      })
+
+      const ownTasks = ctx.tripStore.getOwnTasks(tripId)
+      expect(ownTasks.map((t) => t.body).sort()).toEqual(
+        ['Pflanzen giessen', 'Schneeketten prüfen'].sort(),
+      )
+      const seriesTask = ownTasks.find((t) => t.body === 'Schneeketten prüfen')!
+      expect(seriesTask.destination_task_id).toBe('dt-1')
+      expect(seriesTask.start_lead_days).toBe(28)
+      expect(seriesTask.assignee_user_id).toBe('u2')
+    },
+  )
+
   it('assigns the generated item to the traveler its index names', () => {
     const actions = createTripCreationActions(ctx)
 
@@ -259,6 +303,37 @@ describe('cloneTrip on the seam (FR-12)', () => {
     expect(rows.find((m) => m.fields?.['name'] === 'Zelt')!.fields).toMatchObject({
       pack_note: null,
     })
+  })
+
+  it("gets the source's series its own tasks too (FR-13.4, FR-12.1)", () => {
+    pullIn(ctx.tripStore, TABLE.trips, 'src', {
+      name: 'Engadin 2025',
+      year: 2025,
+      status: 'archived',
+      series_id: 'ser-1',
+      attributes: null,
+    })
+    pullIn(ctx.masterStore, TABLE.destinationProfiles, 'prof-1', { series_id: 'ser-1' })
+    pullIn(ctx.masterStore, TABLE.destinationTasks, 'dt-1', {
+      profile_id: 'prof-1',
+      task: 'Schneeketten prüfen',
+      lead_days: 28,
+      assignee_user_id: null,
+    })
+
+    const tripId = createTripCreationActions(ctx).cloneTrip('src', {
+      name: 'Engadin 2026',
+      year: 2026,
+      startDate: '2026-08-01',
+      endDate: '2026-08-10',
+      options: {
+        travelerAssignments: false,
+        packerDelegations: false,
+        containerAssignments: false,
+      },
+    })!
+
+    expect(ctx.tripStore.getOwnTasks(tripId).map((t) => t.body)).toEqual(['Schneeketten prüfen'])
   })
 
   it('writes nothing at all when the source rows are not on the device (ADR-033)', () => {

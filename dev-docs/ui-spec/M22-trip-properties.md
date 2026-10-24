@@ -15,7 +15,13 @@
   good; FR-2.7's own scope is *name, dates and travellers*, and the year is this document's addition to it, by decision
   (E2E-M22-12); the **series** (FR-13.1), under the dates, as the wizard's own control (`SeriesPicker`): *„Keine"*,
   the instance's series, or *„Neue Serie …"* with its name typed inline and committed on blur/Enter, the name-taken
-  note included. A picked series writes at once; M16's *attach/detach* stays the second writer (E2E-M22-15). And the
+  note included. A picked series writes at once; M16's *attach/detach* stays the second writer (E2E-M22-15).
+  **When the picked series has tasks the trip lacks (FR-13.4), a sheet follows**, *„Aufgaben der Serie übernehmen?"*:
+  one line per task, ticked, with the due day it would get (*„fällig Sa., 19.6."*, *„ohne Termin"*, a passed lead in
+  amber as *„überfällig"*) and its assignee in Server Mode; a task the trip already holds by trimmed text is listed
+  untickable as *„schon auf der Reise"*. *„N übernehmen"* writes the ticked ones and a snackbar counts them; *„Nicht
+  jetzt"* keeps the series and writes nothing. No sheet on an archived trip or when nothing is left to offer; M16's
+  attach raises the same sheet. And the
   **travellers** section — one row per person, rename in place, ＋ to add, ✕ to remove. Each traveller row also
   carries an **account picker** (FR-2.5, ADR-058) — *„Kein
   Konto"* or one of the trip's members — in the row's end slot, between the name and the ✕. In the end slot rather than

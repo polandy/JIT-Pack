@@ -74,6 +74,8 @@ export const tripsEn = {
   'wizard.taskCount': '{n} preparation task carried over | {n} preparation tasks carried over',
   'wizard.tripTaskCount':
     '{n} task for the trip carried over | {n} tasks for the trip carried over',
+  'wizard.seriesTaskCount':
+    '{n} task from the series “{series}” carried over | {n} tasks from the series “{series}” carried over',
   'wizard.mergesTitle': 'Carried once',
   'wizard.excludedSummary': '{n} excluded by conditions',
   'wizard.excludedLine': '{item} — skipped: {reason}',
@@ -239,6 +241,19 @@ export const tripsEn = {
   'series.checklistEmpty': 'Offered automatically when a new trip in this series is created.',
   'series.checklistAdd': 'Add item…',
   'series.checklistMode': 'Mode',
+  // FR-13.4 — series tasks, between the checklist and the trip history.
+  'series.sectionTasks': 'Tasks for every trip',
+  'series.taskAdd': 'Task',
+  'series.taskQuietNote':
+    'Every new trip in this series gets these tasks. Due counts back from departure.',
+  'series.taskSheetNew': 'New series task',
+  'series.taskSheetEdit': 'Edit series task',
+  'series.taskText': 'Task',
+  'series.taskTextPlaceholder': 'e.g. book flights',
+  'series.taskWho': 'Who does it?',
+  'series.taskWhoNobody': 'Nobody',
+  'series.taskNextTripDay': '{day} for “{trip}”',
+  'series.taskNoNextTrip': 'No upcoming trip in this series yet.',
   'series.sectionTrips': 'Trips in this series',
   'series.detach': 'Detach from series',
   'series.noTrips': 'No trips in this series yet.',

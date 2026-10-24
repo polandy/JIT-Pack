@@ -40,6 +40,7 @@ import ListRows from '@/components/global/ListRows.vue'
 import SelectBox from '@/components/global/SelectBox.vue'
 import InlineHint from '@/components/global/InlineHint.vue'
 import RemoveButton from '@/components/global/RemoveButton.vue'
+import SeriesTaskOrigin from '@/components/global/SeriesTaskOrigin.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import type { RowSelection } from '@/composables/shared/useRowSelection'
 import { openDueDay } from '@/domain/taskDue'
@@ -178,7 +179,8 @@ function hasFacts(task: TripTask): boolean {
     (!!props.today && openDueDay(task) !== null) ||
     task.item !== null ||
     !!props.tagOf?.(task) ||
-    hasIdea(task)
+    hasIdea(task) ||
+    task.destination_task_id != null
   )
 }
 </script>
@@ -263,6 +265,10 @@ function hasFacts(task: TripTask): boolean {
             :trip-id="tripId"
             :idea-id="task.idea_id"
             :testid="`trip-task-idea-${task.body}`"
+          />
+          <SeriesTaskOrigin
+            :destination-task-id="task.destination_task_id"
+            testid="task-origin-series"
           />
         </template>
         <!-- FR-7.14: the person at the row's edge, before the tick. Selecting

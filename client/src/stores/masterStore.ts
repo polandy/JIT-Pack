@@ -11,6 +11,7 @@ import { ref, computed } from 'vue'
 import type {
   DestinationChecklistItem,
   DestinationProfile,
+  DestinationTask,
   ItemDependency,
   ItemTag,
   MasterItem,
@@ -52,6 +53,7 @@ export const useMasterStore = defineStore('master', () => {
   const series = ref<Map<string, TripSeries>>(new Map())
   const profiles = ref<Map<string, DestinationProfile>>(new Map())
   const checklistItems = ref<Map<string, DestinationChecklistItem>>(new Map())
+  const destinationTasks = ref<Map<string, DestinationTask>>(new Map())
   const dependencies = ref<Map<string, ItemDependency>>(new Map())
 
   // --- Getters ---
@@ -246,6 +248,29 @@ export const useMasterStore = defineStore('master', () => {
     return [...checklistItems.value.values()].filter((c) => c.profile_id === profileId)
   }
 
+  /** FR-13.4: a destination profile's series tasks. */
+  function getDestinationTasks(profileId: string): DestinationTask[] {
+    return [...destinationTasks.value.values()].filter((t) => t.profile_id === profileId)
+  }
+
+  function getDestinationTask(id: string): DestinationTask | undefined {
+    return destinationTasks.value.get(id)
+  }
+
+  /**
+   * FR-13.4: the series a destination task belongs to — resolves M25's origin
+   * line (`task-origin-series`) by chaining `destination_task_id → profile →
+   * series_id`. `undefined` while any link in that chain is gone, which is
+   * the row's own cue to render nothing (ON DELETE SET NULL, like `idea_id`).
+   */
+  function getSeriesOfDestinationTask(taskId: string): TripSeries | undefined {
+    const task = destinationTasks.value.get(taskId)
+    if (!task) return undefined
+    const profile = profiles.value.get(task.profile_id)
+    if (!profile) return undefined
+    return series.value.get(profile.series_id)
+  }
+
   // --- Item dependencies (Addendum 3.20, FR-20.1) ---
 
   const dependencyList = computed(() => [...dependencies.value.values()])
@@ -316,6 +341,7 @@ export const useMasterStore = defineStore('master', () => {
     [TABLE.tripSeries]: keyedSink(series),
     [TABLE.destinationProfiles]: keyedSink(profiles),
     [TABLE.destinationChecklistItems]: keyedSink(checklistItems),
+    [TABLE.destinationTasks]: keyedSink(destinationTasks),
     [TABLE.itemDependencies]: keyedSink(dependencies),
   })
 
@@ -373,6 +399,9 @@ export const useMasterStore = defineStore('master', () => {
     getSeries,
     getDestinationProfile,
     getChecklistItems,
+    getDestinationTasks,
+    getDestinationTask,
+    getSeriesOfDestinationTask,
     dependencyList,
     getItemDependencies,
     getCompanionDependencies,

@@ -146,6 +146,7 @@ export const KERNEL_ACTIVITY_AREAS: Partial<Record<SyncTable, ActivityArea>> = {
   [TABLE.tripSeries]: 'series',
   [TABLE.destinationProfiles]: 'series',
   [TABLE.destinationChecklistItems]: 'series',
+  [TABLE.destinationTasks]: 'series',
 }
 
 /** What the reader knows that the entry does not say. */

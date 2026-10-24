@@ -105,3 +105,8 @@ returning to *on this device* first. A case that fills, blurs and navigates othe
 **correct code** — the reload discards the optimistic store, and the trip is on no M2 segment because the rename has
 not reached IndexedDB yet. The screen's own repaint is not that signal: it is satisfied by the optimistic row alone.
 The same shape as E2E-M22-03's note, in the other five cases that reload after a write.
+* **E2E-M22-16** `all` (FR-13.4) — **implemented** (`trip-properties.spec.ts`): a dated trip outside the series that
+  already holds one of its tasks picks the series; the offer names that task *„schon auf der Reise"*, the others ticked
+  with their day; unticking one and *„1 übernehmen"* puts exactly the ticked one on M25 (counted before and after). A
+  second trip answers *„Nicht jetzt"*: series set, M25's count unchanged. An archived trip picking the series gets no
+  sheet — asserted after the series line reads the new name.

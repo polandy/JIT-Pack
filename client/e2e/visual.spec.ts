@@ -456,6 +456,10 @@ test('E2E-VIS-09: visual: M16 series profile @local @visual', async ({ page, see
       const ionContent = el as unknown as { getScrollElement(): Promise<HTMLElement> }
       ;(await ionContent.getScrollElement()).scrollTop = 0
     })
+  // The pointer still rests where the add button was; once the scroller is
+  // back at the top, a row lands under it and wears Ionic's hover tint, so
+  // it is parked off the content.
+  await page.mouse.move(0, 0)
 
   await settled(page)
   await expect(page).toHaveScreenshot('m16-series.png')

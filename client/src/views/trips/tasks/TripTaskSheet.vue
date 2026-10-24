@@ -31,11 +31,13 @@ import {
 import { computed, ref, watch } from 'vue'
 
 import DueChips from '@/components/global/DueChips.vue'
+import SeriesTaskOrigin from '@/components/global/SeriesTaskOrigin.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import TaskTagPicker from '@/views/trips/tasks/TaskTagPicker.vue'
 import { filedTagOf, type TripTask } from '@/domain/tripTasks'
 import { t } from '@/i18n'
 import type { NameOf } from '@/lib/rowFacts'
+import { seriesLeadText } from '@/lib/seriesTaskText'
 import { shortDueDay } from '@/lib/taskDueText'
 import { useDailyReminder } from '@/composables/shared/reminderTime'
 import { createdStampText, resolvedStampText } from '@/lib/taskFacts'
@@ -212,6 +214,13 @@ function factLine(key: string, icon: string, text: string | null) {
       </template>
     </SheetHead>
 
+    <!-- FR-13.4: while the series task it was made from still exists (ADR-106). -->
+    <SeriesTaskOrigin
+      :destination-task-id="task.destination_task_id"
+      testid="task-origin-series"
+      class="sheet-origin"
+    />
+
     <div class="primary">
       <IonButton
         v-if="!history && isOpen"
@@ -245,7 +254,13 @@ function factLine(key: string, icon: string, text: string | null) {
       <p v-if="task.lead_days != null && task.due_date" class="lead" data-testid="task-sheet-lead">
         {{ t('tasks.dueFromIdea', { day: shortDueDay(task.due_date), n: task.lead_days }) }}
       </p>
-      <template v-else>
+      <!-- FR-13.4: a series task's lead, stated the same way, but it keeps
+           its chips — choosing a day, or Kein Termin, drops the lead
+           (`setTaskDueDate`, ADR-106). -->
+      <p v-else-if="task.start_lead_days != null" class="lead" data-testid="task-sheet-lead">
+        {{ seriesLeadText(task.start_lead_days, task.due_date) }}
+      </p>
+      <template v-if="task.lead_days == null">
         <DueChips
           :value="task.due_date"
           :time="task.due_time ?? null"
@@ -339,6 +354,10 @@ function factLine(key: string, icon: string, text: string | null) {
   flex: none;
   font-size: var(--jp-icon-sm);
   color: var(--ct-overlay2);
+}
+
+.sheet-origin {
+  margin-top: 4px;
 }
 
 .due {

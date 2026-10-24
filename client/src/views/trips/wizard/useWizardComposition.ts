@@ -14,9 +14,11 @@ import {
 } from '@/domain/templates'
 import { resolveDependencies } from '@/domain/dependencies'
 import { generateTripItems } from '@/domain/instantiate'
+import { materializeSeriesTasks } from '@/domain/shared/seriesTask'
 import { MIN_SEARCH_LENGTH, useMasterStore } from '@/stores/masterStore'
 import { TEMPLATE_KIND_GROUP, TEMPLATE_KIND_TEMPLATE } from '@/types/domain'
 import type { Template, TemplateKind } from '@/types/domain'
+import { NEW_SERIES } from '@/components/trips/SeriesPicker.vue'
 import type { WizardMetadata } from './useWizardMetadata'
 import type { WizardTravelers } from './useWizardTravelers'
 
@@ -152,6 +154,30 @@ export function useWizardComposition(metadata: WizardMetadata, roster: WizardTra
     generation.value.unassignable.map((u) => u.item_name).join(', '),
   )
 
+  /**
+   * FR-13.4: the picked series' own tasks this trip would start with, counted
+   * beside FR-7.4's own line (`wizard.seriesTaskCount`) — the same dedup
+   * `createTripFromWizard` applies at "Create trip", so the preview and the
+   * write never disagree. `null` while nothing would land: no series picked
+   * (a *new* series has no tasks yet, FR-13.2), no profile, or every one of
+   * its tasks already matches a Vorlage trip task by text.
+   */
+  const seriesTaskOffer = computed(() => {
+    const seriesId = metadata.seriesChoice.value
+    if (!seriesId || seriesId === NEW_SERIES) return null
+    const series = masterStore.getSeries(seriesId)
+    const profile = masterStore.getDestinationProfile(seriesId)
+    if (!series || !profile) return null
+    const seriesTasks = masterStore.getDestinationTasks(profile.id)
+    if (seriesTasks.length === 0) return null
+    const { toCreate } = materializeSeriesTasks(
+      seriesTasks,
+      generation.value.tripTasks.map((task) => task.body),
+      roster.allMembers.value.map((member) => member.userId),
+    )
+    return toCreate.length === 0 ? null : { count: toCreate.length, seriesName: series.name }
+  })
+
   const generation = computed(() => {
     // The whole catalogue, not the picked slice: a picked Ferien-Vorlage pulls in
     // the positions of the Gruppen it includes (FR-27.2), which the wizard does
@@ -206,6 +232,7 @@ export function useWizardComposition(metadata: WizardMetadata, roster: WizardTra
     bringingVorlagen,
     taskCount,
     unassignableNames,
+    seriesTaskOffer,
     generation,
     companionResolution,
   }

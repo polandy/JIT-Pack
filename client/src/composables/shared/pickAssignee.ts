@@ -14,12 +14,17 @@ import { actionSheetController } from '@ionic/vue'
 import { personOutline, removeCircleOutline } from 'ionicons/icons'
 
 import { t } from '@/i18n'
-import type { TripMemberProfile } from '@/types/domain'
+
+/** The minimal shape a name picker needs — a trip member profile or a directory entry alike. */
+export interface NameablePerson {
+  user_id: string
+  display_name: string
+}
 
 export async function pickAssignee(
   header: string,
   current: string | null,
-  people: readonly TripMemberProfile[],
+  people: readonly NameablePerson[],
 ): Promise<string | null | undefined> {
   let picked: string | null | undefined
   const sheet = await actionSheetController.create({

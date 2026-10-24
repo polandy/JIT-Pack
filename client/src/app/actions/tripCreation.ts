@@ -18,6 +18,7 @@ import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
 import { TASK_PHASE_BEFORE } from '@/types/domain'
 import { planClone, type CloneOptions } from '@/domain/clone'
 import { durationDays, type DraftTripTask, type GeneratedItem } from '@/domain/instantiate'
+import { materializeSeriesTasks } from '@/domain/shared/seriesTask'
 import type { ImportPlan } from '@/domain/spreadsheet'
 import { t } from '@/i18n'
 import type { ItemMode } from '@/types/domain'
@@ -75,6 +76,40 @@ export interface CloneDraft {
 /** createTripCreationActions binds the three cascades to one sync context. */
 export function createTripCreationActions(ctx: SyncContext) {
   const { mutations, queue, drainPartitions, tripStore, masterStore, tripDataLoaded } = ctx
+
+  /**
+   * FR-13.4: the series' own tasks, materialised onto a just-created trip —
+   * the wizard's and the clone's one dedup (`materializeSeriesTasks`), queuing
+   * an `addTask` per task not already covered and an assignee only when they
+   * are one of the trip's own members (FR-7.5, G-8 — Local and Single-User
+   * Mode pass none, since there is no seat to hand the task to).
+   */
+  function materializeSeriesTasksOnto(
+    tripId: string,
+    seriesId: string | null,
+    existingTaskTexts: readonly string[],
+    memberUserIds: readonly string[],
+  ): void {
+    if (!seriesId) return
+    const profile = masterStore.getDestinationProfile(seriesId)
+    if (!profile) return
+    const seriesTasks = masterStore.getDestinationTasks(profile.id)
+    const { toCreate } = materializeSeriesTasks(seriesTasks, existingTaskTexts, memberUserIds)
+    for (const task of toCreate) {
+      const { mutation, id } = mutations.addTask(
+        tripId,
+        null,
+        CLIENT_ACTOR_PLACEHOLDER,
+        task.body,
+        TASK_PHASE_BEFORE,
+        { destinationTaskId: task.destination_task_id, startLeadDays: task.start_lead_days },
+      )
+      queue(mutation)
+      if (task.assignee_user_id) {
+        queue(mutations.setTaskAssignee(id, task.assignee_user_id))
+      }
+    }
+  }
 
   /**
    * createTripFromWizard commits an M3 draft: the trips row goes to the
@@ -168,6 +203,15 @@ export function createTripCreationActions(ctx: SyncContext) {
       queue(mutation)
     }
 
+    // FR-13.4: the series' own tasks, the same dedup as above, against the
+    // template's own trip tasks just queued (FR-7.4's rule, carried over).
+    materializeSeriesTasksOnto(
+      tripId,
+      seriesId,
+      (draft.tripTasks ?? []).map((task) => task.body),
+      (draft.members ?? []).map((member) => member.userId),
+    )
+
     // FR-27.4: what the trip follows from here on. Registered after the
     // trips row and in the same master queue — the server resolves the FK
     // against a trip it has already created.
@@ -259,6 +303,12 @@ export function createTripCreationActions(ctx: SyncContext) {
       )
       queue(mutation)
     }
+
+    // FR-13.4, FR-12.1: a clone is a new trip in the series, and gets the
+    // series' tasks the same way generation does. Nothing to dedupe against
+    // yet — `planClone` carries no trip tasks over — and no member to
+    // default an assignee to, since the roster is not copied either.
+    materializeSeriesTasksOnto(tripId, source.series_id, [], [])
 
     drainPartitions([tripId])
     return tripId

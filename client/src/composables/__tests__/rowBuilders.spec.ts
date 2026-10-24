@@ -41,6 +41,7 @@ import type {
   Container,
   DestinationChecklistItem,
   DestinationProfile,
+  DestinationTask,
   ItemComment,
   ItemDependency,
   PrepTask,
@@ -645,6 +646,46 @@ const CASES: BuilderCase[] = [
       label: 'Reiseadapter',
       mode: 'pack',
     } satisfies Record<keyof DestinationChecklistItem, unknown>,
+  },
+  {
+    builder: 'destinationTaskRow',
+    seed: () =>
+      pullIn(useMasterStore(), TABLE.destinationTasks, 'dt-1', {
+        profile_id: 'prof-1',
+        task: 'Schneeketten prüfen',
+        lead_days: 28,
+        assignee_user_id: 'user-a',
+      }),
+    read: () =>
+      useMasterStore()
+        .getDestinationTasks('prof-1')
+        .find((t) => t.id === 'dt-1') as unknown as Record<string, unknown>,
+    acts: [
+      {
+        act: (t: DestinationTask) => newOrch().series.updateDestinationTask(t, { lead_days: 14 }),
+        changed: 'lead_days',
+        becomes: 14,
+      },
+      {
+        act: (t: DestinationTask) =>
+          newOrch().series.updateDestinationTask(t, { assignee_user_id: 'user-b' }),
+        changed: 'assignee_user_id',
+        becomes: 'user-b',
+      },
+      {
+        act: (t: DestinationTask) =>
+          newOrch().series.updateDestinationTask(t, { task: 'Pass verlängern' }),
+        changed: 'task',
+        becomes: 'Pass verlängern',
+      },
+    ],
+    expected: {
+      id: 'dt-1',
+      profile_id: 'prof-1',
+      task: 'Schneeketten prüfen',
+      lead_days: 28,
+      assignee_user_id: 'user-a',
+    } satisfies Record<keyof DestinationTask, unknown>,
   },
   {
     builder: 'noteAckRow',

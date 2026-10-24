@@ -46,3 +46,11 @@ destination profile created on first use, its checklist, attach and detach), and
   an archived trip) is likewise left: it is a router-link to M2-04's screen, which that case owns.
   Neither carries a `data-testid`, deliberately — a hook nothing addresses is the same „kept for
   later" as dead code.
+* **E2E-M16-05** `all` (FR-13.4) — **implemented** (`series.spec.ts`, `server/multi-user.spec.ts`): with no profile, *„+
+  Aufgabe"* writes a series task through the lazy profile; its line names the chosen lead, the sheet's day line names
+  the next trip's day, and an edit changes the lead in place; read back after leaving and returning. Server leg: the
+  seat shows the picked user; local leg: no seat at all — the absence asserted against the lead text on the same line,
+  which is the positive signal.
+* **E2E-M16-06** `single` (FR-13.4, G-8) — **implemented** (`single/series-tasks.spec.ts`): on a Single-User instance
+  the task sheet offers no default assignee — asserted beside its day line — and a written task's row carries no seat
+  beside its lead. The directory there holds the instance's one user, so a gate on a non-empty directory is not enough.

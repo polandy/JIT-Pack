@@ -309,7 +309,7 @@ describe('createCommentActions without an orchestrator', () => {
     expect(ctx.tripStore.getOwnTasks(TRIP_ID).map((t) => t.task_tag_id)).toEqual([null])
   })
 
-  it('setTaskDueDate writes the day alone, and takes it off again (FR-7.11)', () => {
+  it('setTaskDueDate writes the day and clears any lead, and takes it off again (FR-7.11)', () => {
     pullIn(ctx.tripStore, TABLE.comments, 'tt-1', {
       trip_id: TRIP_ID,
       trip_item_id: null,
@@ -326,8 +326,9 @@ describe('createCommentActions without an orchestrator', () => {
 
     const { mutation } = queued[0]!.muts[0]!
     expect(mutation).toMatchObject({ op: 'upsert', id: 'tt-1' })
-    // One field: a date set here and a tag set on another device both stand.
-    expect(mutation.fields).toEqual({ due_date: '2026-07-09' })
+    // A date set here and a tag set on another device both stand; the lead
+    // clears alongside it (FR-13.4, ADR-106).
+    expect(mutation.fields).toEqual({ due_date: '2026-07-09', start_lead_days: null })
     expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({
       body: 'Pass holen',
       phase: 'before',
@@ -340,7 +341,7 @@ describe('createCommentActions without an orchestrator', () => {
     expect(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!.due_date).toBeNull()
   })
 
-  it('setTaskDueTime writes the time alone; taking the day off takes the time with it (FR-7.18)', () => {
+  it('setTaskDueTime writes the time alone; taking the day off takes the time and lead with it (FR-7.18)', () => {
     pullIn(ctx.tripStore, TABLE.comments, 'tt-1', {
       trip_id: TRIP_ID,
       trip_item_id: null,
@@ -358,11 +359,18 @@ describe('createCommentActions without an orchestrator', () => {
     expect(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!.due_time).toBe('14:00')
 
     actions.setTaskDueDate(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!, '2026-07-10')
-    expect(queued[1]!.muts[0]!.mutation.fields).toEqual({ due_date: '2026-07-10' })
+    expect(queued[1]!.muts[0]!.mutation.fields).toEqual({
+      due_date: '2026-07-10',
+      start_lead_days: null,
+    })
     expect(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!.due_time).toBe('14:00')
 
     actions.setTaskDueDate(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!, null)
-    expect(queued[2]!.muts[0]!.mutation.fields).toEqual({ due_date: null, due_time: null })
+    expect(queued[2]!.muts[0]!.mutation.fields).toEqual({
+      due_date: null,
+      due_time: null,
+      start_lead_days: null,
+    })
     expect(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!.due_time).toBeNull()
   })
 

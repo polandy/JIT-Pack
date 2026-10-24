@@ -1,4 +1,4 @@
-import { test, expect, expectTripOpen, tripAction } from './fixtures'
+import { test, expect, createTripViaWizard, expectTripOpen, setClock, tripAction } from './fixtures'
 import {
   addPosition,
   backToTemplateList as backToList,
@@ -8,7 +8,8 @@ import {
 } from './fixtures'
 import type { Page } from '@playwright/test'
 import { fillIonic } from './helpers/ionic'
-import { openTripTasks } from './helpers/m4'
+import { openTasks, openTripTasks } from './helpers/m4'
+import { addSeriesTask, openSeries } from './helpers/m16'
 import { PATH } from './routes'
 import { openGroupFromList } from './helpers/templates'
 
@@ -357,6 +358,57 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     // Only the position that carries the task gets one — the other row of the
     // composition stays clean.
     await expect(tasks.locator('ion-item')).toHaveCount(1)
+  })
+
+  /**
+   * E2E-M3-26 (FR-13.4, ADR-106), the local leg: a trip generated into a
+   * series carries the series' tasks on their own line, deduplicated against
+   * the Vorlage's FR-7.4 tasks the same way those dedupe among themselves.
+   *
+   * The duplicate is the case: a chip saying two, or two „Book the hotel"
+   * lines on M25, is what a concatenation without the dedup shows. The clock
+   * is set so the vignette's day — a week before the start — lies ahead.
+   */
+  test("E2E-M3-26: a series' tasks are counted beside the trip tasks and land once each", async ({
+    page,
+  }) => {
+    await setClock(page, '2026-10-05T09:00:00+02:00')
+    await seedOneGroup(page)
+    await addTripTask(page, 'template', 'Fototage', 'Book the hotel')
+    await createTripViaWizard(page, { name: 'Samedan 2026', series: 'Samedan Sommer' })
+    await openSeries(page, 'Samedan Sommer')
+    await addSeriesTask(page, 'Book the hotel')
+    await addSeriesTask(page, 'Renew the vignette', 7)
+
+    await createTripViaWizard(page, {
+      name: 'Samedan 2027',
+      series: 'Samedan Sommer',
+      startDate: '2026-11-02',
+      endDate: '2026-11-08',
+      onCompose: async (p) => {
+        // Before the template is ticked both series tasks are new to the trip.
+        await expect(visible(p).getByTestId('wizard-series-task-count')).toContainText(
+          '2 tasks from the series “Samedan Sommer” carried over',
+        )
+        await visible(p)
+          .getByTestId('wizard-section-templates')
+          .locator('ion-checkbox')
+          .first()
+          .click()
+        await expect(visible(p).getByTestId('wizard-trip-task-count')).toContainText(
+          '1 task for the trip carried over',
+        )
+        await expect(visible(p).getByTestId('wizard-series-task-count')).toContainText(
+          '1 task from the series “Samedan Sommer” carried over',
+        )
+      },
+    })
+
+    const before = await openTasks(page, 'before')
+    await expect(before.getByTestId('trip-task-open-Book the hotel')).toHaveCount(1)
+    await expect(before.getByTestId('trip-task-open-Renew the vignette')).toHaveCount(1)
+    // The lead became a day on this trip: a week before 2 November.
+    await expect(before.getByTestId('trip-task-due-Renew the vignette')).toHaveText('Mon, 26.10')
   })
 
   /**

@@ -22,6 +22,10 @@ export interface TaskFiling {
   ideaId?: string | null
   /** FR-29.21: as that idea's preparation step, its lead in days before the idea's day. */
   leadDays?: number | null
+  /** FR-13.4: the series task this todo was materialised from. */
+  destinationTaskId?: string | null
+  /** FR-13.4: as that series task, its lead in days before the trip's start (ADR-106). */
+  startLeadDays?: number | null
 }
 
 export function createTasksMutations({ make, nowIso }: MutationContext) {
@@ -72,6 +76,10 @@ export function createTasksMutations({ make, nowIso }: MutationContext) {
       ...(filed.ideaId ? { idea_id: filed.ideaId } : {}),
       // FR-29.21: a preparation step names its lead, never a due day (ADR-104).
       ...(filed.leadDays != null ? { lead_days: filed.leadDays } : {}),
+      // FR-13.4: a series task materialised onto the trip names where it came
+      // from and its lead, the same shape as the idea's step above (ADR-106).
+      ...(filed.destinationTaskId ? { destination_task_id: filed.destinationTaskId } : {}),
+      ...(filed.startLeadDays != null ? { start_lead_days: filed.startLeadDays } : {}),
     })
     return { mutation, id }
   }
@@ -156,13 +164,19 @@ export function createTasksMutations({ make, nowIso }: MutationContext) {
    * field, like the tag: a date set on one device and a tag on another
    * both stand (NFR-4.2a). Taking the day off takes FR-7.18's time with it —
    * a time without a day means nothing — while a moved day keeps its time.
+   *
+   * Either way `start_lead_days` clears (FR-13.4, ADR-106): a fixed day is
+   * the todo's own choice from here on, not the trip's start less a lead,
+   * and the two must never both claim the due column.
    */
   function setTaskDueDate(taskId: string, dueDate: string | null): Mutation {
     return make(
       'upsert',
       TABLE.comments,
       taskId,
-      dueDate === null ? { due_date: null, due_time: null } : { due_date: dueDate },
+      dueDate === null
+        ? { due_date: null, due_time: null, start_lead_days: null }
+        : { due_date: dueDate, start_lead_days: null },
     )
   }
 

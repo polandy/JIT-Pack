@@ -33,6 +33,7 @@ const {
   bringingVorlagen,
   taskCount,
   unassignableNames,
+  seriesTaskOffer,
   generation,
   companionResolution,
 } = core.composition
@@ -230,6 +231,17 @@ function mergeLine(merge: MergedOverlap): string {
       <!-- FR-7.4: the trip's own tasks, on their own line — they prepare no row -->
       <IonChip v-if="generation.tripTasks.length > 0" outline data-testid="wizard-trip-task-count">
         ✅ {{ t('wizard.tripTaskCount', { n: generation.tripTasks.length }) }}
+      </IonChip>
+      <!-- FR-13.4: the series' own tasks, counted after FR-7.4's line and
+           deduplicated against it the same way `createTripFromWizard` will -->
+      <IonChip v-if="seriesTaskOffer" outline data-testid="wizard-series-task-count">
+        ✅
+        {{
+          t('wizard.seriesTaskCount', {
+            n: seriesTaskOffer.count,
+            series: seriesTaskOffer.seriesName,
+          })
+        }}
       </IonChip>
       <!-- FR-27.3: a picked item a template already brought is *reported*
            rather than added twice — silence here would read as a lost tap. -->

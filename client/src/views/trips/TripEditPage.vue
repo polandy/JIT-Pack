@@ -43,6 +43,8 @@ import type { TravelerChangeReport } from '@/types/domain'
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import SectionHead from '@/components/global/SectionHead.vue'
 import SeriesPicker, { NEW_SERIES } from '@/components/trips/SeriesPicker.vue'
+import SeriesTaskOfferSheet from '@/views/trips/SeriesTaskOfferSheet.vue'
+import type { SeriesTaskDraft, SeriesTaskMaterialization } from '@/domain/shared/seriesTask'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -52,7 +54,11 @@ const orchestrator = useOrchestrator()
 const { trip } = useTripScreen(props.tripId, orchestrator)
 const travelers = computed(() => tripStore.getTravelers(props.tripId))
 
-const { memberProfiles, load: loadIdentity } = useTripIdentity(props.tripId, orchestrator.identity)
+const {
+  memberProfiles,
+  assignees,
+  load: loadIdentity,
+} = useTripIdentity(props.tripId, orchestrator.identity)
 onMounted(loadIdentity)
 
 /**
@@ -166,6 +172,26 @@ async function say(message: string): Promise<void> {
   await presentToast({ message })
 }
 
+/**
+ * FR-13.4: picking a series on an already-dated trip can offer it tasks the
+ * wizard never had the chance to materialise (ADR-106) — raised after the
+ * write lands, never before, so a cancelled pick offers nothing.
+ */
+const seriesOffer = ref<SeriesTaskMaterialization | null>(null)
+const seriesOfferOpen = ref(false)
+
+function offerAfterSeriesPick(): void {
+  seriesOffer.value = orchestrator.series.offerSeriesTasks(props.tripId)
+  seriesOfferOpen.value = seriesOffer.value !== null
+}
+
+async function applySeriesOffer(drafts: SeriesTaskDraft[]): Promise<void> {
+  seriesOfferOpen.value = false
+  if (drafts.length === 0) return
+  orchestrator.series.applySeriesTaskOffer(props.tripId, drafts)
+  await say(t('tasks.offerAppliedToast', { n: drafts.length }))
+}
+
 /** Commits on blur/Enter, the M8 pattern — no save button to forget. */
 /**
  * The year commits on change, like the dates: this screen has no save button
@@ -188,7 +214,10 @@ function pickSeries(choice: string): void {
   if (choice === NEW_SERIES) return
   newSeriesName.value = ''
   const id = choice || null
-  if (id !== (trip.value?.series_id ?? null)) orchestrator.series.setTripSeries(props.tripId, id)
+  if (id !== (trip.value?.series_id ?? null)) {
+    orchestrator.series.setTripSeries(props.tripId, id)
+    if (id) offerAfterSeriesPick()
+  }
 }
 
 /** The typed name commits on blur/Enter, like the trip's own name. */
@@ -200,6 +229,8 @@ function commitNewSeries(): void {
   orchestrator.series.setTripSeries(props.tripId, id)
   seriesChoice.value = id
   newSeriesName.value = ''
+  // A brand-new series carries no destination profile yet (FR-13.2) — never
+  // anything to offer, so `offerAfterSeriesPick` would always be a no-op.
 }
 
 /** Writes the picked range, unless it is the one the trip already has. */
@@ -528,6 +559,16 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
         <p v-if="!readOnly" class="note">{{ t('tripEdit.travelerNote') }}</p>
       </section>
     </IonContent>
+
+    <SeriesTaskOfferSheet
+      :is-open="seriesOfferOpen"
+      :offer="seriesOffer"
+      :trip-start-date="trip?.start_date ?? null"
+      :today="orchestrator.today()"
+      :assignees="assignees"
+      @dismiss="seriesOfferOpen = false"
+      @apply="applySeriesOffer"
+    />
   </IonPage>
 </template>
 

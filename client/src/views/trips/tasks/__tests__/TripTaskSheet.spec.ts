@@ -10,6 +10,7 @@
  * packing has closed is not offered.
  */
 import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { TripTask } from '@/domain/tripTasks'
@@ -24,6 +25,10 @@ vi.mock('@/composables/shared/reminderTime', async () => {
 })
 beforeEach(() => {
   daily.value = '06:00'
+  // The sheet renders SeriesTaskOrigin (FR-13.4), which reads the master
+  // store to name a task's series — same setup as TripTaskList.spec.ts,
+  // which mounts the same component.
+  setActivePinia(createPinia())
 })
 
 function task(over: Partial<TripTask> = {}): TripTask {

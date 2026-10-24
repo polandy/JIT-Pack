@@ -22,6 +22,7 @@ import {
   openTasks,
 } from '../helpers/m4'
 import { fillIonic } from '../helpers/ionic'
+import { addSeriesTask, openSeries } from '../helpers/m16'
 import { openListComposer } from '../helpers/composer'
 import { writesLanded } from '../helpers/page'
 import { packItem, quickAddItem, uniq, watchSubscribed } from '../serverMode'
@@ -1108,6 +1109,115 @@ test.describe('Two accounts on one instance @server', () => {
     await expect(
       visiblePage(alice).getByTestId('traveler-row-Kim').locator('ion-select .select-text'),
     ).toHaveText(ACCOUNT_NAMES.bob)
+
+    await ctxAlice.close()
+    await ctxBob.close()
+  })
+
+  /**
+   * E2E-M16-05, the server leg (FR-13.4, ADR-106): the local leg
+   * (`series.spec.ts`) proves the lead and its day; what only server mode
+   * can add is the seat — G-8 hides the picker and the row's seat slot
+   * entirely while the directory is empty, so this leg's whole promise is
+   * that picking Bob fills the seat with him, read back after a reload.
+   * Bob logs in first so he is in the directory Alice's picker offers.
+   */
+  test('E2E-M16-05: a series task takes an assignee from the instance directory', async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const series = `Vinschgau ${id}`
+
+    const ctxBob = await browser.newContext()
+    await loginAs(ctxBob, 'bob')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+
+    await createTripViaWizard(alice, { name: `${series} 2026`, series })
+    await openSeries(alice, series)
+    await addSeriesTask(alice, 'Check the pass road', 7, ACCOUNT_NAMES.bob)
+
+    const row = visiblePage(alice)
+      .getByTestId('m16-task-row')
+      .filter({ hasText: 'Check the pass road' })
+    await expect(row.getByTestId('m16-task-seat').getByTestId('user-avatar')).toHaveAttribute(
+      'aria-label',
+      ACCOUNT_NAMES.bob,
+    )
+
+    await writesLanded(alice)
+    await openSeries(alice, series)
+    const reread = visiblePage(alice)
+      .getByTestId('m16-task-row')
+      .filter({ hasText: 'Check the pass road' })
+    await expect(reread.getByTestId('m16-task-seat').getByTestId('user-avatar')).toHaveAttribute(
+      'aria-label',
+      ACCOUNT_NAMES.bob,
+    )
+
+    await ctxAlice.close()
+    await ctxBob.close()
+  })
+
+  /**
+   * E2E-M3-26, the server half (FR-13.4, ADR-106): the local leg
+   * (`trip-composition.spec.ts`) proves the count and the dedup; what only
+   * server mode can add is the seat a series task's default assignee takes
+   * once materialised — survived only because Bob is a member of *this*
+   * trip's own wizard roster, not merely an account who exists somewhere
+   * (`materializeSeriesTasks`'s `tripMemberUserIds`), so he is linked and
+   * shared on step 2 before the composition step reads him.
+   */
+  test("E2E-M3-26: a series task's default assignee is a member and sits in the seat", async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const series = `Lenzerheide ${id}`
+    const task = `Book the hut ${id}`
+
+    const ctxBob = await browser.newContext()
+    await loginAs(ctxBob, 'bob')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+
+    await createTripViaWizard(alice, { name: `${series} 2026`, series })
+    await openSeries(alice, series)
+    await addSeriesTask(alice, task, 7, ACCOUNT_NAMES.bob)
+
+    await alice.goto(PATH.newTrip)
+    await fillIonic(visiblePage(alice).getByTestId('wizard-name'), `${series} 2027`)
+    await visiblePage(alice).getByTestId('wizard-more').click()
+    await visiblePage(alice).getByTestId('wizard-series').click()
+    const seriesPopover = alice.locator('ion-popover ion-select-popover')
+    await expect(seriesPopover).toBeVisible()
+    await seriesPopover.locator('ion-item').filter({ hasText: series }).click()
+    await expect(alice.locator('ion-popover')).toHaveCount(0)
+    await alice.getByTestId('wizard-next').click()
+
+    // Step 2: Bob joins this trip's own roster, which is what the
+    // composition step reads — the task he was handed on the series profile
+    // is not enough on its own.
+    await expect(alice.getByTestId('wizard-step-2')).toBeVisible()
+    await visiblePage(alice).getByTestId('wizard-share-add').click()
+    const sharePopover = alice.locator('ion-popover ion-select-popover')
+    await expect(sharePopover).toBeVisible()
+    await sharePopover.locator('ion-item').filter({ hasText: ACCOUNT_NAMES.bob }).click()
+    await expect(alice.locator('ion-popover')).toHaveCount(0)
+    await alice.getByTestId('wizard-next').click()
+
+    await expect(alice.getByTestId('wizard-step-3')).toBeVisible()
+    await expect(visiblePage(alice).getByTestId('wizard-series-task-count')).toContainText('1')
+    await alice.getByTestId('wizard-next').click()
+
+    await expect(alice.getByTestId('wizard-step-4')).toBeVisible()
+    await alice.getByTestId('wizard-create').click()
+    await expectTripOpen(alice, `${series} 2027`)
+    await writesLanded(alice)
+
+    const row = (await openTasks(alice, 'before')).getByTestId(`trip-task-${task}`)
+    await expect(
+      row.getByTestId(`trip-task-assign-${task}`).getByTestId('user-avatar'),
+    ).toHaveAttribute('aria-label', ACCOUNT_NAMES.bob)
 
     await ctxAlice.close()
     await ctxBob.close()

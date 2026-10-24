@@ -54,7 +54,10 @@
   contributing groups** („Kamera nur 1× — in Makro & Wildlife", FR-27.2) instead of an anonymous count, and states the
   preparation tasks the trip inherits („📋 2 Vorbereitungs-Aufgaben übernommen", FR-27.7). The trip tasks it inherits are
   a line of their own („✅ 3 Aufgaben für die Reise übernommen", FR-7.4) — deduplicated by text across the Vorlage and
-  its groups — because they are not preparation of anything on the list (E2E-M3-23). Live preview footer also:
+  its groups — because they are not preparation of anything on the list (E2E-M3-23). A trip generated into a series
+  with tasks (FR-13.4) adds one more line, *„✅ 2 Aufgaben aus der Serie „Samedan Sommer" übernommen"*, counted after
+  the same deduplication against the Vorlage's trip tasks; there is no picker — a task not wanted this year is
+  deleted on M25. Live preview footer also:
   resulting item count, deduplicated overlaps listed with the applied merge strategy (FR-2.3); items excluded by
   conditional rules (FR-15.2) shown collapsed with reason ("skipped: season ≠ winter"). **And
   (FR-2.5b/ADR-053) the per-person positions the trip's roster cannot place** — named in an *open* block

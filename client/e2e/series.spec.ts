@@ -3,10 +3,13 @@ import {
   expect,
   chooseInSelect,
   createTripViaWizard,
+  fillIonic,
+  setClock,
   visiblePage as visible,
+  writesLanded,
 } from './fixtures'
-import type { Page } from '@playwright/test'
 import { PATH } from './routes'
+import { openSeries } from './helpers/m16'
 
 /**
  * M16 — Series & Destination Profile (UI-Test-Spec §4, unit "M16 series").
@@ -23,16 +26,8 @@ const SERIES = 'Elba'
 const OTHER_SERIES = 'Ticino'
 /** `wizard.unset` — what a default that was never set reads as. */
 const UNSET = '—'
-
-/**
- * M2's series header is M16's only door. It is one locator on purpose: the
- * grouping is what M2 keeps (E2E-M2-15's flat-list alternative is struck).
- */
-async function openSeries(page: Page, name: string) {
-  await page.goto(PATH.trips)
-  await visible(page).getByTestId(`series-header-${name}`).click()
-  await expect(page.getByTestId('header-title')).toHaveText(name)
-}
+/** A week before 2 November 2026, in the short form a task's day takes. */
+const SERIES_TASK_DAY = 'Mon, 26.10'
 
 test.describe('M16 series & destination profile @local @m16', () => {
   // Each case builds its world through M3, which on WebKit lands near the
@@ -181,6 +176,78 @@ test.describe('M16 series & destination profile @local @m16', () => {
     await openSeries(page, SERIES)
     await visible(page).getByTestId('m16-trends').click()
     await expect(visible(page).getByTestId('analytics-dim-person')).toBeVisible()
+  })
+
+  /**
+   * E2E-M16-05 (FR-13.4, ADR-106), the local leg: a series task is written
+   * through the profile nothing has created yet, its line names the lead, and
+   * the sheet names the day that lead gives the series' next trip. The clock
+   * is set because the next trip is the soonest one still ahead of today.
+   */
+  test('E2E-M16-05: a series task is written through the lazy profile and keeps its lead', async ({
+    page,
+  }) => {
+    await setClock(page, '2026-10-05T09:00:00+02:00')
+    await createTripViaWizard(page, {
+      name: 'Elba 2027',
+      series: SERIES,
+      startDate: '2026-11-02',
+      endDate: '2026-11-08',
+    })
+    await openSeries(page, SERIES)
+
+    const add = visible(page).getByTestId('m16-task-add')
+    await expect(add).toBeVisible()
+    await expect(visible(page).getByTestId('m16-task-row')).toHaveCount(0)
+
+    await add.click()
+    const sheet = page.getByTestId('m16-task-sheet')
+    await expect(sheet).toBeVisible()
+    await sheet.getByTestId('m16-task-sheet-lead-7').click()
+    await expect(sheet.getByTestId('m16-task-sheet-next-day')).toHaveText(
+      `${SERIES_TASK_DAY} for “Elba 2027”`,
+    )
+    await fillIonic(sheet.getByTestId('m16-task-sheet-text'), 'Book the ferry')
+    await sheet.getByTestId('m16-task-sheet-text').locator('input').press('Enter')
+    await sheet.getByTestId('m16-task-sheet-close').click()
+    await expect(sheet).toBeHidden()
+
+    const row = visible(page).getByTestId('m16-task-row').filter({ hasText: 'Book the ferry' })
+    await expect(row.getByTestId('m16-task-lead')).toHaveText('1 week before departure')
+
+    // An edit changes the lead on the same line rather than adding one.
+    await row.click()
+    await expect(sheet).toBeVisible()
+    await sheet.getByTestId('m16-task-sheet-lead-14').click()
+    await sheet.getByTestId('m16-task-sheet-close').click()
+    await expect(sheet).toBeHidden()
+    await expect(row.getByTestId('m16-task-lead')).toHaveText('2 weeks before departure')
+    await expect(visible(page).getByTestId('m16-task-row')).toHaveCount(1)
+
+    // Typed and then a chip at once: the chip's own press is what blurs the
+    // field and writes the task, and the chip still lands.
+    await add.click()
+    await expect(sheet).toBeVisible()
+    await fillIonic(sheet.getByTestId('m16-task-sheet-text'), 'Reserve the ibex hike')
+    await sheet.getByTestId('m16-task-sheet-lead-28').click()
+    await expect(sheet.getByTestId('m16-task-sheet-lead-28')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await sheet.getByTestId('m16-task-sheet-close').click()
+    await expect(sheet).toBeHidden()
+    const typed = visible(page)
+      .getByTestId('m16-task-row')
+      .filter({ hasText: 'Reserve the ibex hike' })
+    await expect(typed.getByTestId('m16-task-lead')).toHaveText('4 weeks before departure')
+    await expect(visible(page).getByTestId('m16-task-row')).toHaveCount(2)
+
+    // Read back from the store after leaving the screen. Local Mode has no
+    // directory, so the line carries no seat — read against its lead text.
+    await writesLanded(page)
+    await openSeries(page, SERIES)
+    await expect(row.getByTestId('m16-task-lead')).toHaveText('2 weeks before departure')
+    await expect(row.getByTestId('m16-task-seat')).toHaveCount(0)
   })
 
   test('E2E-G9 coverage: back from the series profile renders the trip list', async ({ page }) => {

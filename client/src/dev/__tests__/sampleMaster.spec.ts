@@ -371,6 +371,41 @@ describe('sample master data, FR-28.1/28.8', () => {
   })
 })
 
+describe('seedSampleMaster — a series with two series tasks (FR-13.4)', () => {
+  it('carries a destination profile with two tasks, no default assignee', () => {
+    const { result, master } = seed()
+
+    const series = master.getSeries(result.seriesId)
+    expect(series?.name).toBe('Samedan Sommer')
+
+    const profile = master.getDestinationProfile(result.seriesId)
+    expect(profile).toBeDefined()
+    const tasks = master.getDestinationTasks(profile!.id)
+    expect(tasks.map((t) => ({ task: t.task, leadDays: t.lead_days }))).toEqual([
+      { task: 'Steinbock-Wanderung reservieren', leadDays: 28 },
+      { task: 'Bergbahn-Abo prüfen', leadDays: null },
+    ])
+    expect(tasks.every((t) => t.assignee_user_id === null)).toBe(true)
+  })
+
+  it('attaches no trip to the series — the seed leaves the later-join offer reachable', () => {
+    const { result } = seed()
+
+    const trips = useTripStore()
+    expect(trips.tripList.some((t) => t.series_id === result.seriesId)).toBe(false)
+  })
+
+  it('adopts the existing series on a second run rather than duplicating its tasks (FR-1.6)', () => {
+    const { orchestrator, result, master } = seed()
+
+    const again = seedSampleMaster(orchestrator)
+
+    expect(again.seriesId).toBe(result.seriesId)
+    const profile = master.getDestinationProfile(result.seriesId)!
+    expect(master.getDestinationTasks(profile.id)).toHaveLength(2)
+  })
+})
+
 describe('seedSampleMaster — something for M24 to find (FR-24.12, FR-24.13)', () => {
   it('gives some tags a mark and leaves at least one without', () => {
     const { master } = seed()

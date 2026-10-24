@@ -16,6 +16,7 @@ import type { FeatureStore } from '@/sync/featureModule'
 import type {
   Container,
   DestinationProfile,
+  DestinationTask,
   Excursion,
   ExcursionLine,
   ExcursionTrack,
@@ -102,6 +103,7 @@ export interface MasterReads {
   getTemplate(id: string): Template | undefined
   getTemplateItems(templateId: string): TemplateItem[]
   getDestinationProfile(seriesId: string): DestinationProfile | undefined
+  getDestinationTasks(profileId: string): DestinationTask[]
   /** `cascade.ts`'s, for the same reason as `TripReads.sinks`. */
   readonly sinks: RowSinks
 }
