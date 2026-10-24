@@ -10,8 +10,12 @@ Open the trip and tap the **light bulb** — the first icon in the row under the
 the bottom right. The sheet asks for:
 
 - a **title** — *Bernina Express nach Tirano*;
-- a **link**, optional — paste the web address; `rhb.ch` is enough, the app adds the `https://`. Only web links are
-  accepted. The link then suggests a title and a description: shown grey in the title and note fields (or as a line
+- **links**, optional — paste the web address; `rhb.ch` is enough, the app adds the `https://`. Only web links are
+  accepted. **Link hinzufügen** adds another one — the timetable, the town at the end of the ride — and ✕ removes one.
+  Each link can have a name; until you give it one, the page's title stands grey in the field on a server, with
+  **Übernehmen** to keep it, and otherwise the site. With more than one link, drag a link by its grip to change their
+  order: the first one, marked **Titel & Bild**, is the one the idea's title, description and picture are suggested
+  from. The first link suggests a title and a description: shown grey in the title and note fields (or as a line
   under a field you already filled), each with **Übernehmen** beside it. At first the suggested title is the site's
   name; on a server, a moment later, the page's own title and description. Nothing is filled in until you tap
   **Übernehmen**. On a server the page's picture is also fetched in the background: you see it loading under the link
@@ -36,8 +40,8 @@ The board has four parts, each with how many ideas it holds:
 
 Under them, chips narrow the part you are looking at to one kind, or with the umbrella to what works in the rain.
 **Alle** shows everything again. Each idea shows its picture if it has one — or, without a picture, the line of its
-first GPX track — its kind, the rain mark, the site its link points to, the first track's distance and climb, the
-votes and how many comments it has.
+first GPX track — its kind, the rain mark, the site its first link points to (and how many more it has, *rhb.ch +2*),
+the first track's distance and climb, the votes and how many comments it has.
 
 ## Pictures
 
@@ -144,11 +148,11 @@ Tap an idea to open it. On a phone it opens from the bottom; on a wide screen be
 - **👍 and 👎** — your vote. Everybody sees who voted how; tap your vote again to take it back. The board sorts by
   votes; the **⋮** at the top switches to the newest first.
 - **Kommentare** — write below, tap the arrow to send. Tap one of your own comments to edit or delete it; an edited comment says so.
-- **⋮** at the top, beside ✕: **Bearbeiten** changes the title, link, note, kind or rain mark; **Von der Shortlist
+- **⋮** at the top, beside ✕: **Bearbeiten** changes the title, links, note, kind or rain mark; **Von der Shortlist
   nehmen** and **Verwerfen** move it back or away; **Idee löschen** asks first, then removes the idea with its votes,
   comments, pictures and tracks for everybody — dropping it keeps them.
 
-The link opens the website in a new tab.
+Every link is a card, in their order, showing its name and its site; it opens the website in a new tab.
 
 On the **Shortlist**, while the trip has both dates, **Einplanen…** gives the idea a day — the one you mean to do it
 on — and, if you like, a time. It opens the [Day plan](day-plan.md) with the idea chosen; after **Einplanen** you
