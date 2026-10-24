@@ -39,6 +39,7 @@ import { tracksSummary } from '@/lib/trackFormat'
 import type { IdeaImage, IdeaTrack } from '@/types/domain'
 import { isPlanTime } from './domain/dayPlan'
 import { linkSite, type IdeaCard } from './domain/ideas'
+import type { IdeaLinkEntry } from './domain/links'
 import IdeaPicture from './IdeaPicture.vue'
 
 const props = defineProps<{
@@ -47,6 +48,8 @@ const props = defineProps<{
   pictures: IdeaImage[]
   /** The idea's GPX tracks in their order (FR-29.17). */
   tracks: IdeaTrack[]
+  /** The idea's links in their order (FR-29.22): the card names the first one's site. */
+  links: IdeaLinkEntry[]
   /** A link's picture on its way (FR-29.16): the banner shows it coming. */
   pictureComing: boolean
   /** Whether votes are shown at all (FR-29.3's G-8). */
@@ -116,7 +119,7 @@ const trackFacts = computed(() => tracksSummary(props.tracks))
     </span>
     <span class="title">{{ card.idea.title }}</span>
     <span
-      v-if="card.idea.tag || card.idea.rain_proof || card.idea.link || trackFacts"
+      v-if="card.idea.tag || card.idea.rain_proof || links.length > 0 || trackFacts"
       class="chips"
     >
       <span v-if="card.idea.tag" class="chip" :data-testid="`idea-card-tag-${card.idea.id}`">
@@ -130,9 +133,12 @@ const trackFacts = computed(() => tracksSummary(props.tracks))
         <IonIcon :icon="umbrellaOutline" aria-hidden="true" />
         {{ t('ideas.rainProofShort') }}
       </span>
-      <span v-if="card.idea.link" class="site" :data-testid="`idea-card-link-${card.idea.id}`">
+      <span v-if="links[0]" class="site" :data-testid="`idea-card-link-${card.idea.id}`">
         <IonIcon :icon="linkOutline" aria-hidden="true" />
-        {{ linkSite(card.idea.link) }}
+        {{ linkSite(links[0].url) }}
+        <span v-if="links.length > 1" class="more">{{
+          t('ideas.linkMore', { n: links.length - 1 })
+        }}</span>
       </span>
       <span v-if="trackFacts" class="chip jp-num" :data-testid="`idea-card-track-${card.idea.id}`">
         <IonIcon
@@ -334,6 +340,10 @@ const trackFacts = computed(() => tracksSummary(props.tracks))
   gap: 3px;
   color: var(--jp-action);
   font-size: var(--jp-text-xs);
+}
+
+.site .more {
+  color: var(--ct-subtext0);
 }
 
 .foot {

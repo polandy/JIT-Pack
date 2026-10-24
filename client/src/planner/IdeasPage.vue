@@ -63,6 +63,7 @@ import {
   type IdeaOrder,
 } from './domain/ideas'
 import { tripDays } from './domain/dayPlan'
+import { ideaLinks } from './domain/links'
 import { ideaPictures } from './domain/pictures'
 import IdeaCard from './IdeaCard.vue'
 import IdeaDetail from './IdeaDetail.vue'
@@ -437,6 +438,7 @@ const EMPTY_KEYS = {
             :card="card"
             :pictures="picturesOf(card.idea.id)"
             :tracks="tracksOf(card.idea.id)"
+            :links="ideaLinks(card.idea, plannerStore.getLinks(tripId))"
             :picture-coming="plannerStore.pictureComing(card.idea.id)"
             :votes-shown="othersShown"
             :name-of="nameOf"
@@ -459,6 +461,7 @@ const EMPTY_KEYS = {
       <IdeaEditSheet
         :open="editing !== null"
         :idea="editing?.idea ?? null"
+        :links="plannerStore.getLinks(tripId)"
         :has-pictures="!!editing?.idea && picturesOf(editing.idea.id).length > 0"
         :preview="
           orchestrator.moduleHost.linkPreview.offered()

@@ -1,30 +1,34 @@
 <script setup lang="ts">
 /**
- * An idea written or edited (FR-29.1): the title, the link, a note, one tag
- * of the closed set (FR-29.10) and the rain mark (FR-29.12). Nothing is
- * written before the button, and the button stays off while the title is
- * blank or the link is not one the board may render.
+ * An idea written or edited (FR-29.1): the title, its links (FR-29.22), a
+ * note, one tag of the closed set (FR-29.10) and the rain mark (FR-29.12).
+ * Nothing is written before the button, and the button stays off while the
+ * title is blank or a link is not one the board may render.
  *
- * A link entered here brings a **suggestion** that changes nothing until it
+ * The first link entered here brings a **suggestion** that changes nothing until it
  * is confirmed (FR-29.16): the page's own title and description where the
  * instance can read it, the link's site as a title otherwise — each shown
  * at its own field, grey in a blank one, with *Übernehmen* beside it. Its picture
  * is fetched in the background — the sheet shows it coming — and added
- * after the save, only where the idea still has no picture by then.
+ * after the save, only where the idea still has no picture by then. Every
+ * link entered here is read once, for the name its page would give it.
  */
 import { IonButton, IonIcon, IonInput, IonSpinner, IonTextarea } from '@ionic/vue'
 import { umbrellaOutline } from 'ionicons/icons'
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, onUnmounted, reactive, ref, watch } from 'vue'
 
 import ChoiceChip from '@/components/global/ChoiceChip.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import { t } from '@/i18n'
 import type { LinkPreview } from '@/sync/featureModule'
-import type { Idea, IdeaTag } from './types'
+import { newId } from '@/lib/ids'
+import type { Idea, IdeaLink, IdeaTag } from './types'
 import { IDEA_TAGS } from './types'
 import type { IdeaFields } from './actions'
+import IdeaLinksEditor from './IdeaLinksEditor.vue'
 import { parseLink } from './domain/ideas'
+import { LINK_NEW, linkDrafts, type LinkDraft } from './domain/links'
 import { acceptPart, suggestionFor, type PreviewText, type SuggestedField } from './domain/linkFill'
 
 /** How long a link rests before its page is read — typing is not pasting. */
@@ -34,6 +38,8 @@ const props = defineProps<{
   open: boolean
   /** The idea being edited; absent for a new one. */
   idea?: Idea | null
+  /** The trip's further links, among which the idea's are (FR-29.22). */
+  links: readonly IdeaLink[]
   /**
    * Reads a link's page and then its picture (FR-29.16); null where no read
    * can be had — Local Mode, an instance with previews off — so none is
@@ -59,13 +65,19 @@ const emit = defineEmits<{
 }>()
 
 const title = ref('')
-const link = ref('')
-const parsedLink = computed(() => parseLink(link.value))
+const drafts = ref<LinkDraft[]>([])
+const parsedLinks = computed(() => drafts.value.map((d) => parseLink(d.url)))
+/** The links as entered, each a web link or none. */
+const enteredLinks = computed(() =>
+  parsedLinks.value.flatMap((p) => (p.ok && p.link !== null ? [p.link] : [])),
+)
+/** The link FR-29.16 reads: the first one, as the board and the order show it. */
+const firstLink = computed(() => enteredLinks.value[0] ?? null)
 const note = ref('')
 const tag = ref<IdeaTag | null>(null)
 const rainProof = ref(false)
 
-// --- the link's page (FR-29.16) ---
+// --- the first link's page (FR-29.16) ---
 
 const PREVIEW_IDLE = 'idle'
 const PREVIEW_LOADING = 'loading'
@@ -79,8 +91,8 @@ const suggestion = ref<PreviewText | null>(null)
 /** The link's picture as the sheet shows it: coming, or there to be added. */
 const pictureComing = ref(false)
 const pictureUrl = ref<string | null>(null)
-/** The link the idea came with, so an edit's own link is not read again. */
-let storedLink: string | null = null
+/** The links the idea came with, so an edit's own are not read again. */
+let storedLinks = new Set<string>()
 let timer: ReturnType<typeof setTimeout> | null = null
 let generation = 0
 
@@ -150,25 +162,49 @@ function acceptField(field: SuggestedField) {
   suggestion.value = accepted.rest
 }
 
-watch(
-  () => (parsedLink.value.ok ? parsedLink.value.link : null),
-  (url) => {
-    if (timer) clearTimeout(timer)
-    timer = null
-    generation++
-    clearPicture()
-    previewState.value = PREVIEW_IDLE
-    if (!props.open || url === null || url === storedLink) {
-      suggestion.value = null
-      return
-    }
-    // At once: the site as a title, so a link alone is one tap from saving —
-    // replaced by the page's own words where they come.
-    suggestion.value = suggestionFor(url, null, currentText())
-    const preview = props.preview
-    if (preview) timer = setTimeout(() => void readPage(url, preview), PREVIEW_DELAY_MS)
-  },
-)
+watch(firstLink, (url) => {
+  if (timer) clearTimeout(timer)
+  timer = null
+  generation++
+  clearPicture()
+  previewState.value = PREVIEW_IDLE
+  if (!props.open || url === null || storedLinks.has(url)) {
+    suggestion.value = null
+    return
+  }
+  // At once: the site as a title, so a link alone is one tap from saving —
+  // replaced by the page's own words where they come.
+  suggestion.value = suggestionFor(url, null, currentText())
+  const preview = props.preview
+  if (preview) timer = setTimeout(() => void readPage(url, preview), PREVIEW_DELAY_MS)
+})
+
+// --- every link's page title, the name it would have (FR-29.22) ---
+
+const titles = reactive(new Map<string, string | null>())
+const reading = reactive(new Set<string>())
+let titleTimer: ReturnType<typeof setTimeout> | null = null
+
+async function readTitle(url: string, preview: NonNullable<typeof props.preview>) {
+  reading.add(url)
+  const page = await pageOf(url, preview)
+  reading.delete(url)
+  titles.set(url, page?.title ?? null)
+}
+
+watch(enteredLinks, (urls) => {
+  if (titleTimer) clearTimeout(titleTimer)
+  titleTimer = null
+  const preview = props.preview
+  const unread = urls.filter(
+    (url) => !storedLinks.has(url) && !titles.has(url) && !reading.has(url),
+  )
+  if (!props.open || !preview || unread.length === 0) return
+  titleTimer = setTimeout(
+    () => unread.forEach((url) => void readTitle(url, preview)),
+    PREVIEW_DELAY_MS,
+  )
+})
 
 // Filled from the idea each time the sheet opens, so an edit starts from what
 // is stored now rather than from the last time the sheet was open.
@@ -176,11 +212,16 @@ watch(
   () => props.open,
   (open) => {
     if (!open) return
-    storedLink = props.idea?.link ?? null
+    const idea = props.idea
+    const stored = idea ? linkDrafts(idea, props.links) : []
+    storedLinks = new Set(stored.map((d) => d.url))
     pages.clear()
     pictures.clear()
-    title.value = props.idea?.title ?? ''
-    link.value = props.idea?.link ?? ''
+    titles.clear()
+    reading.clear()
+    title.value = idea?.title ?? ''
+    drafts.value =
+      stored.length > 0 ? stored : [{ kind: LINK_NEW, id: newId(), url: '', label: null }]
     note.value = props.idea?.note ?? ''
     tag.value = props.idea?.tag ?? null
     rainProof.value = props.idea?.rain_proof ?? false
@@ -193,11 +234,14 @@ watch(
 
 onUnmounted(() => {
   if (timer) clearTimeout(timer)
+  if (titleTimer) clearTimeout(titleTimer)
   generation++
   clearPicture()
 })
 
-const canSave = computed(() => title.value.trim() !== '' && parsedLink.value.ok)
+const canSave = computed(
+  () => title.value.trim() !== '' && parsedLinks.value.every((parsed) => parsed.ok),
+)
 
 /**
  * The picture of a link entered here, fetched now if the save came first —
@@ -205,23 +249,28 @@ const canSave = computed(() => title.value.trim() !== '' && parsedLink.value.ok)
  */
 function pictureToSave(url: string | null): Promise<Blob | null> | null {
   const preview = props.preview
-  if (!preview || props.hasPictures || url === null || url === storedLink) return null
+  if (!preview || props.hasPictures || url === null || storedLinks.has(url)) return null
   return pictureOf(url, preview)
 }
 
 function save() {
-  const parsed = parsedLink.value
-  if (!canSave.value || !parsed.ok) return
+  if (!canSave.value) return
+  // Each draft carries its link as parsed, so a bare `oeschinensee.ch` is
+  // stored as the web link it was taken for.
+  const links = drafts.value.map((d, i) => {
+    const parsed = parsedLinks.value[i]
+    return { ...d, url: parsed?.ok ? (parsed.link ?? '') : '' }
+  })
   emit(
     'save',
     {
       title: title.value,
       note: note.value,
-      link: parsed.link,
+      links,
       tag: tag.value,
       rainProof: rainProof.value,
     },
-    pictureToSave(parsed.link),
+    pictureToSave(firstLink.value),
   )
 }
 </script>
@@ -261,25 +310,7 @@ function save() {
       >
         {{ t('ideas.suggestedAs', { text: suggestion.title }) }}
       </p>
-      <IonInput
-        v-model="link"
-        type="url"
-        inputmode="url"
-        :placeholder="t('ideas.linkPlaceholder')"
-        :aria-label="t('ideas.linkPlaceholder')"
-        data-testid="idea-edit-link"
-      />
-      <p v-if="!parsedLink.ok" class="invalid" data-testid="idea-edit-link-invalid">
-        {{ t('ideas.linkInvalid') }}
-      </p>
-      <p
-        v-else-if="previewState === PREVIEW_LOADING"
-        class="reading"
-        data-testid="idea-edit-preview-loading"
-      >
-        <IonSpinner name="dots" aria-hidden="true" />
-        {{ t('ideas.previewLoading') }}
-      </p>
+      <IdeaLinksEditor v-model="drafts" :titles="titles" :reading="reading" />
       <div
         v-if="pictureComing || pictureUrl"
         class="picture-row"
@@ -361,26 +392,6 @@ function save() {
 
 .title-field {
   font-weight: var(--jp-weight-semibold);
-}
-
-.invalid {
-  margin: 6px 2px 0;
-  color: var(--ion-color-danger);
-  font-size: var(--jp-text-xs);
-}
-
-.reading {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 6px 2px 0;
-  color: var(--ct-subtext0);
-  font-size: var(--jp-text-xs);
-}
-
-.reading ion-spinner {
-  width: 18px;
-  height: 14px;
 }
 
 .suggested-line {

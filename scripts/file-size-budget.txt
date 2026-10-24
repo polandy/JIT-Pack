@@ -6,7 +6,7 @@
 1170 client/src/views/trips/TripExcursionPage.vue
 1159 client/src/views/trips/TripListPage.vue
 1033 client/src/components/trips/ItemDetailSheet.vue
-974 client/src/planner/IdeaDetail.vue
+942 client/src/planner/IdeaDetail.vue
 1080 client/src/planner/DayEntrySheet.vue
 1068 client/src/components/global/QuickAddItem.vue
 971 client/src/views/trips/PackingListPage.vue

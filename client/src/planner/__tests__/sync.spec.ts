@@ -21,6 +21,7 @@ import type { IdeaPictures, ModuleHost } from '@/sync/featureModule'
 import { TABLE } from '@/api/tables'
 import { createPlannerActions, type IdeaFields } from '../actions'
 import { voteTally } from '../domain/ideas'
+import { LINK_NEW, LINK_OWN, LINK_ROW, ideaLinks } from '../domain/links'
 import { plannerFeatureStore, usePlannerStore } from '../store'
 import { cascadeOf } from '@/sync/cascade'
 import { ideaPlanWrites } from '@/planner'
@@ -54,7 +55,7 @@ function localOrch(persistence = new IndexedDBPersistence()) {
 const GORROPU: IdeaFields = {
   title: 'Schlucht Gola Gorropu',
   note: null,
-  link: 'https://gorropu.info',
+  links: [{ kind: LINK_NEW, id: 'l-gorropu', url: 'https://gorropu.info', label: null }],
   tag: 'hiking',
   rainProof: false,
 }
@@ -173,6 +174,50 @@ describe('Server Mode', () => {
 
     expect(harness.pushedMutations()[1]).toMatchObject({ op: 'upsert', fields: { rain_proof: 1 } })
     expect(Object.keys(harness.pushedMutations()[1]!.fields ?? {})).toEqual(['rain_proof'])
+  })
+
+  it('writes an idea’s further links row by row, and a move only where it lands (FR-29.22)', async () => {
+    const orch = serverOrch()
+    harness.mockDrain()
+    const plannerStore = usePlannerStore()
+    const actions = createPlannerActions(orch.moduleHost, plannerStore)
+    const bus = { kind: LINK_NEW, id: 'l-bus', url: 'https://arst.sardegna.it', label: 'Bus' }
+    const id = actions.addIdea('t1', { ...GORROPU, links: [...GORROPU.links, bus] }, 'user-andy')!
+    await orch.drainTrip('t1')
+
+    expect(harness.pushedMutations()).toMatchObject([
+      {
+        op: 'insert',
+        table: TABLE.ideas,
+        fields: { link: 'https://gorropu.info', link_label: null },
+      },
+      {
+        op: 'insert',
+        table: TABLE.ideaLinks,
+        id: 'l-bus',
+        fields: { idea_id: id, url: 'https://arst.sardegna.it', label: 'Bus', position: 1 },
+      },
+    ])
+
+    harness.mockDrain()
+    const idea = plannerStore.getIdea(id)!
+    actions.updateIdea(idea, {
+      ...GORROPU,
+      links: [
+        { kind: LINK_ROW, id: 'l-bus', url: 'https://arst.sardegna.it', label: 'Bus' },
+        { kind: LINK_OWN, id, url: 'https://gorropu.info', label: 'Schlucht' },
+      ],
+    })
+    await orch.drainTrip('t1')
+
+    expect(harness.pushedMutations().slice(2)).toEqual([
+      expect.objectContaining({
+        op: 'upsert',
+        table: TABLE.ideas,
+        fields: { link_label: 'Schlucht' },
+      }),
+      expect.objectContaining({ op: 'upsert', table: TABLE.ideaLinks, fields: { position: -1 } }),
+    ])
   })
 
   /* FR-29.4: an edit writes the words and when, and nothing for a blank or unchanged body. */
@@ -716,6 +761,36 @@ describe('Local Mode', () => {
       plannerStore.getVotes('t1'),
       plannerStore.getComments('t1'),
     ]).toEqual([[], [], []])
+  })
+
+  it('an idea’s links survive a restart in their order, and go with their idea (FR-29.22, C-3a)', async () => {
+    const persistence = new IndexedDBPersistence()
+    const first = localOrch(persistence)
+    await first.connect()
+    const bus = { kind: LINK_NEW, id: 'l-bus', url: 'https://arst.sardegna.it', label: 'Bus' }
+    const id = createPlannerActions(first.moduleHost, usePlannerStore()).addIdea(
+      't1',
+      { ...GORROPU, links: [bus, ...GORROPU.links] },
+      null,
+    )!
+    await persistence.whenSettled()
+
+    setActivePinia(createPinia())
+    const reopened = new IndexedDBPersistence()
+    const second = localOrch(reopened)
+    await second.connect()
+    const plannerStore = usePlannerStore()
+    const idea = plannerStore.getIdea(id)!
+    expect(ideaLinks(idea, plannerStore.getLinks('t1')).map((l) => l.url)).toEqual([
+      'https://arst.sardegna.it',
+      'https://gorropu.info',
+    ])
+
+    createPlannerActions(second.moduleHost, plannerStore).removeIdea(idea)
+    await reopened.whenSettled()
+
+    expect(plannerStore.getLinks('t1')).toEqual([])
+    expect((await reopened.load()).map((row) => row.table)).toEqual([])
   })
 
   it('a deleted trip takes its ideas off the device (C-3a)', async () => {

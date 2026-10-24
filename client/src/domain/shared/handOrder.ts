@@ -109,3 +109,15 @@ export function renumber<T>(
   })
   return writes
 }
+
+/**
+ * Where a row dropped into a gap ends up, as an index into the list it left
+ * (FR-24.10's tags, FR-29.22's links): gap `g` lies before row `g`, so a gap
+ * past the row's own place is one lower once the row has left it. `null` is a drop that moves
+ * nothing — either gap beside the row itself, or no gap at all.
+ */
+export function reorderTarget(from: number, gap: number | null): number | null {
+  if (gap === null) return null
+  const to = gap > from ? gap - 1 : gap
+  return to === from ? null : to
+}
