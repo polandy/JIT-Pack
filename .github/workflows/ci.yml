@@ -288,7 +288,7 @@ jobs:
       - run: scripts/visual.sh
       # The actual-vs-expected images, so a red run can be judged without
       # reproducing it.
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: visual-diff
@@ -357,7 +357,7 @@ jobs:
           if [ "$OF" -gt 1 ]; then args+=(--shard="$SHARD/$OF"); fi
           if [ -n "$GREP" ]; then args+=(--grep "$GREP"); fi
           scripts/e2e.sh "${args[@]}"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
         with:
           # Unique per leg — a repeated artifact name is an upload error.
@@ -396,7 +396,7 @@ jobs:
       - env:
           MODULE: ${{ needs.changes.outputs.module }}
         run: E2E_BACKEND=1 scripts/e2e.sh --project=single ${MODULE:+--grep "@$MODULE" --pass-with-no-tests}
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
         with:
           name: playwright-report-single
@@ -428,7 +428,7 @@ jobs:
       - env:
           MODULE: ${{ needs.changes.outputs.module }}
         run: E2E_SERVER=1 scripts/e2e.sh --project=server ${MODULE:+--grep "@$MODULE" --pass-with-no-tests}
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
         with:
           name: playwright-report-server
