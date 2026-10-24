@@ -1,6 +1,6 @@
 /**
  * The planner's rows (§3.29): a trip's ideas, the votes on them, their
- * discussion, their pictures and their tracks, and the day plan's own entries
+ * discussion, their pictures, their tracks and their further links, and the day plan's own entries
  * and whom each is for (FR-29.15), held apart from the packing rows.
  *
  * The planner's own store, as the shopping list has its own: nothing the
@@ -17,7 +17,7 @@ import type { FeatureStore } from '@/sync/featureModule'
 import { applyChangesToSinks, specifiedSinks, type RowSinks } from '@/sync/sinks'
 import { PLANNER_ROWS } from './rows'
 import type { IdeaImage, IdeaTrack } from '@/types/domain'
-import type { DayEntry, DayEntryTraveler, Idea, IdeaComment, IdeaVote } from './types'
+import type { DayEntry, DayEntryTraveler, Idea, IdeaComment, IdeaLink, IdeaVote } from './types'
 import { TABLE } from '@/api/tables'
 
 export const usePlannerStore = defineStore('planner', () => {
@@ -31,6 +31,8 @@ export const usePlannerStore = defineStore('planner', () => {
   /** FR-29.15: whom an entry is for — none of an entry's means everybody. */
   const entryTravelers = bucketedRows(ref(new Map<string, DayEntryTraveler[]>()), (r) => r.trip_id)
   const tracks = bucketedRows(ref(new Map<string, IdeaTrack[]>()), (r) => r.trip_id)
+  /** FR-29.22: the ideas' further links. */
+  const links = bucketedRows(ref(new Map<string, IdeaLink[]>()), (r) => r.trip_id)
   /**
    * FR-29.16: the ideas whose link's picture is on its way, which the board
    * shows coming. This device's state, not a row: nothing syncs it.
@@ -85,6 +87,11 @@ export const usePlannerStore = defineStore('planner', () => {
     return tracks.get(tripId)
   }
 
+  /** A trip's further links, as rows — `domain/links.ts` orders them (FR-29.22). */
+  function getLinks(tripId: string): IdeaLink[] {
+    return links.get(tripId)
+  }
+
   /** The sinks, one per table this module holds — the whole of what the kernel reads. */
   const sinks: RowSinks = specifiedSinks(PLANNER_ROWS, {
     [TABLE.ideas]: bucketSink(ideas),
@@ -94,6 +101,7 @@ export const usePlannerStore = defineStore('planner', () => {
     [TABLE.dayEntries]: bucketSink(dayEntries),
     [TABLE.dayEntryTravelers]: bucketSink(entryTravelers),
     [TABLE.ideaTracks]: bucketSink(tracks),
+    [TABLE.ideaLinks]: bucketSink(links),
   })
 
   function applyChanges(changes: PullChange[]): void {
@@ -110,6 +118,7 @@ export const usePlannerStore = defineStore('planner', () => {
     getDayEntry,
     getDayEntryTravelers,
     getTracks,
+    getLinks,
     pictureComing,
     setPictureComing,
     sinks,

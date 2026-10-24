@@ -38,6 +38,7 @@ export const plannerActivityReaders: ActivityReaders = {
   [TABLE.ideas]: ideaRows,
   [TABLE.ideaComments]: ideaRows,
   [TABLE.ideaImages]: ideaRows,
+  [TABLE.ideaLinks]: ideaRows,
   [TABLE.ideaTracks]: ideaRows,
   [TABLE.ideaVotes]: votes,
   [TABLE.dayEntries]: dayPlanRows,

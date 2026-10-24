@@ -599,8 +599,11 @@ var tableSpecs = map[string]tableSpec{
 			"rain_proof", "state", "created_at",
 			// FR-29.14: the day it is planned on, and when on it.
 			"planned_on", "planned_at",
+			// FR-29.22: what its own link is called.
+			"link_label",
 		),
 		cascades: []childQuery{
+			{TableIdeaLinks, `SELECT id FROM idea_links WHERE idea_id = ?`},
 			{TableIdeaVotes, `SELECT id FROM idea_votes WHERE idea_id = ?`},
 			{TableIdeaComments, `SELECT id FROM idea_comments WHERE idea_id = ?`},
 			{TableIdeaImages, `SELECT id FROM idea_images WHERE idea_id = ?`},
@@ -642,6 +645,17 @@ var tableSpecs = map[string]tableSpec{
 		label:     activityLabel{name: via("idea_id", TableIdeas, "title")},
 		columns:   toSet("trip_id", "idea_id", "image_hash", columnPosition),
 		export: exportQuery{query: `SELECT x.* FROM idea_images x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
+	},
+
+	// FR-29.22: a further link on an idea. Any traveller may change one, like
+	// the idea; validIdeaLink keeps it on an idea of the trip.
+	TableIdeaLinks: {
+		partition: partitionTrip,
+		guard:     validIdeaLink,
+		label:     activityLabel{name: via("idea_id", TableIdeas, "title")},
+		columns:   toSet("trip_id", "idea_id", "url", "label", columnPosition),
+		export: exportQuery{query: `SELECT x.* FROM idea_links x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, scoped: true},
 	},
 

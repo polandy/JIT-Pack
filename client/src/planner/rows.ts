@@ -27,6 +27,7 @@ import {
   type ExcursionRole,
   type Idea,
   type IdeaComment,
+  type IdeaLink,
   type IdeaVote,
 } from './types'
 
@@ -38,6 +39,7 @@ function rowToIdea(id: string, row: Record<string, unknown>): Idea {
     title: row['title'] as string,
     note: (row['note'] as string) ?? null,
     link: (row['link'] as string) ?? null,
+    link_label: (row['link_label'] as string) ?? null,
     tag: toIdeaTag(row['tag']),
     rain_proof: Boolean(row['rain_proof']),
     state: (row['state'] as Idea['state']) ?? IDEA_STATE_IDEA,
@@ -105,6 +107,17 @@ function rowToIdeaComment(id: string, row: Record<string, unknown>): IdeaComment
   }
 }
 
+function rowToIdeaLink(id: string, row: Record<string, unknown>): IdeaLink {
+  return {
+    id,
+    trip_id: row['trip_id'] as string,
+    idea_id: row['idea_id'] as string,
+    url: row['url'] as string,
+    label: (row['label'] as string) ?? null,
+    position: Number(row['position'] ?? 1),
+  }
+}
+
 function rowToDayEntryTraveler(id: string, row: Record<string, unknown>): DayEntryTraveler {
   return {
     id,
@@ -122,6 +135,7 @@ export function ideaRow(idea: Idea): Record<string, unknown> {
     title: idea.title,
     note: idea.note,
     link: idea.link,
+    link_label: idea.link_label,
     tag: idea.tag,
     rain_proof: dbBool(idea.rain_proof),
     state: idea.state,
@@ -154,6 +168,17 @@ export function dayEntryTravelerRow(row: DayEntryTraveler): Record<string, unkno
     trip_id: row.trip_id,
     day_entry_id: row.day_entry_id,
     traveler_id: row.traveler_id,
+  }
+}
+
+/** FR-29.22: a further link on an idea. */
+export function ideaLinkRow(link: IdeaLink): Record<string, unknown> {
+  return {
+    trip_id: link.trip_id,
+    idea_id: link.idea_id,
+    url: link.url,
+    label: link.label,
+    position: link.position,
   }
 }
 
@@ -198,6 +223,12 @@ export const PLANNER_ROWS = {
     ...MODULE_ROWS,
     parse: rowToIdeaImage,
     encode: ideaImageRow,
+    cascadeParents: alsoWith(goesWith('idea_id', TABLE.ideas)),
+  },
+  [TABLE.ideaLinks]: {
+    ...MODULE_ROWS,
+    parse: rowToIdeaLink,
+    encode: ideaLinkRow,
     cascadeParents: alsoWith(goesWith('idea_id', TABLE.ideas)),
   },
   [TABLE.ideaTracks]: {

@@ -53,6 +53,8 @@ const (
 	// FR-29.5: a picture on an idea — its hash and position; the bytes stay
 	// outside the envelope (ADR-002).
 	TableIdeaImages = "idea_images"
+	// FR-29.22: a further link on an idea, beside the idea's own.
+	TableIdeaLinks = "idea_links"
 	// FR-29.15: the day plan's own entries.
 	TableDayEntries = "day_entries"
 	// FR-29.15: whom a day-plan entry is for — a row per traveller, none

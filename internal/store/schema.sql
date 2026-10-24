@@ -764,8 +764,8 @@ CREATE TABLE excursion_items (
 -- The planner (§3.29, ADR-078): what the travellers might do on the trip
 -- ---------------------------------------------------------------------------
 
--- FR-29.1: one idea — a title, and optionally a note, one link, one tag and
--- the rain-proof mark. The state is set by hand (FR-29.2); no vote moves it.
+-- FR-29.1: one idea — a title, and optionally a note, a link, one tag and
+-- the rain-proof mark. The idea's further links are idea_links' (FR-29.22). The state is set by hand (FR-29.2); no vote moves it.
 -- The link is rendered as an href, so a scheme other than http(s) is refused
 -- here as well as by the client. The tag is a stable key of FR-29.10's closed
 -- set, labelled by the client's catalogue. `author_id` is stamped by the
@@ -792,7 +792,10 @@ CREATE TABLE ideas (
     -- other: field-level LWW merges each alone, and a CHECK refusing one would
     -- lose the user's choice. A reader treats a time without a day as none.
     planned_on  TEXT,
-    planned_at  TEXT
+    planned_at  TEXT,
+    -- FR-29.22: what the link is called on the idea; NULL shows its page's
+    -- title or its site. The link itself stands first among the idea's links.
+    link_label  TEXT
 );
 
 -- FR-29.13: an idea's delete looks up what came of it to unlink it.
@@ -829,6 +832,22 @@ CREATE TABLE idea_comments (
     -- comments.edited_at; NULL is never edited. Only the author may change them.
     edited_at   TEXT,
     created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
+    updated_hlc TEXT NOT NULL DEFAULT ''
+);
+
+-- FR-29.22: a further link on an idea, beside ideas.link. That column stays
+-- the idea's link at position 0 (ADR-107); a further link's position may be
+-- negative, so a link is moved before it without rewriting the idea. A row
+-- per link rather than a list on the idea, so two people adding one at once
+-- both keep theirs. Rendered as an href, hence the same CHECK as ideas.link.
+CREATE TABLE idea_links (
+    id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    trip_id     TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    idea_id     TEXT NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,
+    url         TEXT NOT NULL CHECK (url LIKE 'http://%' OR url LIKE 'https://%'),
+    label       TEXT,
+    position    INTEGER NOT NULL DEFAULT 1,
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT ''
 );
@@ -1185,6 +1204,7 @@ CREATE INDEX idx_activity_log_inventory ON activity_log (id) WHERE trip_id IS NU
 CREATE INDEX idx_item_dependencies_main ON item_dependencies (depends_on_item_id);
 CREATE INDEX idx_idea_comments_idea ON idea_comments (idea_id);
 CREATE INDEX idx_idea_images_idea ON idea_images (idea_id);
+CREATE INDEX idx_idea_links_idea ON idea_links (idea_id);
 CREATE INDEX idx_day_entries_trip ON day_entries (trip_id, on_date);
 CREATE INDEX idx_meals_trip ON meals (trip_id, on_date);
 CREATE INDEX idx_meal_ingredients_meal ON meal_ingredients (meal_id);

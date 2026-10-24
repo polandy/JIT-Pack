@@ -188,3 +188,23 @@ func (s *Store) IdeaDiscussion(ctx context.Context, ideaID string) (IdeaDiscussi
 	}
 	return discussion, rows.Err()
 }
+
+// validIdeaLink keeps a further link on an idea of its own trip (FR-29.22):
+// the foreign key admits any idea the server has, and one of another trip
+// would show this trip's link on a board its travellers may not see. A write
+// that names no idea is judged by the row it changes, judged when written.
+func validIdeaLink(ctx context.Context, tx *sql.Tx, in guardInput) (RejectReason, error) {
+	ideaID, named := in.m.Fields["idea_id"].(string)
+	if !named {
+		return ReasonNone, nil
+	}
+	var owner string
+	err := tx.QueryRowContext(ctx, `SELECT trip_id FROM `+TableIdeas+` WHERE id = ?`, ideaID).Scan(&owner)
+	if errors.Is(err, sql.ErrNoRows) || (err == nil && owner != in.tripID) {
+		return ReasonConstraintViolated, nil
+	}
+	if err != nil {
+		return ReasonNone, fmt.Errorf("idea link idea lookup: %w", err)
+	}
+	return ReasonNone, nil
+}
