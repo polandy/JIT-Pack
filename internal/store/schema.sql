@@ -765,7 +765,7 @@ CREATE TABLE excursion_items (
 -- ---------------------------------------------------------------------------
 
 -- FR-29.1: one idea — a title, and optionally a note, a link, one tag and
--- the rain-proof mark. The idea's further links are idea_links' (FR-29.22). The state is set by hand (FR-29.2); no vote moves it.
+-- the rain-proof mark. The idea's further links are idea_links rows (FR-29.22). The state is set by hand (FR-29.2); no vote moves it.
 -- The link is rendered as an href, so a scheme other than http(s) is refused
 -- here as well as by the client. The tag is a stable key of FR-29.10's closed
 -- set, labelled by the client's catalogue. `author_id` is stamped by the
