@@ -35,7 +35,7 @@ import { useDragToGroup } from '@/composables/shared/useDragToGroup'
 import { useRowSelection } from '@/composables/shared/useRowSelection'
 import { searchMatches } from '@/domain/shared/search'
 import { selectionLabel } from '@/lib/selectionLabel'
-import { reorderTarget } from '@/domain/tags'
+import { reorderTarget } from '@/domain/shared/handOrder'
 import { t } from '@/i18n'
 import type { Tag } from '@/types/domain'
 

@@ -230,7 +230,7 @@ describe('Local Mode', () => {
   const OESCHINEN: IdeaFields = {
     title: 'Oeschinensee',
     note: null,
-    link: null,
+    links: [],
     tag: 'hiking',
     rainProof: false,
   }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { byHand, dropInto, nextPosition, renumber } from '../handOrder'
+import { byHand, dropInto, nextPosition, renumber, reorderTarget } from '../handOrder'
 
 interface Row {
   id: string
@@ -95,5 +95,24 @@ describe('renumber', () => {
       ['c', 1],
       ['b', 2],
     ])
+  })
+})
+
+describe('reorderTarget (FR-24.10, FR-29.22 — a drag among rows)', () => {
+  it.each([
+    ['up past one row', 2, 1, 1],
+    ['to the very top', 2, 0, 0],
+    ['down past one row: the gap after the next row', 0, 2, 1],
+    ['past the last row', 0, 3, 2],
+  ])('%s', (_name, from, gap, to) => {
+    expect(reorderTarget(from, gap)).toBe(to)
+  })
+
+  it.each([
+    ['the gap before the row itself', 1, 1],
+    ['the gap after the row itself', 1, 2],
+    ['no gap at all', 1, null],
+  ])('moves nothing for %s', (_name, from, gap) => {
+    expect(reorderTarget(from, gap)).toBeNull()
   })
 })

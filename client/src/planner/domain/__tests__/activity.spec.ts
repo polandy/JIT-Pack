@@ -38,13 +38,13 @@ describe('the planner reads its own rows in the activity log (FR-32.2)', () => {
 
   it('files every planner row under ideas', () => {
     const lines = readActivity(
-      [TABLE.ideas, TABLE.ideaComments, TABLE.ideaImages, TABLE.ideaVotes].map((t) =>
-        entry(t, 'insert', { vote: [null, 'up'] }),
+      [TABLE.ideas, TABLE.ideaComments, TABLE.ideaImages, TABLE.ideaLinks, TABLE.ideaVotes].map(
+        (t) => entry(t, 'insert', { vote: [null, 'up'] }),
       ),
       new Set(),
       { readers: plannerActivityReaders },
     )
-    expect(lines.map((l) => l.area)).toEqual(['ideas', 'ideas', 'ideas', 'ideas'])
+    expect(lines.map((l) => l.area)).toEqual(['ideas', 'ideas', 'ideas', 'ideas', 'ideas'])
   })
 
   it('files an entry of the day plan, and whom it is for, under the day plan (FR-29.15)', () => {

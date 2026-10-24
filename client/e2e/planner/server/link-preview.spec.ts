@@ -130,4 +130,66 @@ test.describe('Ideas from a link (FR-29.16) @server @planner', () => {
 
     await ctx.close()
   })
+  /**
+   * E2E-M28-29 (FR-29.22): a further link is read for its page's title too,
+   * which stands grey in its blank name until *Übernehmen* keeps it — the
+   * first link's left blank, so the detail, which reads no page, names that
+   * one by its site. Only the first link brings a picture.
+   */
+  test('E2E-M28-29: a further link takes its page title as its name, and only the first brings a picture', async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext()
+    const alice = await loginAs(ctx, 'alice')
+    await createTripViaWizard(alice, { name: `Kandersteg ${uniq()}` })
+    const board = await openIdeas(alice)
+    const TIMETABLE = 'https://www.sbb.ch/de/fahrplan'
+    const titles: Record<string, string> = { [LINK]: 'Oeschinensee', [TIMETABLE]: 'SBB Fahrplan' }
+    const pictures: string[] = []
+    await alice.route('**/api/v1/trips/*/link-preview/image', async (route: Route) => {
+      pictures.push((route.request().postDataJSON() as { url: string }).url)
+      await route.fulfill({ json: { image: WIDE_PNG.toString('base64'), image_type: 'image/png' } })
+    })
+    await alice.route('**/api/v1/trips/*/link-preview', async (route: Route) => {
+      const { url } = route.request().postDataJSON() as { url: string }
+      await route.fulfill({
+        json: { title: titles[url], description: '', image_url: `${url}.jpg` },
+      })
+    })
+
+    await board.getByTestId('m28-fab').click()
+    const sheet = alice.getByTestId('idea-edit')
+    await fillIonic(sheet.getByTestId('idea-edit-name'), 'Seerundgang')
+    const rows = sheet.getByTestId('idea-edit-link-row')
+    await fillIonic(rows.nth(0).getByTestId('idea-edit-link'), LINK)
+    await sheet.getByTestId('idea-edit-link-add').click()
+    await fillIonic(rows.nth(1).getByTestId('idea-edit-link'), TIMETABLE)
+    const first = rows.nth(0).getByTestId('idea-edit-link-label').locator('input')
+    const second = rows.nth(1).getByTestId('idea-edit-link-label').locator('input')
+    await expect(first).toHaveAttribute('placeholder', 'Oeschinensee')
+    await expect(second).toHaveAttribute('placeholder', 'SBB Fahrplan')
+    await expect(second).toHaveValue('')
+    await rows.nth(1).getByTestId('idea-edit-link-label-accept').click()
+    await expect(second).toHaveValue('SBB Fahrplan')
+    await expect(rows.nth(1).getByTestId('idea-edit-link-label-accept')).toHaveCount(0)
+    await expect(first).toHaveValue('')
+
+    await sheet.getByTestId('idea-edit-save').click()
+    const card = ideaCard(alice, 'Seerundgang')
+    await expect(card.locator('[data-testid^="idea-card-cover-"] img')).toHaveJSProperty(
+      'naturalWidth',
+      WIDE_PNG_WIDTH,
+    )
+    await expect(card.locator('[data-testid^="idea-card-link-"]')).toHaveText('oeschinensee.ch +1')
+    expect(pictures).toEqual([`${LINK}.jpg`])
+    await writesLanded(alice)
+
+    await card.click()
+    const links = alice.getByTestId('idea-detail-link')
+    await expect(links).toHaveCount(2)
+    await expect(links.nth(0)).toHaveText('oeschinensee.ch')
+    await expect(links.nth(1)).toContainText('SBB Fahrplan')
+
+    await ctx.close()
+  })
 })

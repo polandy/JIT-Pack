@@ -36,6 +36,7 @@ function idea(id: string, over: Partial<Idea> = {}): Idea {
     title: id,
     note: null,
     link: null,
+    link_label: null,
     tag: null,
     rain_proof: false,
     state: 'idea',

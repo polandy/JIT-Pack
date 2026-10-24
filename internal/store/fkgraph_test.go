@@ -59,6 +59,7 @@ var cascadeChildrenWithoutATombstone = map[string]string{
 	TableTrips + " -> ideas":                    "the trip's own feed is deleted with it",
 	TableTrips + " -> idea_comments":            "the trip's own feed is deleted with it",
 	TableTrips + " -> idea_images":              "the trip's own feed is deleted with it",
+	TableTrips + " -> idea_links":               "the trip's own feed is deleted with it",
 	TableTrips + " -> idea_tracks":              "the trip's own feed is deleted with it",
 	TableTrips + " -> excursion_tracks":         "the trip's own feed is deleted with it",
 	TableTrips + " -> idea_votes":               "the trip's own feed is deleted with it",

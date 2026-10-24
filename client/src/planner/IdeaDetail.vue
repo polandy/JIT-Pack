@@ -34,9 +34,7 @@ import {
   ellipsisVertical,
   gitBranchOutline,
   arrowUndoOutline,
-  linkOutline,
   mapOutline,
-  openOutline,
   removeCircleOutline,
   send,
   starOutline,
@@ -74,12 +72,13 @@ import {
   IDEA_STEP_SHORTLIST,
   ideaDiscussion,
   ideaLeadStep,
-  linkSite,
   menuMoves,
   reopenedState,
   voteTally,
 } from './domain/ideas'
 import { MAX_IDEA_IMAGES, canAddPicture, ideaPictures } from './domain/pictures'
+import { ideaLinks } from './domain/links'
+import IdeaLinkCards from './IdeaLinkCards.vue'
 import IdeaMosaic from './IdeaMosaic.vue'
 import IdeaPictureViewer from './IdeaPictureViewer.vue'
 import IdeaPreparationList from './IdeaPreparationList.vue'
@@ -138,6 +137,10 @@ const tally = computed(() =>
 )
 const pictures = computed(() =>
   idea.value ? ideaPictures(idea.value.id, plannerStore.getImages(idea.value.trip_id)) : [],
+)
+/** The idea's links in their order (FR-29.22). */
+const links = computed(() =>
+  idea.value ? ideaLinks(idea.value, plannerStore.getLinks(idea.value.trip_id)) : [],
 )
 
 // --- the first block and the ⋮ (FR-29.2) ---
@@ -542,18 +545,7 @@ async function openCommentMenu(comment: IdeaComment) {
       @remove="(image) => emit('removePicture', image)"
     />
 
-    <a
-      v-if="idea.link"
-      class="link-card"
-      :href="idea.link"
-      target="_blank"
-      rel="noopener noreferrer"
-      data-testid="idea-detail-link"
-    >
-      <IonIcon :icon="linkOutline" aria-hidden="true" />
-      <span class="site">{{ linkSite(idea.link) }}</span>
-      <IonIcon class="out" :icon="openOutline" aria-hidden="true" />
-    </a>
+    <IdeaLinkCards :links="links" />
 
     <p v-if="idea.note" class="note" data-testid="idea-detail-note">{{ idea.note }}</p>
 
@@ -742,30 +734,6 @@ async function openCommentMenu(comment: IdeaComment) {
 .of-max {
   color: var(--ct-subtext0);
   font-size: var(--jp-text-xs);
-}
-
-.link-card {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border: 1px solid var(--jp-surface-border);
-  border-radius: var(--jp-r-md);
-  background: var(--jp-surface-sunken);
-  color: var(--jp-action);
-  text-decoration: none;
-}
-
-.link-card .site {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.link-card .out {
-  color: var(--ct-subtext0);
 }
 
 .note {

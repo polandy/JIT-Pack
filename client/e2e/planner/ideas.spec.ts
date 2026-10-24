@@ -86,6 +86,85 @@ test.describe('M28 ideas @local @planner', () => {
   })
 
   /**
+   * E2E-M28-28 (FR-29.22, ADR-107): an idea carries several links, each named
+   * or not, in an order the grip sets. The third link is dragged to the top
+   * and becomes the one *Titel & Bild* is read from; the card shows its site
+   * and how many follow, the detail every link as a card in that order — a
+   * named one by its name, the others by their site — and the sheet opens
+   * again on the same order. A link removed is gone from the detail too.
+   */
+  test('E2E-M28-28: an idea carries several links, named and ordered by the grip', async ({
+    page,
+  }) => {
+    await openIdeas(page)
+    await page.getByTestId('m28-fab').click()
+    const sheet = page.getByTestId('idea-edit')
+    await fillIonic(sheet.getByTestId('idea-edit-name'), 'Bernina Express')
+    const rows = sheet.getByTestId('idea-edit-link-row')
+    await expect(rows).toHaveCount(1)
+    await expect(sheet.getByTestId('idea-edit-link-grip')).toHaveCount(0)
+
+    await fillIonic(rows.nth(0).getByTestId('idea-edit-link'), 'www.rhb.ch/bernina')
+    await sheet.getByTestId('idea-edit-link-add').click()
+    await fillIonic(rows.nth(1).getByTestId('idea-edit-link'), 'www.sbb.ch/fahrplan')
+    await fillIonic(rows.nth(1).getByTestId('idea-edit-link-label'), 'Fahrplan')
+    await sheet.getByTestId('idea-edit-link-add').click()
+    await fillIonic(rows.nth(2).getByTestId('idea-edit-link'), 'www.tirano.it')
+    await expect(rows.nth(0).getByTestId('idea-edit-link-first')).toBeVisible()
+
+    const list = sheet.locator('[data-drop-target="links"]')
+    await expect(list).toHaveAttribute('data-drag', 'idle')
+    const grip = rows.nth(2).getByTestId('idea-edit-link-grip')
+    await grip.hover()
+    const g = (await grip.boundingBox())!
+    const top = (await rows.nth(0).boundingBox())!
+    await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(g.x + g.width / 2, g.y - 4, { steps: 3 })
+    await expect(list).toHaveAttribute('data-drag', 'dragging')
+    await page.mouse.move(top.x + top.width / 2, top.y + 6, { steps: 8 })
+    await expect(rows.nth(0)).toHaveClass(/gap-before/)
+    await expect(page.locator('[data-drag-ghost] [data-carry-where]')).toHaveText('→ position 1')
+    await page.mouse.up()
+    await expect(list).toHaveAttribute('data-drag', 'idle')
+    await expect(rows.nth(0).getByTestId('idea-edit-link').locator('input')).toHaveValue(
+      'www.tirano.it',
+    )
+    await expect(rows.nth(0).getByTestId('idea-edit-link-first')).toBeVisible()
+
+    await sheet.getByTestId('idea-edit-save').click()
+    await expect(sheet.getByTestId('idea-edit-save')).toHaveCount(0)
+    const card = ideaCard(page, 'Bernina Express')
+    await expect(card.locator('[data-testid^="idea-card-link-"]')).toHaveText('tirano.it +2')
+    await writesLanded(page)
+
+    const detail = await openIdea(page, 'Bernina Express')
+    const links = detail.getByTestId('idea-detail-link')
+    await expect(links).toHaveCount(3)
+    await expect(links.nth(0)).toHaveAttribute('href', 'https://www.tirano.it')
+    await expect(links.nth(1)).toHaveAttribute('href', 'https://www.rhb.ch/bernina')
+    await expect(links.nth(2)).toHaveAttribute('href', 'https://www.sbb.ch/fahrplan')
+    await expect(links.nth(2)).toContainText('Fahrplan')
+    await expect(links.nth(2)).toContainText('sbb.ch')
+
+    await ideaMenu(page, detail, 'idea-menu-edit')
+    await expect(rows).toHaveCount(3)
+    await expect(rows.nth(0).getByTestId('idea-edit-link').locator('input')).toHaveValue(
+      'https://www.tirano.it',
+    )
+    await expect(rows.nth(2).getByTestId('idea-edit-link-label').locator('input')).toHaveValue(
+      'Fahrplan',
+    )
+    await rows.nth(1).getByTestId('idea-edit-link-remove').click()
+    await expect(rows).toHaveCount(2)
+    await sheet.getByTestId('idea-edit-save').click()
+    await expect(sheet.getByTestId('idea-edit-save')).toHaveCount(0)
+    await expect(links).toHaveCount(2)
+    await expect(links.nth(1)).toHaveAttribute('href', 'https://www.sbb.ch/fahrplan')
+    await writesLanded(page)
+  })
+
+  /**
    * E2E-M28-02: an idea is moved by hand, and the board follows. The step
    * ahead and *Gemacht* are buttons of the detail's first block — no state
    * segment is left — and the seldom moves sit behind the head's ⋮: it leaves

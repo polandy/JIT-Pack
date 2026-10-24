@@ -44,6 +44,8 @@ export interface Idea {
   note: string | null
   /** http(s) only — client and server both refuse anything else. */
   link: string | null
+  /** FR-29.22: what the link is called; null shows its page's title or its site. */
+  link_label: string | null
   tag: IdeaTag | null
   /** FR-29.12: „Geht auch bei Regen". */
   rain_proof: boolean
@@ -150,6 +152,21 @@ export interface IdeaVote {
   /** Stamped by the server on the insert. */
   user_id: string
   vote: IdeaVoteValue | null
+}
+
+/**
+ * FR-29.22: a further link on an idea, beside the idea's own, which stands at
+ * position 0 — `domain/links.ts` orders the two kinds into one list (ADR-107).
+ */
+export interface IdeaLink {
+  id: string
+  trip_id: string
+  idea_id: string
+  /** http(s) only, like the idea's own. */
+  url: string
+  label: string | null
+  /** Any integer; below 0 stands before the idea's own link. */
+  position: number
 }
 
 /** FR-29.4: one entry of an idea's discussion. */

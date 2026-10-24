@@ -40,6 +40,8 @@ import { DAY_ENTRY_CONNECTION, DAY_ENTRY_NOTE, IDEA_STATE_IDEA } from './types'
 import { TABLE } from '@/api/tables'
 import { connectionDay, connectionTitle, timeOf } from './domain/connections'
 import type { VoteTally } from './domain/ideas'
+import { linkWrites, type LinkDraft, type LinkWrites } from './domain/links'
+import { ideaLinkRow } from './rows'
 import { canAddPicture, coverMoves, ideaPictures, nextPicturePosition } from './domain/pictures'
 import type { usePlannerStore } from './store'
 
@@ -73,11 +75,12 @@ export interface WayFields {
   role: ExcursionRole | null
 }
 
-/** What the add and edit sheets write (FR-29.1). The link is already parsed. */
+/** What the add and edit sheets write (FR-29.1). The links are already parsed. */
 export interface IdeaFields {
   title: string
   note: string | null
-  link: string | null
+  /** FR-29.22: its links in the sheet's order. */
+  links: readonly LinkDraft[]
   tag: IdeaTag | null
   rainProof: boolean
 }
@@ -91,18 +94,24 @@ export function createPlannerActions(
     const title = fields.title.trim()
     if (title === '') return null
     const id = newId()
+    const links = linkWrites(
+      { id, trip_id: tripId, link: null, link_label: null },
+      [],
+      fields.links,
+    )
     const mutation = host.mutation('insert', TABLE.ideas, id, {
       trip_id: tripId,
       author_id: me ?? CLIENT_ACTOR_PLACEHOLDER,
       title,
       note: blankToNull(fields.note),
-      link: fields.link,
+      link: links.own.link ?? null,
+      link_label: links.own.link_label ?? null,
       tag: fields.tag,
       rain_proof: dbBool(fields.rainProof),
       state: IDEA_STATE_IDEA,
       created_at: host.nowIso(),
     })
-    host.write(mutation)
+    host.write(mutation, ...linkRowWrites(links))
     return id
   }
 
@@ -113,10 +122,31 @@ export function createPlannerActions(
     if (title !== '' && title !== idea.title) patch['title'] = title
     const note = blankToNull(fields.note)
     if (note !== idea.note) patch['note'] = note
-    if (fields.link !== idea.link) patch['link'] = fields.link
     if (fields.tag !== idea.tag) patch['tag'] = fields.tag
     if (fields.rainProof !== idea.rain_proof) patch['rain_proof'] = dbBool(fields.rainProof)
-    writeIdea(idea, patch)
+    const links = linkWrites(idea, plannerStore.getLinks(idea.trip_id), fields.links)
+    Object.assign(patch, links.own)
+    const writes = linkRowWrites(links)
+    if (Object.keys(patch).length > 0)
+      writes.unshift(host.mutation('upsert', TABLE.ideas, idea.id, patch))
+    if (writes.length > 0) host.write(...writes)
+  }
+
+  /**
+   * FR-29.22: an idea's further links, row by row — one inserted per link
+   * added, one deleted per link removed, a kept one only in what changed, so
+   * two devices adding a link each both keep theirs.
+   */
+  function linkRowWrites(links: LinkWrites): Write[] {
+    return [
+      ...links.deletes.map((id) => host.mutation('delete', TABLE.ideaLinks, id)),
+      ...links.updates.map(({ id, fields }) =>
+        host.mutation('upsert', TABLE.ideaLinks, id, fields),
+      ),
+      ...links.inserts.map((link) =>
+        host.mutation('insert', TABLE.ideaLinks, link.id, ideaLinkRow(link)),
+      ),
+    ]
   }
 
   /**

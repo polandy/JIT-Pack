@@ -14,22 +14,28 @@
   ideas as rows of one card (`m28-list`, a row `idea-card-<id>`): the cover picture as a flat 21:9 banner where the idea
   has pictures (`idea-card-cover-<id>`), with *„3 Bilder"* over its corner where there is more than one
   (`idea-card-pictures-<id>`) — and where it has none but a track (FR-29.17), the first track's line on the sunken
-  surface in its place (`idea-card-trace-<id>`); the title in the heading weight; the tag, *☂ auch bei Regen*, the
-  link's site (*segantini-museum.ch*) and the first track's distance and ascent with its kind's glyph and *„+1"* for
-  each further track (*„🥾 7,4 km · ↑ 520 m · +1"*, `idea-card-track-<id>`) as chips; a foot with 👍 and 👎, each with its
-  count and its voters' avatars, and 💬 with the discussion's size where there is one. **Order:** by votes (👍 minus 👎),
-  the newest first among equals, or newest first — the bar's ⋮ offers the other (*„Neueste zuerst"* / *„Nach Stimmen
-  sortieren"*), and only where votes are shown; a new idea switches the board to *Ideen*, newest first, with the chips
-  cleared. **Empty,** each segment says what belongs in it (`m28-empty-<state>`): *„Noch keine Ideen für diese Reise."*
-  with *„Ein Link, ein Ort, ein Gedanke – mit ＋ notierst du, was ihr machen könntet."*, *„Noch nichts auf der Shortlist.
-  Was ihr vorhabt, kommt hierher."*, *„Noch nichts gemacht."*, *„Nichts verworfen."*; chips that match nothing say
-  *„Keine Idee passt zu dieser Auswahl."* (`m28-empty-filtered`). **Before the trip partition has arrived** the counts
-  and the list are not drawn (ADR-033).
+  surface in its place (`idea-card-trace-<id>`); the title in the heading weight; the tag, *☂ auch bei Regen*, the first
+  link's site with *„+n"* counting the further links (*rhb.ch +2*, `idea-card-link-<id>`) and the first track's distance
+  and ascent with its kind's glyph and *„+1"* for each further track (*„🥾 7,4 km · ↑ 520 m · +1"*,
+  `idea-card-track-<id>`) as chips; a foot with 👍 and 👎, each with its count and its voters' avatars, and 💬 with the
+  discussion's size where there is one. **Order:** by votes (👍 minus 👎), the newest first among equals, or newest first
+  — the bar's ⋮ offers the other (*„Neueste zuerst"* / *„Nach Stimmen sortieren"*), and only where votes are shown; a
+  new idea switches the board to *Ideen*, newest first, with the chips cleared. **Empty,** each segment says what
+  belongs in it (`m28-empty-<state>`): *„Noch keine Ideen für diese Reise."* with *„Ein Link, ein Ort, ein Gedanke – mit
+  ＋ notierst du, was ihr machen könntet."*, *„Noch nichts auf der Shortlist. Was ihr vorhabt, kommt hierher."*, *„Noch
+  nichts gemacht."*, *„Nichts verworfen."*; chips that match nothing say *„Keine Idee passt zu dieser Auswahl."*
+  (`m28-empty-filtered`). **Before the trip partition has arrived** the counts and the list are not drawn (ADR-033).
 * **Writing an idea** (the FAB ＋, `m28-fab`, `FAB_ANCHOR.m28`; *Bearbeiten* in the detail): the sheet *„Neue Idee"* /
-  *„Idee bearbeiten"* (`idea-edit`) — the title (*„Was könnten wir machen?"*), *Link (optional)*, *Notiz (optional)*,
-  the five tags as chips (one or none), and *☂ Geht auch bei Regen*. A link that is not a web link says *„Das ist kein
-  Web-Link – nur http:// oder https://."* (`idea-edit-link-invalid`) and keeps *Hinzufügen* off, as a blank title does;
-  a bare address is kept as `https://…`. **A link read (FR-29.16):** a web link brings a suggestion shown at each field,
+  *„Idee bearbeiten"* (`idea-edit`) — the title (*„Was könnten wir machen?"*), the links, *Notiz (optional)*, the five
+  tags as chips (one or none), and *☂ Geht auch bei Regen*. A link that is not a web link says *„Das ist kein Web-Link –
+  nur http:// oder https://."* (`idea-edit-link-invalid`) and keeps *Hinzufügen* off, as a blank title does; a bare
+  address is kept as `https://…`. **The links (FR-29.22):** one row each (`idea-edit-link-row`) on the sunken surface —
+  the address (`idea-edit-link`) and ✕ (`idea-edit-link-remove`, *„Link entfernen"*; the last one removed leaves an
+  empty row), and once it is a web link its name beneath (`idea-edit-link-label`), its placeholder the page's title once
+  read, with *Übernehmen* in its end slot (`idea-edit-link-label-accept`), else the site; below the rows *＋ Link
+  hinzufügen* (`idea-edit-link-add`, dashed). With more than one row each carries M9's grip (`idea-edit-link-grip`,
+  *„Link verschieben"*, the carry chip saying *„→ Platz n"*) and the first the badge *Titel & Bild*
+  (`idea-edit-link-first`). **A link read (FR-29.16):** the first web link brings a suggestion shown at each field,
   changing nothing until confirmed there: the suggested title grey as the blank title field's placeholder, the suggested
   description as the blank note's, each with *Übernehmen* in the field's end slot (`idea-edit-name-accept`,
   `idea-edit-note-accept`) that fills that field alone; over a field holding text, a line under it, *„Vorschlag: …"*
@@ -134,7 +140,8 @@
   or *Wanderung*/*Velotour*), *Als neuen Track* (`route-save-new`, *„Track speichern"* for a new route; off at five
   tracks, saying so), *„„…" ersetzen"* (`route-save-replace`, edits only) and *Weiter bearbeiten*. A replacement toasts
   *„„…" ersetzt"* with *Rückgängig*; a new track is chosen on the card. Where the track's file cannot be read back,
-  *„Der Track ließ sich nicht laden. Bist du online?"*. The link as a card that opens the site in a new tab (`noopener
+  *„Der Track ließ sich nicht laden. Bist du online?"*. Every link as a card in their order
+  (`idea-detail-link`), its name above its site where it has one, opening the site in a new tab (`noopener
   noreferrer`); the note; **the votes** — 👍 and 👎 as buttons with their counts and the voters' avatars
   (`idea-vote-up`/`-down`, pressed where the vote is mine; a second tap withdraws it) and *„Andy, Sia dafür"*; the
   **discussion** (*Kommentare* with its count), oldest first, each entry with its avatar, words, and who and when, and a

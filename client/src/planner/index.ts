@@ -21,6 +21,7 @@ import { IDEA_STATE_DROPPED, IDEA_STATE_SHORTLISTED } from './types'
 export { usePlannerStore }
 export { createPlannerActions }
 export { voteTally } from './domain/ideas'
+export { LINK_NEW } from './domain/links'
 
 /** The module's registration (ADR-066), folded by the composition root. */
 export const plannerModule: FeatureModule = {

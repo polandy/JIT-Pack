@@ -137,3 +137,14 @@
   `planner/__tests__/preparationText.spec.ts`; M25's sheet `views/trips/tasks/__tests__/TripTaskSheet.spec.ts`.
 * **E2E-M28-27** `local` (FR-29.21) — **implemented** (`planner/preparation.spec.ts`): a step due on M25 is gone from it
   once its idea is deleted — unlike a task made from the idea (E2E-M28-23).
+* **E2E-M28-28** `local` (FR-29.22) — **implemented** (`planner/ideas.spec.ts`): three links written on a new idea, one
+  named; the grip drags the third to the top, which takes the *Titel & Bild* badge; the card reads *tirano.it +2*, the
+  detail the three cards in that order, the named one with its name above its site; the sheet opens again on the same
+  order and names, and a link removed there is gone from the detail. The write set is
+  `planner/domain/__tests__/links.spec.ts`, the rows through both modes `planner/__tests__/sync.spec.ts`, the server's
+  guard `internal/store/idealinks_test.go`. The page title as a name's placeholder, kept with *Übernehmen*, needs a read
+  and so the server leg — E2E-M28-29.
+* **E2E-M28-29** `server` (FR-29.22, FR-29.16) — **implemented** (`planner/server/link-preview.spec.ts`): a second link
+  is read for its page's title, which stands grey in its blank name until *Use it* keeps it, while the first link's
+  name stays blank; only the first link's picture is fetched, and the detail names the unnamed first link by its site
+  and the second by the title kept.

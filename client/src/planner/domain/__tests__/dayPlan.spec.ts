@@ -41,6 +41,7 @@ function idea(
     title: `Idee ${id}`,
     note: null,
     link: null,
+    link_label: null,
     tag: null,
     rain_proof: false,
     state,
