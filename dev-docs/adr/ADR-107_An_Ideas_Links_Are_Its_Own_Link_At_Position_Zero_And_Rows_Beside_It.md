@@ -33,7 +33,8 @@ for every screen, and `linkWrites` turns the sheet's list back into the fields a
 - A link lives in one of two places, and every reader goes through `ideaLinks` to get the order right.
 - The own link's place is fixed at 0; reordering around it needs negative positions and a tie-break (own link first,
   then the id) so every device draws the same order.
-- Removing the own link promotes another one into the column, a write on the idea and a delete of a row in one save.
+- Removing the own link empties the column unless a link added in the same save takes its place; the remaining rows
+  stand where they are, so the idea's first link is then a row.
 
 ### Option B — every link a row of `idea_links`, `ideas.link` emptied into it
 
