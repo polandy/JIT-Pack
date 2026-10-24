@@ -150,7 +150,7 @@ Tap an idea to open it. On a phone it opens from the bottom; on a wide screen be
 - **Kommentare** — write below, tap the arrow to send. Tap one of your own comments to edit or delete it; an edited comment says so.
 - **⋮** at the top, beside ✕: **Bearbeiten** changes the title, links, note, kind or rain mark; **Von der Shortlist
   nehmen** and **Verwerfen** move it back or away; **Idee löschen** asks first, then removes the idea with its votes,
-  comments, pictures and tracks for everybody — dropping it keeps them.
+  comments, pictures, tracks and links for everybody — dropping it keeps them.
 
 Every link is a card, in their order, showing its name and its site; it opens the website in a new tab.
 
