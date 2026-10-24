@@ -182,7 +182,7 @@ how long before the idea it lies, and it moves when the idea is planned on anoth
 Some tasks come back every year: *book the hotel*, *renew the vignette*. Write them once on the series. Open it from
 the trip list by tapping the series heading. Under **Aufgaben für jede Reise**, **+ Aufgabe** opens a sheet with the
 words, how long before departure the task is due (**Kein Termin**, **Am Vortag**, **3 Tage**, **1 Woche**,
-**2 Wochen**, **4 Wochen** or **8 Wochen**) and, on a server, **Wer macht’s?**. A line on the sheet names the day this
+**2 Wochen**, **4 Wochen** or **8 Wochen**) and, on a server with more than one account, **Wer macht’s?**. A line on the sheet names the day this
 gives the series' next trip. The list shows each task with its lead (*„1 Woche vor Abreise"*). Tap a task to change it.
 
 A new trip created in the series gets these tasks automatically. The wizard's last step says how many it is carrying

@@ -51,3 +51,6 @@ destination profile created on first use, its checklist, attach and detach), and
   the next trip's day, and an edit changes the lead in place; read back after leaving and returning. Server leg: the
   seat shows the picked user; local leg: no seat at all — the absence asserted against the lead text on the same line,
   which is the positive signal.
+* **E2E-M16-06** `single` (FR-13.4, G-8) — **implemented** (`single/series-tasks.spec.ts`): on a Single-User instance
+  the task sheet offers no default assignee — asserted beside its day line — and a written task's row carries no seat
+  beside its lead. The directory there holds the instance's one user, so a gate on a non-empty directory is not enough.

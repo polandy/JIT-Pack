@@ -27,8 +27,8 @@ const props = defineProps<{
   /** Null while the trip has no start date yet (FR-2.1a). */
   tripStartDate: string | null
   today: string
-  /** Who the ticked rows' seat may show — empty hides it everywhere (G-8). M22
-   *  passes trip members, M16's attach the instance's whole directory. */
+  /** Who the ticked rows' seat may show — empty hides it everywhere (G-8).
+   *  Both M22 and M16's attach pass the picked trip's own members. */
   assignees: readonly NameablePerson[]
 }>()
 

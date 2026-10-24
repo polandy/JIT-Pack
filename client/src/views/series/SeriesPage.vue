@@ -62,6 +62,11 @@ const tripStore = useTripStore()
 const orchestrator = useOrchestrator()
 const { directory, load: loadIdentity } = useIdentity(orchestrator.identity)
 onMounted(loadIdentity)
+/**
+ * A default assignee is offered only when there is someone to choose between:
+ * Single-User Mode's directory holds its one user, so G-8 hides it there too.
+ */
+const canAssign = computed(() => directory.value.length > 1)
 
 const series = computed(() => master.getSeries(props.seriesId))
 const profile = computed(() => master.getDestinationProfile(props.seriesId))
@@ -176,9 +181,9 @@ const nextTrip = computed(() => {
   )
 })
 
-/** The row's assignee seat, G-8-hidden with the rest while the directory is empty. */
+/** The row's assignee seat, G-8-hidden with the rest while no one can be assigned. */
 function seatOf(task: DestinationTask) {
-  if (directory.value.length === 0 || !task.assignee_user_id) return null
+  if (!canAssign.value || !task.assignee_user_id) return null
   const person = directory.value.find((u) => u.user_id === task.assignee_user_id)
   return person
     ? { variant: 'assignee' as const, id: person.user_id, name: person.display_name }
@@ -454,7 +459,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
               <h3>{{ task.task }}</h3>
               <p data-testid="m16-task-lead">{{ seriesLeadLineText(task.lead_days) }}</p>
             </IonLabel>
-            <span v-if="directory.length > 0" slot="end" data-testid="m16-task-seat">
+            <span v-if="canAssign" slot="end" data-testid="m16-task-seat">
               <AssigneeSeat :avatar="seatOf(task)" @assign="openEditTask(task)" />
             </span>
           </IonItem>
@@ -577,7 +582,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
 
         <p class="next-day" data-testid="m16-task-sheet-next-day">{{ nextTripDayText }}</p>
 
-        <IonItem v-if="directory.length > 0">
+        <IonItem v-if="canAssign">
           <IonSelect
             data-testid="m16-task-sheet-who"
             :label="t('series.taskWho')"
