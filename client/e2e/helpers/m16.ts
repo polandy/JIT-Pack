@@ -12,9 +12,14 @@ import { fillIonic, chooseInSelect } from './ionic'
  * Open M16 through M2's series header — the screen's only door, and one
  * locator on purpose: the grouping is what M2 keeps (E2E-M2-15's flat-list
  * alternative is struck).
+ *
+ * The segment is named rather than left to M2's opening rule: every caller's
+ * series holds wizard-made planning trips, and on a shared server instance
+ * the account already has active trips, so the list would open on „Aktiv"
+ * and show no header for the series at all.
  */
 export async function openSeries(page: Page, name: string): Promise<void> {
-  await page.goto(PATH.trips)
+  await page.goto(`${PATH.trips}?status=planned`)
   await visiblePage(page).getByTestId(`series-header-${name}`).click()
   await expect(page.getByTestId('header-title')).toHaveText(name)
 }
