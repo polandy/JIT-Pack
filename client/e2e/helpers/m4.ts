@@ -257,13 +257,12 @@ export async function scrollPackList(page: Page, deltaY: number): Promise<number
     'the wheel opened the gesture window',
   ).toBe(true)
   await ended.dispose()
-  // …and the *gesture* has ended too, which is a second thing. The list stops
-  // moving first; M4's window closes on Ionic's scroll-end debounce after it
-  // (FR-21.17), and until it does, a scroll nobody made still counts as the
-  // reader's. Without this wait the next programmatic move in a case is a race
-  // against that debounce — on a loaded shard E2E-M4-135 would measure the
-  // head answering the *flick* and read it as the defect the case exists to
-  // catch. The attribute is that window.
+  // …and the *gesture* has ended too, which is a second thing. M4's window
+  // closes on the scroller's own `scrollend` (FR-21.17), on Ionic's scroll-end
+  // debounce after it where an engine has none, and until it does a scroll
+  // nobody made still counts as the reader's. Without this wait the next
+  // programmatic move in a case could be read as the *flick* — the defect
+  // E2E-M4-135 exists to catch. The attribute is that window.
   await expect(packList(page)).not.toHaveAttribute('data-scroll-gesture')
   return (await packListOffset(page)).top
 }

@@ -7,6 +7,9 @@ import {
   type HeadScrollState,
 } from '@/lib/headScroll'
 
+/** The handler property an engine exposes when it dispatches `scrollend` — not every engine does. */
+const SCROLLER_REST = 'onscrollend'
+
 /** The `ion-content` a list scrolls in, as a template ref hands it over. */
 export type ScrollContentRef = Ref<{ $el: HTMLIonContentElement } | null>
 
@@ -45,15 +48,19 @@ export function useHeadScroll(content: ScrollContentRef) {
   /**
    * The window, and the one observable thing about it.
    *
-   * It closes on Ionic's `ionScrollEnd`, which is a debounce after the last
-   * scroll event — so *whether* it is open is a race against a timer for
-   * anything outside this screen, and E2E-M4-135 lost that race on a loaded
-   * shard: it measured a scroll nobody made while the flick that set it up was
-   * still settling, and read the head answering the reader as the defect it was
-   * written to catch. A plain `let` is deliberate — a ref would re-render the
-   * list on every wheel event — so the state is mirrored onto the host element
-   * instead, the way the G-19 toast carries `data-presented`. Nothing in the app
-   * reads it; it exists so a case can wait for the window rather than hope.
+   * It closes when the scroller says it has come to rest — the native
+   * `scrollend`, which the engine dispatches once the whole sequence is over,
+   * smooth scroll and momentum included. Never on a clock: Ionic's
+   * `ionScrollEnd` is a watchdog that fires once no scroll event has arrived
+   * for 120 ms, so a main thread stalled that long mid-flick would close the
+   * window under a reader still scrolling and read the rest of their flick as
+   * nobody's — a smooth wheel scroll whose head then never yields
+   * (E2E-M4-135). Only an engine without `scrollend` falls back to it.
+   *
+   * A plain `let` is deliberate — a ref would re-render the list on every
+   * wheel event — so the state is mirrored onto the host element instead, the
+   * way the G-19 toast carries `data-presented`. Nothing in the app reads it;
+   * it exists so a case can wait for the window rather than hope.
    */
   function armGesture(open: boolean): void {
     gesture = open
@@ -73,6 +80,26 @@ export function useHeadScroll(content: ScrollContentRef) {
   /** False once the screen is gone, so a scroller resolving late is not listened to at all. */
   let listening = true
 
+  /** Whether the scroller announces its own rest; until it is resolved, Ionic's watchdog stands in. */
+  let restsNatively = false
+
+  function read(top: number, viewport: HTMLElement | null) {
+    head.value = nextHeadState(head.value, { top, viewport, gesture })
+  }
+
+  /**
+   * The scroller has come to rest, so whatever moves it next has to say who
+   * asked. Its last stretch is folded in first, still as the reader's: the
+   * engine dispatches `scrollend` beside the frame's scroll events, and Ionic
+   * only emits the matching `ionScroll` from the animation frame after it —
+   * which, read once the window has closed, would be nobody's. Taken here it
+   * lands within the noise of that late reading, which then changes nothing.
+   */
+  function onScrollerRest() {
+    if (scrollEl !== null) read(scrollEl.scrollTop, scrollEl)
+    armGesture(false)
+  }
+
   onMounted(() => {
     void content.value?.$el.getScrollElement?.().then((el) => {
       // A scroller that does not resolve is the state the rule already knows
@@ -81,12 +108,15 @@ export function useHeadScroll(content: ScrollContentRef) {
       scrollEl = el
       for (const type of SCROLLER_INPUTS)
         el.addEventListener(type, onScrollerInput, { passive: true })
+      restsNatively = SCROLLER_REST in el
+      if (restsNatively) el.addEventListener('scrollend', onScrollerRest, { passive: true })
     })
   })
 
   onUnmounted(() => {
     listening = false
     for (const type of SCROLLER_INPUTS) scrollEl?.removeEventListener(type, onScrollerInput)
+    scrollEl?.removeEventListener('scrollend', onScrollerRest)
   })
 
   function onScroll(event: CustomEvent<{ scrollTop: number }>) {
@@ -94,16 +124,12 @@ export function useHeadScroll(content: ScrollContentRef) {
       const host = event.target as { getScrollElement?: () => Promise<HTMLElement> }
       void host.getScrollElement?.().then((el) => (scrollEl = el))
     }
-    head.value = nextHeadState(head.value, {
-      top: event.detail.scrollTop,
-      viewport: scrollEl,
-      gesture,
-    })
+    read(event.detail.scrollTop, scrollEl)
   }
 
-  /** The scroller has come to rest, so whatever moves it next has to say who asked. */
+  /** Ionic's debounced rest — heeded only where the engine has no `scrollend` of its own. */
   function onScrollEnd() {
-    armGesture(false)
+    if (!restsNatively) armGesture(false)
   }
 
   return { collapsed, onScroll, onScrollEnd }

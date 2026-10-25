@@ -186,6 +186,11 @@
   does it, `scrollIntoView`, which nobody asked for. The header line does not change state once (counted, not sampled),
   and the row moves by the scroll and by nothing else. Red before the rule on both engines: one class change, and the
   row 162 px down on a 60 px scroll.
+* **E2E-M4-161** `all` (FR-21.17) — **implemented** (`packing-list-shape.spec.ts`): E2E-M4-135's third occurrence,
+  found closing the gesture window too *early* rather than too late — a main thread held busy for Ionic's own
+  120 ms silence timer while the wheel is still turning. The stall is forced onto the thread at the flick's first
+  scroll event rather than waited for, since the natural race does not land reliably on repeat. Red before the fix:
+  the header line never collapses, the flick's own scroll read as nobody's.
 * **E2E-M4-150** `all` (FR-21.17) — **implemented** (`packing-list-shape.spec.ts`): the list at its top and at
   rest, an upward wheel that cannot scroll — the gesture window is asserted open, and nothing will close it — then a
   focus moved to the last row's first control, which the browser scrolls into view. The scroll is asserted (well past

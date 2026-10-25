@@ -20,6 +20,7 @@ import {
   lightTraveler,
   openCluster,
   openRowMenu,
+  packList,
   packListOffset,
   packRow,
   quickAddRows,
@@ -310,6 +311,78 @@ test.describe('M4 — the shape of the screen @local @m4', () => {
     // nothing else. Either assertion alone would pass on half the defect.
     expect(moved!.flips).toBe(0)
     expect(moved!.rowMoved).toBe(-moved!.scrolled)
+    await expect(line).toHaveClass(/collapsed/)
+  })
+
+  /*
+   * E2E-M4-161 (FR-21.17): a main-thread stall mid-flick does not close the
+   * gesture window early.
+   *
+   * The two earlier fixes for E2E-M4-135 both closed the window too *late*.
+   * The third found it could also close too *early*: Ionic's own end-of-
+   * scroll event is a 120 ms silence timer, and a main thread held busy for
+   * that long while the wheel is still turning lets the timer fire mid-
+   * flick, closing the window on a gesture still under way. The scroll that
+   * follows would then read as nobody's, and the head would never answer the
+   * flick that moved it. Natural repeats of the case did not land the race
+   * reliably — on this engine the timer loses that footrace most of the
+   * time — so the stall is forced onto the thread at the flick's own first
+   * scroll event instead of waited for.
+   */
+  test('E2E-M4-161: a main-thread stall mid-flick does not close the gesture window early', async ({
+    page,
+  }) => {
+    test.slow()
+    await page.setViewportSize({ width: 390, height: 640 })
+    await createTripViaWizard(page, M4_TRIP)
+    await quickAddRows(page, SCROLL_ROWS)
+    const line = visible(page).getByTestId('m4-header')
+
+    // Back to the top through the scroller, not a wheel, so no gesture is
+    // open when the stall below is armed.
+    await packList(page).evaluate(async (host: HTMLIonContentElement) => {
+      const el = await host.getScrollElement()
+      if (el.scrollTop === 0) return
+      const rested = new Promise<void>((resolve) =>
+        host.addEventListener('ionScrollEnd', () => resolve(), { once: true }),
+      )
+      el.scrollTop = 0
+      await rested
+    })
+    await expect(line).not.toHaveClass(/collapsed/)
+
+    // Armed on the scroller itself so it survives past this `evaluate`'s own
+    // return: the stall has to still be live when the wheel below fires the
+    // flick's first `ionScroll`. The `done` promise rides as a property, not
+    // this function's own return value — returned bare, `evaluateHandle`
+    // would wait on it before coming back, and it only settles once the
+    // wheel below has fired, which cannot happen until this call does.
+    const settled = await packList(page).evaluateHandle(async (host: HTMLIonContentElement) => {
+      const el = await host.getScrollElement()
+      host.addEventListener(
+        'ionScroll',
+        () => {
+          const until = performance.now() + 300
+          while (performance.now() < until) {
+            /* Held busy long enough to carry the main thread past Ionic's
+             * 120 ms silence timer while the wheel is still turning. */
+          }
+        },
+        { once: true },
+      )
+      return {
+        done: new Promise<void>((resolve) =>
+          el.addEventListener('scrollend', () => resolve(), { once: true }),
+        ),
+      }
+    })
+    const box = await packList(page).boundingBox()
+    if (box === null) throw new Error('M4 list has no box to wheel over')
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+    await page.mouse.wheel(0, 300)
+    await settled.evaluate((signal) => signal.done)
+    await settled.dispose()
+
     await expect(line).toHaveClass(/collapsed/)
   })
 
