@@ -278,6 +278,41 @@ items:
       expect.objectContaining({ source_item_id: itemId }),
     ])
   })
+
+  // UX-03/E2E-M4-153: the export writes one row per traveler who carries the
+  // same master item, each with its own `from_inventory: true` (M18 has no
+  // concept of "this row is a duplicate of that one"). Nothing in this file
+  // says the two rows share an identity; only their equal `name` does. An
+  // import with no merge decision for that name must still land them on one
+  // master item, not mint a second lone one for the second traveler.
+  it('shares one master item across several travelers’ rows of the same name', () => {
+    const { env, recorded } = fakeEnv()
+    const doc = parse(`kind: trip
+name: Cannobio
+year: 2024
+travelers:
+  - name: Andy
+  - name: Mira
+items:
+  - name: Zelt
+    quantity: 1
+    from_inventory: true
+    traveler: Andy
+  - name: Zelt
+    quantity: 1
+    from_inventory: true
+    traveler: Mira
+`)
+
+    importPortableDocument(doc, new Map(), env)
+
+    // One master item for the name, not one per traveler's row.
+    expect(rowsFor(recorded, TABLE.items)).toHaveLength(1)
+    const itemId = recorded.find((r) => r.table === TABLE.items)!.id
+    const tripItemRows = rowsFor(recorded, TABLE.tripItems)
+    expect(tripItemRows).toHaveLength(2)
+    expect(tripItemRows.map((r) => r['source_item_id'])).toEqual([itemId, itemId])
+  })
 })
 
 /**
