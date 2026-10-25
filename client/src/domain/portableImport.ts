@@ -408,6 +408,14 @@ export function importPortableDocument(
   const existing = findExistingSubject(doc, env.master)
   if (existing) return existing
 
+  /*
+   * The export writes one row per traveler who carries a master item, each
+   * stamped `from_inventory: true` on its own — the file has no way to say
+   * two rows are the same item. Without this, the second traveler's row
+   * would mint a second, lone master item instead of sharing the first.
+   */
+  const createdByName = new Map<string, string>()
+
   const resolveItem = (item: PortableItem): string | null => {
     const merged = mergeDecisions.get(item.name)
     if (merged) return merged
@@ -419,9 +427,12 @@ export function importPortableDocument(
      * the user typed once on a trip is not something they filed away.
      */
     if (doc.kind === 'trip' && !item.from_inventory) return null
+    const alreadyCreated = createdByName.get(item.name)
+    if (alreadyCreated) return alreadyCreated
     const { mutation, id } = env.mutations.createMasterItem(item.name, { icon: item.icon })
     env.emit('master', null, mutation)
     applyTags(env, id, item.tags)
+    createdByName.set(item.name, id)
     return id
   }
 
