@@ -242,6 +242,7 @@ test.describe('M29 connections @local @planner', () => {
     await sheet.getByTestId('day-entry-hand-arr').locator('input').fill('06:45')
     await fillIonic(sheet.getByTestId('day-entry-hand-line'), 'Fähre')
     await take.click()
+    await connectionTaken(sheet)
     await sheet.getByTestId('day-entry-save').click()
     await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
 
