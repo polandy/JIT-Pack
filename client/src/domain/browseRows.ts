@@ -162,7 +162,7 @@ export type BrowseAction<I> =
   | { verb: 'assign'; item: I; travelerIds: string[] }
   /** FR-25.13g, ADR-036: give the travelers without a row one. */
   | { verb: 'spread'; itemId: string }
-  /** FR-25.13f: pack every row not packed yet. */
+  /** FR-25.13f: pack every row neither packed nor skipped yet. */
   | { verb: 'packCarried'; itemId: string }
   /** FR-25.13f: skip every row not skipped yet. */
   | { verb: 'skipCarried'; itemId: string }

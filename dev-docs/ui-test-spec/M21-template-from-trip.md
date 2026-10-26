@@ -189,6 +189,9 @@ needs a trip that follows the group (E2E-M21-03c).
   the same inventory packs it without the sheet closing. **63** the line's own *„Rückgängig"* takes the whole write
   back: the line is an offer again and no row is left behind, on the working list
   or behind the reveal bar.
+* **E2E-M4-161** `all` (FR-25.13f, FR-5.5) — **implemented** (`e2e/packing-list.spec.ts`): ✓ on a per-person set
+  mixing a skipped and an open row packs only the open one. The skipped child still reads *deliberately skipped* behind
+  the reveal bar, not packed 0/0. Asserted before the act too: the open child is on the working list until the tap.
 * **E2E-M4-78/79** `all` (FR-25.13g) — **implemented** (`e2e/membership.spec.ts`): the browse-sheet's third verb, 👥 *für
   alle*. **78** one tap on a free line with TRIP's three travelers — the boundary FR-25.13h also uses — so the write is
   the same one an

@@ -100,10 +100,15 @@ export function useBrowseVerbs<R extends PackableRow>(
   /**
    * FR-25.13f: pack everything this master item stands for on the list, in one
    * tap. A row that is packed already is left alone — packing it again would
-   * restamp somebody else's packing record with mine.
+   * restamp somebody else's packing record with mine — and so is a skipped
+   * one: FR-5.5's skip zeroed its amount, so "complete" would turn a
+   * deliberate "not coming" into packed 0/0. Filtered here rather than in the
+   * port so the undo below records only the rows this tap changed.
    */
   function onPack(itemId: string) {
-    const rows = rowsOfMasterItem(itemId).filter((row) => row.state !== STATE_PACKED)
+    const rows = rowsOfMasterItem(itemId).filter(
+      (row) => row.state !== STATE_PACKED && row.state !== STATE_SKIPPED,
+    )
     const records = rows.map((row) => ({
       itemId: row.id,
       name: row.name,
