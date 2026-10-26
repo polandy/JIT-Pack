@@ -120,12 +120,9 @@ describe('useBrowseVerbs.onBrowse (FR-25.13f–i, FR-31.6)', () => {
     ],
     ['spread', [{ verb: 'spread', itemId: 'm1' }], [['adds.spread', 'm1']]],
     [
-      'packCarried — every row of the item not packed yet',
+      'packCarried — every open row of the item, a skipped one left at home (FR-5.5)',
       [{ verb: 'packCarried', itemId: 'm1' }],
-      [
-        ['packComplete', 'r-open'],
-        ['packComplete', 'r-skipped'],
-      ],
+      [['packComplete', 'r-open']],
     ],
     [
       'skipCarried — every row of the item not skipped yet',
@@ -146,15 +143,14 @@ describe('useBrowseVerbs.onBrowse (FR-25.13f–i, FR-31.6)', () => {
     ],
     ['undo with nothing to take back', [{ verb: 'undo', itemId: 'm1' }], []],
     [
-      'undo after a pack restores what it packed',
+      'undo after a pack restores what it packed, and only that',
       [
         { verb: 'packCarried', itemId: 'm1' },
         { verb: 'undo', itemId: 'm1' },
       ],
       [
         ['packComplete', 'r-open'],
-        ['packComplete', 'r-skipped'],
-        ['restorePacked', records('r-open', 'r-skipped')],
+        ['restorePacked', records('r-open')],
       ],
     ],
     [

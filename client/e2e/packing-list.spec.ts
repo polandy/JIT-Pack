@@ -15,6 +15,7 @@ import { PATH } from './routes'
 import {
   M4_TRIP,
   chooseInRowMenu,
+  openCluster,
   openRowMenu,
   packRow,
   quickAddRows,
@@ -702,6 +703,49 @@ test.describe('M4 packing list @local @m4', () => {
     // the reveal bar either, which is what an undone add has to mean.
     await expect(page.getByTestId('m4-row-Lampe')).toHaveCount(0)
     await expect(page.getByTestId('m4-done-bar')).toBeHidden()
+  })
+
+  /**
+   * E2E-M4-161 (FR-25.13f, FR-5.5): ✓ on a per-person set leaves a skipped row
+   * skipped. FR-5.5's skip zeroed that row's amount, so packing it would read
+   * packed 0/0 — a deliberate "not coming" turned into "packed" without a word.
+   */
+  test('E2E-M4-161: packing a set from the sheet leaves its skipped row at home (FR-25.13f)', async ({
+    page,
+  }) => {
+    await inventory(page, ['Zelt', 'Lampe'])
+    await createTripViaWizard(page, M4_TRIP)
+
+    // One row per traveler, from the sheet's own avatar buttons (FR-25.13h).
+    let sheet = await openBrowseSheet(page)
+    const line = sheet.getByTestId('browse-row-free').filter({ hasText: 'Zelt' })
+    await line.getByTestId('browse-assign-Andy').click()
+    await line.getByTestId('browse-assign-Sia').click()
+    await expect(sheet.getByTestId('browse-assigned-now')).toContainText('Andy, Sia')
+    await sheet.getByTestId('browse-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+
+    await openCluster(page, 'Zelt')
+    const list = visible(page)
+    await list.getByTestId('m4-child-Zelt-Andy').dispatchEvent('contextmenu')
+    await expect(page.locator('ion-action-sheet')).toHaveAttribute('data-presented', 'true')
+    await chooseInRowMenu(page, /do not pack this/i)
+    await expect(list.getByTestId('m4-child-Zelt-Andy')).toHaveCount(0)
+    await expect(list.getByTestId('m4-child-Zelt-Sia')).toBeVisible()
+
+    sheet = await openBrowseSheet(page)
+    await sheet.getByRole('button', { name: 'Mark "Zelt" as packed' }).click()
+    await expect(sheet.getByTestId('browse-packed-now')).toHaveText(/packed/i)
+    await sheet.getByTestId('browse-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+
+    // Sia's row is the one the tap packed: it has left the working list.
+    await expect(list.getByTestId('m4-child-Zelt-Sia')).toHaveCount(0)
+    await list.getByTestId('m4-done-bar').click()
+    await expect(list.getByTestId('m4-child-Zelt-Sia')).toBeVisible()
+    await expect(list.getByTestId('m4-child-Zelt-Sia')).not.toContainText(/deliberately skipped/i)
+    // Andy's is still the decision it was, not a packed 0/0.
+    await expect(list.getByTestId('m4-child-Zelt-Andy')).toContainText(/deliberately skipped/i)
   })
 
   /**
