@@ -148,3 +148,7 @@
   is read for its page's title, which stands grey in its blank name until *Use it* keeps it, while the first link's
   name stays blank; only the first link's picture is fetched, and the detail names the unnamed first link by its site
   and the second by the title kept.
+* **E2E-M28-30** `local` (G-9, ADR-064) — **implemented** (`planner/ideas.spec.ts`, at 1280 px): an idea opened from
+  its card is the frame's side panel (`m28-idea-panel`) flush with the window, the board ending where it begins, and no
+  sheet; a second card tapped beside it swaps the panel to that idea and `?idea=` with it, on the same board; back
+  returns to the first idea, ✕ closes the panel and both cards stay. Proved red with the width forced to a phone's.
