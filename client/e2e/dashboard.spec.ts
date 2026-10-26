@@ -625,6 +625,40 @@ test.describe('M1 — the hero on the road @local @m1', () => {
     await expect(page.getByTestId('trip-view-packing')).toHaveAttribute('aria-current', 'page')
   })
 
+  /**
+   * E2E-M1-32 (FR-7.10, TODO 2026-10-09): the day plan's own empty state, in
+   * the hero, has no field above it (the day plan's lines need a time the
+   * field cannot take) — so it sits tighter than a block's that has one, not
+   * at the same padding as Shopping's or Tasks's.
+   */
+  test('E2E-M1-32: the day plan’s empty line in the hero sits tighter than a block with a field @shopping @planner', async ({
+    page,
+  }) => {
+    const name = 'Nichts mehr heute'
+    await createTripViaWizard(page, {
+      name,
+      startDate: await browserDay(page, -2),
+      endDate: await browserDay(page, 5),
+      travelers: ['Andy'],
+    })
+    await tripAction(page, 'start')
+
+    await page.goto(PATH.dashboard)
+    const hero = visible(page).getByTestId(`dashboard-trip-${name}`)
+    const todayEmpty = hero.getByTestId(`dashboard-today-${name}-empty`)
+    await expect(todayEmpty).toHaveText('Nothing more planned for today.')
+    await expect(todayEmpty).toHaveClass(/fieldless/)
+
+    // Shopping and Tasks keep a field above their own empty line, so neither
+    // takes the tighter padding — the scoping, not a global rule change.
+    const shoppingEmpty = hero.getByTestId(`dashboard-shopping-${name}-empty`)
+    const tasksEmpty = hero.getByTestId(`dashboard-tasks-${name}-empty`)
+    await expect(shoppingEmpty).toBeVisible()
+    await expect(shoppingEmpty).not.toHaveClass(/fieldless/)
+    await expect(tasksEmpty).toBeVisible()
+    await expect(tasksEmpty).not.toHaveClass(/fieldless/)
+  })
+
   test('E2E-M1-29: a trip that leaves next week still opens on its packing', async ({ page }) => {
     const name = 'Nächste Woche'
     await createTripViaWizard(page, {

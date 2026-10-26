@@ -4,7 +4,6 @@ One line per item, newest at the end. A finished item is deleted.
 
 ## Open
 
-- [ ] Compact the empty "Für heute ist nichts mehr geplant." line on the dashboard — on M1, when nothing is left for today (e.g. no task), the today block's empty-state text (`dayPlan.todayEmpty`, `client/src/planner/i18n/de.ts`) takes too much room on a phone and should be tightened (M01) (2026-10-09)
 - [ ] Decide whether the browse sheet's pack verb leaves skipped rows alone — on M4, *Einpacken* (FR-25.13f) on a per-person set mixing a skipped and an open row also packs the skipped one: `useBrowseVerbs.onPack` filters only `state !== 'packed'`, and `completePacked` on a skipped row (amount 0) writes packed 0/0, so a deliberate "not coming" turns into "packed"; M27's port already leaves a skipped line alone, and `onSkip` skips only unskipped rows (found in ARCH-18) (2026-10-09)
 - [ ] Cover M27's excursion facts on a per-person child row with an e2e case — a traveler leaves the excursion while their row is packed: *left behind* and *take out* appear under the child row, and *take out* removes the line; the `#facts` slot path with `child=true` in `PackingGroupList` is held only by the type checker (M27, FR-31.6, found in ARCH-18b) (2026-10-09)
 - [ ] Cover M28's idea side panel at desktop width with an e2e case — no case opens an idea on `IdeasPage` at ≥ 900 px, where `useDesktopLayout` teleports the panel beside the board (M28, G-9, found in ARCH-18b) (2026-10-09)

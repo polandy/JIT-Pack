@@ -143,7 +143,17 @@ watch(
          changes while it is open. -->
     <div :id="bodyId" class="body" :inert="!open" :aria-hidden="!open">
       <div class="inner">
-        <p v-if="empty" class="empty" :data-testid="`${testid}-empty`">{{ empty }}</p>
+        <!-- A block with no field (the day plan's lines need a time the field
+             cannot take) has less above the empty line, so it sits tighter:
+             the shared rule's padding was sized for a block with a field. -->
+        <p
+          v-if="empty"
+          class="empty"
+          :class="{ fieldless: !addLabel }"
+          :data-testid="`${testid}-empty`"
+        >
+          {{ empty }}
+        </p>
         <ul v-else class="rows">
           <slot />
         </ul>
@@ -308,6 +318,11 @@ watch(
   border-top: 1px solid var(--ct-surface0);
   color: var(--ct-subtext0);
   font-size: var(--jp-text-md);
+}
+
+.empty.fieldless {
+  padding: 6px 0 10px;
+  font-size: var(--jp-text-sm);
 }
 
 .more {

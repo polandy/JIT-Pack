@@ -113,3 +113,6 @@
 * **E2E-M1-31** `local` (FR-7.11, UX-15) — **implemented** (`dashboard.spec.ts`): a trip a week out with a task due
   tomorrow keeps its packing hero — the ring and the task figure beside it, no block wearing a due anchor — so the
   count's tap opens the trip's tasks, the task in M25's *Due* block.
+* **E2E-M1-32** `local` (FR-7.10) — **implemented** (`dashboard.spec.ts`): a trip on the road with nothing left on
+  today's day plan — the *Heute* block's empty line carries the `fieldless` modifier `DashboardBlock` gives a block
+  with no field above its empty state; Shopping's and Tasks's own empty lines, both with a field, do not.
