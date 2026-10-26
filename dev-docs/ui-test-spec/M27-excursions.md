@@ -89,3 +89,7 @@
   sheet's *packen* and *nicht einpacken* on two things the excursion does not carry yet say *gepackt* / *nicht
   einpacken* and add neither line to the open list; once the packed lines are shown, the packed one is there, ticked.
   That a skip-add creates and raises no suitcase row is `excursions.seam.spec.ts`.
+* **E2E-M27-22** `local` (FR-31.5, FR-31.6) — **implemented** (`excursions.spec.ts`): Andy and Sia go, a *für alle*
+  line each, both ticked; once Sia no longer goes, Sia's child row in the cluster says *nicht mehr dabei* with
+  *Herausnehmen*, and Andy's — ticked too — says nothing. *Herausnehmen* takes Sia's line off the excursion and leaves
+  Andy's. The child row's path through `PackingGroupList`'s `#facts` slot (`child`), which a plain row never takes.
