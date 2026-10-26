@@ -136,6 +136,7 @@ test.describe('M29 connections @local @planner', () => {
     await expect(legs.first()).toContainText('Samedan → Landquart')
     await expect(legs.nth(3).getByRole('img', { name: 'Walk' })).toBeVisible()
     await take.click()
+    await connectionTaken(sheet)
 
     await expect(sheet.getByTestId('day-entry-name').locator('input')).toHaveValue(
       'To Bern, Cäcilienstrasse',

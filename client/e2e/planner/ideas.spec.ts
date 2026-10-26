@@ -220,6 +220,63 @@ test.describe('M28 ideas @local @planner', () => {
   })
 
   /**
+   * E2E-M28-30 (G-9, ADR-064): on a desktop width the idea is the frame's
+   * side panel beside the board, not a sheet over it — so another card is
+   * still there to tap, and the panel swaps to it. The panel is driven by
+   * `?idea=`: back returns to the idea before, ✕ closes it and the board
+   * stays.
+   */
+  test('E2E-M28-30: on a desktop width an idea is a side panel beside the board', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 })
+    const board = await openIdeas(page)
+    await addIdea(page, { title: 'Muottas Muragl' })
+    await addIdea(page, { title: 'Lej da Staz' })
+    const boardBefore = await board.elementHandle()
+
+    await ideaCard(page, 'Muottas Muragl').click()
+    // Not scoped to the page: the panel is teleported into the frame's
+    // second pane, outside `.ion-page`; nor is the modal's count, which an
+    // IonModal teleported to the body would escape.
+    const panel = page.getByTestId('m28-idea-panel')
+    await expect(panel.getByTestId('idea-detail-title')).toHaveText('Muottas Muragl')
+    await expect(page.getByTestId('m28-idea-modal')).toHaveCount(0)
+    const first = await panel.getByTestId('idea-detail').getAttribute('data-idea')
+    await expect(page).toHaveURL(new RegExp(`/ideas\\?idea=${first}$`))
+
+    // Beside, not over: the panel is flush with the window and the board ends
+    // where it begins — read as boxes, as E2E-M5-12 does.
+    const panelBox = await panel.boundingBox()
+    const boardBox = await board.boundingBox()
+    const viewport = page.viewportSize()
+    if (!panelBox || !boardBox || !viewport) throw new Error('no box to measure')
+    expect(Math.round(panelBox.x + panelBox.width)).toBe(viewport.width)
+    expect(boardBox.x + boardBox.width).toBeLessThanOrEqual(panelBox.x)
+
+    // The board stays operable: a sheet's backdrop would take this tap.
+    await ideaCard(page, 'Lej da Staz').click()
+    await expect(panel.getByTestId('idea-detail-title')).toHaveText('Lej da Staz')
+    await expect(panel).toHaveCount(1)
+    const second = await panel.getByTestId('idea-detail').getAttribute('data-idea')
+    expect(second).not.toBe(first)
+    await expect(page).toHaveURL(new RegExp(`/ideas\\?idea=${second}$`))
+    // The same board throughout, not a second mount of it (E2E-M5-12's reason).
+    const boardAfter = await board.elementHandle()
+    expect(await boardBefore!.evaluate((before, after) => before === after, boardAfter)).toBe(true)
+
+    await page.goBack()
+    await expect(panel.getByTestId('idea-detail-title')).toHaveText('Muottas Muragl')
+    await expect(page).toHaveURL(new RegExp(`/ideas\\?idea=${first}$`))
+
+    await panel.getByTestId('idea-detail-close').click()
+    await expect(panel).toHaveCount(0)
+    await expect(page).toHaveURL(/\/ideas$/)
+    await expect(ideaCard(page, 'Muottas Muragl')).toBeVisible()
+    await expect(ideaCard(page, 'Lej da Staz')).toBeVisible()
+  })
+
+  /**
    * E2E-M28-03: the idea's discussion — a word written in the detail is
    * counted on its card, its writer edits it in place (marked *edited*) and
    * takes it back through its menu. An edit of the idea changes what the
