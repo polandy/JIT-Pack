@@ -229,6 +229,50 @@ test.describe('M27 — a trip’s excursions (FR-31) @local @m27', () => {
   })
 
   /**
+   * E2E-M27-22: somebody leaves after packing. Their ticked line stays, and
+   * its child row in the cluster says *nicht mehr dabei · Herausnehmen*; the
+   * one who still goes has a ticked line too, so only who goes tells the two
+   * apart. *Herausnehmen* takes the line off the excursion.
+   */
+  test('E2E-M27-22: a leaver’s packed line says it is left behind, and is taken out from its child row', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, { name: 'Sardinien', travelers: ['Andy', 'Sia', 'Lio'] })
+    await openExcursions(page)
+    await createExcursion(page, { name: 'Hüttentour', who: ['Andy', 'Sia'] })
+    await addToExcursion(page, 'Schlafsack', 'all')
+    await visible(page).getByTestId('m27-cluster-Schlafsack').click()
+    await tickExcursionLine(page, 'Schlafsack-Andy')
+    await tickExcursionLine(page, 'Schlafsack-Sia')
+    await revealPackedLines(page)
+    const children = visible(page).locator('[data-testid^="m27-child-Schlafsack-"]')
+    await expect(children).toHaveCount(2)
+    // Before Sia leaves, neither packed child row has the fact.
+    await expect(visible(page).locator('[data-testid^="excursion-left-behind-"]')).toHaveCount(0)
+
+    await excursionMenu(page, 'm27-edit')
+    const sheet = page.getByTestId('m27-sheet')
+    await sheet.getByTestId('who-m27-Sia').click()
+    await expect(sheet.getByTestId('who-m27-Sia')).toHaveAttribute('aria-pressed', 'false')
+    await sheet.getByTestId('m27-save').click()
+    await expect(page.locator('ion-toast').filter({ hasText: 'Who goes changed' })).toHaveCount(1)
+
+    const sia = excursionLine(page, 'Schlafsack-Sia')
+    await expect(sia.getByTestId('excursion-left-behind-Schlafsack-Sia')).toHaveText(
+      /no longer coming/,
+    )
+    await expect(excursionLine(page, 'Schlafsack-Andy')).toBeVisible()
+    await expect(visible(page).getByTestId('excursion-left-behind-Schlafsack-Andy')).toHaveCount(0)
+    await expect(visible(page).getByTestId('excursion-take-out-Schlafsack-Andy')).toHaveCount(0)
+
+    await sia.getByTestId('excursion-take-out-Schlafsack-Sia').click()
+    await expect(excursionLine(page, 'Schlafsack-Sia')).toHaveCount(0)
+    await expect(visible(page).getByTestId('excursion-left-behind-Schlafsack-Sia')).toHaveCount(0)
+    // A cluster of one is a plain row again, named with its person.
+    await expect(visible(page).getByRole('heading', { name: 'Schlafsack · Andy' })).toBeVisible()
+  })
+
+  /**
    * E2E-M27-14: an excursion's days are one range inside the trip's
    * (FR-31.1, G-17). The sheet offers no day before the trip starts or after
    * it ends, and the range picked is the one the card states.
