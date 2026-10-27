@@ -59,7 +59,7 @@ describe('notification.created handling', () => {
     const orch = useSyncOrchestrator({
       baseUrl: 'http://localhost',
       getToken: () => null,
-      onNotification: (n) => surfaced.push(n),
+      onNotifications: (batch) => surfaced.push(...batch),
       now: fixedClock,
     })
     mockNotificationList(notif('n1'), notif('n2'))
@@ -77,7 +77,7 @@ describe('notification.created handling', () => {
     const orch = useSyncOrchestrator({
       baseUrl: 'http://localhost',
       getToken: () => null,
-      onNotification: (n) => surfaced.push(n),
+      onNotifications: (batch) => surfaced.push(...batch),
       now: fixedClock,
     })
     mockNotificationList() // connect()'s initial unread fetch: empty

@@ -59,12 +59,19 @@ function laidOutTabBar(): HTMLElement | undefined {
  * reader sees. Nothing clears the flag: a controller-created overlay is removed
  * from the document when it dismisses, so the flag leaves with the element, and
  * a clear that no reader could ever observe would be a claim rather than a
- * signal. Five toasts are created straight off `toastController` rather than
- * through here — App.vue's three, the device backup's and M4's snackbar, each
- * for a reason of its own — and those carry no flag; a case that needs to
- * settle one has to route it through this helper first.
+ * signal. Two toasts are created straight off `toastController` rather than
+ * through here — the device backup's and M4's snackbar, each for a reason of
+ * its own — and those carry no flag; a case that needs to settle one has to
+ * route it through this helper first.
+ *
+ * `beforePresent` sees the toast between creation and presentation, the one
+ * moment a caller can subscribe to its dismissal without missing a dismissal
+ * that lands during the enter animation.
  */
-export async function presentToast(options: ToastOptions): Promise<HTMLIonToastElement> {
+export async function presentToast(
+  options: ToastOptions,
+  beforePresent?: (toast: HTMLIonToastElement) => void,
+): Promise<HTMLIonToastElement> {
   const position = options.position ?? 'bottom'
   const positionAnchor =
     position === 'bottom' ? (options.positionAnchor ?? laidOutTabBar()) : options.positionAnchor
@@ -75,6 +82,7 @@ export async function presentToast(options: ToastOptions): Promise<HTMLIonToastE
     position,
     positionAnchor,
   })
+  beforePresent?.(toast)
   await toast.present()
   toast.setAttribute(PRESENTED_ATTRIBUTE, 'true')
   return toast

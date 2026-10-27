@@ -13,13 +13,19 @@ import type { ServerNotification } from '@/notifications/format'
 function actions(opts: { localMode?: boolean; silent?: boolean } = {}) {
   const client = stubClient()
   const surfaced: ServerNotification[] = []
+  const batches: string[][] = []
   const notifications = opts.localMode
     ? NO_NOTIFICATION_ACTIONS
     : createNotificationActions({
         client,
-        onNotification: opts.silent ? undefined : (n) => void surfaced.push(n),
+        onNotifications: opts.silent
+          ? undefined
+          : (batch) => {
+              batches.push(batch.map((n) => n.id))
+              surfaced.push(...batch)
+            },
       })
-  return { client, surfaced, notifications }
+  return { client, surfaced, batches, notifications }
 }
 
 function notif(id: string): ServerNotification {
@@ -57,7 +63,27 @@ describe('surfaceUnread', () => {
     expect(surfaced.map((n) => n.id)).toEqual(['n1', 'n2'])
   })
 
-  it('without an onNotification callback nothing is fetched', async () => {
+  it('G-23: hands one fetch over as one batch, so a burst can be told from a single notice', async () => {
+    const { client, batches, notifications } = actions()
+    client.answer({ notifications: [notif('n1'), notif('n2')] })
+    await notifications.surfaceUnread()
+    client.answer({ notifications: [notif('n1'), notif('n2'), notif('n3')] })
+    await notifications.surfaceUnread()
+
+    expect(batches).toEqual([['n1', 'n2'], ['n3']])
+  })
+
+  it('hands nothing over when a fetch finds nothing new', async () => {
+    const { client, batches, notifications } = actions()
+    client.answer({ notifications: [notif('n1')] })
+    await notifications.surfaceUnread()
+    client.answer({ notifications: [notif('n1')] })
+    await notifications.surfaceUnread()
+
+    expect(batches).toEqual([['n1']])
+  })
+
+  it('without an onNotifications callback nothing is fetched', async () => {
     const { client, notifications } = actions({ silent: true })
 
     await notifications.surfaceUnread()

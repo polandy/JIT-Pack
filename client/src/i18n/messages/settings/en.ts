@@ -362,5 +362,7 @@ export const settingsEn = {
   'notify.body.idea_shortlistedPlain': '{actor} put an idea on the shortlist',
   'notify.body.generic': '{actor} sent you a notification',
   'notify.toastOpen': 'Open',
+  // G-23: more unread notices than NOTIFICATION_BURST_LIMIT, announced at once.
+  'notify.summary': '{n} new notifications',
   'notify.actorUnknown': 'Someone',
 } as const

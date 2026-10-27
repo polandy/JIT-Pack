@@ -135,12 +135,12 @@ export interface SyncOrchestratorConfig {
    */
   today?: () => string
   /**
-   * FR-6.2 in-app channel: invoked for each incoming notification —
-   * live ones (notification.created) and unread ones found on connect.
-   * The callee surfaces it (toast) and marks it read via
-   * markNotificationRead. No-op in Local Mode.
+   * FR-6.2 in-app channel: invoked once per fetch with the notifications
+   * not handed over before — live ones (notification.created) and unread
+   * ones found on connect. The callee surfaces them (G-23's toasts) and
+   * marks each read via markNotificationRead. No-op in Local Mode.
    */
-  onNotification?: (n: ServerNotification) => void
+  onNotifications?: (batch: ServerNotification[]) => void
   /**
    * Called when a push comes back `merged`, i.e. the server dropped fields
    * of this device's changes (NFR-4.2a). The callee surfaces it; the
@@ -372,7 +372,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     : {
         notifications: createNotificationActions({
           client,
-          onNotification: config.onNotification,
+          onNotifications: config.onNotifications,
         }),
         conflicts: createConflictActions({
           client,

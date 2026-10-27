@@ -16,7 +16,8 @@ import { setMapTiles } from '@/composables/shared/mapTiles'
 import { setTimetable } from '@/composables/shared/timetable'
 import { setReminderTime } from '@/composables/shared/reminderTime'
 import { DEFAULT_ROUTER_URL, setRouting } from '@/composables/routing'
-import { IonApp, IonRouterOutlet, toastController } from '@ionic/vue'
+import { IonApp, IonRouterOutlet } from '@ionic/vue'
+import type { ToastOptions } from '@ionic/core'
 import AppHeader from '@/components/shell/AppHeader.vue'
 import PageHead from '@/components/shell/PageHead.vue'
 import TripViewNav from '@/components/trips/TripViewNav.vue'
@@ -41,6 +42,8 @@ import {
 } from '@/notifications/format'
 import { startNotificationMirror } from '@/notifications/mirror'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { useTopToasts } from '@/composables/useTopToasts'
+import { toastGroups } from '@/lib/toastQueue'
 import { ORCHESTRATOR } from '@/composables/shared/useOrchestrator'
 import type { ConflictReport, RejectionReport } from '@/sync/outbox'
 import { serverBaseUrl } from '@/config'
@@ -118,13 +121,16 @@ const clock = defaultNowMs
 // (Single-User servers, Local Mode) it stays inert and hands out null.
 const refresher = isServerMode(mode.value) ? createAuthRefresher(serverBaseUrl(), clock) : null
 
+// G-23: notices, sync conflicts and refused changes share one queue.
+const { presentTopToast } = useTopToasts()
+
 const orchestrator = mode.value
   ? useSyncOrchestrator({
       baseUrl: serverBaseUrl(),
       getToken: refresher ? () => refresher.freshToken() : () => loadTokens()?.access_token ?? null,
       onUnauthorized: refresher ? () => refresher.refresh() : undefined,
       local: isLocalMode(mode.value) ? new IndexedDBPersistence() : undefined,
-      onNotification: showNotificationToast,
+      onNotifications: showNotificationToasts,
       onConflicts: showConflictToast,
       onRejections: showRejectionToast,
       // FR-30.3 (ADR-066): the modules' stores, so the orchestrator routes
@@ -140,28 +146,27 @@ const orchestrator = mode.value
  * whole queue and would otherwise stack a wall of them — and it leads to
  * the log for the partition it happened on, which is where the detail is.
  */
-async function showConflictToast(report: ConflictReport) {
-  const toast = await toastController.create({
-    message: t('sync.conflictToast', { n: report.count }),
-    duration: 6000,
-    position: 'top',
-    buttons: [
-      {
-        text: t('sync.conflictToastOpen'),
-        handler: () => {
-          // `id` is null exactly on the master partition; the builder makes
-          // that visible, where a template literal would push
-          // `/trips/null/conflicts` and open an empty trip log.
-          router.push(
-            report.type === 'trip' && report.id
-              ? tripSubPath(report.id, 'conflicts')
-              : PATH.masterConflicts,
-          )
+function showConflictToast(report: ConflictReport) {
+  presentTopToast({
+    options: {
+      message: t('sync.conflictToast', { n: report.count }),
+      buttons: [
+        {
+          text: t('sync.conflictToastOpen'),
+          handler: () => {
+            // `id` is null exactly on the master partition; the builder makes
+            // that visible, where a template literal would push
+            // `/trips/null/conflicts` and open an empty trip log.
+            router.push(
+              report.type === 'trip' && report.id
+                ? tripSubPath(report.id, 'conflicts')
+                : PATH.masterConflicts,
+            )
+          },
         },
-      },
-    ],
+      ],
+    },
   })
-  await toast.present()
 }
 
 /**
@@ -171,24 +176,32 @@ async function showConflictToast(report: ConflictReport) {
  * the moment it is said out loud; G-2's sheet keeps the standing record.
  * One toast per push, like the conflict one beside it.
  */
-async function showRejectionToast(report: RejectionReport) {
-  const toast = await toastController.create({
-    message: rejectionToastMessage(report.count, report.reason),
-    duration: 6000,
-    position: 'top',
-  })
-  await toast.present()
+function showRejectionToast(report: RejectionReport) {
+  presentTopToast({ options: { message: rejectionToastMessage(report.count, report.reason) } })
 }
 
 // FR-6.2 in-app channel: each notification is a toast; tapping Open
 // deep-links into the item context (FR-6.3/G-4). Read is stamped on
-// dismissal — there is no inbox screen, the toast is the delivery.
-async function showNotificationToast(n: ServerNotification) {
+// dismissal — there is no inbox screen, the toast is the delivery — so a
+// notice still waiting its turn (G-23) stays unread and resurfaces on the
+// next connect if the app closes first. A burst past the limit is one
+// summary toast, and its dismissal stamps every notice it stands for.
+function showNotificationToasts(batch: ServerNotification[]) {
+  for (const group of toastGroups(batch)) {
+    const markRead = () => {
+      for (const n of group) void orchestrator?.notifications.markNotificationRead(n.id)
+    }
+    presentTopToast({
+      options: group.length === 1 ? noticeToast(group[0]!) : summaryToast(group.length),
+      onDismissed: markRead,
+    })
+  }
+}
+
+function noticeToast(n: ServerNotification): ToastOptions {
   const route = notificationRoute(n)
-  const toast = await toastController.create({
+  return {
     message: describeNotification(n),
-    duration: 6000,
-    position: 'top',
     buttons: route
       ? [
           {
@@ -199,9 +212,14 @@ async function showNotificationToast(n: ServerNotification) {
           },
         ]
       : [{ text: notificationActionLabel(null), role: 'cancel' }],
-  })
-  toast.onDidDismiss().then(() => orchestrator?.notifications.markNotificationRead(n.id))
-  await toast.present()
+  }
+}
+
+function summaryToast(count: number): ToastOptions {
+  return {
+    message: t('notify.summary', { n: count }),
+    buttons: [{ text: notificationActionLabel(null), role: 'cancel' }],
+  }
 }
 
 provide(ORCHESTRATOR, orchestrator)
