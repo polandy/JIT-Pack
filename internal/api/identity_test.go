@@ -120,7 +120,7 @@ func TestSessionIdentity_CarriesTheSubjectAndTheCredentialKind(t *testing.T) {
 	if err != nil {
 		t.Fatalf("authenticate: %v", err)
 	}
-	if got, _ := ctx.Value(userIDKey).(string); got != "user-7" {
+	if got := callerID(ctx); got != "user-7" {
 		t.Fatalf("user id in context: want user-7, got %q", got)
 	}
 	if got, _ := ctx.Value(tokenKindKey).(string); got != APITokenKind {
@@ -140,7 +140,7 @@ func TestSingleUserIdentity_NeedsNoCredentialAndHasNoSecondParty(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Single-User Mode must authenticate without a credential, got %v", err)
 	}
-	if got, _ := ctx.Value(userIDKey).(string); got != "local" {
+	if got := callerID(ctx); got != "local" {
 		t.Fatalf("every request is attributed to the local user, got %q", got)
 	}
 	if ok, err := id.isMember(context.Background(), "any-trip", "local"); err != nil || !ok {
