@@ -4,7 +4,6 @@ One line per item, newest at the end. A finished item is deleted.
 
 ## Open
 
-- [ ] Give the planner's `dayPlanEmpty` a direct unit test — the rule that a trip under way does not open on an empty plan day (`client/src/planner/index.ts`) is reached only through the router's `tripOpening` spec and e2e (FR-29.7, found in the review of #758, ARCH-15b) (2026-10-09)
 - [ ] Add visual baselines for M10 and M17 — `make visual` has no shot of the item editor (hint lines, delete card) or of Settings, so a style change there passes unchecked (G-13, found in ARCH-23b, #768) (2026-10-10)
 - [ ] Test M25's bulk no-op toast — no case checks that a batch writing nothing announces `tasks.bulkNothingToChange` (`client/src/views/trips/TripTasksPage.vue:328`), unlike `items.` and `shopping.`; M25 (2026-10-10)
 - [ ] Correct the healthy-start line count in `docs/getting-started.md` — it says a healthy start logs "exactly two lines", but the default feature banners add several more, now in `slog` key=value form (found in the review of #779, ARCH-08) (2026-10-10)
