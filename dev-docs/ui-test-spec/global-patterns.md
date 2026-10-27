@@ -1,4 +1,4 @@
-# 3. Global Pattern Test Cases (G-1 – G-22)
+# 3. Global Pattern Test Cases (G-1 – G-23)
 
 Global patterns are asserted once as dedicated cases and then relied upon (not re-asserted) inside screen cases.
 
@@ -118,3 +118,5 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-G22-05 | G-22 Switched off in M17 | local | `splash.spec.ts`. M17's *Start animation* toggle, on by default, switched off; the next start shows the app bar's mark with no greeting — the greeting mounts with the app, so the visible mark is the positive signal for its absence. |
 | E2E-G22-07 | G-22 Once per app start | local | `splash.spec.ts`. After the greeting, a reload of the same tab — as the M19 choice, the OIDC round trip and an update make — shows the app bar's mark and no greeting. |
 | E2E-G22-06 | G-22 Reduced motion | local | `splash.spec.ts`, `reducedMotion: 'reduce'`. The landing mark is never hidden, the phase after 0.5 s is `fade`, never `flight`, and the greeting is gone after 0.25 s more. |
+| E2E-G23-01 | G-23 One toast at the top at a time | server | `server/multi-user.spec.ts`. Two items assigned to Gina while she is away arrive as two notices on her next login: the first toast on screen reads `data-waiting="1"` — the second is held back, not missing — and its *Öffnen* opens that item; only then is the second presented, with `data-waiting="0"`, and its *Öffnen* opens the other item. Each toast is dismissed by its button, so no case waits out the 6 s. |
+| E2E-G23-02 | G-23 A burst is one summary | server | `server/multi-user.spec.ts`. Four items assigned to Hana while she is away: her next login shows one toast, *„4 new notifications"*, with nothing waiting behind it and no *Open*; its *OK* fires four successful `/read` posts, one per notice — the signal that dismissing the summary marked every one read. |

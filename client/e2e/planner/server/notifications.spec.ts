@@ -51,7 +51,7 @@ test.describe('Idea notifications (FR-29.8) @server @planner', () => {
 
     // Erin is logged in by this case alone (mockIdp.mjs): a notification is
     // addressed to the account, so a file on the other worker notifying the
-    // same account would lay its toast over the *Open* clicked below.
+    // same account would hold the screen (G-23) ahead of the toast below.
     const suggested = erin.locator('ion-toast').filter({ hasText: title })
     await expect(suggested).toContainText(`${ACCOUNT_NAMES.alice} suggested “${title}”`)
     // G-4: the notice opens the idea itself, asserted on the rendered detail.

@@ -710,3 +710,16 @@ These patterns apply to every screen and are specified once.
   * `data-testid="splash"` carries `data-phase` — `intro`, `flight` or `fade`. The phases are timers, so a case drives
     them with Playwright's clock; the e2e suite starts every context with the animation off, through the preference
     itself.
+* **G-23 (One Toast at the Top at a Time — FR-6.2):** Every toast at the top of the screen — a notice (FR-6.2), a
+  sync conflict (NFR-4.2a), a refused change (Sync-API §5) — goes through one first-in-first-out queue, so none lies
+  over another and every button can be reached. The order is `lib/toastQueue.ts`, the Ionic half
+  `composables/useTopToasts.ts`, called once by `App.vue`.
+  * **One on screen, for 6 s.** The next is presented once the one on screen is dismissed — by its duration, its
+    button or a swipe. Nothing marks how many wait; the user sees one toast, then the next.
+  * **A notice is read only once it has been presented and dismissed.** One still waiting when the app closes stays
+    unread on the server and comes back on the next connect.
+  * **A burst becomes one summary.** More than three new notices in one fetch (`NOTIFICATION_BURST_LIMIT`) are one
+    toast, *„{n} neue Benachrichtigungen"*, with *OK* and no deep link; dismissing it marks all of them read. Three or
+    fewer are each their own toast with its *Öffnen*.
+  * The toast on screen carries `data-presented` once its enter animation has played and `data-waiting` with the
+    number queued behind it, so a case can tell a held-back toast from one that never arrived.
