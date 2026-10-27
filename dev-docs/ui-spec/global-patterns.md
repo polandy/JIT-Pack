@@ -715,7 +715,7 @@ These patterns apply to every screen and are specified once.
   over another and every button can be reached. The order is `lib/toastQueue.ts`, the Ionic half
   `composables/useTopToasts.ts`, called once by `App.vue`.
   * **One on screen, for 6 s.** The next is presented once the one on screen is dismissed — by its duration, its
-    button or a swipe. Nothing marks how many wait; the user sees one toast, then the next.
+    button or a swipe. Nothing on screen says how many wait; the user sees one toast, then the next.
   * **A notice is read only once it has been presented and dismissed.** One still waiting when the app closes stays
     unread on the server and comes back on the next connect.
   * **A burst becomes one summary.** More than three new notices in one fetch (`NOTIFICATION_BURST_LIMIT`) are one
