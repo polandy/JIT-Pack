@@ -53,8 +53,11 @@ export interface BrowseRowSummary {
  *    The caller decides what "locked" means by returning a note or null —
  *    one callback rather than a predicate beside a formatter, so the state
  *    and the sentence explaining it can never disagree.
- * 2. **Every row packed → `packed`**, every row skipped → `skipped`. Both
- *    are settled: the sheet states them and offers nothing.
+ * 2. **Every row skipped → `skipped`; every row packed or skipped →
+ *    `packed`.** Both are settled: the sheet states them and offers only the
+ *    reset. A per-person set with one traveler's row skipped and the rest
+ *    packed is `packed`, because ✓ leaves a skipped row skipped and would
+ *    write nothing — the whole set that comes along is in the bag.
  * 3. **Anything else → `open`**, including a half-packed per-person set —
  *    there is something left to decide, so the verbs stay on offer and act
  *    on the rows that are not in that state yet.
@@ -98,8 +101,10 @@ function travelersReached(group: readonly PackableRow[], roster: ReadonlySet<str
 }
 
 function settledState(group: readonly PackableRow[]): BrowseRowState {
-  if (group.every((item) => item.state === STATE_PACKED)) return STATE_PACKED
   if (group.every((item) => item.state === STATE_SKIPPED)) return STATE_SKIPPED
+  if (group.every((item) => item.state === STATE_PACKED || item.state === STATE_SKIPPED)) {
+    return STATE_PACKED
+  }
   return STATE_OPEN
 }
 

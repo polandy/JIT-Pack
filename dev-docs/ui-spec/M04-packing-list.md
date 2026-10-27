@@ -294,7 +294,9 @@
     they act on all of its rows, naming the count where it is more than one (*„eingepackt · 3 Personen"*). The acted
     line stays where it is, says what happened and carries *„Rückgängig"* for as long as the sheet is open — the sheet
     still has no toast. A settled line states *„schon eingepackt"* / *„bleibt zu Hause"* and carries *„zurücksetzen"*
-    beside it (FR-25.13i); a G-3-locked one names its holder and offers nothing at all. **M4 only:** the verbs appear
+    beside it (FR-25.13i) — a per-person set packed beside a skipped row, with nothing open, is *„schon eingepackt"*
+    too, since ✓ would write nothing there; a G-3-locked one names its holder and offers nothing at all. **M4 only:**
+    the verbs appear
     for a caller that reports the per-item packing states, which M6 and M8 do not (G-8). **A third verb stands before
     them in M4 (FR-25.13g):** 👥 *für alle*, which puts the item on every traveler's list in that one tap — on a free
     line it adds and distributes, on a carried one it gives the travelers who have none a row of their own at amount
