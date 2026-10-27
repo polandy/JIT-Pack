@@ -4,7 +4,6 @@ One line per item, newest at the end. A finished item is deleted.
 
 ## Open
 
-- [ ] Correct the healthy-start line count in `docs/getting-started.md` — it says a healthy start logs "exactly two lines", but the default feature banners add several more, now in `slog` key=value form (found in the review of #779, ARCH-08) (2026-10-10)
 - [ ] Read the caller through `callerID` in `internal/api/identity_test.go:123,143` — both still read `ctx.Value(userIDKey)` directly (found in the review of #779, ARCH-07) (2026-10-10)
 - [ ] Correct `trip.changed` in the Sync API spec §7 — it says the frame carries `{trip_id, seq}` and the client pulls "if seq > local_cursor"; the server sends `head_seq` and the client pulls unconditionally (found in ARCH-05) (2026-10-11)
 - [ ] Preparation steps on a day-plan entry — FR-29.21 gives an idea its steps with a lead before its day (ADR-104); a day-plan entry (M29) may want the same; that is the ADR's revisit trigger, a third copy of the derivation (2026-10-22)

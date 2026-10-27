@@ -36,14 +36,28 @@ JITPACK_LOCAL_USER_ID: "local"
 
 ## Step 2 — Confirm it started cleanly
 
-A healthy backend logs exactly two lines and then goes quiet:
+A healthy backend logs a short block of `INFO` lines within the first second and then goes quiet. With the `docker-compose.yml` above it looks like this:
 
 ```
-2026/08/09 10:14:22 INFO starting in single-user mode user=local
-2026/08/09 10:14:22 INFO listening addr=:8080
+2026/10/27 13:33:38 INFO link previews on: pasted links' pages are read from the internet (FR-29.16, JITPACK_LINK_PREVIEWS=false turns this off)
+2026/10/27 13:33:38 INFO map tiles on: devices fetch them from swisstopo and OpenStreetMap (FR-29.17, JITPACK_MAP_TILES=false turns this off)
+2026/10/27 13:33:38 INFO timetable on: devices search transport.opendata.ch for connections (FR-29.18, JITPACK_TIMETABLE=false turns this off)
+2026/10/27 13:33:38 INFO routing on: devices ask https://brouter.de/brouter for paths when a route is edited (FR-29.20, JITPACK_ROUTING=false turns this off)
+2026/10/27 13:33:38 INFO starting in single-user mode user=local
+2026/10/27 13:33:38 INFO serving the client web_root=/srv/web
+2026/10/27 13:33:38 INFO task reminders daily at 06:00 UTC (FR-7.11)
+2026/10/27 13:33:38 INFO listening addr=:8080
 ```
 
-The first line confirms the mode and echoes the user id the server will stamp on your data; the second means the HTTP listener is up. Nothing is logged per request, so silence afterwards is the expected state, not a stall.
+The number of lines depends on your configuration, so read them by what they say rather than by counting:
+
+- **Feature lines come first**, one for each optional feature that is on. Link previews, map tiles, the timetable and route planning are on by default, so a fresh instance prints those four; turning one off removes its line. The [release check](configuration.md#release-check), [instance admins](configuration.md#instance-admins) and the [currency](configuration.md#currency) add a line each only once you set them.
+- **The mode line** confirms the mode and echoes the user id the server will stamp on your data. A multi-user instance prints `starting in multi-user mode` here instead.
+- **`serving the client`** means this process also serves the web app. The container image always sets the web root; a bare binary started without `JITPACK_WEB_ROOT` serves only the API and skips this line.
+- **The task-reminder line** shows when the [daily reminder](configuration.md#task-reminders) runs, in the container's time zone — `UTC` unless you set `TZ`.
+- **`listening`** is always last and means the HTTP listener is up.
+
+Nothing is logged per request, so silence afterwards is the expected state, not a stall.
 
 Two startup failures you might see instead, both fatal and both immediate:
 
