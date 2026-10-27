@@ -34,12 +34,22 @@ import { createServer } from 'node:http'
  * stripped of his picture, his name reset. Sharing one of them between the
  * two files is a red suite whenever the workers overlap: a deactivation
  * ends the other file's session mid-case and refuses its next login.
+ *
+ * `erin` and `frank` exist for the same reason, one case each: each is the
+ * recipient who clicks a notification's action — erin in E2E-M28-11
+ * (planner/server/notifications.spec.ts), frank in E2E-FLOW-02
+ * (multi-user.spec.ts). A notification is addressed to the account, not the
+ * page, and every notification toast opens at the top of the screen, so a
+ * file on the other worker that notifies the same account lays its toast
+ * over the button being clicked.
  */
 export const IDP_USERS = {
   alice: { sub: 'alice', name: 'Alice', email: 'alice@example.test' },
   bob: { sub: 'bob', name: 'Bob', email: 'bob@example.test' },
   carol: { sub: 'carol', name: 'Carol', email: 'carol@example.test' },
   dave: { sub: 'dave', name: 'Dave', email: 'dave@example.test' },
+  erin: { sub: 'erin', name: 'Erin', email: 'erin@example.test' },
+  frank: { sub: 'frank', name: 'Frank', email: 'frank@example.test' },
 }
 
 const KEY_ID = 'jitpack-e2e'

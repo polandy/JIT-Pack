@@ -18,7 +18,7 @@ import { expect, type BrowserContext, type Page } from '@playwright/test'
 import { seed, visiblePage } from '../fixtures'
 
 /** The mock IdP's accounts (e2e/server/mockIdp.mjs). */
-export type Account = 'alice' | 'bob' | 'carol' | 'dave'
+export type Account = 'alice' | 'bob' | 'carol' | 'dave' | 'erin' | 'frank'
 
 /** The display names those accounts carry into the app via UserInfo. */
 export const ACCOUNT_NAMES: Record<Account, string> = {
@@ -26,6 +26,8 @@ export const ACCOUNT_NAMES: Record<Account, string> = {
   bob: 'Bob',
   carol: 'Carol',
   dave: 'Dave',
+  erin: 'Erin',
+  frank: 'Frank',
 }
 
 /**

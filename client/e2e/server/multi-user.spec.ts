@@ -657,51 +657,52 @@ test.describe('Two accounts on one instance @server', () => {
     const trip = `Lofoten ${id}`
     const item = `Trockenanzug-${id}`
 
-    const ctxBob = await browser.newContext()
-    const bob = await loginAs(ctxBob, 'bob')
+    const ctxFrank = await browser.newContext()
+    const frank = await loginAs(ctxFrank, 'frank')
     const ctxAlice = await browser.newContext()
     const alice = await loginAs(ctxAlice, 'alice')
 
     const tripPath = await createTripViaWizard(alice, { name: trip })
     await quickAddItem(alice, item)
-    await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
+    await shareWith(alice, tripPath, ACCOUNT_NAMES.frank)
 
-    const subscribedBob = watchSubscribed(bob)
-    await bob.goto(tripPath)
-    await expect(visiblePage(bob).getByTestId(`m4-row-${item}`)).toBeVisible()
-    await subscribedBob
+    const subscribedFrank = watchSubscribed(frank)
+    await frank.goto(tripPath)
+    await expect(visiblePage(frank).getByTestId(`m4-row-${item}`)).toBeVisible()
+    await subscribedFrank
 
     await alice.goto(tripPath)
-    await assignTo(alice, item, ACCOUNT_NAMES.bob)
+    await assignTo(alice, item, ACCOUNT_NAMES.frank)
 
     // FR-6.2's in-app channel: the toast is the delivery — there is no
     // inbox screen — and it names who handed over what.
     //
-    // Filtered to *this* row's toast: notifications are addressed to the
-    // user, not to the page, so a second case running in parallel as the
-    // same account puts a second toast on this screen and an unfiltered
-    // `ion-toast` is then a strict-mode violation rather than an assertion.
-    const notice = bob.locator('ion-toast').filter({ hasText: item })
+    // Frank is logged in by this case alone (mockIdp.mjs): notifications are
+    // addressed to the user, not to the page, so a file on the other worker
+    // notifying the same account would lay its toast over the *Open* clicked
+    // below. Filtered to *this* row's toast all the same — an earlier case's
+    // unread notice resurfaces on login.
+    const notice = frank.locator('ion-toast').filter({ hasText: item })
     await expect(notice).toContainText(ACCOUNT_NAMES.alice)
     await expect(notice).toContainText(item)
 
     // FR-6.3/G-4: the notice leads to the item context, asserted on the
     // rendered sheet rather than on the URL.
     await notice.getByRole('button', { name: /open/i }).click()
-    await expect(itemDetail(bob).getByTestId('m5-sheet')).toBeVisible()
-    await expect(itemDetail(bob).getByTestId('m5-sheet')).toContainText(item)
+    await expect(itemDetail(frank).getByTestId('m5-sheet')).toBeVisible()
+    await expect(itemDetail(frank).getByTestId('m5-sheet')).toContainText(item)
 
-    // FR-25.20: the row is Bob's job now, so Alice's list hides it — and says
+    // FR-25.20: the row is Frank's job now, so Alice's list hides it — and says
     // so rather than hiding it silently.
     await alice.goto(tripPath)
     await expect(visiblePage(alice).getByTestId(`m4-row-${item}`)).toHaveCount(0)
-    await expect(visiblePage(alice).getByTestId('m4-others-bar')).toContainText(ACCOUNT_NAMES.bob)
+    await expect(visiblePage(alice).getByTestId('m4-others-bar')).toContainText(ACCOUNT_NAMES.frank)
 
     // …and the empty list says what actually happened, not „no matches ·
     // behind the filter" with an offer to clear a search and facets nobody
     // had set: FR-25.20's hiding is not a filter.
     const empty = visiblePage(alice).getByTestId('packing-empty')
-    await expect(empty).toContainText(ACCOUNT_NAMES.bob)
+    await expect(empty).toContainText(ACCOUNT_NAMES.frank)
     await expect(empty).not.toContainText(/filter/i)
 
     // E2E-M4-31's regression guard: hiding somebody else's rows is a *view*,
@@ -715,7 +716,7 @@ test.describe('Two accounts on one instance @server', () => {
     await expect(visiblePage(alice).getByTestId(`m4-row-${item}`)).toBeVisible()
     await expect(visiblePage(alice).getByTestId('m4-progress')).toHaveText(progress ?? '')
 
-    // E2E-M4-30 (FR-25.19), the half that needs two accounts: Bob is
+    // E2E-M4-30 (FR-25.19), the half that needs two accounts: Frank is
     // responsible, Alice packs it, and the row has **one** right edge. The
     // precedence itself is unit-tested in `domain/packingView.spec.ts`; what
     // needs both identities is that the two columns hold different people at
@@ -731,7 +732,7 @@ test.describe('Two accounts on one instance @server', () => {
     await expect(edge.locator('.tick')).toHaveCount(1)
 
     await ctxAlice.close()
-    await ctxBob.close()
+    await ctxFrank.close()
   })
   /**
    * E2E-M4-90 (FR-25.25): the row's own avatar hands it over.

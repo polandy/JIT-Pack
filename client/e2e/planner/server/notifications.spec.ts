@@ -17,9 +17,9 @@ test.describe('Idea notifications (FR-29.8) @server @planner', () => {
   test.slow()
 
   /**
-   * E2E-M28-11: Alice puts up an idea; Bob is told, and the notice opens the
-   * idea. Bob writes about it; Alice, its author, is told — and was never told
-   * of her own idea. Alice moves it to the shortlist; Bob is told again.
+   * E2E-M28-11: Alice puts up an idea; Erin is told, and the notice opens the
+   * idea. Erin writes about it; Alice, its author, is told — and was never told
+   * of her own idea. Alice moves it to the shortlist; Erin is told again.
    */
   test('E2E-M28-11: a new idea, a word about it and the shortlist each tell the other traveller', async ({
     browser,
@@ -29,18 +29,18 @@ test.describe('Idea notifications (FR-29.8) @server @planner', () => {
     const title = `Tiscali ${id}`
     const words = `Nur mit Guide ${id}`
 
-    const ctxBob = await browser.newContext()
-    const bob = await loginAs(ctxBob, 'bob')
+    const ctxErin = await browser.newContext()
+    const erin = await loginAs(ctxErin, 'erin')
     const ctxAlice = await browser.newContext()
     const alice = await loginAs(ctxAlice, 'alice')
 
     const tripPath = await createTripViaWizard(alice, { name: trip })
-    await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
+    await shareWith(alice, tripPath, ACCOUNT_NAMES.erin)
 
-    const subscribedBob = watchSubscribed(bob)
-    await bob.goto(tripPath)
-    await openIdeas(bob)
-    await subscribedBob
+    const subscribedErin = watchSubscribed(erin)
+    await erin.goto(tripPath)
+    await openIdeas(erin)
+    await subscribedErin
 
     const subscribedAlice = watchSubscribed(alice)
     await alice.goto(tripPath)
@@ -49,21 +49,22 @@ test.describe('Idea notifications (FR-29.8) @server @planner', () => {
     await addIdea(alice, { title })
     await writesLanded(alice)
 
-    // Filtered by the idea: a notification is addressed to the user, and a
-    // parallel case as the same account puts its own toasts on this screen.
-    const suggested = bob.locator('ion-toast').filter({ hasText: title })
+    // Erin is logged in by this case alone (mockIdp.mjs): a notification is
+    // addressed to the account, so a file on the other worker notifying the
+    // same account would lay its toast over the *Open* clicked below.
+    const suggested = erin.locator('ion-toast').filter({ hasText: title })
     await expect(suggested).toContainText(`${ACCOUNT_NAMES.alice} suggested “${title}”`)
     // G-4: the notice opens the idea itself, asserted on the rendered detail.
     await suggested.getByRole('button', { name: /open/i }).click()
-    const bobsView = ideaDetail(bob)
-    await expect(bobsView.getByTestId('idea-detail-title')).toHaveText(title)
+    const erinsView = ideaDetail(erin)
+    await expect(erinsView.getByTestId('idea-detail-title')).toHaveText(title)
 
-    await fillIonic(bobsView.getByTestId('idea-comment-input'), words)
-    await bobsView.getByTestId('idea-comment-send').click()
-    await writesLanded(bob)
+    await fillIonic(erinsView.getByTestId('idea-comment-input'), words)
+    await erinsView.getByTestId('idea-comment-send').click()
+    await writesLanded(erin)
 
     const commented = alice.locator('ion-toast').filter({ hasText: words })
-    await expect(commented).toContainText(`${ACCOUNT_NAMES.bob} on “${title}”: ${words}`)
+    await expect(commented).toContainText(`${ACCOUNT_NAMES.erin} on “${title}”: ${words}`)
     // The comment's toast is the settled signal that Alice's notifications
     // have arrived — so her own idea's absence among them now means something.
     await expect(
@@ -75,10 +76,10 @@ test.describe('Idea notifications (FR-29.8) @server @planner', () => {
     await writesLanded(alice)
 
     await expect(
-      bob.locator('ion-toast').filter({ hasText: `“${title}” on the shortlist` }),
+      erin.locator('ion-toast').filter({ hasText: `“${title}” on the shortlist` }),
     ).toContainText(`${ACCOUNT_NAMES.alice} put “${title}” on the shortlist`)
 
     await ctxAlice.close()
-    await ctxBob.close()
+    await ctxErin.close()
   })
 })
