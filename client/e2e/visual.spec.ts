@@ -642,3 +642,23 @@ test('E2E-VIS-15: visual: M10 item editor @local @visual', async ({ page, seedMo
   await expect(page).toHaveScreenshot('m10-editor.png')
 })
 
+// E2E-VIS-16: M17 as Local Mode shows it — every section the mode renders,
+// down to *About*, and none of the server's (G-8). The screen is a stack of
+// G-14 cards and lists, so its look is set by the tokens alone.
+test('E2E-VIS-16: visual: M17 settings in Local Mode @local @visual', async ({
+  page,
+  seedMode,
+}) => {
+  await freeze(page)
+  await seedMode({ mode: 'local' })
+  await page.goto(PATH.settings)
+  await expect(visiblePage(page).getByTestId('settings-section-about')).toBeVisible()
+  await wholeScreen(page)
+  await settled(page)
+  // The one line masked rather than pinned: it is `git describe` of the
+  // build, so it names a different commit on every run, and the build stamps
+  // it into the bundle before any init script could reach it.
+  await expect(page).toHaveScreenshot('m17-settings.png', {
+    mask: [visiblePage(page).getByTestId('settings-app-version')],
+  })
+})
