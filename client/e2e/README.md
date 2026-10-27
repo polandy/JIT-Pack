@@ -120,7 +120,7 @@ job can see it — both copies run, both pass, until one of them stops.
 | `helpers/m9.ts`         | M9 inventory                   | `createItem`, `backToInventory`, `closeTagManager` (waits out the sheet's focus trap)                                                                                                                                                                                                                                                                                                                                                        |
 | `helpers/containers.ts` | M11 luggage                    | `openLuggage`, `createContainer`, `assignToContainer`, `closeContainerSheet`                                                                                                                                                                                                                                                                                                                                                                 |
 | `serverMode.ts`         | the `server` project           | `bootPage`, `watchSubscribed` (the socket is subscribed, not merely open), `quickAddItem`, `packItem`, `uniq`                                                                                                                                                                                                                                                                                                                                |
-| `server/fixtures.ts`    | the `server` project           | `loginAs`, `shareWith`, `ACCOUNT_NAMES` (four mock-IdP accounts)                                                                                                                                                                                                                                                                                                                                                                             |
+| `server/fixtures.ts`    | the `server` project           | `loginAs`, `shareWith`, `ACCOUNT_NAMES` (six mock-IdP accounts)                                                                                                                                                                                                                                                                                                                                                                              |
 
 `fixtures.ts` re-exports `page`, `ionic`, `templates`, `trips` and `containers`,
 so those come from `'./fixtures'` along with `test`/`expect`. **`m4.ts` and
@@ -278,7 +278,10 @@ neighbouring cases before copying a number.
   helpers on the module's leg alone (ADR-079).
 - `serverMode.ts`, `server/` — the `server` project: a real `jitpackd` in OIDC
   mode against the mock IdP in `server/mockIdp.mjs`, two browser contexts logged
-  in as two accounts.
+  in as two accounts. Its files land on two workers against one backend, so **an account a case changes, or whose
+  notification it clicks, is logged in by that file alone** (`mockIdp.mjs` names whose each one is): a notification is
+  addressed to the account, every notification toast opens at the top, and a parallel file's toast for the same
+  account lies over the button being clicked (E2E-M28-11).
 - `single/` — the `single` project: a real Single-User `jitpackd` behind the
   preview proxy, auth bypassed.
 - `smoke.spec.ts` — the backend-free floor: M19 mode selection plus the Local
