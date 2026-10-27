@@ -598,3 +598,67 @@ test('E2E-VIS-13: visual: M1 hero after the packing @local @visual @shopping', a
   await settled(page)
   await expect(page).toHaveScreenshot('m1-hero-packed.png')
 })
+
+/**
+ * Grow the viewport until the screen has nothing left to scroll, so one
+ * picture holds every section of it.
+ *
+ * `fullPage` cannot do this: Ionic scrolls inside `ion-content`, not the
+ * document, so the document is exactly one viewport tall and a full-page
+ * shot is the same picture as a plain one. Measured rather than fixed, and
+ * checked afterwards — a scroller still holding a remainder is a shot that
+ * silently lost its bottom.
+ */
+async function wholeScreen(page: Page) {
+  const scroller = () =>
+    visiblePage(page)
+      .locator('ion-content')
+      .evaluate(async (el) => {
+        ;(document.activeElement as HTMLElement | null)?.blur()
+        const ionContent = el as unknown as { getScrollElement(): Promise<HTMLElement> }
+        const s = await ionContent.getScrollElement()
+        s.scrollTop = 0
+        return s.scrollHeight - s.clientHeight
+      })
+  const viewport = page.viewportSize()!
+  await page.setViewportSize({ ...viewport, height: viewport.height + (await scroller()) })
+  await expect.poll(scroller).toBe(0)
+  // Parked off the content, so no row wears Ionic's hover tint.
+  await page.mouse.move(0, 0)
+}
+
+// E2E-VIS-15: M10 on a saved item — the existing-item block with its section
+// hints, and the delete card last with its usage count and outcome sentence
+// (FR-24.3). An unreferenced item in Local Mode, so the sentence is the
+// *removed for good* form and reads the same on every run.
+test('E2E-VIS-15: visual: M10 item editor @local @visual', async ({ page, seedMode }) => {
+  await freeze(page)
+  await seedMode({ mode: 'local' })
+  await page.goto(PATH.items)
+  await createItem(page, 'Zelt', { tags: ['Camping'], weight: '2400' })
+  await expect(visiblePage(page).getByTestId('m10-delete-outlook')).toBeVisible()
+  await wholeScreen(page)
+  await settled(page)
+  await expect(page).toHaveScreenshot('m10-editor.png')
+})
+
+// E2E-VIS-16: M17 as Local Mode shows it — every section the mode renders,
+// down to *About*, and none of the server's (G-8). The screen is a stack of
+// G-14 cards and lists, so its look is set by the tokens alone.
+test('E2E-VIS-16: visual: M17 settings in Local Mode @local @visual', async ({
+  page,
+  seedMode,
+}) => {
+  await freeze(page)
+  await seedMode({ mode: 'local' })
+  await page.goto(PATH.settings)
+  await expect(visiblePage(page).getByTestId('settings-section-about')).toBeVisible()
+  await wholeScreen(page)
+  await settled(page)
+  // The one line masked rather than pinned: it is `git describe` of the
+  // build, so it names a different commit on every run, and the build stamps
+  // it into the bundle before any init script could reach it.
+  await expect(page).toHaveScreenshot('m17-settings.png', {
+    mask: [visiblePage(page).getByTestId('settings-app-version')],
+  })
+})
