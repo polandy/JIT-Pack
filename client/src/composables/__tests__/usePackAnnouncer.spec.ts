@@ -297,6 +297,34 @@ describe('usePackAnnouncer — any other act (FR-25.31)', () => {
 })
 
 /*
+ * FR-7.8: a batch that changed nothing says so in the snackbar's place. The
+ * record still armed belongs to the act before, so the sentence carries no
+ * undo and the record is disarmed — an undo there would take back an act the
+ * snackbar on screen is not about.
+ */
+describe('usePackAnnouncer — a sentence about no act (FR-7.8)', () => {
+  it('replaces the snackbar with no undo, and disarms the act before', async () => {
+    const { api } = mountAnnouncer()
+    const restore = vi.fn()
+    api.rowUndo.armAction('Zelt', restore)
+    const acted = api.announceAct('„Zelt“: Menge 3')
+    settleCreates()
+    await acted
+
+    const said = api.announceNotice('Nothing to change')
+    settleCreates()
+    await said
+
+    expect(toasts[0]!.dismiss).toHaveBeenCalledOnce()
+    expect(toasts[1]!.options['message']).toBe('Nothing to change')
+    expect(toasts[1]!.options['cssClass']).toBe('pack-toast')
+    expect(toasts[1]!.options['buttons']).toEqual([])
+    api.rowUndo.undo()
+    expect(restore).not.toHaveBeenCalled()
+  })
+})
+
+/*
  * FR-25.33: the pack snackbar is where a note is written — the moment the
  * thing went in is the moment the packer knows what it was. The field cannot
  * live inside an Ionic toast, so *Notiz* hands over to the screen's note bar,

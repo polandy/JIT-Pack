@@ -86,6 +86,13 @@ export interface PackAnnouncer {
    * mistap is taken back the same way whichever control it landed on.
    */
   announceAct: (message: string) => Promise<void>
+  /**
+   * FR-7.8: a sentence about no act — a batch that changed nothing. It takes
+   * the snackbar's place without an undo and disarms the record, which still
+   * belongs to the act before: an undo here would take back an act this
+   * snackbar is not about.
+   */
+  announceNotice: (message: string) => Promise<void>
 }
 
 /**
@@ -154,7 +161,12 @@ export function usePackAnnouncer(anchor: string | null = FAB_ANCHOR.m4): PackAnn
     await announce(t('packing.taskDoneToast', { body }))
   }
 
-  async function announce(message: string, note?: PackNoteBar): Promise<void> {
+  async function announceNotice(message: string): Promise<void> {
+    rowUndo.clear()
+    await announce(message, undefined, false)
+  }
+
+  async function announce(message: string, note?: PackNoteBar, undoable = true): Promise<void> {
     // A new act replaces an open note bar as it replaces a snackbar; the
     // bar's undo belonged to the act before, and the caller has already
     // armed this one's.
@@ -188,7 +200,7 @@ export function usePackAnnouncer(anchor: string | null = FAB_ANCHOR.m4): PackAnn
       cssClass: 'pack-toast',
       buttons: [
         ...(note ? [{ text: t('packing.packNoteAction'), handler: () => openNoteBar(note) }] : []),
-        { text: t('packing.undo'), handler: () => rowUndo.undo() },
+        ...(undoable ? [{ text: t('packing.undo'), handler: () => rowUndo.undo() }] : []),
       ],
     })
     if (!live) {
@@ -224,6 +236,7 @@ export function usePackAnnouncer(anchor: string | null = FAB_ANCHOR.m4): PackAnn
     announceRenamed,
     announceTaskDone,
     announceAct: (message: string) => announce(message),
+    announceNotice,
     noteBar,
     closeNoteBar,
   }

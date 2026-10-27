@@ -109,8 +109,8 @@
   **Löschen**, only when
   every selected task is the trip's own (a preparation is removed on its row, FR-7.3). Only what changes is written, one
   snackbar undo takes the whole batch back (a deletion is hidden at once and written when the undo lapses, as a single
-  one is), and the mode ends with the batch; a batch that changes nothing says so instead. Switching views ends the
-  mode. M4's window has no selection.
+  one is), and the mode ends with the batch; a batch that changes nothing says so instead, with no undo. Switching
+  views ends the mode. M4's window has no selection.
 * **The rows look like M6's.** Each tag group is a `ListGroup` — the heading and drop frame M6's tag
   headings wear — and its rows are full-width list items with M6's separators, the task's words set in the row-name
   role (`ion-label h3`'s size and weight).

@@ -120,3 +120,8 @@ went.
   Samedan Sommer"* and its due pill; moving the trip's start a week on M22 moves the pill a week with nothing written to
   the task, and the sheet's lead line says so. Choosing a fixed day on the sheet replaces the lead line by the chips'
   day; a second start change no longer moves it.
+* **E2E-M25-24** `local` (FR-7.8) — **implemented** (`trip-tasks.spec.ts`): two tasks already under *House* are sent
+  to *House* again from the batch sheet; the snackbar says *„Nothing to change — the selection is already there."* and
+  carries no *Undo* — the record still armed is the first batch's — the mode ends, and both tasks still stand under the
+  heading. The buttons are read off the standing toast in one evaluate: `toHaveCount(0)` retries until the snackbar
+  lapses by itself and is green on any build (implementation log).
