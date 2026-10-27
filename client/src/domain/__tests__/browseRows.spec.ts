@@ -78,7 +78,7 @@ describe('browseRowStates', () => {
     expect(states.size).toBe(0)
   })
 
-  it('settles a set only when every row agrees', () => {
+  it('settles a set once nothing in it is left to decide', () => {
     const cases: { name: string; rows: TripItem[]; state: string }[] = [
       { name: 'all packed', rows: [row('r1', { state: 'packed' })], state: 'packed' },
       { name: 'all skipped', rows: [row('r1', { state: 'skipped' })], state: 'skipped' },
@@ -88,8 +88,15 @@ describe('browseRowStates', () => {
         state: 'open',
       },
       {
+        // Nothing open is left for ✓ to pack: the skipped row stays skipped
+        // (FR-25.13f), so the set is settled as everything that comes along.
         name: 'packed beside skipped',
         rows: [row('r1', { state: 'packed' }), row('r2', { state: 'skipped' })],
+        state: 'packed',
+      },
+      {
+        name: 'half packed beside skipped',
+        rows: [row('r1', { state: 'partial' }), row('r2', { state: 'skipped' })],
         state: 'open',
       },
       { name: 'partially packed', rows: [row('r1', { state: 'partial' })], state: 'open' },
@@ -101,7 +108,7 @@ describe('browseRowStates', () => {
     }))
 
     // Compared as a whole rather than asserted per case: a failure then names
-    // which of the five disagreed instead of stopping at the first.
+    // which case disagreed instead of stopping at the first.
     expect(actual).toEqual(cases.map(({ name, state }) => ({ name, state })))
   })
 

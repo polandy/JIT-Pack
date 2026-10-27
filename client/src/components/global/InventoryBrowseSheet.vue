@@ -292,7 +292,7 @@ function toggleSettledOnly(): void {
   if (settledOnly.value) retakeSettledSnapshot()
 }
 
-/** Whether the caller reports this item as packed or skipped, all rows alike. */
+/** Whether the caller reports this item as settled, as `browseRowStates` summarises it. */
 function isSettled(item: MasterItem): boolean {
   const state = props.scope.rowStates?.get(item.id)?.state
   return state === STATE_PACKED || state === STATE_SKIPPED

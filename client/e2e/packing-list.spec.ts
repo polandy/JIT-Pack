@@ -594,6 +594,32 @@ test.describe('M4 packing list @local @m4', () => {
   }
 
   /**
+   * A trip whose *Zelt* is a per-person set — one row for Andy, one for Sia,
+   * from the sheet's own avatar buttons (FR-25.13h) — with Andy's skipped from
+   * the row menu and Sia's still open, the cluster left unfolded.
+   */
+  async function zeltForTwoWithAndysSkipped(page: Page) {
+    await inventory(page, ['Zelt', 'Lampe'])
+    await createTripViaWizard(page, M4_TRIP)
+
+    const sheet = await openBrowseSheet(page)
+    const line = sheet.getByTestId('browse-row-free').filter({ hasText: 'Zelt' })
+    await line.getByTestId('browse-assign-Andy').click()
+    await line.getByTestId('browse-assign-Sia').click()
+    await expect(sheet.getByTestId('browse-assigned-now')).toContainText('Andy, Sia')
+    await sheet.getByTestId('browse-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+
+    await openCluster(page, 'Zelt')
+    const list = visible(page)
+    await list.getByTestId('m4-child-Zelt-Andy').dispatchEvent('contextmenu')
+    await expect(page.locator('ion-action-sheet')).toHaveAttribute('data-presented', 'true')
+    await chooseInRowMenu(page, /do not pack this/i)
+    await expect(list.getByTestId('m4-child-Zelt-Andy')).toHaveCount(0)
+    await expect(list.getByTestId('m4-child-Zelt-Sia')).toBeVisible()
+  }
+
+  /**
    * E2E-M4-60 (FR-25.13f): ✓ on a line the trip does not carry yet adds the
    * row *and* packs it, in one tap and without leaving the sheet.
    *
@@ -713,27 +739,10 @@ test.describe('M4 packing list @local @m4', () => {
   test('E2E-M4-161: packing a set from the sheet leaves its skipped row at home (FR-25.13f)', async ({
     page,
   }) => {
-    await inventory(page, ['Zelt', 'Lampe'])
-    await createTripViaWizard(page, M4_TRIP)
-
-    // One row per traveler, from the sheet's own avatar buttons (FR-25.13h).
-    let sheet = await openBrowseSheet(page)
-    const line = sheet.getByTestId('browse-row-free').filter({ hasText: 'Zelt' })
-    await line.getByTestId('browse-assign-Andy').click()
-    await line.getByTestId('browse-assign-Sia').click()
-    await expect(sheet.getByTestId('browse-assigned-now')).toContainText('Andy, Sia')
-    await sheet.getByTestId('browse-close').click()
-    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
-
-    await openCluster(page, 'Zelt')
+    await zeltForTwoWithAndysSkipped(page)
     const list = visible(page)
-    await list.getByTestId('m4-child-Zelt-Andy').dispatchEvent('contextmenu')
-    await expect(page.locator('ion-action-sheet')).toHaveAttribute('data-presented', 'true')
-    await chooseInRowMenu(page, /do not pack this/i)
-    await expect(list.getByTestId('m4-child-Zelt-Andy')).toHaveCount(0)
-    await expect(list.getByTestId('m4-child-Zelt-Sia')).toBeVisible()
 
-    sheet = await openBrowseSheet(page)
+    const sheet = await openBrowseSheet(page)
     await sheet.getByRole('button', { name: 'Mark "Zelt" as packed' }).click()
     await expect(sheet.getByTestId('browse-packed-now')).toHaveText(/packed/i)
     await sheet.getByTestId('browse-close').click()
@@ -746,6 +755,42 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(list.getByTestId('m4-child-Zelt-Sia')).not.toContainText(/deliberately skipped/i)
     // Andy's is still the decision it was, not a packed 0/0.
     await expect(list.getByTestId('m4-child-Zelt-Andy')).toContainText(/deliberately skipped/i)
+  })
+
+  /**
+   * E2E-M4-162 (FR-25.13f, FR-25.13i): a set with nothing left open is
+   * settled. ✓ leaves Andy's skipped row skipped, so on a set whose only other
+   * row is packed it would write nothing — the line states the set packed and
+   * offers the reset instead, which brings both rows back.
+   */
+  test('E2E-M4-162: a set packed beside its skipped row is settled, and resets whole (FR-25.13f)', async ({
+    page,
+  }) => {
+    await zeltForTwoWithAndysSkipped(page)
+    const list = visible(page)
+    await list
+      .getByTestId('m4-child-Zelt-Sia')
+      .getByTestId('row-check')
+      .locator('ion-checkbox')
+      .click()
+    await expect(list.getByTestId('m4-child-Zelt-Sia')).toHaveCount(0)
+
+    const sheet = await openBrowseSheet(page)
+    const zelt = sheet.getByTestId('browse-row-carried').filter({ hasText: 'Zelt' })
+    await expect(zelt.getByTestId('browse-settled')).toHaveText(/already packed/i)
+    await expect(zelt.getByTestId('browse-pack')).toHaveCount(0)
+    await expect(zelt.getByTestId('browse-skip')).toHaveCount(0)
+
+    await zelt.getByTestId('browse-reopen').click()
+    await expect(zelt.getByTestId('browse-carried-state')).toHaveText(/already in/i)
+    await sheet.getByTestId('browse-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+
+    // Both rows are back on the working list: the reset reached the skipped
+    // row as well as the packed one.
+    await expect(list.getByTestId('m4-child-Zelt-Andy')).toBeVisible()
+    await expect(list.getByTestId('m4-child-Zelt-Andy')).not.toContainText(/deliberately skipped/i)
+    await expect(list.getByTestId('m4-child-Zelt-Sia')).toBeVisible()
   })
 
   /**
