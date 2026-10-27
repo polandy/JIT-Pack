@@ -355,9 +355,16 @@ test.describe('Two accounts on one instance @server', () => {
     // control: the same chain and the same pages the suppressed one runs on.
     await alice.goto(tripPath)
     await assignTo(alice, heard, ACCOUNT_NAMES.carol)
-    await expect(carol.locator('ion-toast').filter({ hasText: heard })).toContainText(
-      ACCOUNT_NAMES.alice,
+    const heardToast = carol.locator('ion-toast').filter({ hasText: heard })
+    await expect(heardToast).toContainText(ACCOUNT_NAMES.alice)
+    // Dismissed, and its read landed before the reload below: a notice is
+    // read only once dismissed (G-23), so left on screen it would come back
+    // on the reconnect and hold the top of the screen ahead of the mention.
+    const read = carol.waitForResponse(
+      (r) => r.url().includes('/api/v1/notifications/') && r.url().endsWith('/read'),
     )
+    await heardToast.getByRole('button', { name: /open/i }).click()
+    expect((await read).ok()).toBe(true)
 
     // Carol turns delegations off in her own settings, and only those. She
     // stays on that screen: a notification is addressed to the *user*, so it
@@ -679,8 +686,8 @@ test.describe('Two accounts on one instance @server', () => {
     //
     // Frank is logged in by this case alone (mockIdp.mjs): notifications are
     // addressed to the user, not to the page, so a file on the other worker
-    // notifying the same account would lay its toast over the *Open* clicked
-    // below. Filtered to *this* row's toast all the same — an earlier case's
+    // notifying the same account would hold the screen (G-23) ahead of the
+    // toast below. Filtered to *this* row's toast all the same — an earlier case's
     // unread notice resurfaces on login.
     const notice = frank.locator('ion-toast').filter({ hasText: item })
     await expect(notice).toContainText(ACCOUNT_NAMES.alice)
@@ -1666,6 +1673,118 @@ test.describe('Two accounts on one instance @server', () => {
 
     await ctxAlice.close()
     await ctxBob.close()
+  })
+
+  /**
+   * E2E-G23-01: two notices arrive together — the unread burst a login finds —
+   * and the top of the screen shows them one at a time. The first is not laid
+   * under the second: its *Open* is reached and leads to its row, and only
+   * then does the second appear, its own *Open* reachable in turn.
+   *
+   * Both are handed over while Gina is away, so the burst is a fact on the
+   * server before her second login fetches it, rather than a race between two
+   * pings and a six-second toast. `data-waiting` is the signal that the second
+   * has arrived and is being held back, not merely not yet there.
+   */
+  test('E2E-G23-01: two notices in a row are shown one at a time, both Opens reached in turn', async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const trip = `Vercors ${id}`
+    const items = [`Seilbremse-${id}`, `Kletterhelm-${id}`]
+
+    // Gina's first login creates her account, so she can be shared with.
+    const ctxFirst = await browser.newContext()
+    await loginAs(ctxFirst, 'gina')
+    await ctxFirst.close()
+
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+    const tripPath = await createTripViaWizard(alice, { name: trip })
+    for (const item of items) await quickAddItem(alice, item)
+    await shareWith(alice, tripPath, ACCOUNT_NAMES.gina)
+    await alice.goto(tripPath)
+    for (const item of items) await assignTo(alice, item, ACCOUNT_NAMES.gina)
+    await writesLanded(alice)
+
+    const ctxGina = await browser.newContext()
+    const gina = await loginAs(ctxGina, 'gina')
+
+    // G-23: one toast on screen, the other counted behind it.
+    const notices = gina.locator('ion-toast[data-presented]')
+    const first = gina.locator('ion-toast[data-presented][data-waiting="1"]')
+    await expect(first).toHaveCount(1)
+    await expect(notices).toHaveCount(1)
+    // The server decides which comes first; the case only needs them apart.
+    const [firstItem, secondItem] =
+      (await first.filter({ hasText: items[0]! }).count()) === 1 ? items : [items[1]!, items[0]!]
+    await expect(first).toContainText(firstItem!)
+
+    // FR-6.3/G-4: the first notice's *Open* is reachable and leads to its row.
+    await first.getByRole('button', { name: /open/i }).click()
+    await expect(itemDetail(gina).getByTestId('m5-sheet')).toContainText(firstItem!)
+
+    // Only now the second, with nothing left behind it.
+    const second = notices.filter({ hasText: secondItem! })
+    await expect(second).toHaveAttribute('data-waiting', '0')
+    await expect(notices).toHaveCount(1)
+    await second.getByRole('button', { name: /open/i }).click()
+    await expect(itemDetail(gina).getByTestId('m5-sheet')).toContainText(secondItem!)
+
+    await ctxAlice.close()
+    await ctxGina.close()
+  })
+
+  /**
+   * E2E-G23-02: more notices than NOTIFICATION_BURST_LIMIT in one fetch are
+   * one summary toast, not a minute of them in turn — and dismissing it marks
+   * every one of them read. The four `/read` responses are the positive
+   * signal for the second half: a summary whose dismissal marked nothing would
+   * show the same toast and leave all four to come back on the next login.
+   */
+  test('E2E-G23-02: a burst of four notices is one summary toast, and its OK marks all four read', async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const trip = `Verdon ${id}`
+    const items = [1, 2, 3, 4].map((n) => `Expressschlinge${n}-${id}`)
+
+    const ctxFirst = await browser.newContext()
+    await loginAs(ctxFirst, 'hana')
+    await ctxFirst.close()
+
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+    const tripPath = await createTripViaWizard(alice, { name: trip })
+    for (const item of items) await quickAddItem(alice, item)
+    await shareWith(alice, tripPath, ACCOUNT_NAMES.hana)
+    await alice.goto(tripPath)
+    for (const item of items) await assignTo(alice, item, ACCOUNT_NAMES.hana)
+    await writesLanded(alice)
+
+    const ctxHana = await browser.newContext()
+    const reads: string[] = []
+    const allRead = new Promise<void>((resolve) => {
+      ctxHana.on('response', (r) => {
+        if (!r.url().includes('/api/v1/notifications/') || !r.url().endsWith('/read')) return
+        if (r.ok()) reads.push(r.url())
+        if (reads.length === items.length) resolve()
+      })
+    })
+    const hana = await loginAs(ctxHana, 'hana')
+
+    const summary = hana.locator('ion-toast[data-presented]')
+    await expect(summary).toHaveCount(1)
+    await expect(summary).toContainText(`${items.length} new notifications`)
+    await expect(summary).toHaveAttribute('data-waiting', '0')
+    await expect(summary.getByRole('button', { name: /open/i })).toHaveCount(0)
+
+    await summary.getByRole('button', { name: 'OK' }).click()
+    await allRead
+    expect(new Set(reads).size).toBe(items.length)
+
+    await ctxAlice.close()
+    await ctxHana.close()
   })
 })
 

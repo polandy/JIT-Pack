@@ -371,5 +371,6 @@ export const settingsDe: Record<keyof typeof settingsEn, string> = {
   'notify.body.idea_shortlistedPlain': '{actor} hat eine Idee auf die Shortlist gesetzt',
   'notify.body.generic': '{actor} hat dir eine Benachrichtigung geschickt',
   'notify.toastOpen': 'Öffnen',
+  'notify.summary': '{n} neue Benachrichtigungen',
   'notify.actorUnknown': 'Jemand',
 }

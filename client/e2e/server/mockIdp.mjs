@@ -38,10 +38,12 @@ import { createServer } from 'node:http'
  * `erin` and `frank` exist for the same reason, one case each: each is the
  * recipient who clicks a notification's action — erin in E2E-M28-11
  * (planner/server/notifications.spec.ts), frank in E2E-FLOW-02
- * (multi-user.spec.ts). A notification is addressed to the account, not the
- * page, and every notification toast opens at the top of the screen, so a
- * file on the other worker that notifies the same account lays its toast
- * over the button being clicked.
+ * (multi-user.spec.ts). `gina` is the recipient of E2E-G23-01's two notices
+ * in a row and `hana` of E2E-G23-02's burst (multi-user.spec.ts), whose point is what else is on her
+ * screen. A notification is addressed to the account, not the page, and the
+ * top of the screen shows one toast at a time (G-23), so a file on the other
+ * worker that notifies the same account puts its toast on screen ahead of the
+ * one the case is waiting to click.
  */
 export const IDP_USERS = {
   alice: { sub: 'alice', name: 'Alice', email: 'alice@example.test' },
@@ -50,6 +52,8 @@ export const IDP_USERS = {
   dave: { sub: 'dave', name: 'Dave', email: 'dave@example.test' },
   erin: { sub: 'erin', name: 'Erin', email: 'erin@example.test' },
   frank: { sub: 'frank', name: 'Frank', email: 'frank@example.test' },
+  gina: { sub: 'gina', name: 'Gina', email: 'gina@example.test' },
+  hana: { sub: 'hana', name: 'Hana', email: 'hana@example.test' },
 }
 
 const KEY_ID = 'jitpack-e2e'

@@ -9,7 +9,7 @@ every screen must remain fully and comfortably usable on desktop (G-9). All scre
 
 ## Files
 
-One file per screen (`M04-*.md` is M4) and one for the global patterns G-1 to G-20.
+One file per screen (`M04-*.md` is M4) and one for the global patterns G-1 to G-23.
 
 | Section | File |
 |---|---|

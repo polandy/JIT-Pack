@@ -16,15 +16,17 @@ import type { RestClient } from './restClient'
 export interface NotificationDeps {
   client: RestClient
   /**
-   * Invoked for each incoming notification, live ones
-   * (`notification.created`) and unread ones found on connect. The callee
-   * surfaces it (toast) and marks it read via `markNotificationRead`.
+   * Invoked once per fetch with the notifications it found that were not
+   * handed over before — live ones (`notification.created`) and unread ones
+   * found on connect. A whole batch rather than one call each, because the
+   * callee announces a burst differently from a single notice (G-23). It
+   * marks each read via `markNotificationRead` once it has been seen.
    */
-  onNotification?: (n: ServerNotification) => void
+  onNotifications?: (batch: ServerNotification[]) => void
 }
 
 export interface NotificationActions {
-  /** Fetch what is unread and hand each row to `onNotification` once. */
+  /** Fetch what is unread and hand the rows not seen before to `onNotifications`. */
   surfaceUnread(): Promise<void>
   markNotificationRead(id: string): Promise<void>
   fetchNotificationPrefs(): Promise<NotificationPrefs | null>
@@ -49,7 +51,7 @@ export const NO_NOTIFICATION_ACTIONS: NotificationActions = {
 }
 
 export function createNotificationActions(deps: NotificationDeps): NotificationActions {
-  const { client, onNotification } = deps
+  const { client, onNotifications } = deps
 
   // Guards against surfacing the same notification twice when several
   // notification.created pings arrive before the first fetch settles.
@@ -57,16 +59,15 @@ export function createNotificationActions(deps: NotificationDeps): NotificationA
 
   return {
     async surfaceUnread() {
-      if (!onNotification) return
+      if (!onNotifications) return
       try {
         const resp = await client.get<NotificationListResponse>(API.notifications, {
           unread: '1',
         })
-        for (const n of resp.notifications ?? []) {
-          if (surfaced.has(n.id)) continue
-          surfaced.add(n.id)
-          onNotification(n)
-        }
+        const fresh = (resp.notifications ?? []).filter((n) => !surfaced.has(n.id))
+        if (fresh.length === 0) return
+        for (const n of fresh) surfaced.add(n.id)
+        onNotifications(fresh)
       } catch {
         // Offline — unread notifications resurface on the next connect.
       }

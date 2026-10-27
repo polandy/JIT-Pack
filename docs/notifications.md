@@ -39,7 +39,7 @@ too, and Settings there shows just those three switches and the push toggle. Loc
 reaches a closed app; the overview says under its greeting what is due by tomorrow, in every mode (*„2 Aufgaben
 (1 überfällig) · 3 Einkäufe fällig"*).
 
-Every notification arrives in-app (a toast while the app is open, and the notification list). **Web Push** additionally delivers it to a device while the app is closed — that is the part with operational requirements, and the rest of this page.
+Every notification arrives in-app (a toast while the app is open, and the notification list). Toasts come one at a time at the top of the screen, each for six seconds or until you tap or swipe it away, so none hides another; a notice counts as read only once its toast has been shown. If more than three new ones are waiting when you open the app, a single *„5 neue Benachrichtigungen"* toast stands in for them and the list holds the detail. **Web Push** additionally delivers it to a device while the app is closed — that is the part with operational requirements, and the rest of this page.
 
 Notifications are written in the **language the recipient's device is set to**, not the sender's — including the ones the operating system shows while the app is closed. One case is worth knowing about: a device that has been sent a push but has never actually had the app open (a fresh browser profile, or one where site storage is blocked) shows a neutral *„You have a new notification"* instead of the detail. Opening the app once is all it takes; the notice itself is then written in full, in the right language.
 

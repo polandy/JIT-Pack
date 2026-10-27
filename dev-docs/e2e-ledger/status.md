@@ -20,6 +20,7 @@
 | Typography | E2E-G13-01 … E2E-G13-06 | `local` | [`typography.spec.ts`](../../client/e2e/typography.spec.ts) |
 | Colour anchors | E2E-G11-02, E2E-G11-03, E2E-G11-04, E2E-G11-05 | `local` | [`colour-anchors.spec.ts`](../../client/e2e/colour-anchors.spec.ts) |
 | Start animation (G-22, FR-21.29, since 2026-10-08) | E2E-G22-01 … E2E-G22-07 | `local` | [`splash.spec.ts`](../../client/e2e/splash.spec.ts) |
+| Top toasts one at a time (G-23, FR-6.2, since 2026-10-27) | E2E-G23-01, E2E-G23-02 | `server` | [`multi-user.spec.ts`](../../client/e2e/server/multi-user.spec.ts) |
 | Visual baselines | E2E-VIS-01 … E2E-VIS-16 (VIS-13 M25 since 2026-09-21, VIS-14 M26 since 2026-09-25 — the list and a thread's view; VIS-15 M10 and VIS-16 M17 in Local Mode since 2026-10-27) | `local` | [`visual.spec.ts`](../../client/e2e/visual.spec.ts) |
 | Pack-out & undo | E2E-M4-33, E2E-M4-34, ~~E2E-M4-35~~ (reversed by FR-25.31 → E2E-M4-120) | `local` | [`pack-out.spec.ts`](../../client/e2e/pack-out.spec.ts) |
 | Every act on the list can be undone (FR-25.31) | E2E-M4-120 (un-pack), E2E-M4-121 (amount, ＋ step, confirmed removal), E2E-M4-122 (late packer from the menu), E2E-M4-123 (closing-pass verdict, saved from the sheet), ~~E2E-M4-124~~ (moved 2026-09-21 to E2E-M25-06, FR-7.7 — a task is removed where it now lives), E2E-M4-125 (unskip, claim), E2E-M4-126 (cluster fan-out, in `membership.spec.ts`) | `local` | [`undo-every-act.spec.ts`](../../client/e2e/undo-every-act.spec.ts) |
