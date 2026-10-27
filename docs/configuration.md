@@ -95,7 +95,7 @@ Leaving all three OIDC variables empty while setting `JITPACK_SESSION_SECRET` is
 
 The last four mean the server will not start while your IdP is down or misconfigured. That is deliberate: a broker that came up without a verified issuer would accept logins it cannot validate. Note the asymmetry with runtime — once running, an IdP outage does **not** log anyone out; see [Authentication → An IdP outage is not a logout](authentication.md#an-idp-outage-is-not-a-logout).
 
-A successful start logs which shape it picked, so the first line after a restart tells you what you actually got:
+A successful start logs which shape it picked, right after the lines for the optional features that are on, so that line tells you what you actually got after a restart:
 
 ```
 INFO starting in single-user mode user=andy
