@@ -688,6 +688,50 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
   })
 
   /**
+   * E2E-M25-24 (FR-7.8): a batch that changes nothing says so instead. Two
+   * tasks already under *House* are sent to *House* again: the snackbar says
+   * there is nothing to change and offers no undo — the record still armed
+   * is the first batch's, so an undo here would take back an act this
+   * snackbar is not about. The mode ends all the same, and both tasks still
+   * stand under the heading afterwards.
+   */
+  test('E2E-M25-24: a batch that changes nothing says so, with no undo @m25', async ({ page }) => {
+    await tripWithRows(page, ['Zelt'], 'Samedan')
+    await addOwnTask(page, 'Buy a map')
+    await addOwnTask(page, 'Water the plants')
+    const before = await openTasks(page, 'before')
+    const house = before.locator('[data-testid^="m25-group-"]').filter({ hasText: 'House' })
+
+    await before.getByTestId('trip-task-open-Buy a map').click({ button: 'right' })
+    await before.getByTestId('trip-task-open-Water the plants').click()
+    await visible(page).getByTestId('m25-bulk-tag').click()
+    await page.getByTestId('tag-pick-search').locator('input').fill('House')
+    await page.getByTestId('tag-pick-create').click()
+    await expect(house).toContainText('Buy a map')
+    await expect(house).toContainText('Water the plants')
+
+    await before.getByTestId('trip-task-open-Buy a map').click({ button: 'right' })
+    await before.getByTestId('trip-task-open-Water the plants').click()
+    await expect(page.getByTestId('m25-select-count')).toContainText('2')
+    await visible(page).getByTestId('m25-bulk-tag').click()
+    await page.getByTestId('tag-pick-offer-House').click()
+
+    // The toast's buttons read in one go, while it stands. `toHaveCount(0)`
+    // would retry until the snackbar lapsed by itself and be green on any
+    // build; the read needs the toast to exist, which is the positive signal.
+    const nothing = page
+      .locator('ion-toast.pack-toast:not(.overlay-hidden)')
+      .filter({ hasText: 'Nothing to change — the selection is already there.' })
+    const buttons = await nothing.evaluate((toast) =>
+      [...(toast.shadowRoot?.querySelectorAll('button') ?? [])].map((b) => b.textContent?.trim()),
+    )
+    expect(buttons).not.toContain('Undo')
+    await expect(page.getByTestId('m25-selbar')).toHaveCount(0)
+    await expect(house).toContainText('Buy a map')
+    await expect(house).toContainText('Water the plants')
+  })
+
+  /**
    * E2E-M25-04 (FR-7.7): the salve. A preparation that will not happen before
    * departure is moved to *Während der Reise* from the task's own sheet — and
    * the move is what takes it **off the packing list**, which is the whole

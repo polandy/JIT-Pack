@@ -110,7 +110,7 @@ const {
 } = useTripIdentity(props.tripId, orchestrator.identity)
 
 // FR-7.14: M25 carries the FAB, so its snackbar clears it as M6's does.
-const { rowUndo, announceAct, announceTaskDone } = usePackAnnouncer(FAB_ANCHOR.m25)
+const { rowUndo, announceAct, announceNotice, announceTaskDone } = usePackAnnouncer(FAB_ANCHOR.m25)
 
 /** Hidden while their removal can still be taken back (FR-25.31). */
 const removing = ref(new Set<string>())
@@ -325,7 +325,7 @@ const bulkPhase = computed(() => {
 /** The batch's acts: written, undone as one, and the mode ends with it (M6's rule). */
 function afterBatch(written: number) {
   selection.end()
-  if (written === 0) void announceAct(t('tasks.bulkNothingToChange'))
+  if (written === 0) void announceNotice(t('tasks.bulkNothingToChange'))
 }
 
 function bulkTag(taskTagId: string | null) {
