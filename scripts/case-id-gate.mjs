@@ -146,11 +146,14 @@ function specFiles(dir) {
 }
 
 const claimed = new Map()
+/** Per-id count of titles, for the ids whose title must be unique (below). */
+const titled = new Map()
 for (const file of specFiles(SUITE)) {
   const source = readFileSync(file, 'utf8')
   for (const [, title] of source.matchAll(/\btest\(\s*['"`]([^'"`]*)/g)) {
-    for (const id of title.match(TITLE_IDS) ?? []) {
+    for (const id of new Set(title.match(TITLE_IDS) ?? [])) {
       if (!claimed.has(id)) claimed.set(id, file.slice(root.length + 1))
+      titled.set(id, (titled.get(id) ?? 0) + 1)
     }
   }
 }
@@ -160,6 +163,23 @@ if (claimed.size === 0) {
     `case-id-gate: found no case ids in any test title under ${SUITE}.\n` +
       'Either the suite moved or titles stopped carrying ids — the second half\n' +
       'of this gate is not checking anything, which is worse than failing.',
+  )
+  process.exit(1)
+}
+
+/*
+ * A visual id names one set of baselines, so it is claimed by one title. Other
+ * ids may repeat — a case run in more than one mode keeps its number — but two
+ * visual tests under one number leave one of them with no entry of its own,
+ * which is how E2E-VIS-13 came to mean both M25 and M1.
+ */
+const VISUAL_ID = /^E2E-VIS-/
+const twiceTitled = [...titled].filter(([id, n]) => VISUAL_ID.test(id) && n > 1)
+if (twiceTitled.length > 0) {
+  console.error(
+    `case-id-gate: ${twiceTitled.length} visual case id(s) claimed by more than one test title:\n` +
+      twiceTitled.map(([id, n]) => `  ${id}  (${n} titles)`).join('\n') +
+      '\n\nA visual id owns one set of baselines. Give the newer test the next free E2E-VIS number.',
   )
   process.exit(1)
 }
