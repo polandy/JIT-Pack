@@ -364,6 +364,52 @@ test.describe('M6 shopping — the list’s own entries @local @m6 @shopping', (
   })
 
   /**
+   * E2E-M6-45 (FR-30.9): a batch that writes nothing says so instead. The one
+   * entry already carries *Apotheke*, so tagging it with that again changes
+   * nothing: the toast says the selection already carries the tag and offers
+   * no undo — there is no act to take back.
+   *
+   * The toast's buttons are read in one go while it stands. `toHaveCount(0)`
+   * would retry until it lapsed by itself and be green on any build; the read
+   * needs the toast to exist, which is the positive signal.
+   */
+  test('E2E-M6-45: a batch that changes nothing says so, with no undo (FR-30.9)', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await openTripView(page, 'shopping')
+    await addEntry(page, 'Mückenspray')
+
+    await m6(page)
+      .getByTestId('m6-row')
+      .filter({ hasText: 'Mückenspray' })
+      .getByTestId('m6-row-label')
+      .click()
+    await page.getByTestId('tag-pick-search').locator('input').fill('Apotheke')
+    await page.getByTestId('tag-pick-create').click()
+    await page.getByTestId('m6-entry-confirm').click()
+    await expect(sheet(page)).not.toHaveAttribute('data-presented', 'true')
+
+    await m6(page)
+      .getByTestId('m6-row')
+      .filter({ hasText: 'Mückenspray' })
+      .getByTestId('m6-row-label')
+      .dispatchEvent('contextmenu')
+    await expect(page.getByTestId('m6-selbar')).toBeVisible()
+    await m6(page).getByTestId('m6-bulk-tag').click()
+    await expect(page.getByTestId('m6-bulk-sheet')).toHaveAttribute('data-presented', 'true')
+    await page.getByTestId('tag-pick-offer-Apotheke').click()
+
+    const nothing = page
+      .locator('ion-toast.pack-toast:not(.overlay-hidden)')
+      .filter({ hasText: 'Nothing to change — the selection already carries that tag.' })
+    const buttons = await nothing.evaluate((toast) =>
+      [...(toast.shadowRoot?.querySelectorAll('button') ?? [])].map((b) => b.textContent?.trim()),
+    )
+    expect(buttons).not.toContain('Undo')
+  })
+
+  /**
    * E2E-M6-40 (FR-30.9): the selection is removed in one act, with no
    * question first — the toast's undo puts every entry back under its own
    * id, tag included, and the reload proves the store holds them again

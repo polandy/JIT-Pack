@@ -163,6 +163,10 @@ a duplicate-id gate sees one use of each, and a coverage count sees the same tot
   filed under it. Grouped, the group's marks are exactly 📷 and 🔋, Stativ's slot is present and empty and no letter
   tile is drawn; the heading carrying 🔌 is the positive signal that the tag's mark reached the list. Sorted
   alphabetically, Stativ borrows 🔌 again, muted.
+* **E2E-M9-35** `local` (FR-24.9) — **implemented** (`e2e/inventory-bulk.spec.ts`): a batch that writes nothing says
+  so. *Sonnenhut* already carries *Sonnenschutz* as its first tag; giving it that tag again raises *„Nothing to
+  change — the selection is already like that."* and no *Undo*. The toast's buttons are read while it stands, so the
+  case needs the toast to exist.
 * **E2E-M9-29** `server` (FR-1.9 over FR-24.4/24.7) — **implemented** (`e2e/server/multi-user.spec.ts`):
   the inventory names who an item is usually for and finds it by that name. Three claims in order, each needing the
   one before it: the property is **offered** (a `server` case for E2E-M9-27's G-8 reason), the row carries the name

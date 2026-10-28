@@ -235,6 +235,10 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
 * **E2E-M6-44** `local` (FR-30.10, UX-15) — **implemented** (`shopping/shopping.spec.ts`): a trip on its third day
   with one own entry due today; M1's head reads *„1 purchase due"*. The trip's *Einkaufen* block in the hero, folded,
   is unfolded by the count's tap and brought into view, the entry wearing *Today*.
+* **E2E-M6-45** `local` (FR-30.9) — **implemented** (`shopping/shopping.spec.ts`): a batch that writes nothing says
+  so. The one own entry already carries *Apotheke*; tagging it with *Apotheke* again raises *„Nothing to change — the
+  selection already carries that tag."* and no *Undo* — there is no act to take back. The toast's buttons are read
+  while it stands, so the case needs the toast to exist.
 * **E2E-M6-09** `all` (FR-25.12) — **not implemented; owed by decision**, in its own PR with UI-Spec, e2e and an
   eyeball pass. It is the one of M6's unbuilt promises with a use nothing else covers: *„Andy kauft das"* is the
   multi-user case M6 cannot express, and the description is where *„die grüne Dose, nicht die

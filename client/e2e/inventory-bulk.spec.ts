@@ -86,6 +86,37 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
   })
 
   /**
+   * E2E-M9-35 (FR-24.9): a batch that writes nothing says so instead. The one
+   * row already carries *Sonnenschutz* as its first tag, so giving it that tag
+   * again changes nothing: the snackbar says the selection is already like
+   * that and offers no undo — there is no act for an undo to take back.
+   *
+   * The snackbar's buttons are read in one go while it stands.
+   * `toHaveCount(0)` would retry until it lapsed by itself and be green on any
+   * build; the read needs the toast to exist, which is the positive signal.
+   */
+  test('E2E-M9-35: a batch that changes nothing says so, with no undo (FR-24.9)', async ({
+    page,
+  }) => {
+    await createItem(page, 'Sonnenhut', { tags: ['Sonnenschutz'] })
+    await backToInventory(page)
+
+    const list = visiblePage(page)
+    await holdRow(list, 'Sonnenhut')
+    await list.getByTestId('m9-bulk-give').click()
+    await expect(page.getByTestId('m9-bulk-tag-sheet')).toHaveAttribute('data-presented', 'true')
+    await page.getByTestId('m9-bulk-tag-Sonnenschutz').click()
+
+    const nothing = page
+      .locator('ion-toast:not(.overlay-hidden)')
+      .filter({ hasText: 'Nothing to change — the selection is already like that.' })
+    const buttons = await nothing.evaluate((toast) =>
+      [...(toast.shadowRoot?.querySelectorAll('button') ?? [])].map((b) => b.textContent?.trim()),
+    )
+    expect(buttons).not.toContain('Undo')
+  })
+
+  /**
    * E2E-M9-26 (FR-24.9 widened, FR-20.1): a dependency declared for several
    * items at once, in both of the directions it can be declared in.
    *
