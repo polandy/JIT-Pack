@@ -34,6 +34,7 @@ import DueBadge from '@/components/global/DueBadge.vue'
 import TaskItemChip from '@/views/trips/tasks/TaskItemChip.vue'
 import DragGrip from '@/components/global/DragGrip.vue'
 import FoldToggle from '@/components/global/FoldToggle.vue'
+import EntryOrigin from '@/components/global/EntryOrigin.vue'
 import IdeaOrigin from '@/components/global/IdeaOrigin.vue'
 import ListRow from '@/components/global/ListRow.vue'
 import ListRows from '@/components/global/ListRows.vue'
@@ -46,7 +47,7 @@ import type { RowSelection } from '@/composables/shared/useRowSelection'
 import { openDueDay } from '@/domain/taskDue'
 import type { TripTask } from '@/domain/tripTasks'
 import { t } from '@/i18n'
-import { IDEA_LOOKUP } from '@/kernel/ideaBridge'
+import { ENTRY_LOOKUP, IDEA_LOOKUP } from '@/kernel/ideaBridge'
 import { tripItemPath } from '@/router/paths'
 import { TASK_STATE_OPEN, TASK_STATE_RESOLVED } from '@/types/domain'
 
@@ -174,12 +175,20 @@ function hasIdea(task: TripTask): boolean {
   return !!task.idea_id && ideaLookup?.idea(props.tripId, task.idea_id) !== undefined
 }
 
+const entryLookup = inject(ENTRY_LOOKUP, null)
+
+/** FR-29.21: whether the task names a day-plan entry this device holds. */
+function hasEntry(task: TripTask): boolean {
+  return !!task.day_entry_id && entryLookup?.entry(props.tripId, task.day_entry_id) !== undefined
+}
+
 function hasFacts(task: TripTask): boolean {
   return (
     (!!props.today && openDueDay(task) !== null) ||
     task.item !== null ||
     !!props.tagOf?.(task) ||
     hasIdea(task) ||
+    hasEntry(task) ||
     task.destination_task_id != null
   )
 }
@@ -265,6 +274,11 @@ function hasFacts(task: TripTask): boolean {
             :trip-id="tripId"
             :idea-id="task.idea_id"
             :testid="`trip-task-idea-${task.body}`"
+          />
+          <EntryOrigin
+            :trip-id="tripId"
+            :entry-id="task.day_entry_id"
+            :testid="`trip-task-entry-${task.body}`"
           />
           <SeriesTaskOrigin
             :destination-task-id="task.destination_task_id"

@@ -59,6 +59,8 @@ export interface DayLine {
   source?: DayPlanLine
   /** An excursion's line: the idea it was made from, shown as this one line (FR-29.13). */
   origin?: Idea
+  /** A task line that prepares an entry: the entry and the step's lead (FR-29.21). */
+  stepOf?: { entry: DayEntry; leadDays: number | null }
   /** A connection's line: the excursion it belongs to (FR-29.18). */
   excursion?: DayPlanLine
   /** Whom it is for, by name in roster order — null for everybody (FR-29.15). */
@@ -263,6 +265,7 @@ export function dayLines(day: string, input: DayInput): DayLine[] {
   const lines: DayLine[] = []
   const withExcursion = ideasWithExcursion(input.lines)
   const ideaOf = new Map(input.ideas.map((idea) => [idea.id, idea]))
+  const entryOf = new Map(input.entries.map((entry) => [entry.id, entry]))
   const excursionOf = new Map(
     input.lines.filter((line) => line.refId).map((line) => [line.refId!, line]),
   )
@@ -279,6 +282,7 @@ export function dayLines(day: string, input: DayInput): DayLine[] {
       : origin?.planned_on === day && isPlanTime(origin.planned_at)
         ? origin.planned_at
         : null
+    const stepEntry = source.entryId ? entryOf.get(source.entryId) : undefined
     lines.push({
       key: source.key,
       kind: KIND_OF_SOURCE[source.kind],
@@ -291,6 +295,7 @@ export function dayLines(day: string, input: DayInput): DayLine[] {
       progress: source.progress,
       source,
       origin,
+      ...(stepEntry ? { stepOf: { entry: stepEntry, leadDays: source.leadDays ?? null } } : {}),
       who: whoOf(source.travelerIds ?? [], input.travelers),
       forIds: forOf(source.travelerIds ?? [], input.travelers),
     })

@@ -87,6 +87,9 @@ export function createDayPlanSource(reads: DayPlanReads, writes: DayPlanWrites):
         to: task.due_date!,
         detail: null,
         assignee: task.assignee_user_id,
+        ...(task.day_entry_id
+          ? { entryId: task.day_entry_id, leadDays: task.anchor_lead_days ?? null }
+          : {}),
         time: task.due_time,
         progress: null,
         done: task.task_state === TASK_STATE_RESOLVED,

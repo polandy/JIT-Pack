@@ -44,6 +44,8 @@ function deps(reads: KernelTripReads): KernelPortDeps {
       addOwnTask: vi.fn(),
       setTaskBody: vi.fn(),
       setTaskLead: vi.fn(),
+      setTaskDueDate: vi.fn(),
+      setTaskEntryLead: vi.fn(),
       deleteOwnTask: vi.fn(),
     },
   }

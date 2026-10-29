@@ -21,6 +21,8 @@ import { provide, type Component } from 'vue'
 import type { ActivityReaders } from '@/domain/shared/activityReader'
 import type { DayPlanSource, DayPlanTravelers } from '@/domain/shared/dayPlanLine'
 import type {
+  EntryLookup,
+  EntryPreparations,
   IdeaLookup,
   IdeaPlanWrites,
   IdeaPreparations,
@@ -38,7 +40,14 @@ import {
   type ExcursionJourneyLine,
 } from './excursionConnections'
 import { EXCURSION_EXTRA_LINES, type ExcursionExtraSource } from './excursionExtraLines'
-import { IDEA_LOOKUP, IDEA_PLAN_WRITES, IDEA_PREPARATIONS, IDEA_RESULT_SOURCES } from './ideaBridge'
+import {
+  ENTRY_LOOKUP,
+  ENTRY_PREPARATIONS,
+  IDEA_LOOKUP,
+  IDEA_PLAN_WRITES,
+  IDEA_PREPARATIONS,
+  IDEA_RESULT_SOURCES,
+} from './ideaBridge'
 import { MEAL_CONTEXT } from './mealContext'
 import { PACKING_CLOSE_CROSSINGS, type PackingCloseCrossing } from './packingClose'
 import { SHOPPING_SOURCES, type ShoppingSource } from './shoppingSources'
@@ -100,6 +109,10 @@ export interface ModuleContribution {
   ideaPlanWrites?: IdeaPlanWrites
   /** FR-29.21: an idea's preparation steps, written by the side that owns trip tasks. */
   ideaPreparations?: IdeaPreparations
+  /** FR-29.21: a day-plan entry's day, for the packing side. */
+  entryLookup?: EntryLookup
+  /** FR-29.21: a day-plan entry's preparation steps, written by the side that owns trip tasks. */
+  entryPreparations?: EntryPreparations
   excursionConnections?: Component
   excursionJourneyLine?: ExcursionJourneyLine
   duePurchases?: DuePurchases
@@ -128,6 +141,8 @@ export interface Composition {
   ideaLookup: IdeaLookup | null
   ideaPlanWrites: IdeaPlanWrites | null
   ideaPreparations: IdeaPreparations | null
+  entryLookup: EntryLookup | null
+  entryPreparations: EntryPreparations | null
   excursionConnections: Component | null
   excursionJourneyLine: ExcursionJourneyLine | null
   duePurchases: DuePurchases | null
@@ -163,6 +178,8 @@ export function foldContributions(
     ideaLookup: single('ideaLookup', each('ideaLookup')),
     ideaPlanWrites: single('ideaPlanWrites', each('ideaPlanWrites')),
     ideaPreparations: single('ideaPreparations', each('ideaPreparations')),
+    entryLookup: single('entryLookup', each('entryLookup')),
+    entryPreparations: single('entryPreparations', each('entryPreparations')),
     excursionConnections: single('excursionConnections', each('excursionConnections')),
     excursionJourneyLine: single('excursionJourneyLine', each('excursionJourneyLine')),
     duePurchases: single('duePurchases', each('duePurchases')),
@@ -243,6 +260,8 @@ export function provideComposition(composition: Composition): void {
   if (composition.ideaLookup) provide(IDEA_LOOKUP, composition.ideaLookup)
   if (composition.ideaPlanWrites) provide(IDEA_PLAN_WRITES, composition.ideaPlanWrites)
   if (composition.ideaPreparations) provide(IDEA_PREPARATIONS, composition.ideaPreparations)
+  if (composition.entryLookup) provide(ENTRY_LOOKUP, composition.entryLookup)
+  if (composition.entryPreparations) provide(ENTRY_PREPARATIONS, composition.entryPreparations)
   // M1 reads `undefined` as "no shopping module" and counts nothing.
   if (composition.duePurchases) provide(DUE_PURCHASES, composition.duePurchases)
 }

@@ -59,6 +59,8 @@ export const tasksEn = {
   'tasks.dueField': 'Due',
   'tasks.dueFromIdea':
     '{day} · {n} day before the idea, moves with it | {day} · {n} days before the idea, moves with it',
+  'tasks.dueFromEntry':
+    '{day} · {n} day before the entry, moves with it | {day} · {n} days before the entry, moves with it',
   // FR-13.4 — a series task's lead (ADR-106): the sheet's `task-sheet-lead` line and the
   // bare quantities it and M16's lead chips both name.
   'tasks.seriesLead.1': '1 day',

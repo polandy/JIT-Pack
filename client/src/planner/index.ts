@@ -5,7 +5,7 @@
  * to write its ideas through the module's own actions.
  */
 import type { DayPlanSource } from '@/domain/shared/dayPlanLine'
-import type { IdeaLookup, IdeaPlanWrites } from '@/domain/shared/ideaBridge'
+import type { EntryLookup, IdeaLookup, IdeaPlanWrites } from '@/domain/shared/ideaBridge'
 import type { FeatureModule, IdeaShortlist } from '@/kernel/moduleContribution'
 import type { ModuleHost } from '@/sync/featureModule'
 import { createPlannerActions } from './actions'
@@ -36,6 +36,8 @@ export const plannerModule: FeatureModule = {
       dayPlanEmpty: dayPlanEmpty(host.dayPlanSources),
       // FR-29.13: the idea the packing side and the shopping module name.
       ideaLookup: ideaLookup(),
+      // FR-29.21: a day-plan entry's day, for the steps prepared before it.
+      entryLookup: entryLookup(),
       // FR-29.15: an excursion made from an idea takes the idea's day with it.
       ideaPlanWrites: ideaPlanWrites(host.module),
       // M31: where to eat out, offered to the meal plan.
@@ -90,6 +92,17 @@ export function ideaLookup(): IdeaLookup {
           dropped: idea.state === IDEA_STATE_DROPPED,
         }
       )
+    },
+  }
+}
+
+/** FR-29.21: a day-plan entry as the packing side reads it — the day its steps are due before. */
+export function entryLookup(): EntryLookup {
+  const plannerStore = usePlannerStore()
+  return {
+    entry(tripId, entryId) {
+      const entry = plannerStore.getDayEntries(tripId).find((candidate) => candidate.id === entryId)
+      return entry && { id: entry.id, title: entry.title, onDate: entry.on_date }
     },
   }
 }

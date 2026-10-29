@@ -7,6 +7,8 @@
 import type { InjectionKey } from 'vue'
 
 import type {
+  EntryLookup,
+  EntryPreparations,
   IdeaLookup,
   IdeaPlanWrites,
   IdeaPreparations,
@@ -40,3 +42,9 @@ export const IDEA_RESULT_SOURCES = Symbol('ideaResultSources') as InjectionKey<
 
 /** The injection key the planner reads and writes an idea's preparation steps through (FR-29.21). */
 export const IDEA_PREPARATIONS = Symbol('ideaPreparations') as InjectionKey<IdeaPreparations>
+
+/** The injection key the packing side reads a day-plan entry's day through (FR-29.21). */
+export const ENTRY_LOOKUP = Symbol('entryLookup') as InjectionKey<EntryLookup>
+
+/** The injection key the planner reads and writes an entry's preparation steps through (FR-29.21). */
+export const ENTRY_PREPARATIONS = Symbol('entryPreparations') as InjectionKey<EntryPreparations>

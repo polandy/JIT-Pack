@@ -2,8 +2,8 @@
  * FR-29.21, FR-13.4: a task's due day as a lead before an anchor (ADR-108).
  *
  * An idea's preparation step is due its lead before the idea's day, a series
- * task its lead before the trip's start; a day-plan entry's task will be a
- * third. Every one stores the anchor's kind and the lead in days, and never a
+ * task its lead before the trip's start, a day-plan entry's step its lead
+ * before the entry's day. Every one stores the anchor's kind and the lead in days, and never a
  * due day: the anchor moves on another device, offline, in any order the
  * writes arrive (NFR-4.2a), and a stored copy would drift. The subtraction is
  * written once, here; `internal/store/taskdue.go` carries its twin for the
@@ -16,6 +16,8 @@ import { addDays } from './calendar'
 export const ANCHOR_KIND = {
   /** The day of the idea in `idea_id` (FR-29.21). */
   idea: 'idea',
+  /** The day of the day-plan entry in `day_entry_id` (FR-29.21). */
+  entry: 'entry',
   /** The start of the task's own trip (FR-13.4). */
   tripStart: 'trip_start',
 } as const satisfies Record<string, AnchorKind>

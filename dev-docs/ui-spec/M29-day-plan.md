@@ -45,8 +45,12 @@
     no tick of its own here.
   * **☑ Aufgabe** due that day, with its assignee, and M25's checkbox, which writes what M25's does, striking the line
     through; a tap opens M25.
+    A preparation step of an entry (FR-29.21) is such a task: its second line reads *„✎ Titel · 1 Woche vorher"*, the
+    entry it prepares. A step due before the trip's first day has no tile here.
   * **✎ Eintrag**, an entry of the plan's own: its title and note; a tap opens its sheet. An entry that carries a
     connection (FR-29.18) has it as a second line under the title — see *Connections* below.
+    While any of its preparation steps is open (FR-29.21) it ends in a line ⏰ *„2 Vorbereitungen offen"*
+    (`m29-prep-<key>`) in the straw ink, as the idea's card has it.
   * **Whom a line is for** (FR-29.15): an entry that names travellers, and an excursion narrowed to some (FR-31.3), say
     *„für Sia, Leonardo"* under the title and its note (`m29-who-<key>`), the names in roster order, a shade lighter
     than the title and darker than the note. A line for everybody says nothing.
@@ -95,6 +99,25 @@
   left out — *Speichern*, and *Eintrag löschen* (`day-entry-remove`) — a destructive confirmation
   (`day-entry-remove-confirm`) *„„…" löschen?"* / *„Der Eintrag verschwindet für alle, die an der Reise teilnehmen."*.
   An entry without a connection offers *Zugverbindung hinzufügen* there as on a new one.
+* **Vorbereitung (FR-29.21)** — in this sheet only; *Neu am …* has none. Under the connection row and above
+  *Speichern*, a section (`day-entry-prep`) with the heading, *„n offen"* or *„erledigt"* at its end, then one row per
+  step in M25's line: the tick (`day-entry-prep-tick-<title>`), the words (a tap opens the step's sheet,
+  `day-entry-prep-<title>`), the lead under them (*1 Woche vorher*, `day-entry-prep-lead-<title>`) and FR-7.11's due
+  pill (`day-entry-prep-due-<title>`: *fällig Sa., 11.7.*, or the overdue ink once the lead has passed). The longest
+  lead first. A
+  dashed *＋ Vorbereitung* (`day-entry-prep-add`) opens the step's sheet over the entry's, as the connection step
+  replaces the form: *Vorbereitung* for *„…"* (`day-entry-prep-sheet`), *Was ist vorher zu tun?*
+  (`day-entry-prep-title`), *Wann?* as four chips — *Am Vortag · 3 Tage · 1 Woche · 2 Wochen vorher*
+  (`day-entry-prep-lead-choice-<n>`, *1 Woche* pressed for a new step) — and under them what the lead makes due
+  (`day-entry-prep-lead-out`): *„Fällig Sa., 11.7. · verschiebt sich mit dem Tag des Eintrags"*, with *„… · vor der
+  Reise, steht nur unter Aufgaben"* where the day is before the trip's first, or *„Schon überfällig – der Vorlauf
+  reicht nicht mehr."*. A fifth chip, *Bestimmter Tag*
+  (`day-entry-prep-lead-choice-day`), swaps the lead for a date field (`day-entry-prep-day`, the sheet's start the
+  day the last lead made due); the step's line then says *Bestimmter Tag* in place of the lead and the line under the
+  chips *„Fällig … · bleibt, wenn der Eintrag verschoben wird"*.
+  *Hinzufügen* / *Speichern* (`day-entry-prep-save`) go back to the entry's sheet, and for a step
+  written *Vorbereitung löschen* (`day-entry-prep-remove`). Writing a step does not close the entry's sheet or save its
+  other fields. *Eintrag löschen* deletes the steps with the entry.
 * **A day on an idea (FR-29.14):** M28's *Einplanen…* opens M29 (`?fromIdea=`, `‹ back` to the idea) with **the
   idea's sheet** (`m29-idea-plan`): *Einplanen am Do., 8.10.* (`m29-idea-plan-title`), the idea under *Von der
   Shortlist einplanen* (`m29-idea-plan-idea`), *Tag* as one sideways-scrolling row of day chips

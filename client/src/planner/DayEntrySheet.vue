@@ -5,14 +5,13 @@
  * a new one has the shortlisted ideas without a day above it, any of which is planned there
  * instead. Nothing is written before its button.
  *
- * The connection is found in a step of its own inside the same sheet: the
- * timetable search first (ADR-086), then a shared link or the hand fields.
- * A taken connection fills what the entry leaves empty — its title, its time
- * — and marks it as filled until it is typed into.
+ * The connection is found in a step of its own inside the same sheet: the timetable search first
+ * (ADR-086), then a shared link or the hand fields. A taken connection fills what the entry leaves
+ * empty — its title, its time — and marks it as filled until it is typed into.
  *
- * On an excursion's way (M27) the sheet is the connection alone: it opens at
- * the step, and the slot names and times what is written. Such a way goes
- * with the excursion's people, so it asks no one whom it is for.
+ * On an excursion's way (M27) the sheet is the connection alone: it opens at the step, and the slot
+ * names and times what is written. Such a way goes with the excursion's people, so it asks no one
+ * whom it is for.
  */
 import { IonButton, IonIcon, IonInput, IonSpinner } from '@ionic/vue'
 import {
@@ -38,6 +37,7 @@ import { useTransitionSettled } from '@/composables/shared/transitionSettled'
 import type { Traveler } from '@/types/domain'
 import type { ConnectionLeg, DayEntry, Idea } from './types'
 import type { ConnectionFields, DayEntryFields } from './actions'
+import EntryPreparationList from './EntryPreparationList.vue'
 import ConnectionCard from './ConnectionCard.vue'
 import ConnectionSearch from './ConnectionSearch.vue'
 import {
@@ -59,6 +59,7 @@ const props = defineProps<{
   open: boolean
   /** The entry being changed, or null for a new one. */
   entry: DayEntry | null
+  tripStart?: string | null
   /** The chosen day, `YYYY-MM-DD`: a new entry's, and a connection's by hand. */
   day: string | null
   /** The chosen day in words, for the head of a new one. */
@@ -106,10 +107,9 @@ watch(step, (value) => {
 })
 
 /**
- * The sheet never shrinks while it is open. A touch on a button is followed
- * by the click the browser makes of it; were a shorter step to pull the sheet
- * down under the finger first, that click would land on the backdrop and
- * dismiss the sheet.
+ * The sheet never shrinks while it is open. A touch on a button is followed by the click the
+ * browser makes of it; were a shorter step to pull the sheet down under the finger first, that
+ * click would land on the backdrop and dismiss the sheet.
  */
 const sheetBox = ref<HTMLElement | null>(null)
 const keptHeight = ref(0)
@@ -122,9 +122,9 @@ watch(
 )
 
 /**
- * The connection opening into the form or closing out of it moves what
- * stands below it; the sheet says when it stands (`data-settled`). Whatever
- * was still moving goes with the step or the sheet that held it.
+ * The connection opening into the form or closing out of it moves what stands below it; the sheet
+ * says when it stands (`data-settled`). Whatever was still moving goes with the step or sheet that
+ * held it.
  */
 const {
   settled: connectionSettled,
@@ -166,9 +166,8 @@ function filledTitle(legs: readonly ConnectionLeg[]): string {
 }
 
 /**
- * A connection taken from any of the three ways, back on the entry's form.
- * The form is back first and the connection joins it after, so it is seen
- * to open into the entry rather than to have been there.
+ * A connection taken from any of the three ways, back on the entry's form. The form is back first
+ * and the connection joins it after, so it is seen to open into the entry, not to have been there.
  */
 async function take(legs: ConnectionLeg[], link: string | null) {
   step.value = STEP_FORM
@@ -543,6 +542,7 @@ function save() {
           :placeholder="t('dayPlan.optional')"
           data-testid="day-entry-note"
         />
+        <EntryPreparationList v-if="entry && !connectionOnly" :entry :trip-start="tripStart" />
 
         <div ref="actions" class="actions">
           <IonButton

@@ -210,6 +210,11 @@ export function createCommentActions(ctx: SyncContext) {
     write(mutations.setTaskDueDate(task.id, dueDate))
   }
 
+  /** FR-29.21: a day-plan entry's step back on a lead before the entry's day, its fixed day dropped. */
+  function setTaskEntryLead(task: OwnTask, leadDays: number) {
+    write(mutations.setTaskEntryLead(task.id, leadDays))
+  }
+
   /** FR-7.18: the time a task's reminder arrives, set, moved or taken off — one field. */
   function setTaskDueTime(task: PrepTask | OwnTask, dueTime: string | null) {
     write(mutations.setTaskDueTime(task.id, dueTime))
@@ -256,6 +261,7 @@ export function createCommentActions(ctx: SyncContext) {
     setTaskDueTime,
     setTaskBody,
     setTaskLead,
+    setTaskEntryLead,
     deleteOwnTask,
   }
 }

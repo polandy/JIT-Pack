@@ -240,11 +240,11 @@ if (liveLocation) {
 }
 
 /*
- * The root provides the idea lookup rather than injecting it, so its own task
+ * The root provides the idea and entry lookups rather than injecting them, so its own task
  * readers are handed the folded one — read when called, after the fold.
  */
 const tripTasksOf = (tripId: string): TripTask[] =>
-  useTripTasks(composition?.ideaLookup ?? null).tasksOf(tripId)
+  useTripTasks(composition?.ideaLookup ?? null, composition?.entryLookup ?? null).tasksOf(tripId)
 
 /*
  * FR-30.3 (ADR-066): the composition root folds the kernel's

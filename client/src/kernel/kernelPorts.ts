@@ -28,6 +28,7 @@ import {
   type ExcursionShoppingReads,
   type ExcursionShoppingWrites,
 } from './excursionShoppingSource'
+import { createEntryPreparations } from './entryPreparations'
 import { createIdeaPreparations, type IdeaPreparationWrites } from './ideaPreparations'
 import { createIdeaResultSource, type IdeaResultReads } from './ideaResultSource'
 import type { FoldedSources, KernelPorts } from './moduleContribution'
@@ -114,6 +115,7 @@ export function kernelPorts(deps: KernelPortDeps, sources: FoldedSources): Kerne
       ],
       ideaResults: [createIdeaResultSource(trips)],
       ideaPreparations: createIdeaPreparations(trips, deps.comments),
+      entryPreparations: createEntryPreparations(trips, deps.comments),
       viewCounts: {
         // FR-31.10: excursions ahead that still have something to pack or buy.
         excursions: (tripId) =>

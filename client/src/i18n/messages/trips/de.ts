@@ -192,6 +192,7 @@ export const tripsDe: Record<keyof typeof tripsEn, string> = {
 
   // FR-29.13: the line naming where a result came from, beside tasks.fromIdea.
   'trip.ideaOrigin': 'Aus der Idee „{title}“',
+  'trip.entryOrigin': 'Vorbereitung für „{title}“',
 
   // Die zwei Reise-Ansichten des Planers mit Namen, die auch der Umschalter und
   // M30 lesen; der Rest seiner Texte steht in planner/i18n/.

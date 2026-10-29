@@ -18,10 +18,12 @@ import {
   trailSignOutline,
   trainOutline,
 } from 'ionicons/icons'
-import { computed, ref } from 'vue'
+import { alarmOutline } from 'ionicons/icons'
+import { computed, inject, ref } from 'vue'
 
 import ProgressRing from '@/components/global/ProgressRing.vue'
 import { t } from '@/i18n'
+import { ENTRY_PREPARATIONS } from '@/kernel/ideaBridge'
 import type { NameOf } from '@/lib/rowFacts'
 import ConnectionLegs from './ConnectionLegs.vue'
 import ConnectionMapView from './ConnectionMapView.vue'
@@ -45,6 +47,13 @@ const KIND_ICON: Record<DayLineKind, string> = {
 
 const words = computed(() => dayLineWords(props.line, props.nameOf))
 const time = computed(() => dayLineTime(props.line))
+/** FR-29.21: how many of the entry's preparation steps are still open. */
+const preparations = inject(ENTRY_PREPARATIONS, null)
+const prepOpen = computed(() => {
+  const entry = props.line.entry
+  if (!entry || !preparations) return 0
+  return preparations.steps(entry.trip_id, entry.id).filter((step) => !step.done).length
+})
 const legs = computed(() =>
   props.line.kind === DAY_LINE.connection ? (props.line.entry?.legs ?? null) : null,
 )
@@ -77,6 +86,10 @@ const mapOpen = ref(false)
         <span v-if="words.who" class="who" :data-testid="`m29-who-${line.key}`">{{
           words.who
         }}</span>
+        <span v-if="prepOpen > 0" class="prep-open" :data-testid="`m29-prep-${line.key}`">
+          <IonIcon :icon="alarmOutline" aria-hidden="true" />
+          {{ t('dayPlan.prep.lineOpen', { n: prepOpen }) }}
+        </span>
       </span>
       <!-- Inside the line's button: a ring is read, never operated, so a tap on it opens the line. -->
       <ProgressRing
@@ -245,6 +258,15 @@ const mapOpen = ref(false)
 .who {
   color: var(--ct-subtext1);
   font-size: var(--jp-text-sm);
+}
+
+/* FR-29.21: the entry's open preparation, in the straw ink as the idea's card has it. */
+.prep-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ct-straw);
+  font-size: var(--jp-text-xs);
 }
 
 /* M25's checkbox, its padding the tap target around the box. */

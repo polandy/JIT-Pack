@@ -190,6 +190,7 @@ export const tripsEn = {
 
   // FR-29.13: the line naming where a result came from, beside tasks.fromIdea.
   'trip.ideaOrigin': 'Made from the idea “{title}”',
+  'trip.entryOrigin': 'Preparation for “{title}”',
 
   // The planner's two trip views by name, which the switcher and M30 read too;
   // the rest of its copy is in planner/i18n/.

@@ -759,6 +759,7 @@ function rowToOwnTask(id: string, row: Record<string, unknown>): OwnTask {
     task_state: (row['task_state'] as OwnTask['task_state']) ?? TASK_STATE_OPEN,
     ...taskFacts(row),
     idea_id: (row['idea_id'] as string | null | undefined) ?? null,
+    day_entry_id: (row['day_entry_id'] as string | null | undefined) ?? null,
     // ADR-108: the anchor its due day is a lead before, whichever shape the
     // row was stored in.
     ...rowToAnchor(row),
