@@ -135,3 +135,7 @@
   step with its due pill and the line naming the entry (`trip-task-entry-<body>`); deleting the entry deletes the step,
   M25 holds no task. The derivation, with an entry on another day, is `domain/__tests__/tripTasks.spec.ts` and
   `domain/shared/__tests__/entryPreparation.spec.ts`; for the reminder, `internal/store/taskdue_test.go`.
+* **E2E-M29-27** `local` (FR-29.21, FR-29.15) — **implemented** (`planner/entryPreparation.spec.ts`): in the step's
+  sheet *Bestimmter Tag* replaces the lead chips with a date field; a step set to the entry's neighbouring day says
+  *Bestimmter Tag* under its words and is listed on that day's plan, its second line naming the entry. What the
+  mutations write and that the day stays put are `kernel/__tests__/entryPreparations.spec.ts`.

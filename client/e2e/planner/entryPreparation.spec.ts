@@ -1,5 +1,5 @@
 import { test, expect, createTripViaWizard, visiblePage, writesLanded } from '../fixtures'
-import { fillIonic } from '../helpers/ionic'
+import { fillIonic, setDateField } from '../helpers/ionic'
 import { openTripView } from '../helpers/trips'
 import { addDayEntry, chooseDay, dayFromToday, openDayPlan, timelineLines } from './helpers/m29'
 import type { Locator, Page } from '@playwright/test'
@@ -120,5 +120,30 @@ test.describe('M29 an entry’s preparation @local @planner', () => {
 
     await openTripView(page, 'tasks')
     await expect(visiblePage(page).getByTestId(`trip-task-${STEP}`)).toHaveCount(0)
+  })
+
+  /**
+   * E2E-M29-27: a step can be set to a day of its own instead of a lead. It is due that
+   * day, lists on the plan then, and does not move when the entry's day is changed.
+   */
+  test('E2E-M29-27: a step on a day of its own lists on that day and stays put', async ({
+    page,
+  }) => {
+    const sheet = await openNewEntry(page)
+    await sheet.getByTestId('day-entry-prep-add').click()
+    const step = page.getByTestId('day-entry-prep-sheet')
+    await fillIonic(step.getByTestId('day-entry-prep-title'), STEP)
+    await step.getByTestId('day-entry-prep-lead-choice-day').click()
+    await setDateField(page, 'day-entry-prep-day', SECOND)
+    await step.getByTestId('day-entry-prep-save').click()
+    await expect(step.getByTestId('day-entry-prep-save')).toHaveCount(0)
+    await expect(sheet.getByTestId(`day-entry-prep-lead-${STEP}`)).toHaveText('On a day')
+    await writesLanded(page)
+    await sheet.getByTestId('day-entry-save').click()
+    await expect(page.getByTestId('day-entry-save')).toHaveCount(0)
+
+    await chooseDay(page, SECOND)
+    const stepLine = timelineLines(page).filter({ hasText: STEP })
+    await expect(stepLine).toContainText(ENTRY)
   })
 })

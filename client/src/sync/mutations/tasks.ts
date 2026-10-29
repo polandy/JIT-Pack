@@ -6,7 +6,7 @@
 import { TABLE } from '@/api/tables'
 import { newId } from '@/lib/ids'
 import type { Mutation } from '@/api/types'
-import type { TaskAnchor } from '@/domain/shared/taskAnchor'
+import { ANCHOR_KIND, type TaskAnchor } from '@/domain/shared/taskAnchor'
 import { TASK_STATE_OPEN, TASK_STATE_RESOLVED, type TaskPhase } from '@/types/domain'
 import type { MutationContext } from './context'
 
@@ -217,6 +217,18 @@ export function createTasksMutations({ make, nowIso }: MutationContext) {
     return make('upsert', TABLE.comments, taskId, { anchor_lead_days: leadDays })
   }
 
+  /**
+   * FR-29.21: a step set to a lead before its entry's day, from a fixed one — the anchor and the
+   * lead together, the stored day gone: the day is read off the entry from here on (ADR-108).
+   */
+  function setTaskEntryLead(taskId: string, leadDays: number): Mutation {
+    return make('upsert', TABLE.comments, taskId, {
+      anchor_kind: ANCHOR_KIND.entry,
+      anchor_lead_days: leadDays,
+      due_date: null,
+    })
+  }
+
   return {
     addTask,
     resolveTask,
@@ -227,6 +239,7 @@ export function createTasksMutations({ make, nowIso }: MutationContext) {
     createTaskTag,
     setTaskTag,
     setTaskDueDate,
+    setTaskEntryLead,
     setTaskDueTime,
     placeTask,
     setTaskBody,

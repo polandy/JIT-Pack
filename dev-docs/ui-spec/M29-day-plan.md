@@ -111,7 +111,11 @@
   (`day-entry-prep-lead-choice-<n>`, *1 Woche* pressed for a new step) — and under them what the lead makes due
   (`day-entry-prep-lead-out`): *„Fällig Sa., 11.7. · verschiebt sich mit dem Tag des Eintrags"*, with *„… · vor der
   Reise, steht nur unter Aufgaben"* where the day is before the trip's first, or *„Schon überfällig – der Vorlauf
-  reicht nicht mehr."*. *Hinzufügen* / *Speichern* (`day-entry-prep-save`) go back to the entry's sheet, and for a step
+  reicht nicht mehr."*. A fifth chip, *Bestimmter Tag*
+  (`day-entry-prep-lead-choice-day`), swaps the lead for a date field (`day-entry-prep-day`, the sheet's start the
+  day the last lead made due); the step's line then says *Bestimmter Tag* in place of the lead and the line under the
+  chips *„Fällig … · bleibt, wenn der Eintrag verschoben wird"*.
+  *Hinzufügen* / *Speichern* (`day-entry-prep-save`) go back to the entry's sheet, and for a step
   written *Vorbereitung löschen* (`day-entry-prep-remove`). Writing a step does not close the entry's sheet or save its
   other fields. *Eintrag löschen* deletes the steps with the entry.
 * **A day on an idea (FR-29.14):** M28's *Einplanen…* opens M29 (`?fromIdea=`, `‹ back` to the idea) with **the

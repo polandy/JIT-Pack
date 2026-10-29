@@ -2,7 +2,7 @@
 /**
  * FR-29.21: the day-plan entry's *Vorbereitung* — what has to be done ahead of
  * it, a table reserved or tickets bought, each with its lead before the
- * entry's day. Written in the edit sheet only: a new entry has no id for a
+ * entry's day or, where it should not move with the entry, a day of its own. Written in the edit sheet only: a new entry has no id for a
  * step to name yet.
  *
  * A step is a trip task the packing side owns, read and written through the
@@ -16,6 +16,7 @@ import { addOutline } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
 
 import ChoiceChip from '@/components/global/ChoiceChip.vue'
+import DateField from '@/components/global/DateField.vue'
 import DueBadge from '@/components/global/DueBadge.vue'
 import ListRow from '@/components/global/ListRow.vue'
 import ListRows from '@/components/global/ListRows.vue'
@@ -58,29 +59,49 @@ function dueOf(leadDays: number): string | null {
   return entryStepDue(leadDays, { onDate: props.entry.on_date })
 }
 
+/** The day a step is due: its lead before the entry, or the day chosen for it. */
+function dueOfStep(step: EntryPreparation): string | null {
+  return step.leadDays === null ? step.dueDate : dueOf(step.leadDays)
+}
+
 /** The step the sheet is open on: null while it is closed, `'new'` for one being written. */
 const editing = ref<EntryPreparation | 'new' | null>(null)
 const title = ref('')
-const lead = ref<number>(DEFAULT_LEAD)
+/** The chosen lead, null while a day of its own is chosen. */
+const lead = ref<number | null>(DEFAULT_LEAD)
+const fixedDay = ref('')
 
 function openNew() {
   title.value = ''
   lead.value = DEFAULT_LEAD
+  fixedDay.value = ''
   editing.value = 'new'
 }
 
 function openStep(step: EntryPreparation) {
   title.value = step.title
   lead.value = step.leadDays
+  fixedDay.value = step.dueDate ?? ''
   editing.value = step
 }
 
+/** The „Bestimmter Tag" chip starts on what the last lead made due, else the entry's own day. */
+function chooseFixed() {
+  if (lead.value === null) return
+  fixedDay.value = dueOf(lead.value) ?? props.entry.on_date
+  lead.value = null
+}
+
+const chosenDue = computed(() => (lead.value === null ? fixedDay.value || null : dueOf(lead.value)))
+
 /** What the chosen lead makes due, said under the chips (FR-29.21). */
 const leadOut = computed(() => {
-  const due = dueOf(lead.value)
+  const due = chosenDue.value
   if (due === null) return ''
   if (due < today.value) return t('ideas.prep.tooLate')
-  const out = t('dayPlan.prep.dueOn', { day: shortDueDay(due) })
+  const out = t(lead.value === null ? 'dayPlan.prep.dueFixed' : 'dayPlan.prep.dueOn', {
+    day: shortDueDay(due),
+  })
   return !!props.tripStart && due < props.tripStart
     ? `${out} · ${t('dayPlan.prep.beforeTrip')}`
     : out
@@ -88,13 +109,11 @@ const leadOut = computed(() => {
 
 function save() {
   const words = title.value.trim()
-  if (!preparations || !words || editing.value === null) return
+  const due = chosenDue.value
+  if (!preparations || !words || due === null || editing.value === null) return
   const { trip_id: tripId, id: entryId } = props.entry
-  if (editing.value === 'new') {
-    preparations.add(tripId, entryId, words, lead.value, dueOf(lead.value)!)
-  } else {
-    preparations.edit(tripId, editing.value.id, words, lead.value)
-  }
+  if (editing.value === 'new') preparations.add(tripId, entryId, words, lead.value, due)
+  else preparations.edit(tripId, editing.value.id, words, lead.value, due)
   editing.value = null
 }
 
@@ -135,13 +154,13 @@ function toggle(step: EntryPreparation) {
         </IonLabel>
         <template #facts>
           <span :data-testid="`day-entry-prep-lead-${step.title}`">{{
-            leadName(step.leadDays)
+            step.leadDays === null ? t('dayPlan.prep.onDay') : leadName(step.leadDays)
           }}</span>
         </template>
         <template #end>
           <DueBadge
             slot="end"
-            :day="step.done ? null : dueOf(step.leadDays)"
+            :day="step.done ? null : dueOfStep(step)"
             :today="today"
             :testid="`day-entry-prep-due-${step.title}`"
           />
@@ -181,13 +200,27 @@ function toggle(step: EntryPreparation) {
           >
             {{ leadName(one) }}
           </ChoiceChip>
+          <ChoiceChip
+            :pressed="lead === null"
+            data-testid="day-entry-prep-lead-choice-day"
+            @click="chooseFixed"
+          >
+            {{ t('dayPlan.prep.onDay') }}
+          </ChoiceChip>
         </div>
+        <DateField
+          v-if="lead === null"
+          :label="t('ideas.prep.when')"
+          :value="fixedDay"
+          testid="day-entry-prep-day"
+          @update="fixedDay = $event"
+        />
         <p class="lead-out jp-num" data-testid="day-entry-prep-lead-out">{{ leadOut }}</p>
         <div class="actions">
           <IonButton
             expand="block"
             shape="round"
-            :disabled="title.trim() === ''"
+            :disabled="title.trim() === '' || chosenDue === null"
             data-testid="day-entry-prep-save"
             @click="save"
           >

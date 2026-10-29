@@ -60,7 +60,7 @@ export interface DayLine {
   /** An excursion's line: the idea it was made from, shown as this one line (FR-29.13). */
   origin?: Idea
   /** A task line that prepares an entry: the entry and the step's lead (FR-29.21). */
-  stepOf?: { entry: DayEntry; leadDays: number }
+  stepOf?: { entry: DayEntry; leadDays: number | null }
   /** A connection's line: the excursion it belongs to (FR-29.18). */
   excursion?: DayPlanLine
   /** Whom it is for, by name in roster order — null for everybody (FR-29.15). */
@@ -295,9 +295,7 @@ export function dayLines(day: string, input: DayInput): DayLine[] {
       progress: source.progress,
       source,
       origin,
-      ...(stepEntry && source.leadDays != null
-        ? { stepOf: { entry: stepEntry, leadDays: source.leadDays } }
-        : {}),
+      ...(stepEntry ? { stepOf: { entry: stepEntry, leadDays: source.leadDays ?? null } } : {}),
       who: whoOf(source.travelerIds ?? [], input.travelers),
       forIds: forOf(source.travelerIds ?? [], input.travelers),
     })

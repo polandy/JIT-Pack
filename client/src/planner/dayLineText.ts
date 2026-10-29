@@ -51,10 +51,12 @@ export function dayLineWords(line: DayLine, nameOf: NameOf): DayLineWords {
       line.kind === DAY_LINE.task
         ? [
             line.stepOf
-              ? t('dayPlan.prep.stepOf', {
-                  title: line.stepOf.entry.title,
-                  lead: leadName(line.stepOf.leadDays),
-                })
+              ? line.stepOf.leadDays === null
+                ? t('dayPlan.prep.stepOfFixed', { title: line.stepOf.entry.title })
+                : t('dayPlan.prep.stepOf', {
+                    title: line.stepOf.entry.title,
+                    lead: leadName(line.stepOf.leadDays),
+                  })
               : null,
             nameOf(line.source?.assignee ?? null),
           ]

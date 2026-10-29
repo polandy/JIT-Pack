@@ -31,6 +31,8 @@ export interface IdeaPreparationWrites {
   ): string
   setTaskBody(task: OwnTask, body: string): void
   setTaskLead(task: OwnTask, leadDays: number): void
+  setTaskDueDate(task: OwnTask, dueDate: string | null): void
+  setTaskEntryLead(task: OwnTask, leadDays: number): void
   resolveOwnTask(task: OwnTask): void
   reopenOwnTask(task: OwnTask): void
   deleteOwnTask(task: OwnTask): void

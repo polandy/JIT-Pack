@@ -36,6 +36,8 @@ function harness(tasks: OwnTask[]) {
     addOwnTask: vi.fn((..._args: unknown[]) => 'new'),
     setTaskBody: vi.fn(),
     setTaskLead: vi.fn(),
+    setTaskDueDate: vi.fn(),
+    setTaskEntryLead: vi.fn(),
     resolveOwnTask: vi.fn(),
     reopenOwnTask: vi.fn(),
     deleteOwnTask: vi.fn(),

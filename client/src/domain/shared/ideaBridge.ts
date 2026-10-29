@@ -124,8 +124,10 @@ export interface EntryLookup {
 export interface EntryPreparation {
   id: string
   title: string
-  /** Days before the entry's day it is due — one of `PREPARATION_LEADS`. */
-  leadDays: number
+  /** Days before the entry's day it is due — one of `PREPARATION_LEADS`; null for a step on a day of its own. */
+  leadDays: number | null
+  /** The day a step without a lead is due, `YYYY-MM-DD`; null for one on a lead. */
+  dueDate: string | null
   /** Whether it is ticked off. */
   done: boolean
 }
@@ -136,12 +138,15 @@ export interface EntryPreparation {
  * that owns trip tasks.
  */
 export interface EntryPreparations {
-  /** The entry's steps, the longest lead first. */
+  /** The entry's steps, in no order. */
   steps(tripId: string, entryId: string): EntryPreparation[]
-  /** Writes a step; `due` is the day it falls due, what the task's phase is written from (FR-7.7). */
-  add(tripId: string, entryId: string, title: string, leadDays: number, due: string): void
-  /** Changes a step's words and lead; nothing for a step this device does not hold. */
-  edit(tripId: string, stepId: string, title: string, leadDays: number): void
+  /**
+   * Writes a step on a lead, or — with a null lead — on the day `due` itself, which then stays put
+   * when the entry moves. `due` is the day it falls due, what the task's phase is written from (FR-7.7).
+   */
+  add(tripId: string, entryId: string, title: string, leadDays: number | null, due: string): void
+  /** Changes a step's words and when, as `add` says it; nothing for a step this device does not hold. */
+  edit(tripId: string, stepId: string, title: string, leadDays: number | null, due: string): void
   /** Ticks a step off, or back on. */
   toggle(tripId: string, stepId: string): void
   remove(tripId: string, stepId: string): void

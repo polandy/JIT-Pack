@@ -5,7 +5,7 @@
  * writes them, and the entry's sheet only names the entry. A projection of the
  * task rows, never a list on the entry.
  */
-import { isEntryStep } from '@/domain/shared/entryPreparation'
+import { isEntryPreparation, isEntryStep } from '@/domain/shared/entryPreparation'
 import type { EntryPreparations } from '@/domain/shared/ideaBridge'
 import { ANCHOR_KIND } from '@/domain/shared/taskAnchor'
 import { taskPhaseForDue } from '@/domain/ideaResults'
@@ -18,9 +18,9 @@ export function createEntryPreparations(
   writes: IdeaPreparationWrites,
 ): EntryPreparations {
   const stepsOf = (tripId: string, entryId: string) =>
-    reads.getOwnTasks(tripId).filter((task) => isEntryStep(task) && task.day_entry_id === entryId)
+    reads.getOwnTasks(tripId).filter((task) => task.day_entry_id === entryId)
   const stepById = (tripId: string, stepId: string) =>
-    reads.getOwnTasks(tripId).find((task) => task.id === stepId && isEntryStep(task))
+    reads.getOwnTasks(tripId).find((task) => task.id === stepId && isEntryPreparation(task))
 
   return {
     steps(tripId, entryId) {
@@ -28,23 +28,29 @@ export function createEntryPreparations(
         .map((task) => ({
           id: task.id,
           title: task.body,
-          leadDays: task.anchor_lead_days!,
+          leadDays: isEntryStep(task) ? (task.anchor_lead_days ?? null) : null,
+          dueDate: isEntryStep(task) ? null : task.due_date,
           done: task.task_state === TASK_STATE_RESOLVED,
         }))
-        .sort((a, b) => b.leadDays - a.leadDays)
+        .sort((a, b) => (b.leadDays ?? -1) - (a.leadDays ?? -1))
     },
     add(tripId, entryId, title, leadDays, due) {
       const start = reads.tripList.find((trip) => trip.id === tripId)?.start_date ?? null
       writes.addOwnTask(tripId, CLIENT_ACTOR_PLACEHOLDER, title, taskPhaseForDue(due, start), {
         dayEntryId: entryId,
-        anchor: { kind: ANCHOR_KIND.entry, leadDays },
+        ...(leadDays === null
+          ? { dueDate: due }
+          : { anchor: { kind: ANCHOR_KIND.entry, leadDays } }),
       })
     },
-    edit(tripId, stepId, title, leadDays) {
+    edit(tripId, stepId, title, leadDays, due) {
       const step = stepById(tripId, stepId)
       if (!step) return
       if (step.body !== title) writes.setTaskBody(step, title)
-      if (step.anchor_lead_days !== leadDays) writes.setTaskLead(step, leadDays)
+      if (leadDays === null) {
+        if (isEntryStep(step) || step.due_date !== due) writes.setTaskDueDate(step, due)
+      } else if (!isEntryStep(step)) writes.setTaskEntryLead(step, leadDays)
+      else if (step.anchor_lead_days !== leadDays) writes.setTaskLead(step, leadDays)
     },
     toggle(tripId, stepId) {
       const step = stepById(tripId, stepId)

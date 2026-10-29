@@ -36,6 +36,8 @@ function harness(tasks: OwnTask[]) {
     addOwnTask: vi.fn((..._args: unknown[]) => 'new'),
     setTaskBody: vi.fn(),
     setTaskLead: vi.fn(),
+    setTaskDueDate: vi.fn(),
+    setTaskEntryLead: vi.fn(),
     resolveOwnTask: vi.fn(),
     reopenOwnTask: vi.fn(),
     deleteOwnTask: vi.fn(),
@@ -52,6 +54,7 @@ describe('createEntryPreparations (FR-29.21)', () => {
     task('eve', { anchor_lead_days: 1 }),
     task('week', { anchor_lead_days: 7, task_state: 'resolved' }),
     task('plain', { day_entry_id: null, anchor_kind: null, anchor_lead_days: null }),
+    task('fixed', { anchor_kind: null, anchor_lead_days: null, due_date: '2026-07-10' }),
     task('other', { day_entry_id: 'entry-2', anchor_lead_days: 3 }),
     task('ideas', { day_entry_id: null, idea_id: 'idea-1', anchor_kind: 'idea' }),
   ]
@@ -59,8 +62,9 @@ describe('createEntryPreparations (FR-29.21)', () => {
   it('lists the entry’s steps, longest lead first — nothing of another entry or an idea', () => {
     const { preparations } = harness(tasks)
     expect(preparations.steps('t', 'entry-1')).toEqual([
-      { id: 'week', title: 'Schritt week', leadDays: 7, done: true },
-      { id: 'eve', title: 'Schritt eve', leadDays: 1, done: false },
+      { id: 'week', title: 'Schritt week', leadDays: 7, dueDate: null, done: true },
+      { id: 'eve', title: 'Schritt eve', leadDays: 1, dueDate: null, done: false },
+      { id: 'fixed', title: 'Schritt fixed', leadDays: null, dueDate: '2026-07-10', done: false },
     ])
   })
 
@@ -80,11 +84,36 @@ describe('createEntryPreparations (FR-29.21)', () => {
 
   it('edits only what changed, and nothing for a step it does not hold', () => {
     const { preparations, writes } = harness(tasks)
-    preparations.edit('t', 'eve', 'Schritt eve', 3)
+    preparations.edit('t', 'eve', 'Schritt eve', 3, '2026-07-15')
     expect(writes.setTaskBody).not.toHaveBeenCalled()
     expect(writes.setTaskLead).toHaveBeenCalledTimes(1)
-    preparations.edit('t', 'plain', 'x', 3)
+    preparations.edit('t', 'plain', 'x', 3, '2026-07-15')
     expect(writes.setTaskLead).toHaveBeenCalledTimes(1)
+  })
+
+  it('writes a step on a day of its own with that day and no anchor (FR-29.21)', () => {
+    const { preparations, writes } = harness(tasks)
+    preparations.add('t', 'entry-1', 'Anrufen', null, '2026-07-12')
+    expect(writes.addOwnTask.mock.calls[0]![4]).toEqual({
+      dayEntryId: 'entry-1',
+      dueDate: '2026-07-12',
+    })
+  })
+
+  it('moves a step between a lead and a day of its own, and edits a fixed day (FR-29.21)', () => {
+    const { preparations, writes } = harness(tasks)
+    preparations.edit('t', 'eve', 'Schritt eve', null, '2026-07-12')
+    expect(writes.setTaskDueDate).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'eve' }),
+      '2026-07-12',
+    )
+    preparations.edit('t', 'fixed', 'Schritt fixed', 5, '2026-07-13')
+    expect(writes.setTaskEntryLead).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'fixed' }),
+      5,
+    )
+    preparations.edit('t', 'fixed', 'Schritt fixed', null, '2026-07-10')
+    expect(writes.setTaskDueDate).toHaveBeenCalledTimes(1)
   })
 
   it('ticks an open step off and a done one back on', () => {
@@ -100,6 +129,7 @@ describe('createEntryPreparations (FR-29.21)', () => {
     preparations.removeAll('t', 'entry-1')
     expect(writes.deleteOwnTask.mock.calls.map(([step]) => (step as OwnTask).id).sort()).toEqual([
       'eve',
+      'fixed',
       'week',
     ])
   })

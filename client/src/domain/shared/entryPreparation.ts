@@ -25,7 +25,16 @@ export function entryStepDue(leadDays: number, entry: EntryDay | undefined): str
   return entry ? leadBefore(entry.onDate, leadDays) : null
 }
 
-/** Whether a trip task is a day-plan entry's preparation step rather than an ordinary task. */
+/** Whether a trip task is a day-plan entry's step due a lead before the entry's day. */
 export function isEntryStep(task: TaskAnchorColumns & EntryTaskLink): boolean {
   return task.day_entry_id != null && hasAnchor(task, ANCHOR_KIND.entry)
+}
+
+/**
+ * Whether a trip task prepares a day-plan entry, on a lead or on a day of its own: a step set to a
+ * day is an ordinary task that still names its entry, and stays where it was put when the entry
+ * moves.
+ */
+export function isEntryPreparation(task: EntryTaskLink): boolean {
+  return task.day_entry_id != null
 }
