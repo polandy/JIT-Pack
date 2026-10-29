@@ -24,8 +24,9 @@
   label naming its kind, and **at most one trailing shape, one per meaning** (UX-09):
   * **The time column** reads one grammar: the line's time; an untimed meal's slot in its short word, as M31 and M1
     say it (*Morgen · Mittag · Znüni/Zvieri · Abend*, §3.33; *Znüni/Zvieri* breaks at its slash); *ganztags* for an
-    untimed excursion; **nothing** for every other line without one — a task (which has a
-    day, never a time), an untimed idea or entry, arrival and departure. It is 56 px, as wide as *ganztags*, so every
+    untimed excursion; a task's reminder time where it has one (FR-7.18), which puts it ahead of the day's untimed
+    lines; **nothing** for every other line without one — a task without a time, an untimed idea or entry, arrival
+    and departure. It is 56 px, as wide as *ganztags*, so every
     title starts on one line; the words a shade lighter than a time.
   * **The trailing shape:** a **ring** for a share — a meal's bought ingredients, an excursion's packed rucksack —
     named by its count (*„2 von 4 Zutaten"*, *„3 von 8 gepackt"*), not its percentage, and part of the line's tap:

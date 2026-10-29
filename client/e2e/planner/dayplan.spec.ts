@@ -484,4 +484,46 @@ test.describe('M29 day plan — the ＋ opens the day’s sheet (FR-21.24) @loca
     await line('Picknick').getByTestId('progress-ring').click()
     await expect(mealSheet(page).getByTestId('meal-title')).toBeVisible()
   })
+
+  /**
+   * E2E-M29-24 (FR-7.18, FR-29.15): a task's reminder time is its line's
+   * time — worn in the time column and putting it ahead of the day's task
+   * without one, which keeps the column empty.
+   */
+  test('E2E-M29-24: a task with a reminder time stands on the plan at that time, before one without', async ({
+    page,
+  }) => {
+    await setClock(page, `${TODAY}T09:00:00+02:00`)
+    await createTripViaWizard(page, {
+      name: 'Engadin Zeit',
+      startDate: TODAY,
+      endDate: TOMORROW,
+      travelers: ['Andy'],
+    })
+    await openTasks(page, 'before')
+    const composer = await openListComposer(page, 'm25')
+    for (const body of ['Ohne Zeit', 'Pass holen']) {
+      await fillIonic(composer.getByTestId('trip-task-input'), body)
+      await composer.getByTestId('due-chip-today').click()
+      await composer.getByTestId('trip-task-input').locator('input').press('Enter')
+      await expect(visiblePage(page).getByTestId(`trip-task-due-${body}`)).toBeVisible()
+    }
+    await visiblePage(page).getByTestId('trip-task-open-Pass holen').click()
+    const sheet = page.getByTestId('task-sheet')
+    await sheet.getByTestId('task-sheet-due-time').click()
+    const field = sheet.getByTestId('task-sheet-due-time-field')
+    await fillIonic(field, '14:00')
+    await field.locator('input').press('Enter')
+    await expect(sheet.getByTestId('task-sheet-due-time')).toHaveText('14:00')
+    await sheet.getByTestId('task-sheet-close').click()
+    await expect(sheet).toHaveCount(0)
+
+    await openDayPlan(page)
+    const tasks = timelineLines(page).and(page.locator('[data-kind="task"]'))
+    await expect(tasks).toHaveCount(2)
+    await expect(tasks.first()).toContainText('Pass holen')
+    await expect(tasks.first().locator('[data-testid^="m29-time-"]')).toHaveText('14:00')
+    await expect(tasks.last()).toContainText('Ohne Zeit')
+    await expect(tasks.last().locator('[data-testid^="m29-time-"]')).toHaveText('')
+  })
 })
