@@ -260,7 +260,8 @@ describe('createSeriesActions without an orchestrator', () => {
       expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({
         body: 'Schneeketten prüfen',
         destination_task_id: 'dt-1',
-        start_lead_days: 28,
+        anchor_kind: 'trip_start',
+        anchor_lead_days: 28,
       })
       expect(queued[1]!.muts[0]!.mutation.fields).toMatchObject({ assignee_user_id: 'u2' })
     })

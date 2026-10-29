@@ -71,7 +71,9 @@ import {
   TEMPLATE_KIND_TEMPLATE,
 } from '@/types/domain'
 import { TABLE, type SyncTable } from '@/api/tables'
+import type { AnchorKind, TaskAnchorColumns } from '@/types/taskColumns'
 import { durationDays } from '@/domain/instantiate'
+import { legacyAnchorOfRow } from '@/domain/shared/taskAnchor'
 import { DEPENDENCY_MODE_REQUIRED } from '@/domain/dependencies'
 import { parseJsonColumn } from './columns'
 import {
@@ -738,6 +740,16 @@ export const KERNEL_TABLE_SPECS = {
  */
 export const prepTaskCodec: TableCodec<PrepTask> = { parse: rowToPrepTask, encode: prepTaskRow }
 
+/** ADR-108: the anchor pair, or — for a Local Mode row stored before it — what it was derived from. */
+function rowToAnchor(row: Record<string, unknown>): Required<TaskAnchorColumns> {
+  const kind = row['anchor_kind'] as AnchorKind | null | undefined
+  if (kind == null) return legacyAnchorOfRow(row)
+  return {
+    anchor_kind: kind,
+    anchor_lead_days: (row['anchor_lead_days'] as number | null | undefined) ?? null,
+  }
+}
+
 function rowToOwnTask(id: string, row: Record<string, unknown>): OwnTask {
   return {
     id,
@@ -747,11 +759,11 @@ function rowToOwnTask(id: string, row: Record<string, unknown>): OwnTask {
     task_state: (row['task_state'] as OwnTask['task_state']) ?? TASK_STATE_OPEN,
     ...taskFacts(row),
     idea_id: (row['idea_id'] as string | null | undefined) ?? null,
-    lead_days: (row['lead_days'] as number | null | undefined) ?? null,
-    // FR-13.4: the series task this todo was materialised from, and its lead
-    // before the trip's own start (ADR-106) — `idea_id`/`lead_days`'s shape.
+    // ADR-108: the anchor its due day is a lead before, whichever shape the
+    // row was stored in.
+    ...rowToAnchor(row),
+    // FR-13.4: the series task this todo was materialised from.
     destination_task_id: (row['destination_task_id'] as string | null | undefined) ?? null,
-    start_lead_days: (row['start_lead_days'] as number | null | undefined) ?? null,
   }
 }
 

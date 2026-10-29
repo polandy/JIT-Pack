@@ -19,6 +19,7 @@ import { TASK_PHASE_BEFORE } from '@/types/domain'
 import { planClone, type CloneOptions } from '@/domain/clone'
 import { durationDays, type DraftTripTask, type GeneratedItem } from '@/domain/instantiate'
 import { materializeSeriesTasks } from '@/domain/shared/seriesTask'
+import { tripStartAnchor } from '@/domain/shared/taskAnchor'
 import type { ImportPlan } from '@/domain/spreadsheet'
 import { t } from '@/i18n'
 import type { ItemMode } from '@/types/domain'
@@ -102,7 +103,10 @@ export function createTripCreationActions(ctx: SyncContext) {
         CLIENT_ACTOR_PLACEHOLDER,
         task.body,
         TASK_PHASE_BEFORE,
-        { destinationTaskId: task.destination_task_id, startLeadDays: task.start_lead_days },
+        {
+          destinationTaskId: task.destination_task_id,
+          anchor: tripStartAnchor(task.start_lead_days),
+        },
       )
       queue(mutation)
       if (task.assignee_user_id) {

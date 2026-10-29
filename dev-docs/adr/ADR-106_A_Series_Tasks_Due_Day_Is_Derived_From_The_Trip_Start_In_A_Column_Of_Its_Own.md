@@ -1,6 +1,6 @@
 # ADR-106: A series task's due day — derived from the trip's start, in a column of its own
 
-**Status:** Accepted
+**Status:** Superseded by ADR-108
 **Related:** FR-13.4, FR-7.4, FR-7.11, FR-29.21, ADR-104, `comments.start_lead_days`,
 `comments.destination_task_id`, `client/src/domain/tripTasks.ts`, `internal/store/taskdue.go`
 

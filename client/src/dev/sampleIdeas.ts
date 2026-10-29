@@ -14,6 +14,7 @@ import {
 } from '@/planner'
 import { useTripStore } from '@/stores/tripStore'
 import { TASK_PHASE_BEFORE } from '@/types/domain'
+import { ANCHOR_KIND } from '@/domain/shared/taskAnchor'
 import { samplePicture } from './samplePictures'
 import { SAMPLE_ROUTES, sampleGpx } from './sampleTracks'
 import { SEED_AUTHOR_ID, TRAVELERS, isoDay, type Orchestrator } from './seedBasics'
@@ -136,7 +137,7 @@ export function seedIdeas(tripId: string, orchestrator: Orchestrator): void {
     for (const step of seed.preparation ?? []) {
       orchestrator.comments.addOwnTask(tripId, SEED_AUTHOR_ID, step.title, TASK_PHASE_BEFORE, {
         ideaId: idea.id,
-        leadDays: step.leadDays,
+        anchor: { kind: ANCHOR_KIND.idea, leadDays: step.leadDays },
       })
     }
   }

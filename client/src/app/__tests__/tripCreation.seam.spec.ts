@@ -212,7 +212,7 @@ describe('createTripFromWizard on the seam (FR-2.x)', () => {
       )
       const seriesTask = ownTasks.find((t) => t.body === 'Schneeketten prüfen')!
       expect(seriesTask.destination_task_id).toBe('dt-1')
-      expect(seriesTask.start_lead_days).toBe(28)
+      expect(seriesTask).toMatchObject({ anchor_kind: 'trip_start', anchor_lead_days: 28 })
       expect(seriesTask.assignee_user_id).toBe('u2')
     },
   )

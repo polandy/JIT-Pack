@@ -328,7 +328,11 @@ describe('createCommentActions without an orchestrator', () => {
     expect(mutation).toMatchObject({ op: 'upsert', id: 'tt-1' })
     // A date set here and a tag set on another device both stand; the lead
     // clears alongside it (FR-13.4, ADR-106).
-    expect(mutation.fields).toEqual({ due_date: '2026-07-09', start_lead_days: null })
+    expect(mutation.fields).toEqual({
+      due_date: '2026-07-09',
+      anchor_kind: null,
+      anchor_lead_days: null,
+    })
     expect(paintedRow(queued[0]!.muts[0]!)).toMatchObject({
       body: 'Pass holen',
       phase: 'before',
@@ -361,7 +365,8 @@ describe('createCommentActions without an orchestrator', () => {
     actions.setTaskDueDate(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!, '2026-07-10')
     expect(queued[1]!.muts[0]!.mutation.fields).toEqual({
       due_date: '2026-07-10',
-      start_lead_days: null,
+      anchor_kind: null,
+      anchor_lead_days: null,
     })
     expect(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!.due_time).toBe('14:00')
 
@@ -369,7 +374,8 @@ describe('createCommentActions without an orchestrator', () => {
     expect(queued[2]!.muts[0]!.mutation.fields).toEqual({
       due_date: null,
       due_time: null,
-      start_lead_days: null,
+      anchor_kind: null,
+      anchor_lead_days: null,
     })
     expect(ctx.tripStore.getOwnTasks(TRIP_ID)[0]!.due_time).toBeNull()
   })

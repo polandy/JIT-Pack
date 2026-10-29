@@ -9,7 +9,8 @@
  * read the rule here — the task list on the packing side, the idea's detail
  * and the day plan's sheet on the planner's.
  */
-import { addDays } from './calendar'
+import type { TaskAnchorColumns } from '@/types/taskColumns'
+import { ANCHOR_KIND, hasAnchor, leadBefore } from './taskAnchor'
 
 /** The leads the step's sheet offers, in days before the idea's day, in order. */
 export const PREPARATION_LEADS = [1, 3, 7, 14] as const
@@ -28,14 +29,11 @@ export interface IdeaDay {
  * the idea and is listed nowhere else.
  */
 export function preparationDue(leadDays: number, idea: IdeaDay | undefined): string | null {
-  if (!idea || idea.dropped || idea.plannedOn === null) return null
-  return addDays(idea.plannedOn, -leadDays)
+  if (!idea || idea.dropped) return null
+  return leadBefore(idea.plannedOn, leadDays)
 }
 
 /** Whether a trip task is an idea's preparation step rather than an ordinary task. */
-export function isPreparationStep(task: {
-  idea_id?: string | null
-  lead_days?: number | null
-}): boolean {
-  return task.idea_id != null && task.lead_days != null
+export function isPreparationStep(task: TaskAnchorColumns & { idea_id?: string | null }): boolean {
+  return task.idea_id != null && hasAnchor(task, ANCHOR_KIND.idea)
 }
