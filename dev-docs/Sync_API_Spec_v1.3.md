@@ -777,7 +777,7 @@ make this possible.
 
 | Event | Payload | Client reaction |
 |---|---|---|
-| `trip.changed` | `{trip_id, head_seq}` | pull if `head_seq > local_cursor` |
+| `trip.changed` | `{trip_id, head_seq}` | pull that trip's partition, unconditionally — the client reads only `trip_id`; `head_seq` is not compared with the local cursor, since the pull from the cursor is idempotent (P-1) |
 | `master.changed` | `{seq}` | pull master partition |
 | `item.locked` / `item.unlocked` | `{trip_id, item_id, by_user, name}` | render lock overlay (G-3) — ephemeral, not persisted |
 | `presence` | `{trip_id, head_seq, users:[{user_id, device_count, in_sync}]}` | avatars + group-sync badge in M4 header (UI-Spec G-10) — whole state each time, never a delta, and never older than the last one that connection was sent for that trip |
