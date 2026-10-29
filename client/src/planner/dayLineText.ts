@@ -10,6 +10,7 @@ import { localDay } from '@/lib/taskDueText'
 import { EXCURSION_ROLE_BACK, EXCURSION_ROLE_OUT, type ConnectionLeg } from './types'
 import { connectionSummary, connectionTitle } from './domain/connections'
 import { DAY_LINE, type DayLine } from './domain/dayPlan'
+import { leadName } from './preparationText'
 
 /** What one line says. */
 export interface DayLineWords {
@@ -48,7 +49,17 @@ export function dayLineWords(line: DayLine, nameOf: NameOf): DayLineWords {
     // A task's second line is whose job it is, named the way every screen names a person.
     detail:
       line.kind === DAY_LINE.task
-        ? nameOf(line.source?.assignee ?? null)
+        ? [
+            line.stepOf
+              ? t('dayPlan.prep.stepOf', {
+                  title: line.stepOf.entry.title,
+                  lead: leadName(line.stepOf.leadDays),
+                })
+              : null,
+            nameOf(line.source?.assignee ?? null),
+          ]
+            .filter((part) => !!part)
+            .join(' · ') || null
         : line.kind === DAY_LINE.meal
           ? mealDetail(line, nameOf)
           : line.kind === DAY_LINE.connection && line.entry?.legs

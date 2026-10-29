@@ -175,7 +175,8 @@ where there is no server to send a reminder, the time stays on the task and the 
 you open it. Entries on the shopping list take a day only, never a time.
 
 A step that prepares an [idea](ideas.md#preparing-an-idea) takes its day from the idea: its sheet shows the day and
-how long before the idea it lies, and it moves when the idea is planned on another day.
+how long before the idea it lies, and it moves when the idea is planned on another day. A step that prepares an entry
+of the [day plan](day-plan.md#preparing-an-entry) works the same way, and names the entry under its words.
 
 ## Tasks every trip of a series gets
 

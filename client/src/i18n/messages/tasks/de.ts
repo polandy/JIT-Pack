@@ -63,6 +63,8 @@ export const tasksDe: Record<keyof typeof tasksEn, string> = {
   'tasks.dueField': 'Fällig',
   'tasks.dueFromIdea':
     '{day} · {n} Tag vor der Idee, verschiebt sich mit ihr | {day} · {n} Tage vor der Idee, verschiebt sich mit ihr',
+  'tasks.dueFromEntry':
+    '{day} · {n} Tag vor dem Eintrag, verschiebt sich mit ihm | {day} · {n} Tage vor dem Eintrag, verschiebt sich mit ihm',
   // FR-13.4 — die Serien-Aufgaben-Frist (ADR-106): die Zeile im Aufgabenblatt
   // (`task-sheet-lead`) und die bloßen Mengen, die sie und M16s Chips nennen.
   'tasks.seriesLead.1': '1 Tag',

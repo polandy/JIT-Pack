@@ -16,6 +16,7 @@ import { TASK_PHASE_BEFORE, TASK_STATE_OPEN, TASK_STATE_RESOLVED } from '@/types
 import { byDue, byDueTime, isDuePressing, pressingFirst } from './taskDue'
 import { daysBetween } from '@/domain/shared/calendar'
 import { byHand, dropInto, renumber, type Placement } from '@/domain/shared/handOrder'
+import { entryStepDue, isEntryStep, type EntryDay } from '@/domain/shared/entryPreparation'
 import { isPreparationStep, preparationDue, type IdeaDay } from '@/domain/shared/ideaPreparation'
 import { isSeriesTask, seriesTaskDue } from '@/domain/shared/seriesTask'
 import type { AnchorKind } from '@/types/taskColumns'
@@ -120,6 +121,8 @@ export interface TripTask {
   position?: number | null
   /** FR-29.13: the idea a trip's own task was made from; absent for none. */
   idea_id?: string | null
+  /** FR-29.21: the day-plan entry a preparation step prepares; absent for none. */
+  day_entry_id?: string | null
   /** ADR-108: what its due day is a lead before, and the lead; absent for an ordinary task. */
   anchor_kind?: AnchorKind | null
   anchor_lead_days?: number | null
@@ -150,6 +153,7 @@ export function taskPhaseOf(task: { phase: TaskPhase | null }): TaskPhase {
  * delete yet would otherwise keep listing a task for a row it no longer shows
  * — a task nobody could reach, since the chip leads to a row that is gone.
  *
+ * `entryOf` answers for a day-plan entry's day, as `ideaOf` does for an idea's.
  * `tripStartDate` is the trip's own `start_date` (FR-2.1a), which a series
  * task's due day is read off (ADR-106) — unlike a preparation step, a series
  * task is not hidden while it waits: it is already an open trip task, simply
@@ -161,6 +165,7 @@ export function tripTasks(
   rows: readonly TripTaskItem[],
   ideaOf: (ideaId: string) => IdeaDay | undefined = () => undefined,
   tripStartDate: string | null = null,
+  entryOf: (entryId: string) => EntryDay | undefined = () => undefined,
 ): TripTask[] {
   const byId = new Map(rows.map((row) => [row.id, row]))
 
@@ -173,6 +178,7 @@ export function tripTasks(
       item: null,
       ...factsOf(task),
       ...(task.idea_id ? { idea_id: task.idea_id } : {}),
+      ...(task.day_entry_id ? { day_entry_id: task.day_entry_id } : {}),
       ...(task.destination_task_id ? { destination_task_id: task.destination_task_id } : {}),
     }
     if (isPreparationStep(task)) {
@@ -182,6 +188,15 @@ export function tripTasks(
       if (due === null) continue
       projected.due_date = due
       projected.due_time = null // a lead counts days; the step's day has no hour
+      projected.anchor_kind = task.anchor_kind
+      projected.anchor_lead_days = task.anchor_lead_days
+    } else if (isEntryStep(task)) {
+      // FR-29.21: a step waits only while its entry is not on this device, and
+      // is due its lead before the entry's day, the trip's dates aside.
+      const due = entryStepDue(task.anchor_lead_days!, entryOf(task.day_entry_id!))
+      if (due === null) continue
+      projected.due_date = due
+      projected.due_time = null // a lead counts days; the entry's day has no hour
       projected.anchor_kind = task.anchor_kind
       projected.anchor_lead_days = task.anchor_lead_days
     } else if (isSeriesTask(task)) {

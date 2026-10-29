@@ -52,6 +52,9 @@ export interface DayPlanLine {
   refId?: string
   /** For an excursion made from an idea: that idea's id, so the plan shows both as one line (FR-29.13). */
   ideaId?: string | null
+  /** For a task that prepares a day-plan entry: that entry's id and the step's lead (FR-29.21). */
+  entryId?: string | null
+  leadDays?: number | null
   /** Where a tap on it leads. */
   path: string
   /**

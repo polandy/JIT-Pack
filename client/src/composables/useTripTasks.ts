@@ -12,17 +12,20 @@
  */
 import { inject } from 'vue'
 
-import type { IdeaLookup } from '@/domain/shared/ideaBridge'
-import { IDEA_LOOKUP } from '@/kernel/ideaBridge'
+import type { EntryLookup, IdeaLookup } from '@/domain/shared/ideaBridge'
+import { ENTRY_LOOKUP, IDEA_LOOKUP } from '@/kernel/ideaBridge'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { tripTasks, type TripTask, type TripTaskItem } from '@/domain/tripTasks'
 
 /**
  * Reader for the trip tasks of any trip this device holds. Without the
- * planner (no lookup) an idea's preparation steps wait, listed nowhere.
+ * planner (no lookup) the preparation steps of an idea or an entry wait, listed nowhere.
  */
-export function useTripTasks(ideas: IdeaLookup | null = inject(IDEA_LOOKUP, null)) {
+export function useTripTasks(
+  ideas: IdeaLookup | null = inject(IDEA_LOOKUP, null),
+  entries: EntryLookup | null = inject(ENTRY_LOOKUP, null),
+) {
   const tripStore = useTripStore()
   const masterStore = useMasterStore()
 
@@ -47,6 +50,10 @@ export function useTripTasks(ideas: IdeaLookup | null = inject(IDEA_LOOKUP, null
       rowsOf(tripId),
       (ideaId) => ideas?.idea(tripId, ideaId),
       tripStore.getTrip(tripId)?.start_date ?? null,
+      (entryId) => {
+        const entry = entries?.entry(tripId, entryId)
+        return entry && { onDate: entry.onDate }
+      },
     )
   }
 

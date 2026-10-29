@@ -17,12 +17,13 @@ import {
   trainOutline,
   walkOutline,
 } from 'ionicons/icons'
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 
 import { useOrchestrator } from '@/composables/shared/useOrchestrator'
 import { useTripIdentity } from '@/composables/shared/useTripIdentity'
 import { t } from '@/i18n'
 import { confirmDestructive } from '@/composables/shared/confirm'
+import { ENTRY_PREPARATIONS } from '@/kernel/ideaBridge'
 import type { ExcursionConnectionsProps } from '@/kernel/excursionConnections'
 import { shortDueDay } from '@/lib/taskDueText'
 import { EXCURSION_ROLE_BACK, EXCURSION_ROLE_OUT, type DayEntry, type ExcursionRole } from './types'
@@ -190,6 +191,8 @@ const wayLines = computed(() =>
   ].map((line) => ({ ...line, chosen: false })),
 )
 
+const preparations = inject(ENTRY_PREPARATIONS, null)
+
 async function onRemove() {
   const entry = editing.value?.entry
   if (!entry) return
@@ -201,6 +204,7 @@ async function onRemove() {
   })
   if (!confirmed) return
   editing.value = null
+  preparations?.removeAll(entry.trip_id, entry.id)
   actions.removeDayEntry(entry)
 }
 </script>

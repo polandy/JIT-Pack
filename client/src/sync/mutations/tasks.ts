@@ -21,6 +21,8 @@ export interface TaskFiling {
   position?: number
   /** FR-29.13: the idea a trip task is made from. */
   ideaId?: string | null
+  /** FR-29.21: the day-plan entry a preparation step prepares. */
+  dayEntryId?: string | null
   /** ADR-108: the anchor its due day is a lead before — an idea's day (FR-29.21), the trip's start (FR-13.4). */
   anchor?: TaskAnchor | null
   /** FR-13.4: the series task this todo was materialised from. */
@@ -73,6 +75,8 @@ export function createTasksMutations({ make, nowIso }: MutationContext) {
       ...(filed.position !== undefined ? { position: filed.position } : {}),
       // FR-29.13: made from an idea, it names the idea.
       ...(filed.ideaId ? { idea_id: filed.ideaId } : {}),
+      // FR-29.21: a preparation step of an entry names the entry.
+      ...(filed.dayEntryId ? { day_entry_id: filed.dayEntryId } : {}),
       // FR-29.21, FR-13.4: a step or a series task names its anchor and lead,
       // never a due day (ADR-108).
       ...(filed.anchor

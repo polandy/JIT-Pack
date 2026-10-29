@@ -128,3 +128,49 @@ func TestApplyMutation_DeletingAnIdeaKeepsWhatCameOfIt_FR29_13(t *testing.T) {
 		}
 	}
 }
+
+// FR-29.21: a preparation step of a day-plan entry names the entry by its own
+// day_entry_id — one of its trip; an entry already deleted when the step
+// arrives costs the link, never the task.
+func TestApplyMutation_EntryStep_NamesAnEntryOfItsTrip_FR29_21(t *testing.T) {
+	cases := []struct {
+		name     string
+		entryID  any
+		wanted   sync.Outcome
+		wantLink any
+	}{
+		{"an entry of its trip is kept", "entry-1", sync.OutcomeApplied, "entry-1"},
+		{"another trip's entry is refused", "entry-foreign", sync.OutcomeRejected, nil},
+		{"an entry that is gone costs the link, not the task", "entry-deleted", sync.OutcomeApplied, nil},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			s := seedBridge(t)
+			mustExec(t, s, `INSERT INTO day_entries (id, trip_id, author_id, on_date, title) VALUES ('entry-1', ?, ?, '2026-07-18', 'Essen')`,
+				testTrip, testUser)
+			mustExec(t, s, `INSERT INTO day_entries (id, trip_id, author_id, on_date, title) VALUES ('entry-foreign', 'trip-other', ?, '2026-07-18', 'Anderswo')`,
+				testUser)
+			m := sync.Mutation{
+				MutationID: "mut-s", Op: sync.OpInsert, Table: TableComments, ID: "s-1",
+				Fields: map[string]any{
+					"trip_id": testTrip, "author_id": testUser, "body": "Tisch reservieren", "is_task": 1, "task_state": "open",
+					columnDayEntryID: tc.entryID, "anchor_kind": AnchorKindEntry, "anchor_lead_days": 7,
+				},
+				HLC: sync.HLC("0000000002000-0000-aaaaaaaa"),
+			}
+			res, err := s.ApplyMutation(context.Background(), testTrip, testUser, m)
+			if err != nil {
+				t.Fatalf("ApplyMutation: %v", err)
+			}
+			if res.Outcome != tc.wanted {
+				t.Fatalf("outcome = %q (reason %q), want %q", res.Outcome, res.Reason, tc.wanted)
+			}
+			if tc.wanted == sync.OutcomeRejected {
+				return
+			}
+			if got := resultColumn(t, s, TableComments, "s-1", columnDayEntryID); got != tc.wantLink {
+				t.Errorf("day_entry_id = %v, want %v", got, tc.wantLink)
+			}
+		})
+	}
+}

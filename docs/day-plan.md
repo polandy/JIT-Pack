@@ -88,6 +88,17 @@ again. A trip with a single traveller doesn't ask. Someone who joins the trip la
 
 Tap an entry to change or delete it.
 
+### Preparing an entry
+
+An entry you have already saved can carry preparation: the table to book, the tickets to buy. In its sheet, above
+**Speichern**, tap **＋ Vorbereitung**, say what is to be done and how long before the entry — the day before, 3 days,
+1 week or 2 weeks. The step is a task on the Tasks screen that names the entry, and it falls due that many days before
+the entry's day. On that day the plan lists it as well, with the entry's name under it; a step due before the trip
+begins is on Tasks only. The entry's line on the plan says how many steps are still open.
+
+Tick a step off in the entry's sheet or on Tasks, alike. Deleting the entry deletes its steps. If another device
+deletes the entry, the steps stay behind as ordinary tasks.
+
 ## Adding a connection
 
 Any entry can carry a train, bus or ferry journey — when you write it, or later. Tap **Zugverbindung hinzufügen** in

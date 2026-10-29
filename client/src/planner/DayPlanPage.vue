@@ -28,6 +28,7 @@ import { useTripScreen } from '@/composables/shared/useTripScreen'
 import { t } from '@/i18n'
 import { confirmDestructive } from '@/composables/shared/confirm'
 import { DAY_PLAN_SOURCES, DAY_PLAN_TRAVELERS } from '@/kernel/dayPlanSources'
+import { ENTRY_PREPARATIONS } from '@/kernel/ideaBridge'
 import { FAB_ANCHOR } from '@/lib/fabAnchors'
 import { shortDueDay } from '@/lib/taskDueText'
 import { presentToast } from '@/composables/shared/toast'
@@ -290,6 +291,8 @@ function onSave(fields: DayEntryFields) {
   }
 }
 
+const preparations = inject(ENTRY_PREPARATIONS, null)
+
 async function onRemove() {
   const entry = editing.value?.entry
   if (!entry) return
@@ -301,6 +304,8 @@ async function onRemove() {
   })
   if (!confirmed) return
   editing.value = null
+  // A step outliving its entry would turn into a loose task nobody wrote as one (FR-29.21).
+  preparations?.removeAll(entry.trip_id, entry.id)
   actions.removeDayEntry(entry)
 }
 </script>
@@ -464,6 +469,7 @@ async function onRemove() {
       <DayEntrySheet
         :open="editing !== null"
         :entry="editing?.entry ?? null"
+        :trip-start="trip?.start_date ?? null"
         :day="chosen"
         :day-text="chosen ? shortDueDay(chosen) : ''"
         :pool="pool"

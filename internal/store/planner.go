@@ -48,6 +48,35 @@ func validIdeaResult(ctx context.Context, tx *sql.Tx, in guardInput) (RejectReas
 	return ReasonNone, nil
 }
 
+// columnDayEntryID names, on a task, the day-plan entry its due day is a lead
+// before (FR-29.21).
+const columnDayEntryID = "day_entry_id"
+
+// validEntryStep is FR-29.21's part of the trip partition's write gate for a
+// preparation step of a day-plan entry: validIdeaResult's rule for
+// day_entry_id — an entry deleted before the step arrived drops the link and
+// keeps the task, one of another trip is refused.
+func validEntryStep(ctx context.Context, tx *sql.Tx, in guardInput) (RejectReason, error) {
+	tripID, m := in.tripID, in.m
+	id, _ := m.Fields[columnDayEntryID].(string)
+	if id == "" {
+		return ReasonNone, nil
+	}
+	var entryTrip string
+	err := tx.QueryRowContext(ctx, `SELECT trip_id FROM day_entries WHERE id = ?`, id).Scan(&entryTrip)
+	if errors.Is(err, sql.ErrNoRows) {
+		delete(m.Fields, columnDayEntryID)
+		return ReasonNone, nil
+	}
+	if err != nil {
+		return ReasonNone, fmt.Errorf("entry step lookup: %w", err)
+	}
+	if entryTrip != tripID {
+		return ReasonConstraintViolated, nil
+	}
+	return ReasonNone, nil
+}
+
 // columnVoter is whose vote an idea_votes row is (FR-29.3), stamped by the
 // server on the insert.
 const columnVoter = "user_id"

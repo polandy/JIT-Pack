@@ -127,3 +127,11 @@
   first day, the one given a reminder time on M25's sheet stands first on the plan with *14:00* in its time column, the
   other after it with an empty one. The line's time is `kernel/dayPlanSource.ts`'s, the order
   `planner/domain/dayPlan.ts`'s.
+* **E2E-M29-25** `local` (FR-29.21, FR-29.15) — **implemented** (`planner/entryPreparation.spec.ts`): a step written
+  in an entry's edit sheet with *Am Vortag* says under its lead *„Fällig …"* for the entry's day less one; the entry's
+  line then says *⏰ 1 Vorbereitung offen*. On the step's due day the plan lists it as a task whose second line names
+  the entry; its tick strikes it through and takes the ⏰ line off the entry. *Neu am …* has no *Vorbereitung*.
+* **E2E-M29-26** `local` (FR-29.21, FR-29.15) — **implemented** (`planner/entryPreparation.spec.ts`): M25 lists the
+  step with its due pill and the line naming the entry (`trip-task-entry-<body>`); deleting the entry deletes the step,
+  M25 holds no task. The derivation, with an entry on another day, is `domain/__tests__/tripTasks.spec.ts` and
+  `domain/shared/__tests__/entryPreparation.spec.ts`; for the reminder, `internal/store/taskdue_test.go`.

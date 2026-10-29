@@ -334,3 +334,33 @@ func TestMigration032_TaskLeadsBecomeAnAnchorAndALead(t *testing.T) {
 		t.Error("the old lead columns survived the migration")
 	}
 }
+
+// FR-29.21: migration 033 gives a task the day-plan entry its due day may be a
+// lead before; the tasks that already exist name none.
+func TestMigration033_ATaskMayNameADayPlanEntry(t *testing.T) {
+	dsn := filepath.Join(t.TempDir(), "jitpack.db")
+	db := seedBaselineDatabase(t, dsn)
+	t.Cleanup(func() { _ = db.Close() })
+	if err := stampBaseline(db, 0, "v0.16.0"); err != nil {
+		t.Fatalf("stampBaseline: %v", err)
+	}
+	const level = 33
+	if err := applyMigrations(db, migrationChain[:level-1]); err != nil {
+		t.Fatalf("chain up to %d: %v", level-1, err)
+	}
+	mustExecDB(t, db, `PRAGMA foreign_keys = OFF`)
+	mustExecDB(t, db, `INSERT INTO comments (id, trip_id, author_id, body, is_task, task_state)
+		VALUES ('plain', 't', 'u', 'b', 1, 'open')`)
+
+	if err := applyMigrations(db, migrationChain[level-1:level]); err != nil {
+		t.Fatalf("migration %d: %v", level, err)
+	}
+
+	var entry sql.NullString
+	if err := db.QueryRow(`SELECT day_entry_id FROM comments WHERE id = 'plain'`).Scan(&entry); err != nil {
+		t.Fatalf("read day_entry_id: %v", err)
+	}
+	if entry.Valid {
+		t.Errorf("an existing task names the entry %q; want none", entry.String)
+	}
+}

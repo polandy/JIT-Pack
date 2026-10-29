@@ -504,7 +504,8 @@ CREATE TABLE comments (
     -- FR-29.21, FR-13.4: a task whose due day is a lead before an anchor
     -- (ADR-108) names the anchor's kind and the lead in days. 'idea': the
     -- idea in idea_id, whose planned_on less the lead is the day — an idea's
-    -- preparation step, so moving the idea moves the step. 'trip_start': the
+    -- preparation step, so moving the idea moves the step. 'entry': the
+    -- entry in day_entry_id, likewise. 'trip_start': the
     -- trip's own start_date less the lead — a series task materialised from
     -- a destination profile. The day is read off the anchor, never stored, and
     -- due_date stays unused on such a row; an anchor that is gone (idea_id
@@ -514,6 +515,10 @@ CREATE TABLE comments (
     -- here, for field-level LWW's sake; the client offers four leads only.
     anchor_kind      TEXT,
     anchor_lead_days INTEGER,
+    -- FR-29.21: 'entry' — the day-plan entry in day_entry_id, whose on_date
+    -- less the lead is the day: a step of an entry's preparation. idea_id's
+    -- shape and its reason for ON DELETE SET NULL.
+    day_entry_id     TEXT REFERENCES day_entries(id) ON DELETE SET NULL,
     -- FR-13.4: the series task a trip task was materialised from,
     -- idea_id's shape — carries the origin line on M25, named after the
     -- trip's series. ON DELETE SET NULL: the todo outlives the series task
@@ -799,6 +804,7 @@ CREATE TABLE ideas (
 -- FR-29.13: an idea's delete looks up what came of it to unlink it.
 CREATE INDEX idx_excursions_idea ON excursions(idea_id);
 CREATE INDEX idx_comments_idea ON comments(idea_id);
+CREATE INDEX idx_comments_day_entry ON comments(day_entry_id);
 CREATE INDEX idx_shopping_entries_idea ON shopping_entries(idea_id);
 
 -- FR-29.3: one person's vote on one idea. A row per (idea, person) rather than

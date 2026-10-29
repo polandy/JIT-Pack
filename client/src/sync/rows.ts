@@ -182,6 +182,7 @@ export function ownTaskRow(task: OwnTask): Record<string, unknown> {
     task_state: task.task_state,
     ...taskFactRow(task),
     idea_id: task.idea_id ?? null,
+    day_entry_id: task.day_entry_id ?? null,
     // ADR-108, FR-13.4: carried back so an optimistic merge does not read a
     // step or a series task as having lost its anchor, its lead or its origin
     // while the push is in flight.

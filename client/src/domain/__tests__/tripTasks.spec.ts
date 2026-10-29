@@ -21,6 +21,7 @@ import {
   type TripTask,
 } from '../tripTasks'
 import type { DestinationTask, PrepTask, TaskPhase, TaskState, OwnTask } from '@/types/domain'
+import type { EntryDay } from '@/domain/shared/entryPreparation'
 import { PREPARATION_LEADS, preparationDue, type IdeaDay } from '@/domain/shared/ideaPreparation'
 import {
   SERIES_TASK_LEADS,
@@ -282,6 +283,47 @@ describe('tripTasks (FR-29.21): an idea’s preparation steps', () => {
   it('is an ordinary task again once its idea is gone', () => {
     const [task] = tripTasks([step('s1', null, 7, '2026-10-30')], [], [], ideaOf)
     expect(task?.due_date).toBe('2026-10-30')
+  })
+})
+
+describe('tripTasks (FR-29.21): a day-plan entry’s preparation steps', () => {
+  const step = (id: string, entryId: string | null, leadDays: number) =>
+    ({
+      id,
+      trip_id: 'trip',
+      author_id: 'someone',
+      body: `Step ${id}`,
+      task_state: 'open',
+      assignee_user_id: null,
+      due_date: '2026-01-01',
+      due_time: '14:00',
+      idea_id: null,
+      day_entry_id: entryId,
+      anchor_kind: 'entry',
+      anchor_lead_days: leadDays,
+    }) as unknown as OwnTask
+  const entries: Record<string, EntryDay> = { dinner: { onDate: '2026-07-18' } }
+  const entryOf = (entryId: string) => entries[entryId]
+  const project = (tasks: OwnTask[]) => tripTasks(tasks, [], [], () => undefined, null, entryOf)
+
+  it('is due its lead before the entry’s day, with no time, whatever the row carries', () => {
+    const [task] = project([step('s1', 'dinner', 7)])
+    expect(task).toMatchObject({
+      due_date: '2026-07-11',
+      due_time: null,
+      anchor_kind: 'entry',
+      anchor_lead_days: 7,
+      day_entry_id: 'dinner',
+    })
+  })
+
+  it('waits, unlisted, while its entry is not on the device', () => {
+    expect(project([step('s1', 'not-here', 7)])).toEqual([])
+  })
+
+  it('is an ordinary task again once its entry is gone', () => {
+    const [task] = project([step('s1', null, 7)])
+    expect(task).toMatchObject({ due_date: '2026-01-01', due_time: '14:00' })
   })
 })
 

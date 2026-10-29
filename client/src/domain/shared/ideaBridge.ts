@@ -18,7 +18,9 @@
  *    the excursion takes the idea's day with it (FR-29.15);
  *  - **the idea's preparation steps, read and written from the planner**
  *    (`IdeaPreparations`): each is a trip task the packing side owns, written
- *    on the idea's detail (FR-29.21).
+ *    on the idea's detail (FR-29.21);
+ *  - **a day-plan entry's day and preparation steps** (`EntryLookup`,
+ *    `EntryPreparations`): the same two crossings for an entry (FR-29.21).
  */
 
 /** The three kinds of result, in the order the idea offers them. */
@@ -102,4 +104,47 @@ export interface IdeaPreparations {
   remove(tripId: string, stepId: string): void
   /** Every step of the idea, removed with the idea itself. */
   removeAll(tripId: string, ideaId: string): void
+}
+
+/** A day-plan entry as the packing side reads it: the day its steps are due before. */
+export interface EntrySeed {
+  id: string
+  title: string
+  /** The day it is on, `YYYY-MM-DD`. */
+  onDate: string
+}
+
+/** The planner's answer to „which entry is this?", bound by the composition root. */
+export interface EntryLookup {
+  /** Undefined for an entry this device does not hold — deleted, or not arrived yet. */
+  entry(tripId: string, entryId: string): EntrySeed | undefined
+}
+
+/** One preparation step of a day-plan entry (FR-29.21), as the entry's sheet lists it. */
+export interface EntryPreparation {
+  id: string
+  title: string
+  /** Days before the entry's day it is due — one of `PREPARATION_LEADS`. */
+  leadDays: number
+  /** Whether it is ticked off. */
+  done: boolean
+}
+
+/**
+ * The packing side's answer for an entry's preparation steps (FR-29.21), bound
+ * by the composition root: trip tasks naming the entry, written by the side
+ * that owns trip tasks.
+ */
+export interface EntryPreparations {
+  /** The entry's steps, the longest lead first. */
+  steps(tripId: string, entryId: string): EntryPreparation[]
+  /** Writes a step; `due` is the day it falls due, what the task's phase is written from (FR-7.7). */
+  add(tripId: string, entryId: string, title: string, leadDays: number, due: string): void
+  /** Changes a step's words and lead; nothing for a step this device does not hold. */
+  edit(tripId: string, stepId: string, title: string, leadDays: number): void
+  /** Ticks a step off, or back on. */
+  toggle(tripId: string, stepId: string): void
+  remove(tripId: string, stepId: string): void
+  /** Every step of the entry, removed with the entry itself. */
+  removeAll(tripId: string, entryId: string): void
 }

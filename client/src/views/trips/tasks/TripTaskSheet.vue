@@ -100,6 +100,8 @@ const history = computed(() => props.beforeLocked && props.task.phase === TASK_P
 const isOpen = computed(() => props.task.task_state === TASK_STATE_OPEN)
 /** FR-29.21: an idea's step, whose day is the idea's less the lead and is moved by planning the idea. */
 const isIdeaStep = computed(() => hasAnchor(props.task, ANCHOR_KIND.idea))
+/** FR-29.21: a day-plan entry's step, whose day is the entry's less the lead. */
+const isEntryStep = computed(() => hasAnchor(props.task, ANCHOR_KIND.entry))
 /** FR-13.4: a series task, whose lead is the trip's start less it; choosing a day drops it (ADR-108). */
 const isSeriesLead = computed(() => hasAnchor(props.task, ANCHOR_KIND.tripStart))
 
@@ -256,7 +258,15 @@ function factLine(key: string, icon: string, text: string | null) {
       <div class="label jp-section-count">{{ t('tasks.dueField') }}</div>
       <!-- FR-29.21: a preparation step's day is its idea's, less the lead —
            moved by planning the idea, so there is none to pick here. -->
-      <p v-if="isIdeaStep && task.due_date" class="lead" data-testid="task-sheet-lead">
+      <p v-if="isEntryStep && task.due_date" class="lead" data-testid="task-sheet-lead">
+        {{
+          t('tasks.dueFromEntry', {
+            day: shortDueDay(task.due_date),
+            n: task.anchor_lead_days ?? 0,
+          })
+        }}
+      </p>
+      <p v-else-if="isIdeaStep && task.due_date" class="lead" data-testid="task-sheet-lead">
         {{
           t('tasks.dueFromIdea', { day: shortDueDay(task.due_date), n: task.anchor_lead_days ?? 0 })
         }}
@@ -267,7 +277,7 @@ function factLine(key: string, icon: string, text: string | null) {
       <p v-else-if="isSeriesLead" class="lead" data-testid="task-sheet-lead">
         {{ seriesLeadText(task.anchor_lead_days!, task.due_date) }}
       </p>
-      <template v-if="!isIdeaStep">
+      <template v-if="!isIdeaStep && !isEntryStep">
         <DueChips
           :value="task.due_date"
           :time="task.due_time ?? null"

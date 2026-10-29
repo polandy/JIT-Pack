@@ -24,10 +24,12 @@ const taskReminderDayKey = "task_reminder_day"
 const timedReminderMarkKey = "task_reminder_moment"
 
 // The kinds of anchor a task's due day is a lead before (ADR-108): the day
-// of the idea in idea_id (FR-29.21), or the start of the task's own trip
-// (FR-13.4). The client's `ANCHOR_KIND` is the same two words.
+// of the idea in idea_id or of the day-plan entry in day_entry_id (FR-29.21),
+// or the start of the task's own trip (FR-13.4). The client's `ANCHOR_KIND`
+// is the same three words.
 const (
 	AnchorKindIdea      = "idea"
+	AnchorKindEntry     = "entry"
 	AnchorKindTripStart = "trip_start"
 )
 
@@ -47,7 +49,8 @@ type DueTask struct {
 // (FR-13.4) — in a stable order. No days, no tasks. An idea's preparation
 // step (FR-29.21) is due its lead before the idea's day, and not at all
 // while the idea has none or is dropped (ADR-104, ADR-108); a step whose idea is gone
-// is an ordinary task again. A series task (ADR-106, ADR-108) is due its lead before
+// is an ordinary task again. A day-plan entry's step is due its lead before
+// the entry's on_date, and an ordinary task once the entry is gone. A series task (ADR-106, ADR-108) is due its lead before
 // the trip's own start_date, and not at all while the trip has none. A
 // task's time comes with its day (FR-7.18); a step or a series task has
 // none, its day being derived.
@@ -55,24 +58,27 @@ func (s *Store) DueTasks(ctx context.Context, days ...string) ([]DueTask, error)
 	if len(days) == 0 {
 		return nil, nil
 	}
-	args := make([]any, 0, len(days)+5)
-	args = append(args, AnchorKindIdea, AnchorKindTripStart, AnchorKindIdea, IdeaStateDropped, TripStatusArchived)
+	args := make([]any, 0, len(days)+7)
+	args = append(args, AnchorKindIdea, AnchorKindEntry, AnchorKindTripStart, AnchorKindIdea, IdeaStateDropped, AnchorKindEntry, TripStatusArchived)
 	for _, d := range days {
 		args = append(args, d)
 	}
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, trip_id, body, due, due_time, assignee FROM (
 		   SELECT c.id, c.trip_id, c.body, COALESCE(c.assignee_user_id, '') AS assignee,
-		          CASE WHEN c.anchor_kind = ? AND c.idea_id IS NOT NULL THEN '' ELSE COALESCE(c.due_time, '') END AS due_time,
+		          CASE WHEN c.anchor_kind IN (?, ?) AND (c.idea_id IS NOT NULL OR c.day_entry_id IS NOT NULL) THEN '' ELSE COALESCE(c.due_time, '') END AS due_time,
 		          CASE WHEN c.anchor_kind = ? AND c.anchor_lead_days IS NOT NULL THEN
 		                   CASE WHEN t.start_date IS NULL THEN NULL
 		                        ELSE date(t.start_date, '-' || c.anchor_lead_days || ' days') END
 		               WHEN c.anchor_kind = ? AND c.anchor_lead_days IS NOT NULL AND c.idea_id IS NOT NULL THEN
 		                   CASE WHEN i.state = ? THEN NULL
 		                        ELSE date(i.planned_on, '-' || c.anchor_lead_days || ' days') END
+		               WHEN c.anchor_kind = ? AND c.anchor_lead_days IS NOT NULL AND c.day_entry_id IS NOT NULL THEN
+		                   date(e.on_date, '-' || c.anchor_lead_days || ' days')
 		               ELSE c.due_date END AS due
 		     FROM comments c JOIN trips t ON t.id = c.trip_id
 		     LEFT JOIN ideas i ON i.id = c.idea_id
+		     LEFT JOIN day_entries e ON e.id = c.day_entry_id
 		    WHERE c.is_task = 1 AND c.task_state = 'open' AND t.status <> ?)
 		  WHERE due IN (?`+strings.Repeat(", ?", len(days)-1)+`)
 		  ORDER BY trip_id, due, id`, args...)

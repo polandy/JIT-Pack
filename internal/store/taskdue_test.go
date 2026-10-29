@@ -105,6 +105,48 @@ func TestDueTasks_FR29_21_AStepIsDueItsLeadBeforeItsIdeasDay(t *testing.T) {
 	}
 }
 
+// FR-29.21: a preparation step of a day-plan entry is due its lead before the
+// entry's day — read off the entry, so moving the entry moves the reminder —
+// and an ordinary task once the entry is gone (ADR-108).
+func TestDueTasks_FR29_21_AnEntrysStepIsDueItsLeadBeforeTheEntrysDay(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	mustExec(t, s, `INSERT INTO day_entries (id, trip_id, author_id, on_date, title)
+		VALUES ('e-dinner', ?, ?, '2026-07-18', 'Abendessen')`, testTrip, testUser)
+	step := func(id string, entryID any, lead int, due, dueTime any) {
+		t.Helper()
+		mustExec(t, s, `INSERT INTO comments (id, trip_id, author_id, body, is_task, task_state, day_entry_id, anchor_kind, anchor_lead_days, due_date, due_time)
+			VALUES (?, ?, ?, ?, 1, 'open', ?, ?, ?, ?, ?)`, id, testTrip, testUser, "body "+id, entryID, AnchorKindEntry, lead, due, dueTime)
+	}
+	step("c-week", "e-dinner", 7, nil, "09:00")
+	// A stored due day does not count for a step: the entry's day decides.
+	step("c-stale", "e-dinner", 3, "2026-07-08", nil)
+	// The entry was deleted (day_entry_id cleared by its foreign key).
+	step("c-orphan", nil, 7, "2026-07-08", nil)
+
+	got, err := s.DueTasks(ctx, "2026-07-08", "2026-07-11")
+	if err != nil {
+		t.Fatalf("DueTasks: %v", err)
+	}
+	want := []DueTask{
+		{ID: "c-orphan", TripID: testTrip, Body: "body c-orphan", DueDate: "2026-07-08"},
+		{ID: "c-week", TripID: testTrip, Body: "body c-week", DueDate: "2026-07-11"},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("DueTasks = %+v\nwant %+v", got, want)
+	}
+
+	// Moving the entry moves the step.
+	mustExec(t, s, `UPDATE day_entries SET on_date = '2026-07-19' WHERE id = 'e-dinner'`)
+	moved, err := s.DueTasks(ctx, "2026-07-11", "2026-07-12")
+	if err != nil {
+		t.Fatalf("DueTasks: %v", err)
+	}
+	if len(moved) != 1 || moved[0].ID != "c-week" || moved[0].DueDate != "2026-07-12" {
+		t.Errorf("DueTasks after the move = %+v; want c-week on 2026-07-12 alone", moved)
+	}
+}
+
 // FR-13.4: a series task materialised onto a trip is due its lead before the
 // trip's own start — read off the trip, so moving the trip moves the todo
 // (ADR-106) — and not at all while the trip has no start date.

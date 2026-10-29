@@ -136,6 +136,9 @@
     **An idea's preparation step** (FR-29.21) has no chips: its day is its idea's less the lead, stated as
     *„Fr., 2.10. · 7 Tage vor der Idee, verschiebt sich mit ihr"* (`task-sheet-lead`); the batch's *Fällig* leaves
     it as it is. A step whose idea has no day yet is not on this screen.
+    **A day-plan entry's preparation step** (FR-29.21) is stated alike — *„… · 1 Tag vor dem
+    Eintrag, verschiebt sich mit ihm"* — and its second line names the entry (`EntryOrigin`, the pencil and the entry's
+    title, not tappable; `trip-task-entry-<body>`), nothing drawn for an entry the device does not hold.
     **A series task** (FR-13.4) with a lead states it the same way, *„Sa., 19.6. · 4 Wochen vor Abreise, verschiebt
     sich mit ihr"* (`task-sheet-lead`), and keeps its chips: choosing a day, or *Kein Termin*, drops the lead. On a
     trip without a start date the line reads *„4 Wochen vor Abreise — sobald die Reise Daten hat"*. Its row and sheet

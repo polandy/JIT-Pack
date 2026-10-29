@@ -419,7 +419,7 @@ var tableSpecs = map[string]tableSpec{
 	TableComments: {
 		serverOwned: commentOwned,
 		partition:   partitionTrip,
-		guard:       allOf(validNoteThread, validIdeaResult),
+		guard:       allOf(validNoteThread, validIdeaResult, validEntryStep),
 		label: activityLabel{
 			name: own("title", "body"),
 			// A task on a packing row names the row; a reply names its thread.
@@ -462,9 +462,9 @@ var tableSpecs = map[string]tableSpec{
 			"position",
 			// FR-29.13: the idea a trip task was made from (validIdeaResult
 			// checks it); FR-29.21, FR-13.4: the anchor a task's due day is a
-			// lead before (ADR-108), and the series task it was materialised
+			// lead before (ADR-108) with the entry of a day plan it may name (validEntryStep), and the series task it was materialised
 			// from (ADR-106).
-			columnIdeaID, "anchor_kind", "anchor_lead_days", "destination_task_id",
+			columnIdeaID, "anchor_kind", "anchor_lead_days", columnDayEntryID, "destination_task_id",
 		),
 		// FR-7.9: a note's per-person ticks hang off it (note_acks.comment_id
 		// ON DELETE CASCADE). A task's own resolution needs nothing here — it
