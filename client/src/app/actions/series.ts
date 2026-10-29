@@ -5,6 +5,7 @@
  */
 import { isTakenRename } from '../names'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations'
+import { tripStartAnchor } from '@/domain/shared/taskAnchor'
 import type {
   ChecklistItemEdit,
   DestinationProfileEdit,
@@ -145,7 +146,10 @@ export function createSeriesActions(ctx: SyncContext) {
         CLIENT_ACTOR_PLACEHOLDER,
         draft.body,
         TASK_PHASE_BEFORE,
-        { destinationTaskId: draft.destination_task_id, startLeadDays: draft.start_lead_days },
+        {
+          destinationTaskId: draft.destination_task_id,
+          anchor: tripStartAnchor(draft.start_lead_days),
+        },
       )
       write(mutation)
       if (draft.assignee_user_id) {

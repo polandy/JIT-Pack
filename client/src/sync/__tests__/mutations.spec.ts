@@ -478,18 +478,20 @@ describe('createMutations', () => {
   // FR-7.11: a day or none, and nothing beside it bar the lead it clears —
   // a date set on one device and a tag set on another must both survive the
   // merge (NFR-4.2a). A day taken off takes its time along (FR-7.18): a time
-  // on no day reminds of nothing. Either way `start_lead_days` clears
+  // on no day reminds of nothing. Either way the anchor clears
   // (FR-13.4, ADR-106): a fixed day is the todo's own choice from here on.
   it('setTaskDueDate writes the day and clears any lead, and writes it away with its time', () => {
     const m = mutations()
     expect(m.setTaskDueDate('task1', '2026-07-09').fields).toEqual({
       due_date: '2026-07-09',
-      start_lead_days: null,
+      anchor_kind: null,
+      anchor_lead_days: null,
     })
     expect(m.setTaskDueDate('task1', null).fields).toEqual({
       due_date: null,
       due_time: null,
-      start_lead_days: null,
+      anchor_kind: null,
+      anchor_lead_days: null,
     })
     expect(m.setTaskDueDate('task1', null).table).toBe(TABLE.comments)
   })
@@ -508,15 +510,19 @@ describe('createMutations', () => {
     const m = mutations()
     const { mutation } = m.addTask('t1', null, 'u1', 'Bus reservieren', 'before', {
       ideaId: 'idea-1',
-      leadDays: 7,
+      anchor: { kind: 'idea', leadDays: 7 },
     })
-    expect(mutation.fields).toMatchObject({ idea_id: 'idea-1', lead_days: 7 })
+    expect(mutation.fields).toMatchObject({
+      idea_id: 'idea-1',
+      anchor_kind: 'idea',
+      anchor_lead_days: 7,
+    })
     expect(mutation.fields).not.toHaveProperty('due_date')
   })
 
   it('setTaskLead writes the lead alone', () => {
     const m = mutations()
-    expect(m.setTaskLead('task1', 3).fields).toEqual({ lead_days: 3 })
+    expect(m.setTaskLead('task1', 3).fields).toEqual({ anchor_lead_days: 3 })
     expect(m.setTaskLead('task1', 3).table).toBe(TABLE.comments)
   })
 

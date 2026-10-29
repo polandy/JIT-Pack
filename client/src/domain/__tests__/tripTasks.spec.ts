@@ -234,8 +234,9 @@ describe('tripTasks (FR-29.21): an idea’s preparation steps', () => {
       due_date: due,
       due_time: null,
       idea_id: ideaId,
-      lead_days: leadDays,
-    }) as OwnTask
+      anchor_kind: 'idea',
+      anchor_lead_days: leadDays,
+    }) as unknown as OwnTask
   const ideas: Record<string, IdeaDay> = {
     planned: { plannedOn: '2026-11-04', dropped: false },
     unplanned: { plannedOn: null, dropped: false },
@@ -245,7 +246,7 @@ describe('tripTasks (FR-29.21): an idea’s preparation steps', () => {
 
   it('is due its lead before the idea’s day, whatever due day the row carries', () => {
     const [task] = tripTasks([step('s1', 'planned', 7, '2026-10-01')], [], [], ideaOf)
-    expect(task).toMatchObject({ due_date: '2026-10-28', lead_days: 7, idea_id: 'planned' })
+    expect(task).toMatchObject({ due_date: '2026-10-28', anchor_lead_days: 7, idea_id: 'planned' })
   })
 
   it('FR-7.18: carries no time, whatever time the row carries — its day is the lead’s', () => {
@@ -301,14 +302,15 @@ describe('tripTasks (FR-13.4): a series task materialised from a destination pro
       due_date: due,
       due_time: null,
       destination_task_id: destinationTaskId,
-      start_lead_days: leadDays,
-    }) as OwnTask
+      anchor_kind: 'trip_start',
+      anchor_lead_days: leadDays,
+    }) as unknown as OwnTask
 
   it('is due its lead before the trip’s own start, whatever due day the row carries', () => {
     const [task] = tripTasks([seriesTask('s1', 28, '2026-10-01')], [], [], undefined, '2026-11-04')
     expect(task).toMatchObject({
       due_date: '2026-10-07',
-      start_lead_days: 28,
+      anchor_lead_days: 28,
       destination_task_id: 'dt1',
     })
   })
@@ -369,8 +371,8 @@ describe('seriesTaskDue (FR-13.4)', () => {
 
 describe('isSeriesTask (FR-13.4)', () => {
   it('is true only once a lead is set, idea links aside', () => {
-    expect(isSeriesTask({ start_lead_days: 7 })).toBe(true)
-    expect(isSeriesTask({ start_lead_days: null })).toBe(false)
+    expect(isSeriesTask({ anchor_kind: 'trip_start', anchor_lead_days: 7 })).toBe(true)
+    expect(isSeriesTask({ anchor_kind: null, anchor_lead_days: null })).toBe(false)
     expect(isSeriesTask({})).toBe(false)
   })
 })

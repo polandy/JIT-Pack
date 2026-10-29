@@ -10,11 +10,6 @@
 export interface IdeaTaskLink {
   /** FR-29.13: the idea it was made from; null or absent for none, or one since deleted. */
   idea_id?: string | null
-  /**
-   * FR-29.21: as the idea's preparation step, how many days before the idea's
-   * day it is due; null or absent for an ordinary task (ADR-104).
-   */
-  lead_days?: number | null
 }
 
 /**
@@ -25,12 +20,6 @@ export interface IdeaTaskLink {
 export interface SeriesTaskLink {
   /** FR-13.4: the series task it was materialised from; null or absent for none, or one since deleted. */
   destination_task_id?: string | null
-  /**
-   * FR-13.4: how many days before the trip's start it is due; null or
-   * absent for not a series lead, including a series task with no lead at
-   * all (ADR-106).
-   */
-  start_lead_days?: number | null
 }
 
 /** What every task carries beside its due day (FR-7.18). */
@@ -41,4 +30,19 @@ export interface TaskTime {
    * push — every reading of the task stays the day's.
    */
   due_time?: string | null
+}
+
+/** What a task's due day is a lead before (ADR-108): an idea's day, or the trip's start. */
+export type AnchorKind = 'idea' | 'trip_start'
+
+/**
+ * The two columns of a task that is due a lead before an anchor (ADR-108):
+ * an idea's preparation step (FR-29.21), whose anchor is `idea_id`, or a
+ * series task (FR-13.4), whose anchor is the trip's own start.
+ */
+export interface TaskAnchorColumns {
+  /** Which anchor; null or absent for an ordinary task. */
+  anchor_kind?: AnchorKind | null
+  /** How many days before the anchor's day it is due; null or absent for none. */
+  anchor_lead_days?: number | null
 }

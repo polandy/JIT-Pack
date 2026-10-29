@@ -25,7 +25,8 @@ function task(id: string, fields: Partial<OwnTask> = {}): OwnTask {
     resolved_at: null,
     resolved_by_user_id: null,
     idea_id: 'idea-1',
-    lead_days: 1,
+    anchor_kind: 'idea',
+    anchor_lead_days: 1,
     ...fields,
   }
 }
@@ -51,10 +52,10 @@ function harness(tasks: OwnTask[]) {
 
 describe('createIdeaPreparations (FR-29.21)', () => {
   const tasks = [
-    task('eve', { lead_days: 1 }),
-    task('week', { lead_days: 7, task_state: 'resolved' }),
-    task('made', { lead_days: null }),
-    task('other', { idea_id: 'idea-2', lead_days: 3 }),
+    task('eve', { anchor_lead_days: 1 }),
+    task('week', { anchor_lead_days: 7, task_state: 'resolved' }),
+    task('made', { anchor_lead_days: null }),
+    task('other', { idea_id: 'idea-2', anchor_lead_days: 3 }),
   ]
 
   it("lists the idea's steps, longest lead first — never a task merely made from it", () => {
@@ -73,7 +74,7 @@ describe('createIdeaPreparations (FR-29.21)', () => {
       CLIENT_ACTOR_PLACEHOLDER,
       'Bus reservieren',
       TASK_PHASE_BEFORE,
-      { ideaId: 'idea-1', leadDays: 7 },
+      { ideaId: 'idea-1', anchor: { kind: 'idea', leadDays: 7 } },
     )
   })
 

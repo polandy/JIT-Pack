@@ -6,6 +6,7 @@
 import { TABLE } from '@/api/tables'
 import { newId } from '@/lib/ids'
 import type { Mutation } from '@/api/types'
+import type { TaskAnchor } from '@/domain/shared/taskAnchor'
 import { TASK_STATE_OPEN, TASK_STATE_RESOLVED, type TaskPhase } from '@/types/domain'
 import type { MutationContext } from './context'
 
@@ -20,12 +21,10 @@ export interface TaskFiling {
   position?: number
   /** FR-29.13: the idea a trip task is made from. */
   ideaId?: string | null
-  /** FR-29.21: as that idea's preparation step, its lead in days before the idea's day. */
-  leadDays?: number | null
+  /** ADR-108: the anchor its due day is a lead before — an idea's day (FR-29.21), the trip's start (FR-13.4). */
+  anchor?: TaskAnchor | null
   /** FR-13.4: the series task this todo was materialised from. */
   destinationTaskId?: string | null
-  /** FR-13.4: as that series task, its lead in days before the trip's start (ADR-106). */
-  startLeadDays?: number | null
 }
 
 export function createTasksMutations({ make, nowIso }: MutationContext) {
@@ -74,12 +73,13 @@ export function createTasksMutations({ make, nowIso }: MutationContext) {
       ...(filed.position !== undefined ? { position: filed.position } : {}),
       // FR-29.13: made from an idea, it names the idea.
       ...(filed.ideaId ? { idea_id: filed.ideaId } : {}),
-      // FR-29.21: a preparation step names its lead, never a due day (ADR-104).
-      ...(filed.leadDays != null ? { lead_days: filed.leadDays } : {}),
-      // FR-13.4: a series task materialised onto the trip names where it came
-      // from and its lead, the same shape as the idea's step above (ADR-106).
+      // FR-29.21, FR-13.4: a step or a series task names its anchor and lead,
+      // never a due day (ADR-108).
+      ...(filed.anchor
+        ? { anchor_kind: filed.anchor.kind, anchor_lead_days: filed.anchor.leadDays }
+        : {}),
+      // FR-13.4: a series task materialised onto the trip names where it came from.
       ...(filed.destinationTaskId ? { destination_task_id: filed.destinationTaskId } : {}),
-      ...(filed.startLeadDays != null ? { start_lead_days: filed.startLeadDays } : {}),
     })
     return { mutation, id }
   }
@@ -165,9 +165,9 @@ export function createTasksMutations({ make, nowIso }: MutationContext) {
    * both stand (NFR-4.2a). Taking the day off takes FR-7.18's time with it —
    * a time without a day means nothing — while a moved day keeps its time.
    *
-   * Either way `start_lead_days` clears (FR-13.4, ADR-106): a fixed day is
-   * the todo's own choice from here on, not the trip's start less a lead,
-   * and the two must never both claim the due column.
+   * Either way the anchor clears (FR-13.4, ADR-108): a fixed day is the
+   * todo's own choice from here on, not an anchor's day less a lead, and the
+   * two must never both claim the due column.
    */
   function setTaskDueDate(taskId: string, dueDate: string | null): Mutation {
     return make(
@@ -175,8 +175,8 @@ export function createTasksMutations({ make, nowIso }: MutationContext) {
       TABLE.comments,
       taskId,
       dueDate === null
-        ? { due_date: null, due_time: null, start_lead_days: null }
-        : { due_date: dueDate, start_lead_days: null },
+        ? { due_date: null, due_time: null, anchor_kind: null, anchor_lead_days: null }
+        : { due_date: dueDate, anchor_kind: null, anchor_lead_days: null },
     )
   }
 
@@ -210,7 +210,7 @@ export function createTasksMutations({ make, nowIso }: MutationContext) {
 
   /** FR-29.21: a preparation step's lead before its idea's day, changed — one field. */
   function setTaskLead(taskId: string, leadDays: number): Mutation {
-    return make('upsert', TABLE.comments, taskId, { lead_days: leadDays })
+    return make('upsert', TABLE.comments, taskId, { anchor_lead_days: leadDays })
   }
 
   return {

@@ -501,22 +501,19 @@ CREATE TABLE comments (
     -- FR-29.13: the idea a trip task was made from — excursions.idea_id's
     -- shape.
     idea_id      TEXT REFERENCES ideas(id) ON DELETE SET NULL,
-    -- FR-29.21: a trip task that is an idea's preparation step says how many
-    -- days before the idea's day it is due. Its due day is read off the idea
-    -- (planned_on minus the lead), never stored, so moving the idea moves the
-    -- step (ADR-104); due_date stays unused on such a row. NULL: an ordinary
-    -- task. Free of a CHECK like every column here; the client offers four
-    -- leads only.
-    lead_days    INTEGER,
-    -- FR-13.4: a trip task materialised from a destination profile's series
-    -- task says how many days before the trip's start it is due. Its due
-    -- day is read off the trip (start_date minus the lead), never stored,
-    -- so moving the trip moves the todo (ADR-106); due_date stays unused on
-    -- such a row. NULL: not a series lead, including a series task with no
-    -- lead at all. Choosing a fixed day on the todo's sheet drops the lead
-    -- (clears this column); free of a CHECK like lead_days, for field-level
-    -- LWW's sake.
-    start_lead_days INTEGER,
+    -- FR-29.21, FR-13.4: a task whose due day is a lead before an anchor
+    -- (ADR-108) names the anchor's kind and the lead in days. 'idea': the
+    -- idea in idea_id, whose planned_on less the lead is the day — an idea's
+    -- preparation step, so moving the idea moves the step. 'trip_start': the
+    -- trip's own start_date less the lead — a series task materialised from
+    -- a destination profile. The day is read off the anchor, never stored, and
+    -- due_date stays unused on such a row; an anchor that is gone (idea_id
+    -- cleared by its ON DELETE SET NULL) leaves an ordinary task. NULL: an
+    -- ordinary task, including a series task with no lead at all. Choosing a
+    -- fixed day on the sheet clears both. Free of a CHECK like every column
+    -- here, for field-level LWW's sake; the client offers four leads only.
+    anchor_kind      TEXT,
+    anchor_lead_days INTEGER,
     -- FR-13.4: the series task a trip task was materialised from,
     -- idea_id's shape — carries the origin line on M25, named after the
     -- trip's series. ON DELETE SET NULL: the todo outlives the series task

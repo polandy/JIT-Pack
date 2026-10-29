@@ -8,7 +8,8 @@
  * Both the task projection and the reminder query read the rule from here.
  */
 import type { DestinationTask } from '@/types/domain'
-import { addDays } from './calendar'
+import type { TaskAnchorColumns } from '@/types/taskColumns'
+import { ANCHOR_KIND, hasAnchor, leadBefore } from './taskAnchor'
 
 /**
  * The leads a series task's sheet offers, in days before the trip's start,
@@ -25,13 +26,12 @@ export const SERIES_TASK_LEADS = [1, 3, 7, 14, 28, 56] as const
  * carried over unchanged.
  */
 export function seriesTaskDue(leadDays: number, tripStartDate: string | null): string | null {
-  if (tripStartDate === null) return null
-  return addDays(tripStartDate, -leadDays)
+  return leadBefore(tripStartDate, leadDays)
 }
 
 /** Whether a trip task carries a series lead rather than an ordinary due day. */
-export function isSeriesTask(task: { start_lead_days?: number | null }): boolean {
-  return task.start_lead_days != null
+export function isSeriesTask(task: TaskAnchorColumns): boolean {
+  return hasAnchor(task, ANCHOR_KIND.tripStart)
 }
 
 /** One series task materialised onto a trip, the fields a new todo needs. */

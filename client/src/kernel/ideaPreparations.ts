@@ -7,6 +7,7 @@
  */
 import type { IdeaPreparation, IdeaPreparations } from '@/domain/shared/ideaBridge'
 import { isPreparationStep } from '@/domain/shared/ideaPreparation'
+import { ANCHOR_KIND } from '@/domain/shared/taskAnchor'
 import { taskPhaseForDue } from '@/domain/ideaResults'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/sync/mutations/context'
 import type { TaskFiling } from '@/sync/mutations/tasks'
@@ -50,7 +51,7 @@ export function createIdeaPreparations(
         .map((task) => ({
           id: task.id,
           title: task.body,
-          leadDays: task.lead_days!,
+          leadDays: task.anchor_lead_days!,
           done: task.task_state === TASK_STATE_RESOLVED,
         }))
         .sort((a, b) => b.leadDays - a.leadDays)
@@ -59,14 +60,14 @@ export function createIdeaPreparations(
       const start = reads.tripList.find((trip) => trip.id === tripId)?.start_date ?? null
       writes.addOwnTask(tripId, CLIENT_ACTOR_PLACEHOLDER, title, taskPhaseForDue(due, start), {
         ideaId,
-        leadDays,
+        anchor: { kind: ANCHOR_KIND.idea, leadDays },
       })
     },
     edit(tripId, stepId, title, leadDays) {
       const step = stepById(tripId, stepId)
       if (!step) return
       if (step.body !== title) writes.setTaskBody(step, title)
-      if (step.lead_days !== leadDays) writes.setTaskLead(step, leadDays)
+      if (step.anchor_lead_days !== leadDays) writes.setTaskLead(step, leadDays)
     },
     toggle(tripId, stepId) {
       const step = stepById(tripId, stepId)

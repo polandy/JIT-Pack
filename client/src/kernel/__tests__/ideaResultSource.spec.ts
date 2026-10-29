@@ -76,7 +76,10 @@ describe('createIdeaResultSource (FR-29.13)', () => {
   it("leaves out the idea's preparation steps", () => {
     const withStep = createIdeaResultSource({
       getExcursions: () => [],
-      getOwnTasks: () => [{ ...task('to-4', 'idea-1'), lead_days: 7 }, task('to-5', 'idea-1')],
+      getOwnTasks: () => [
+        { ...task('to-4', 'idea-1'), anchor_kind: 'idea', anchor_lead_days: 7 },
+        task('to-5', 'idea-1'),
+      ],
     })
     expect(withStep.results('t', 'idea-1').map((result) => result.key)).toEqual(['task:to-5'])
   })

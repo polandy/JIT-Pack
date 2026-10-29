@@ -6,7 +6,7 @@
 
 import type { TrackKind } from '@/api/types'
 import type { ColumnEnum } from '@/api/tables'
-import type { IdeaTaskLink, SeriesTaskLink, TaskTime } from './taskColumns'
+import type { IdeaTaskLink, SeriesTaskLink, TaskAnchorColumns, TaskTime } from './taskColumns'
 export type {
   TripSeries,
   DestinationProfile,
@@ -462,7 +462,7 @@ export interface PrepTask extends TaskFacts {
  * Kept apart from `PrepTask` because nothing the packing list measures may
  * count it: a row's doneness, the ring and the prep KPI read `PrepTask` only.
  */
-export interface OwnTask extends TaskFacts, IdeaTaskLink, SeriesTaskLink {
+export interface OwnTask extends TaskFacts, IdeaTaskLink, SeriesTaskLink, TaskAnchorColumns {
   id: string
   trip_id: string
   author_id: string

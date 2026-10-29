@@ -265,3 +265,72 @@ func TestBaselineLevels_CannotCollideWithTheMigrationEra(t *testing.T) {
 		}
 	}
 }
+
+// ADR-108: the two per-anchor leads become one pair, and the rows that carried
+// them keep their meaning — a step stays an idea's, a series task the trip's —
+// with the per-field clocks the old columns had. Proven on a database that
+// stood at the level before, since a fresh one never held the old columns.
+func TestMigration032_TaskLeadsBecomeAnAnchorAndALead(t *testing.T) {
+	dsn := filepath.Join(t.TempDir(), "jitpack.db")
+	db := seedBaselineDatabase(t, dsn)
+	t.Cleanup(func() { _ = db.Close() })
+	if err := stampBaseline(db, 0, "v0.16.0"); err != nil {
+		t.Fatalf("stampBaseline: %v", err)
+	}
+	const level = 32
+	if err := applyMigrations(db, migrationChain[:level-1]); err != nil {
+		t.Fatalf("chain up to %d: %v", level-1, err)
+	}
+	mustExecDB(t, db, `PRAGMA foreign_keys = OFF`)
+	for _, row := range []string{
+		`('step', 'i1', 7, NULL, '{"lead_days":"hlc-step"}')`,
+		`('series', NULL, NULL, 14, '{"start_lead_days":"hlc-series"}')`,
+		`('both', 'i1', 7, 3, '{}')`,
+		`('plain', NULL, NULL, NULL, '{}')`,
+		`('origin', 'i1', NULL, NULL, '{}')`,
+	} {
+		mustExecDB(t, db, `INSERT INTO comments (id, idea_id, lead_days, start_lead_days, field_hlcs,
+			trip_id, author_id, body, is_task, task_state) VALUES `+strings.Replace(row, ")", ", 't', 'u', 'b', 1, 'open')", 1))
+	}
+
+	if err := applyMigrations(db, migrationChain[level-1:level]); err != nil {
+		t.Fatalf("migration %d: %v", level, err)
+	}
+
+	type anchor struct {
+		kind sql.NullString
+		lead sql.NullInt64
+		hlc  string
+	}
+	read := func(id string) anchor {
+		t.Helper()
+		var a anchor
+		if err := db.QueryRow(`SELECT anchor_kind, anchor_lead_days,
+			COALESCE(json_extract(field_hlcs, '$.anchor_lead_days'), '') FROM comments WHERE id = ?`, id).
+			Scan(&a.kind, &a.lead, &a.hlc); err != nil {
+			t.Fatalf("read %s: %v", id, err)
+		}
+		return a
+	}
+	cases := []struct {
+		id   string
+		kind string
+		lead int64
+		hlc  string
+	}{
+		{"step", AnchorKindIdea, 7, "hlc-step"},
+		{"series", AnchorKindTripStart, 14, "hlc-series"},
+		{"both", AnchorKindTripStart, 3, ""}, // the due-day query read start_lead_days first
+		{"plain", "", 0, ""},
+		{"origin", "", 0, ""}, // made from an idea, not prepared for one
+	}
+	for _, c := range cases {
+		got := read(c.id)
+		if got.kind.String != c.kind || got.lead.Int64 != c.lead || got.hlc != c.hlc {
+			t.Errorf("%s: anchor = %+v, want kind %q lead %d clock %q", c.id, got, c.kind, c.lead, c.hlc)
+		}
+	}
+	if have := columns(t, db, "comments"); have["lead_days"] || have["start_lead_days"] {
+		t.Error("the old lead columns survived the migration")
+	}
+}

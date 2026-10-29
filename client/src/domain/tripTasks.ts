@@ -18,6 +18,7 @@ import { daysBetween } from '@/domain/shared/calendar'
 import { byHand, dropInto, renumber, type Placement } from '@/domain/shared/handOrder'
 import { isPreparationStep, preparationDue, type IdeaDay } from '@/domain/shared/ideaPreparation'
 import { isSeriesTask, seriesTaskDue } from '@/domain/shared/seriesTask'
+import type { AnchorKind } from '@/types/taskColumns'
 
 /** How far a trip's tasks are, as the two figures M1 states. */
 export interface TripTaskProgress {
@@ -119,12 +120,11 @@ export interface TripTask {
   position?: number | null
   /** FR-29.13: the idea a trip's own task was made from; absent for none. */
   idea_id?: string | null
-  /** FR-29.21: the lead before its idea's day, for a preparation step; absent otherwise. */
-  lead_days?: number | null
+  /** ADR-108: what its due day is a lead before, and the lead; absent for an ordinary task. */
+  anchor_kind?: AnchorKind | null
+  anchor_lead_days?: number | null
   /** FR-13.4: the series task this todo was materialised from; absent for none. */
   destination_task_id?: string | null
-  /** FR-13.4: the lead before the trip's start, for a series task; absent otherwise. */
-  start_lead_days?: number | null
 }
 
 /**
@@ -178,16 +178,18 @@ export function tripTasks(
     if (isPreparationStep(task)) {
       // FR-29.21: a step waits on its idea, listed nowhere, until the idea
       // has a day — and is due its lead before that day (ADR-104).
-      const due = preparationDue(task.lead_days!, ideaOf(task.idea_id!))
+      const due = preparationDue(task.anchor_lead_days!, ideaOf(task.idea_id!))
       if (due === null) continue
       projected.due_date = due
       projected.due_time = null // a lead counts days; the step's day has no hour
-      projected.lead_days = task.lead_days
+      projected.anchor_kind = task.anchor_kind
+      projected.anchor_lead_days = task.anchor_lead_days
     } else if (isSeriesTask(task)) {
       // FR-13.4: read off the trip's own start, never stored (ADR-106).
-      projected.due_date = seriesTaskDue(task.start_lead_days!, tripStartDate)
+      projected.due_date = seriesTaskDue(task.anchor_lead_days!, tripStartDate)
       projected.due_time = null // a lead counts days; the trip's start has no hour
-      projected.start_lead_days = task.start_lead_days
+      projected.anchor_kind = task.anchor_kind
+      projected.anchor_lead_days = task.anchor_lead_days
     }
     own.push(projected)
   }

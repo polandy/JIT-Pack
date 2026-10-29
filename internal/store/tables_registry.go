@@ -461,11 +461,10 @@ var tableSpecs = map[string]tableSpec{
 			// FR-7.17: the task's place inside its group (ADR-083).
 			"position",
 			// FR-29.13: the idea a trip task was made from (validIdeaResult
-			// checks it); FR-29.21: a preparation step's lead before its day.
-			columnIdeaID, "lead_days",
-			// FR-13.4: a series task's lead before the trip's start, and the
-			// series task it was materialised from (ADR-106).
-			"start_lead_days", "destination_task_id",
+			// checks it); FR-29.21, FR-13.4: the anchor a task's due day is a
+			// lead before (ADR-108), and the series task it was materialised
+			// from (ADR-106).
+			columnIdeaID, "anchor_kind", "anchor_lead_days", "destination_task_id",
 		),
 		// FR-7.9: a note's per-person ticks hang off it (note_acks.comment_id
 		// ON DELETE CASCADE). A task's own resolution needs nothing here — it

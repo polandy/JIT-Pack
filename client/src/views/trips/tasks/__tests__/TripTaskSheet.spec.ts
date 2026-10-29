@@ -76,7 +76,12 @@ function mountSheet(props: Record<string, unknown>) {
 describe('TripTaskSheet — an idea’s preparation step (FR-29.21)', () => {
   it('states the day its idea sets instead of offering one to pick', () => {
     const sheet = mountSheet({
-      task: task({ idea_id: 'idea-1', lead_days: 7, due_date: '2026-07-12' }),
+      task: task({
+        idea_id: 'idea-1',
+        anchor_kind: 'idea',
+        anchor_lead_days: 7,
+        due_date: '2026-07-12',
+      }),
     })
     expect(sheet.findComponent(DateFieldStub).exists()).toBe(false)
     const lead = sheet.find('[data-testid="task-sheet-lead"]')
@@ -197,7 +202,12 @@ describe('TripTaskSheet — the time its reminder arrives (FR-7.18)', () => {
 
   it('offers no time on a preparation step, whose day its idea sets', () => {
     const sheet = mountSheet({
-      task: task({ idea_id: 'idea-1', lead_days: 7, due_date: '2026-07-12' }),
+      task: task({
+        idea_id: 'idea-1',
+        anchor_kind: 'idea',
+        anchor_lead_days: 7,
+        due_date: '2026-07-12',
+      }),
     })
     expect(sheet.find(TIME).exists()).toBe(false)
   })

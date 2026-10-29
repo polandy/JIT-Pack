@@ -1,6 +1,6 @@
 # ADR-104: A preparation step's due day — derived from its idea on read vs. stored on the task
 
-**Status:** Accepted
+**Status:** Superseded by ADR-108
 **Related:** FR-29.21, FR-7.11, FR-29.13, FR-29.14, FR-7.3, ADR-078, ADR-097, `comments.lead_days`,
 `client/src/domain/shared/ideaPreparation.ts`, `internal/store/taskdue.go`
 

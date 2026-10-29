@@ -71,8 +71,8 @@ func TestDueTasks_FR29_21_AStepIsDueItsLeadBeforeItsIdeasDay(t *testing.T) {
 	idea("i-dropped", "dropped", "2026-07-15")
 	step := func(id string, ideaID any, lead int, due any) {
 		t.Helper()
-		mustExec(t, s, `INSERT INTO comments (id, trip_id, author_id, body, is_task, task_state, idea_id, lead_days, due_date)
-			VALUES (?, ?, ?, ?, 1, 'open', ?, ?, ?)`, id, testTrip, testUser, "body "+id, ideaID, lead, due)
+		mustExec(t, s, `INSERT INTO comments (id, trip_id, author_id, body, is_task, task_state, idea_id, anchor_kind, anchor_lead_days, due_date)
+			VALUES (?, ?, ?, ?, 1, 'open', ?, ?, ?, ?)`, id, testTrip, testUser, "body "+id, ideaID, AnchorKindIdea, lead, due)
 	}
 	step("c-week", "i-planned", 7, nil)
 	step("c-eve", "i-planned", 1, nil)
@@ -80,12 +80,18 @@ func TestDueTasks_FR29_21_AStepIsDueItsLeadBeforeItsIdeasDay(t *testing.T) {
 	step("c-stale", "i-planned", 3, "2026-07-08")
 	step("c-waiting", "i-unplanned", 7, "2026-07-08")
 	step("c-dropped", "i-dropped", 7, nil)
+	// ADR-104: a step whose idea was deleted (idea_id cleared by its foreign
+	// key) is an ordinary task again, due on the day it carries.
+	step("c-orphan", nil, 7, "2026-07-09")
 
 	got, err := s.DueTasks(ctx, "2026-07-08", "2026-07-09")
 	if err != nil {
 		t.Fatalf("DueTasks: %v", err)
 	}
-	want := []DueTask{{ID: "c-week", TripID: testTrip, Body: "body c-week", DueDate: "2026-07-08"}}
+	want := []DueTask{
+		{ID: "c-week", TripID: testTrip, Body: "body c-week", DueDate: "2026-07-08"},
+		{ID: "c-orphan", TripID: testTrip, Body: "body c-orphan", DueDate: "2026-07-09"},
+	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("DueTasks = %+v\nwant %+v", got, want)
 	}
@@ -109,8 +115,8 @@ func TestDueTasks_FR13_4_ASeriesTaskIsDueItsLeadBeforeTheTripsStart(t *testing.T
 		VALUES ('trip-undated', 'Ohne Start', 2026, NULL, NULL)`)
 	seriesTask := func(id, trip string, lead int, due any) {
 		t.Helper()
-		mustExec(t, s, `INSERT INTO comments (id, trip_id, author_id, body, is_task, task_state, start_lead_days, due_date)
-			VALUES (?, ?, ?, ?, 1, 'open', ?, ?)`, id, trip, testUser, "body "+id, lead, due)
+		mustExec(t, s, `INSERT INTO comments (id, trip_id, author_id, body, is_task, task_state, anchor_kind, anchor_lead_days, due_date)
+			VALUES (?, ?, ?, ?, 1, 'open', ?, ?, ?)`, id, trip, testUser, "body "+id, AnchorKindTripStart, lead, due)
 	}
 	// A stored due day does not count for a series task: the trip's start decides.
 	seriesTask("c-week", testTrip, 7, "2026-07-08")

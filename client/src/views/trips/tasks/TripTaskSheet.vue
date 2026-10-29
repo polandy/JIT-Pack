@@ -34,6 +34,7 @@ import DueChips from '@/components/global/DueChips.vue'
 import SeriesTaskOrigin from '@/components/global/SeriesTaskOrigin.vue'
 import SheetHead from '@/components/global/SheetHead.vue'
 import TaskTagPicker from '@/views/trips/tasks/TaskTagPicker.vue'
+import { ANCHOR_KIND, hasAnchor } from '@/domain/shared/taskAnchor'
 import { filedTagOf, type TripTask } from '@/domain/tripTasks'
 import { t } from '@/i18n'
 import type { NameOf } from '@/lib/rowFacts'
@@ -97,6 +98,10 @@ const emit = defineEmits<{
 /** FR-7.12: a task left in a closed *before* is read, not worked. */
 const history = computed(() => props.beforeLocked && props.task.phase === TASK_PHASE_BEFORE)
 const isOpen = computed(() => props.task.task_state === TASK_STATE_OPEN)
+/** FR-29.21: an idea's step, whose day is the idea's less the lead and is moved by planning the idea. */
+const isIdeaStep = computed(() => hasAnchor(props.task, ANCHOR_KIND.idea))
+/** FR-13.4: a series task, whose lead is the trip's start less it; choosing a day drops it (ADR-108). */
+const isSeriesLead = computed(() => hasAnchor(props.task, ANCHOR_KIND.tripStart))
 
 /**
  * The words being edited. Re-read from the task whenever it changes under
@@ -251,16 +256,18 @@ function factLine(key: string, icon: string, text: string | null) {
       <div class="label jp-section-count">{{ t('tasks.dueField') }}</div>
       <!-- FR-29.21: a preparation step's day is its idea's, less the lead —
            moved by planning the idea, so there is none to pick here. -->
-      <p v-if="task.lead_days != null && task.due_date" class="lead" data-testid="task-sheet-lead">
-        {{ t('tasks.dueFromIdea', { day: shortDueDay(task.due_date), n: task.lead_days }) }}
+      <p v-if="isIdeaStep && task.due_date" class="lead" data-testid="task-sheet-lead">
+        {{
+          t('tasks.dueFromIdea', { day: shortDueDay(task.due_date), n: task.anchor_lead_days ?? 0 })
+        }}
       </p>
       <!-- FR-13.4: a series task's lead, stated the same way, but it keeps
            its chips — choosing a day, or Kein Termin, drops the lead
            (`setTaskDueDate`, ADR-106). -->
-      <p v-else-if="task.start_lead_days != null" class="lead" data-testid="task-sheet-lead">
-        {{ seriesLeadText(task.start_lead_days, task.due_date) }}
+      <p v-else-if="isSeriesLead" class="lead" data-testid="task-sheet-lead">
+        {{ seriesLeadText(task.anchor_lead_days!, task.due_date) }}
       </p>
-      <template v-if="task.lead_days == null">
+      <template v-if="!isIdeaStep">
         <DueChips
           :value="task.due_date"
           :time="task.due_time ?? null"
