@@ -332,8 +332,8 @@ field and the rest of the mutation is applied, so a race costs the link and neve
 clears the column (`ON DELETE SET NULL`) inside the engine and writes **no change**, like
 `excursion_items.trip_item_id`: a client reads a link to an excursion it does not hold as no link.
 
-`comments.anchor_kind` (`idea` or `trip_start`) and `anchor_lead_days` (ADR-108) make a task's due day a lead before
-an anchor: both are pushed together and the day is derived, never stored. The retired `lead_days` and `start_lead_days` are no
+an anchor: both are pushed together and the day is derived, never stored. The retired `lead_days` and
+`start_lead_days` are no longer in the push whitelist.
 longer in the push whitelist.
 
 `idea_id` on `excursions`, `comments` and `shopping_entries` (FR-29.13) names the idea a result was made from, or NULL
