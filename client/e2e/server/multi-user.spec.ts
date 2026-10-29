@@ -535,34 +535,34 @@ test.describe('Two accounts on one instance @server', () => {
     const trip = `Sprachprobe ${id}`
     const item = `Regenjacke-${id}`
 
-    const ctxBob = await browser.newContext()
-    const bob = await loginAs(ctxBob, 'bob', 'de')
+    const ctxIda = await browser.newContext()
+    const ida = await loginAs(ctxIda, 'ida', 'de')
     const ctxAlice = await browser.newContext()
     const alice = await loginAs(ctxAlice, 'alice')
 
     const tripPath = await createTripViaWizard(alice, { name: trip })
     await quickAddItem(alice, item)
-    await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
+    await shareWith(alice, tripPath, ACCOUNT_NAMES.ida)
 
-    const subscribedBob = watchSubscribed(bob)
-    await bob.goto(tripPath)
-    await expect(visiblePage(bob).getByTestId(`m4-row-${item}`)).toBeVisible()
-    await subscribedBob
+    const subscribedIda = watchSubscribed(ida)
+    await ida.goto(tripPath)
+    await expect(visiblePage(ida).getByTestId(`m4-row-${item}`)).toBeVisible()
+    await subscribedIda
 
     await alice.goto(tripPath)
-    await assignTo(alice, item, ACCOUNT_NAMES.bob)
+    await assignTo(alice, item, ACCOUNT_NAMES.ida)
 
     // The whole German sentence, not a substring of it: the name and the
     // item alone would be satisfied by the English wording too, which is
     // exactly what this case exists to fail against.
-    // Filtered by the item for the reason FR-02's comment gives: Bob's other
+    // Filtered by the item for the reason FR-02's comment gives: Ida's other
     // sessions are told about their rows too.
-    await expect(bob.locator('ion-toast').filter({ hasText: item })).toContainText(
+    await expect(ida.locator('ion-toast').filter({ hasText: item })).toContainText(
       `${ACCOUNT_NAMES.alice} hat dir „${item}“ zugewiesen`,
     )
 
     await ctxAlice.close()
-    await ctxBob.close()
+    await ctxIda.close()
   })
 
   /**
