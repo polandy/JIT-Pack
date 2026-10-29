@@ -42,7 +42,7 @@ excursion's packing has got, and a task has its checkbox; the other lines have n
   right after the way there, or right before the way back if it has only that.
 - **Idee** — an idea you planned on this day. Tap it to open it; once you set it to **Gemacht** there, its line is
   struck through.
-- **Aufgabe** — a task due this day, with whoever does it. Its checkbox is the same as on the task list.
+- **Aufgabe** — a task due this day, with whoever does it. Its checkbox is the same as on the task list. A task given a time on its sheet shows that time in the time column and stands among the timed lines; one without a time stands after them.
 - **Eintrag** — an entry of the day plan's own. Tap it to change or delete it. An entry for only some of you says
   so under it — *für Sia*; an excursion only some go on says who the same way.
 - **Verbindung** — an entry with a train, bus or ferry journey: its title, and under it from where to where, when it

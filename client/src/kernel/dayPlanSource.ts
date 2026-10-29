@@ -87,6 +87,7 @@ export function createDayPlanSource(reads: DayPlanReads, writes: DayPlanWrites):
         to: task.due_date!,
         detail: null,
         assignee: task.assignee_user_id,
+        time: task.due_time,
         progress: null,
         done: task.task_state === TASK_STATE_RESOLVED,
         toggle: () => writes.toggleTask(tripId, task),

@@ -39,7 +39,12 @@ function item(id: string, packed: number, quantity: number): ExcursionLine {
   }
 }
 
-function task(id: string, due: string | null, state: TripTask['task_state'] = 'open'): TripTask {
+function task(
+  id: string,
+  due: string | null,
+  state: TripTask['task_state'] = 'open',
+  dueTime: string | null = null,
+): TripTask {
   return {
     id,
     body: `Aufgabe ${id}`,
@@ -53,7 +58,7 @@ function task(id: string, due: string | null, state: TripTask['task_state'] = 'o
     resolved_by_user_id: null,
     task_tag_id: null,
     due_date: due,
-    due_time: null,
+    due_time: dueTime,
   }
 }
 
@@ -141,6 +146,20 @@ describe('the day plan source (FR-29.15)', () => {
 
     lines[0]!.toggle!()
     expect(toggleTask).toHaveBeenCalledWith('t', expect.objectContaining({ id: 'open' }))
+  })
+})
+
+describe('a task with a reminder time on the plan (FR-7.18, FR-29.15)', () => {
+  it('carries its time to the line, and none where it has none', () => {
+    const { src } = source(
+      [],
+      [],
+      [task('timed', '2026-07-14', 'open', '14:00'), task('plain', '2026-07-14')],
+    )
+    expect(src.lines('t').map((l) => [l.key, l.time ?? null])).toEqual([
+      ['task:timed', '14:00'],
+      ['task:plain', null],
+    ])
   })
 })
 

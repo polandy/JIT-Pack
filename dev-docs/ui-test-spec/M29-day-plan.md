@@ -111,15 +111,19 @@
 * **E2E-M29-21** `local` (FR-21.24) — **implemented** (`planner/dayplan.spec.ts`): with the second day chosen, the ＋
   opens the entry sheet titled *„New on …"*, and the ＋ is named with exactly that title; with the last day chosen it no
   longer is. M29 keeps its sheet rather than M6's composer.
-* **E2E-M29-22** `local` (FR-29.15, UX-09) — **implemented** (`planner/dayplan.spec.ts`, the browser's clock set): on a
-  day holding every kind, in German, the time column reads *10:00* (an idea), *Mittag* and *Abend* (untimed meals),
-  *ganztags* (an excursion) and nothing for a task due that day, an untimed entry and the arrival; the cooked meal's
-  ring is named *„0 von 2 Zutaten"* and the excursion's *„0 von 1 gepackt"*; the task carries a checkbox named
-  *„„Briefkasten leeren" abhaken"*; the idea, the entry and the eaten-out meal have their line's button and nothing
-  else. The checkbox strikes the task through, and a tap on the meal's ring opens the meal's sheet. The words per kind
-  are `dayLineTime`'s in `planner/__tests__/dayLineText.spec.ts`, the ring's names the sources' specs'.
+* **E2E-M29-22** `local` (FR-29.15, UX-09) — **implemented** (`planner/dayplan.spec.ts`, the browser's clock set): on
+  a day holding every kind, in German, the time column reads *10:00* (an idea), *Mittag* and *Abend* (untimed meals),
+  *ganztags* (an excursion) and nothing for a task due that day without a time, an untimed entry and the arrival; the
+  cooked meal's ring is named *„0 von 2 Zutaten"* and the excursion's *„0 von 1 gepackt"*; the task carries a checkbox
+  named *„„Briefkasten leeren" abhaken"*; the idea, the entry and the eaten-out meal have their line's button and
+  nothing else. The checkbox strikes the task through, and a tap on the meal's ring opens the meal's sheet. The words
+  per kind are `dayLineTime`'s in `planner/__tests__/dayLineText.spec.ts`, the ring's names the sources' specs'.
 * **E2E-M29-23** `local` (FR-29.13/29.15) — **implemented** (`planner/bridge.spec.ts`): the excursion made from a
   shortlisted idea planned on the third day stands there as the *Excursion* line, the pool bar absent; opened from the
   plan and deleted on M27, the day holds no line naming the idea, the pool bar offers it again and the idea's detail
   names no day. The action's rule is `excursions.seam.spec.ts` (*takes the day of the idea it was made from away*), the
   planner's write `planner/__tests__/sync.spec.ts`.
+* **E2E-M29-24** `local` (FR-7.18, FR-29.15) — **implemented** (`planner/dayplan.spec.ts`): of two tasks due on the
+  first day, the one given a reminder time on M25's sheet stands first on the plan with *14:00* in its time column, the
+  other after it with an empty one. The line's time is `kernel/dayPlanSource.ts`'s, the order
+  `planner/domain/dayPlan.ts`'s.
