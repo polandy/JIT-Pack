@@ -273,7 +273,7 @@ func TestBaselineLevels_CannotCollideWithTheMigrationEra(t *testing.T) {
 func TestMigration032_TaskLeadsBecomeAnAnchorAndALead(t *testing.T) {
 	dsn := filepath.Join(t.TempDir(), "jitpack.db")
 	db := seedBaselineDatabase(t, dsn)
-	defer db.Close()
+	t.Cleanup(func() { _ = db.Close() })
 	if err := stampBaseline(db, 0, "v0.16.0"); err != nil {
 		t.Fatalf("stampBaseline: %v", err)
 	}
