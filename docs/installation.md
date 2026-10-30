@@ -55,7 +55,7 @@ Notes on that file:
 
 ## Building from source
 
-You need **Go 1.26 or newer** (`go.mod` declares `go 1.26.0`, which is also what the release image builds on) and, for the client, **Node 24**.
+You need **Go 1.26 or newer** (`go.mod` declares `go 1.26.0`, which is also what the release image builds on) and, for the client, **Node 26**.
 
 ```bash
 git clone https://github.com/polandy/JIT-Pack.git
