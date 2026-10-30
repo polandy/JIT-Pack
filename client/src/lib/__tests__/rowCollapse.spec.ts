@@ -35,7 +35,9 @@ describe('collapseRow', () => {
     const node = row([new Promise(() => {})])
     Object.defineProperty(node.style, 'height', {
       get: () => heights[heights.length - 1] ?? '',
-      set: (v: string) => heights.push(v),
+      set: (v: string) => {
+        heights.push(v)
+      },
     })
 
     collapseRow(node, vi.fn(), false)

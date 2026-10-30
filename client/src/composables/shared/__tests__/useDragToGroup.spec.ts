@@ -602,7 +602,9 @@ describe('useDragToGroup — the list scrolls under a finger at its edge', () =>
     Object.defineProperty(el, 'scrollHeight', { value: content })
     Object.defineProperty(el, 'scrollTop', {
       get: () => top,
-      set: (to: number) => (top = Math.max(0, Math.min(content - height, to))),
+      set: (to: number) => {
+        top = Math.max(0, Math.min(content - height, to))
+      },
     })
   }
 
