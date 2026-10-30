@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.28.0](https://github.com/polandy/JIT-Pack/compare/v0.27.0...v0.28.0) (2026-10-30)
+
+
+### Features
+
+* a preparation step on a day-plan entry, due a lead before it or on a day of its own (FR-29.21, FR-29.15) ([74988ab](https://github.com/polandy/JIT-Pack/commit/74988abb957c518197397f1e2800b100f1d2708a))
+* the day plan's task line carries the task's reminder time (FR-7.18, FR-29.15) ([bf77808](https://github.com/polandy/JIT-Pack/commit/bf77808cca0b82396cbbc1088f535f024204027f))
+
+
+### Bug Fixes
+
+* a scroll's own end closes the FR-21.17 gesture window, not a timer's silence ([b74d751](https://github.com/polandy/JIT-Pack/commit/b74d75102f96aec54ef1af476ce5ed79e52c5e32))
+* a shared master item across travelers' rows lands as one, not N ([0374cea](https://github.com/polandy/JIT-Pack/commit/0374cea74d71414b61df43feb9d7f74f4bce4646))
+* M25's no-op batch snackbar offers no undo of the act before (E2E-M25-24, FR-7.8) ([#861](https://github.com/polandy/JIT-Pack/issues/861)) ([04d380a](https://github.com/polandy/JIT-Pack/commit/04d380acaaee9fa4762a1acbe4e15fc8f9ed0b57))
+* M4's browse sheet settles a set with nothing left open (E2E-M4-162, FR-25.13f) ([#864](https://github.com/polandy/JIT-Pack/issues/864)) ([cea636b](https://github.com/polandy/JIT-Pack/commit/cea636b9c46ccff1fb86e01ddc718334ec5fd6d8))
+* notification toasts show one at a time, a burst becomes one summary (FR-6.2, G-23) ([07a259d](https://github.com/polandy/JIT-Pack/commit/07a259d38284103b62a6b3728274240a49ee53ce))
+* the browse sheet's pack verb leaves a skipped row skipped (FR-25.13f, M4) ([#855](https://github.com/polandy/JIT-Pack/issues/855)) ([5e6ff4e](https://github.com/polandy/JIT-Pack/commit/5e6ff4e20e3c0ede7761e94eb7ee42f65b0e0658))
+* tighten the Today card's empty line in the dashboard hero ([180e332](https://github.com/polandy/JIT-Pack/commit/180e3322a4cc2eafc170faa8a4f06806c87f74ed))
+
 ## [0.27.0](https://github.com/polandy/JIT-Pack/compare/v0.26.0...v0.27.0) (2026-10-24)
 
 
