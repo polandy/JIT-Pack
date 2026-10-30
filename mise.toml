@@ -11,5 +11,5 @@
 # When you change one of those in ci.yml or go.mod, change it here too.
 [tools]
 go = "1.27"
-node = "24"
+node = "26"
 golangci-lint = "2.13"
