@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"log/slog"
 	"strings"
 	"time"
@@ -78,30 +79,36 @@ type Options struct {
 	TaskReminderAt time.Duration
 	// OIDC turns on the /auth/token, /auth/refresh and /auth/config
 	// endpoints, brokering logins against the discovered IdP as a
-	// confidential client (client_secret_basic, ADR-007). Nil leaves
-	// them answering "not configured", which is how the tests drive
+	// confidential client (client_secret_basic, ADR-007). They answer 503
+	// until Server.ConnectOIDC has resolved the issuer (ADR-109). Nil
+	// leaves them answering "not configured", which is how the tests drive
 	// authenticated endpoints with externally minted tokens. Multi-user
 	// mode only: Single-User Mode bypasses authentication entirely.
 	OIDC *OIDCConfig
 	// Logger is what every request-scoped logger (ARCH-08b) derives
 	// from — method, route and request_id, plus caller once authed has
-	// run — and where the hub and OIDC.JWKS write their own lines. Nil means slog.Default(), which is what cmd/jitpackd passes
+	// run — and where the hub, ConnectOIDC and the JWKS refresh write their own lines. Nil means slog.Default(), which is what cmd/jitpackd passes
 	// since it never builds a *slog.Logger of its own.
 	Logger *slog.Logger
 }
 
-// OIDCConfig is the confidential-client configuration the login broker
-// resolves its endpoints from. The client secret never leaves the
-// server.
+// OIDCConfig is the operator's confidential-client registration. The
+// issuer is the one IdP endpoint configured; the broker's endpoints and
+// signing keys are resolved from it by Server.ConnectOIDC, which keeps
+// retrying while the issuer is unreachable (ADR-109). The client secret
+// never leaves the server.
 type OIDCConfig struct {
-	// Discovery is the IdP's answer to the one configured endpoint;
-	// everything the broker calls is read from it.
-	Discovery Discovery
-	ClientID  string
+	// Issuer is the IdP's issuer URL, matched byte for byte against the
+	// discovery document's own (see FetchDiscovery).
+	Issuer   string
+	ClientID string
 	// ClientSecret authenticates JIT-Pack itself at the token endpoint.
 	ClientSecret string
-	// JWKS verifies the ID token's signature.
-	JWKS *JWKSProvider
+	// RetryWait pauses ConnectOIDC between two failed attempts, returning
+	// early with ctx's error once ctx ends. Nil means a real timer, which
+	// is what cmd/jitpackd passes — the field exists so a test can step the
+	// backoff without sleeping through it.
+	RetryWait func(ctx context.Context, d time.Duration) error
 }
 
 // emailSet lowercases the FR-23.1 allowlist for matching.

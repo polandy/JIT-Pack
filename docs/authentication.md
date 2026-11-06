@@ -71,7 +71,7 @@ JITPACK_OIDC_CLIENT_ID=jitpack
 JITPACK_OIDC_CLIENT_SECRET=…            # the plaintext secret, matching the hash above
 ```
 
-Only the issuer is configured. The authorization, token, UserInfo and JWKS endpoints all come from `{issuer}/.well-known/openid-configuration` at startup — and the issuer string in that document must match yours exactly, or the server refuses to boot. See [The issuer string must match exactly](configuration.md#the-issuer-string-must-match-exactly).
+Only the issuer is configured. The authorization, token, UserInfo and JWKS endpoints all come from `{issuer}/.well-known/openid-configuration` at startup — and the issuer string in that document must match yours exactly, or the server stops. See [The issuer string must match exactly](configuration.md#the-issuer-string-must-match-exactly).
 
 ### Why each non-default option is there
 
@@ -198,7 +198,7 @@ The asymmetry is intentional. Mistaking a rejection for an outage costs a sessio
 
 One thing to know if something else sits in front of the refresh endpoint: the **client** ends its session whenever `/api/v1/auth/refresh` *answers* with a 4xx other than 408, 425 or 429 — not only on the 401 the broker sends for a genuine rejection. A request that never arrives, or that comes back 5xx, keeps the session, because offline is the normal condition. The asymmetry is on purpose: a client that kept retrying an unrenewable session showed nothing but an *offline* glyph for ever. The consequence for you is that a WAF, an auth proxy or a captive portal answering `403` in front of a healthy instance will log people out, and the server log will show nothing at all — the request never reached it. If users report being logged out while the instance logs no refreshes, look at what sits in front of it.
 
-Note that this tolerance applies to a **running** server only. At startup the IdP must be reachable, because a broker that came up without a verified issuer and a loaded JWKS could not validate anything — see [What fails fast at startup](configuration.md#what-fails-fast-at-startup).
+The same holds at startup. A server whose IdP is unreachable when it starts serves anyway. Its login endpoints answer `503` until the discovery document and the signing keys have been fetched, which it retries in the background. Until then it accepts no login at all, so a login it could not validate never gets in — see [An unreachable IdP does not stop the server](configuration.md#an-unreachable-idp-does-not-stop-the-server). A discovery document that answers but is wrong still stops the server.
 
 ---
 

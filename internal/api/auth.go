@@ -39,8 +39,8 @@ const (
 // verifier go to the broker, and what comes back is JIT-Pack's own
 // session token pair.
 func (s *Server) handleAuthToken(w http.ResponseWriter, r *http.Request) {
-	if s.oidc == nil {
-		writeError(w, http.StatusNotImplemented, ErrNotConfigured, msgOIDCNotConfigured)
+	broker := s.broker(w)
+	if broker == nil {
 		return
 	}
 	var req struct {
@@ -57,7 +57,7 @@ func (s *Server) handleAuthToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := s.oidc.exchange(r.Context(), req.Code, req.CodeVerifier, req.RedirectURI)
+	id, err := broker.exchange(r.Context(), req.Code, req.CodeVerifier, req.RedirectURI)
 	if err != nil {
 		writeAuthError(w, err)
 		return
@@ -71,8 +71,8 @@ func (s *Server) handleAuthToken(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
-	if s.oidc == nil {
-		writeError(w, http.StatusNotImplemented, ErrNotConfigured, msgOIDCNotConfigured)
+	broker := s.broker(w)
+	if broker == nil {
 		return
 	}
 	var req struct {
@@ -99,7 +99,7 @@ func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 
 	newIDPRefresh := sess.IDPRefreshToken
 	if sess.IDPRefreshToken != "" {
-		id, err := s.oidc.refresh(r.Context(), sess.IDPRefreshToken)
+		id, err := broker.refresh(r.Context(), sess.IDPRefreshToken)
 		switch {
 		case errors.Is(err, errIDPRejected):
 			// The IdP disowned the session — only this ends it (§2).
@@ -170,6 +170,7 @@ const (
 const (
 	msgSessionCleanupFailed = "session cleanup failed"
 	msgOIDCNotConfigured    = "OIDC login is not configured"
+	msgOIDCPending          = "OIDC login is not available yet: the identity provider has not been reached since the server started"
 	msgProvisioningFailed   = "user provisioning failed"
 	// Each of these is answered twice — once for a body that would not
 	// decode, once for one that decoded without the field.
@@ -213,11 +214,29 @@ func (s *Server) endSession(ctx context.Context, refreshHash, reason string) {
 }
 
 func (s *Server) handleAuthConfig(w http.ResponseWriter, _ *http.Request) {
-	if s.oidc == nil {
-		writeError(w, http.StatusNotImplemented, ErrNotConfigured, msgOIDCNotConfigured)
+	broker := s.broker(w)
+	if broker == nil {
 		return
 	}
-	writeJSON(w, s.oidc.authorizeConfig())
+	writeJSON(w, broker.authorizeConfig())
+}
+
+// broker returns the login broker, or answers why there is none and
+// returns nil. An instance without OIDC is 501, for good; one whose
+// issuer has not been resolved yet is 503 (ADR-109), the transient
+// status the client keeps its session through. Either way nothing
+// reaches the IdP and no ID token goes unverified: without a broker
+// there is no code path that could accept a login.
+func (s *Server) broker(w http.ResponseWriter) *oidcBroker {
+	if b := s.oidc.Load(); b != nil {
+		return b
+	}
+	if s.oidcConfig == nil {
+		writeError(w, http.StatusNotImplemented, ErrNotConfigured, msgOIDCNotConfigured)
+	} else {
+		writeError(w, http.StatusServiceUnavailable, ErrIDPUnreachable, msgOIDCPending)
+	}
+	return nil
 }
 
 // provisionFromUserinfo maps UserInfo claims onto the users row: JIT

@@ -73,7 +73,9 @@ is what runs.
   so an unbounded retry from one device is an outage for everyone — including the 429 that rate limit answers with,
   which is transient and therefore retried.
 * **Client discovery:** `GET /api/v1/auth/config` (unauthenticated) → `{ "authorize_url", "client_id" }` (from the
-  discovery document) so the client needs only the server URL; servers without OIDC answer 501.
+  discovery document) so the client needs only the server URL; servers without OIDC answer 501. A server whose issuer
+  has not been resolved since it started answers 503 `idp_unreachable` here and on `/auth/token` and `/auth/refresh`
+  until it has (ADR-109) — transient, so the client keeps its session through it.
 * **Session claims:** `sub` **is** `users.id` — identity is established once, by the broker at login/refresh, never per
   request. `users.email` and the display name are stamped from UserInfo at login and refresh; the verified email
   (`email_verified`, OIDC Core §5.7), matched case-insensitively against `JITPACK_ADMIN_EMAILS`, drives the declarative

@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -49,7 +50,13 @@ type Server struct {
 	// reminderAt is Options.TaskReminderAt, the daily reminder's time.
 	reminderAt time.Duration
 	hub        *Hub
-	oidc       *oidcBroker
+	// oidcConfig is Options.OIDC: nil means the instance has no OIDC
+	// login at all, as opposed to one that is not resolved yet.
+	oidcConfig *OIDCConfig
+	// oidc is the login broker, stored once by ConnectOIDC after the
+	// issuer's discovery document and signing keys are both in hand, and
+	// read by every auth request — hence atomic. Nil until then.
+	oidc atomic.Pointer[oidcBroker]
 	// wsIdleOverride shrinks the §9 WebSocket idle timeout
 	// (Options.WSIdle); zero means the wsIdleTimeout constant.
 	wsIdleOverride time.Duration
@@ -141,12 +148,7 @@ func newServer(st *store.Store, opts Options) *Server {
 	// server's own clock, including the one a test injects (G-4).
 	s.update = newUpdateChecker(opts, func() time.Time { return s.now() })
 	s.previews = opts.LinkPreviews
-	if opts.OIDC != nil {
-		s.oidc = newOIDCBroker(*opts.OIDC)
-		if opts.OIDC.JWKS != nil {
-			opts.OIDC.JWKS.SetLogger(s.logger)
-		}
-	}
+	s.oidcConfig = opts.OIDC
 	return s
 }
 

@@ -88,12 +88,26 @@ Leaving all three OIDC variables empty while setting `JITPACK_SESSION_SECRET` is
 | `JITPACK_ROUTING` is neither `true` nor `false` | `config: JITPACK_ROUTING must be true or false, or unset (on)` |
 | `JITPACK_ROUTING_URL` is not an `http(s)` address | `config: JITPACK_ROUTING_URL must be an http(s) address, got "…"` |
 | The database file cannot be opened or migrated | `store: …` |
-| Discovery document unreachable, non-200, or unparseable | `oidc discovery: fetch OIDC discovery: …` |
 | Discovery document's `issuer` differs from the configured one | `oidc discovery: OIDC discovery issuer mismatch: document says "…", configured "…"` |
 | Discovery document missing an endpoint JIT-Pack needs | `oidc discovery: OIDC discovery document lacks authorization_endpoint` (likewise `token_endpoint`, `jwks_uri`, `userinfo_endpoint`) |
-| The IdP's JWKS cannot be fetched at startup | `jwks: initial JWKS fetch: …` |
 
-The last four mean the server will not start while your IdP is down or misconfigured. That is deliberate: a broker that came up without a verified issuer would accept logins it cannot validate. Note the asymmetry with runtime — once running, an IdP outage does **not** log anyone out; see [Authentication → An IdP outage is not a logout](authentication.md#an-idp-outage-is-not-a-logout).
+The last two are a wrong IdP configuration, and waiting does not fix them, so the server stops. They are checked as soon as the IdP first answers, which is usually at startup. If the IdP was unreachable then, it can be a few seconds later.
+
+### An unreachable IdP does not stop the server
+
+If the IdP cannot be reached when the server starts, the server starts anyway. That covers an issuer that times out, answers non-200 (a reverse proxy restarting in front of it typically answers 404), or serves something other than the discovery document, and a JWKS that cannot be fetched. It serves the app, `/health` and every request from users who are already signed in. It keeps fetching the discovery document and the JWKS in the background, after 1 s, 2 s, 4 s and so on, up to once a minute, and logs each failed attempt:
+
+```
+level=WARN msg="OIDC login unavailable: the issuer could not be resolved; retrying" issuer=https://auth.example.com attempt=1 retry_in=1s error="fetch OIDC discovery: https://auth.example.com returned 404"
+```
+
+It logs once when login works:
+
+```
+level=INFO msg="OIDC login ready" issuer=https://auth.example.com attempts=3
+```
+
+Until then, the login endpoints answer `503` with the error code `idp_unreachable`. Nobody can sign in, and nobody is signed in unchecked: the server never accepts a login it has not verified against the IdP's signing keys. Signed-in users keep their sessions — the app treats the 503 as a temporary outage. Once running, an IdP outage does **not** log anyone out either; see [Authentication → An IdP outage is not a logout](authentication.md#an-idp-outage-is-not-a-logout).
 
 A successful start logs which shape it picked, right after the lines for the optional features that are on, so that line tells you what you actually got after a restart:
 

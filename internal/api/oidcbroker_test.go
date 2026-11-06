@@ -37,14 +37,14 @@ func brokerAgainst(t *testing.T, idp *stubIDP) *oidcBroker {
 	t.Cleanup(srv.Close)
 
 	return newOIDCBroker(OIDCConfig{
-		Discovery: Discovery{
-			Issuer:      srv.URL,
-			TokenURL:    srv.URL + "/token",
-			UserinfoURL: srv.URL + "/userinfo",
-		},
+		Issuer:       srv.URL,
 		ClientID:     "jitpack",
 		ClientSecret: "s3cret",
-	})
+	}, Discovery{
+		Issuer:      srv.URL,
+		TokenURL:    srv.URL + "/token",
+		UserinfoURL: srv.URL + "/userinfo",
+	}, nil)
 }
 
 const okTokenSet = `{"access_token":"at-1","refresh_token":"rt-2","id_token":"id-1"}`
