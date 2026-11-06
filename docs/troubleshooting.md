@@ -61,7 +61,12 @@ See [Configuration](configuration.md) for the full variable list.
 
 At startup the server fetches `{issuer}/.well-known/openid-configuration`; the issuer is
 the only IdP endpoint you configure, and everything else is discovered from that document.
-If that fetch fails, the server exits. The variants tell you which part broke:
+If the document answers but is wrong, the server exits with this line. If the IdP cannot be
+reached, the server keeps running and retries, logging
+`OIDC login unavailable: the issuer could not be resolved; retrying` with the same error, and
+sign-in answers `503` until it succeeds (see
+[An unreachable IdP does not stop the server](configuration.md#an-unreachable-idp-does-not-stop-the-server)).
+The variants tell you which part broke:
 
 | Log message | Cause |
 |---|---|
@@ -82,7 +87,7 @@ are equivalent, but nothing else is normalised. Fetch the document yourself and 
 curl -s https://auth.example.com/.well-known/openid-configuration | jq -r .issuer
 ```
 
-### `jwks: initial JWKS fetch: …`
+### `initial JWKS fetch: …` in a retry warning
 
 The signing keys the broker needs to verify ID tokens could not be fetched from the
 `jwks_uri` the discovery document advertised — for instance

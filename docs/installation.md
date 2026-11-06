@@ -117,7 +117,7 @@ Three things to change before the first `docker compose up -d`:
 
 Not running Traefik? Delete the `labels` block and the `proxy` network, publish the container on a host port instead, and point your proxy at that port. The one requirement either way is the `Host` header, and it is the section below.
 
-One detail worth keeping if you write your own file: `restart: unless-stopped` does more than cover crashes. With OIDC configured, `jitpackd` exits at startup when it cannot reach the identity provider, and after a host reboot the identity provider often comes up later than JIT-Pack. The restart policy is what turns that race into a short retry loop instead of a dead service.
+One detail worth keeping if you write your own file: `restart: unless-stopped` brings the container back after a crash or a host reboot. An identity provider that comes up later than JIT-Pack does not need it: with OIDC configured, `jitpackd` starts anyway and keeps retrying the identity provider in the background ([configuration](configuration.md#an-unreachable-idp-does-not-stop-the-server)).
 
 ---
 
@@ -142,11 +142,8 @@ One router, one service, and Traefik forwards the upgrade and preserves the orig
 services:
   jitpack:
     image: ghcr.io/polandy/jit-pack:0.28.0
-    # unless-stopped also covers the IdP boot race: in the OIDC shape,
-    # jitpackd deliberately exits when the issuer is unreachable at
-    # startup, and after a host reboot the IdP often comes up later
-    # than this container. The restart policy turns that into a short
-    # retry loop instead of a dead service.
+    # unless-stopped restarts the container after a crash or a reboot.
+    # An IdP that is not up yet is no crash: jitpackd retries it itself.
     restart: unless-stopped
     volumes:
       - jitpack-data:/data

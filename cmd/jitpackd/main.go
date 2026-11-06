@@ -49,9 +49,9 @@ func main() {
 		fatal("config", err)
 	}
 
-	// Before the store is opened and before OIDC discovery, which exits the
-	// process when the issuer is down — the one situation `token create` is
-	// most needed in (FR-23.7).
+	// Before the store is opened, and without ever contacting the IdP: an
+	// issuer that is down is the one situation `token create` is most needed
+	// in (FR-23.7).
 	if len(os.Args) > 2 && os.Args[1] == cmdToken && os.Args[2] == "create" {
 		if err := runTokenCreate(context.Background(), os.Args[3:], tokenEnv{
 			cfg: cfg, stdout: os.Stdout, stdoutIsTerminal: isTerminal(os.Stdout),
@@ -85,21 +85,12 @@ func main() {
 		if cfg.OIDCIssuer != "" {
 			// One configured endpoint, everything else discovered —
 			// authorize/token/userinfo for the broker, jwks_uri for the
-			// ID-token check (ADR-007).
-			d, err := api.FetchDiscovery(cfg.OIDCIssuer)
-			if err != nil {
-				fatal("oidc discovery", err)
-			}
-			jwks, err := api.NewJWKSProvider(d.JWKSURI)
-			if err != nil {
-				fatal("jwks", err)
-			}
-			defer jwks.Close()
+			// ID-token check (ADR-007) — by srv.ConnectOIDC below, once
+			// the server is up (ADR-109).
 			opts.OIDC = &api.OIDCConfig{
-				Discovery:    d,
+				Issuer:       cfg.OIDCIssuer,
 				ClientID:     cfg.OIDCClientID,
 				ClientSecret: cfg.OIDCClientSecret,
-				JWKS:         jwks,
 			}
 			slog.Info("starting in multi-user mode", "oidc_broker", cfg.OIDCIssuer)
 		} else {
@@ -135,6 +126,13 @@ func main() {
 
 	// FR-7.11: the daily task reminder, stopped by the same signal.
 	go srv.RunTaskReminders(ctx)
+	// ADR-109: an unreachable issuer is retried while the server serves;
+	// only a document no retry can fix stops the process.
+	go func() {
+		if err := srv.ConnectOIDC(ctx); err != nil && ctx.Err() == nil {
+			fatal("oidc discovery", err)
+		}
+	}()
 	// The zone's abbreviation rather than time.Local, whose name is always
 	// "Local" and would not tell an operator whether TZ took.
 	zone, _ := time.Now().Zone()

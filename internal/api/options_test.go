@@ -45,13 +45,10 @@ func fullOptions() Options {
 		// 07:30, not the 06:00 default, so the field is seen arriving.
 		TaskReminderAt: 7*time.Hour + 30*time.Minute,
 		Logger:         testLogger,
+		// Never connected here: the issuer is resolved by ConnectOIDC,
+		// not at construction (ADR-109).
 		OIDC: &OIDCConfig{
-			Discovery: Discovery{
-				Issuer:       "https://idp.example",
-				AuthorizeURL: "https://idp.example/authorize",
-				TokenURL:     "https://idp.example/token",
-				UserinfoURL:  "https://idp.example/userinfo",
-			},
+			Issuer:       "https://idp.example",
 			ClientID:     "jitpack",
 			ClientSecret: "s3cret",
 		},
@@ -84,12 +81,11 @@ var applied = map[string]func(*Server) bool{
 	},
 	"LinkPreviews": func(s *Server) bool { return s.previews == testPreviewer },
 	"Logger":       func(s *Server) bool { return s.logger == testLogger },
+	// Held for ConnectOIDC, and no broker before it has run (ADR-109).
 	"OIDC": func(s *Server) bool {
-		return s.oidc != nil && s.oidc.issuer == "https://idp.example" &&
-			s.oidc.clientID == "jitpack" && s.oidc.clientSecret == "s3cret" &&
-			s.oidc.authorizeURL == "https://idp.example/authorize" &&
-			s.oidc.tokenURL == "https://idp.example/token" &&
-			s.oidc.userinfoURL == "https://idp.example/userinfo"
+		return s.oidcConfig != nil && s.oidcConfig.Issuer == "https://idp.example" &&
+			s.oidcConfig.ClientID == "jitpack" && s.oidcConfig.ClientSecret == "s3cret" &&
+			s.oidc.Load() == nil
 	},
 }
 
@@ -140,7 +136,7 @@ func TestOptions_ZeroValueKeepsTheDocumentedDefaults(t *testing.T) {
 	if s.instance.Currency != "" {
 		t.Errorf("currency = %q, want empty — an unnamed currency is not a default one", s.instance.Currency)
 	}
-	if s.oidc != nil {
+	if s.oidcConfig != nil || s.oidc.Load() != nil {
 		t.Error("no OIDC configured must leave the broker off (ADR-007)")
 	}
 	if got := s.wsIdle(); got != wsIdleTimeout {

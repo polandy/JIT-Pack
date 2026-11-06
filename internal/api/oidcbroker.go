@@ -62,16 +62,17 @@ type oidcBroker struct {
 }
 
 // newOIDCBroker flattens the operator's OIDCConfig onto the endpoints
-// discovery resolved, which is all the broker itself reads.
-func newOIDCBroker(cfg OIDCConfig) *oidcBroker {
+// discovery resolved and the key set the ID token is verified against,
+// which is all the broker itself reads.
+func newOIDCBroker(cfg OIDCConfig, d Discovery, jwks *JWKSProvider) *oidcBroker {
 	return &oidcBroker{
-		issuer:       cfg.Discovery.Issuer,
+		issuer:       d.Issuer,
 		clientID:     cfg.ClientID,
 		clientSecret: cfg.ClientSecret,
-		authorizeURL: cfg.Discovery.AuthorizeURL,
-		tokenURL:     cfg.Discovery.TokenURL,
-		userinfoURL:  cfg.Discovery.UserinfoURL,
-		jwks:         cfg.JWKS,
+		authorizeURL: d.AuthorizeURL,
+		tokenURL:     d.TokenURL,
+		userinfoURL:  d.UserinfoURL,
+		jwks:         jwks,
 		client:       &http.Client{Timeout: idpTimeout},
 	}
 }

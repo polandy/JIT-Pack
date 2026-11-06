@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"context"
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
@@ -39,16 +40,20 @@ type fakeIDP struct {
 	userinfo     map[string]any // served claims; "sub" injected unless set
 
 	// Steering knobs.
-	idTokenIss     string          // "" → own URL
-	idTokenAud     string          // "" → clientID
-	idTokenKey     *rsa.PrivateKey // nil → key (set to a stranger's for forgery)
-	omitIDToken    bool
-	omitIDTokenSub bool
-	userinfoStatus int    // 0 → 200; non-zero served verbatim (outage scenarios)
-	tokenStatus    int    // 0 → 200; e.g. 400 (rejection) or 503 (outage)
-	tokenBody      string // body served with tokenStatus; "" → empty
-	tokenCT        string // Content-Type for tokenBody; "" → application/json
-	idpRefresh     string // refresh token returned by grants; "" → "idp-refresh-1"
+	idTokenIss      string          // "" → own URL
+	idTokenAud      string          // "" → clientID
+	idTokenKey      *rsa.PrivateKey // nil → key (set to a stranger's for forgery)
+	omitIDToken     bool
+	omitIDTokenSub  bool
+	userinfoStatus  int    // 0 → 200; non-zero served verbatim (outage scenarios)
+	tokenStatus     int    // 0 → 200; e.g. 400 (rejection) or 503 (outage)
+	tokenBody       string // body served with tokenStatus; "" → empty
+	tokenCT         string // Content-Type for tokenBody; "" → application/json
+	idpRefresh      string // refresh token returned by grants; "" → "idp-refresh-1"
+	discoveryStatus int    // 0 → the document; non-zero served verbatim, empty (outage scenarios)
+	discoveryIssuer string // "" → own URL (set to another for a misconfigured issuer)
+	discoveryOmit   string // a discovery field left out of the document, e.g. "userinfo_endpoint"
+	jwksStatus      int    // 0 → the key set; non-zero served verbatim, empty
 
 	// Recorded by the handlers.
 	lastTokenForm url.Values
@@ -71,15 +76,29 @@ func newFakeIDP(t *testing.T) *fakeIDP {
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /.well-known/openid-configuration", func(w http.ResponseWriter, _ *http.Request) {
-		writeJSONTo(t, w, map[string]string{
-			"issuer":                 idp.srv.URL,
+		if idp.discoveryStatus != 0 {
+			w.WriteHeader(idp.discoveryStatus)
+			return
+		}
+		issuer := idp.srv.URL
+		if idp.discoveryIssuer != "" {
+			issuer = idp.discoveryIssuer
+		}
+		doc := map[string]string{
+			"issuer":                 issuer,
 			"authorization_endpoint": idp.srv.URL + "/authorize",
 			"token_endpoint":         idp.srv.URL + "/token",
 			"jwks_uri":               idp.srv.URL + "/jwks.json",
 			"userinfo_endpoint":      idp.srv.URL + "/userinfo",
-		})
+		}
+		delete(doc, idp.discoveryOmit)
+		writeJSONTo(t, w, doc)
 	})
 	mux.HandleFunc("GET /jwks.json", func(w http.ResponseWriter, _ *http.Request) {
+		if idp.jwksStatus != 0 {
+			w.WriteHeader(idp.jwksStatus)
+			return
+		}
 		pub := &idp.key.PublicKey
 		writeJSONTo(t, w, map[string]any{
 			"keys": []map[string]string{{
@@ -185,36 +204,39 @@ func writeJSONTo(t *testing.T, w http.ResponseWriter, v any) {
 }
 
 // newBrokerParts wires an api.Server against the fake IdP the way
-// cmd/jitpackd does — discovery, JWKS from the discovered URI, the
-// resolved endpoints in api.Options.OIDC — and takes the FR-23.1
-// allowlist, which is a startup-time choice like the broker itself.
+// cmd/jitpackd does — the issuer in api.Options.OIDC, resolved by
+// ConnectOIDC — and takes the FR-23.1 allowlist, which is a startup-time
+// choice like the broker itself. The IdP is up, so the first attempt
+// connects; oidcconnect_test.go covers the one that is not.
 func newBrokerParts(t *testing.T, idp *fakeIDP, adminEmails ...string) (*httptest.Server, *store.Store, *api.Server) {
 	t.Helper()
-	d, err := api.FetchDiscovery(idp.srv.URL)
-	if err != nil {
-		t.Fatalf("FetchDiscovery: %v", err)
+	srv, st, apiSrv := newUnconnectedBroker(t, idp, api.Options{AdminEmails: adminEmails}, nil)
+	if err := apiSrv.ConnectOIDC(t.Context()); err != nil {
+		t.Fatalf("ConnectOIDC: %v", err)
 	}
-	jwks, err := api.NewJWKSProvider(d.JWKSURI)
-	if err != nil {
-		t.Fatalf("NewJWKSProvider: %v", err)
-	}
-	t.Cleanup(func() { jwks.Close() })
+	return srv, st, apiSrv
+}
 
+// newUnconnectedBroker builds the server with OIDC configured against idp
+// and ConnectOIDC not yet run, so the caller decides when — and against
+// which state of the IdP — it resolves. wait is OIDCConfig.RetryWait.
+func newUnconnectedBroker(t *testing.T, idp *fakeIDP, opts api.Options,
+	wait func(context.Context, time.Duration) error,
+) (*httptest.Server, *store.Store, *api.Server) {
+	t.Helper()
 	st, err := store.OpenForTest(t.TempDir())
 	if err != nil {
 		t.Fatalf("store.OpenForTest: %v", err)
 	}
 	t.Cleanup(func() { st.Close() })
 
-	apiSrv := api.New(st, testSecret, api.Options{
-		AdminEmails: adminEmails,
-		OIDC: &api.OIDCConfig{
-			Discovery:    d,
-			ClientID:     idp.clientID,
-			ClientSecret: idp.clientSecret,
-			JWKS:         jwks,
-		},
-	})
+	opts.OIDC = &api.OIDCConfig{
+		Issuer:       idp.srv.URL,
+		ClientID:     idp.clientID,
+		ClientSecret: idp.clientSecret,
+		RetryWait:    wait,
+	}
+	apiSrv := api.New(st, testSecret, opts)
 	srv := httptest.NewServer(apiSrv.Handler())
 	t.Cleanup(srv.Close)
 	return srv, st, apiSrv
