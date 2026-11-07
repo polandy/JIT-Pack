@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.28.1](https://github.com/polandy/JIT-Pack/compare/v0.28.0...v0.28.1) (2026-11-06)
+
+
+### Bug Fixes
+
+* **api:** retry OIDC discovery in the background instead of exiting ([#895](https://github.com/polandy/JIT-Pack/issues/895)) ([08eae76](https://github.com/polandy/JIT-Pack/commit/08eae76734c659067e618edb4308b03e69afc06d))
+
 ## [0.28.0](https://github.com/polandy/JIT-Pack/compare/v0.27.0...v0.28.0) (2026-10-30)
 
 
