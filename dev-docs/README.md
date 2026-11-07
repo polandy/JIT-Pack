@@ -67,6 +67,8 @@ Which tier a document belongs to is decided by **who reads it**, never by what i
 - [`mvp-plan.md`](mvp-plan.md) — the tracks that stand between today and the family
   packing a real vacation with it, and which of them may run in parallel. Delete it
   once the vacation has happened.
+- [`plans/`](plans/) — one-off analyses answering an owner's question on the state of the
+  repo, each naming the commit it read: [`parked-revisit-triggers.md`](plans/parked-revisit-triggers.md).
 
 ## Specifications
 
