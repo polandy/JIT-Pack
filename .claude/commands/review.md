@@ -10,12 +10,13 @@ Review uncommitted or recently committed changes against project standards:
    - Comments explain "why", not "what"; godoc on exported symbols
    - No security issues (OWASP top 10)
    - Conventional Commits with FR/NFR references where applicable
-   - `CLAUDE.md`'s "Not built yet" updated if the change closes an item or opens a new gap — a
-     closed item is one line and a pointer, only open work carries detail
+   - `dev-docs/backlog.md` updated if the change closes a parked item or opens a new gap — a closed item is one
+     line and a pointer, only open work carries detail
    - `dev-docs/implementation-log/` appended to **only if the change earns an entry** (see its
      "What earns an entry": a rejected option, a wrong premise, an accepted cost, a priced trap —
      not a retelling of the diff), and its index extended with the new section
-   - `dev-docs/e2e-ledger/` updated when the diff adds or retires a Playwright case
+   - `dev-docs/e2e-ledger/status.md` updated when the diff adds or retires a Playwright case; each spec criterion the
+     diff touches names its e2e case (or why unit), and cases asserting changed behaviour are rewritten or struck
 4. Report findings concisely: what's good, what needs fixing. If everything is clean, say so
    briefly.
 

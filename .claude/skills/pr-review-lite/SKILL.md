@@ -43,6 +43,11 @@ the check that actually catches a second, untested half of a diff), 5 (client/UI
 (branch freshness) exactly as that skill defines them. Read `.claude/skills/pr-review/SKILL.md` for the full text of
 each rather than duplicating it here — the two must not drift, and the source of truth is one file.
 
+Section 5's spec-and-suite bullets bind here too, and matter most here because this is where the spec is written: each
+spec criterion the diff touches names its e2e case or says in one line why unit is the right layer, every id a
+`traceability.md` row tags **E2E** is in a test title, cases still asserting changed behaviour are retired in the same
+branch, and `e2e-ledger/status.md` follows. e2e still owed is listed as `e2e owed: ...` and goes into `TODO.md`.
+
 Section 5's e2e requirement is about the **case existing and being correctly written** (naming the right assertions,
 the right mode, mutation-proving the headline defect) — that check still applies in full. What this skill skips is
 only *waiting for that case to have actually run green in CI*, covered in section 6 below.
