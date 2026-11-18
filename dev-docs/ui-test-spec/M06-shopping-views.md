@@ -39,7 +39,8 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   instance in one act — a BUY_LOCAL per-person item leaves the list fully packed for all recipients, and a BUY_BEFORE
   one moves to PACK for all of them. Asserts no instance is left behind — through the **empty state**, because two
   instances left over would still render a row of their own, and through the undo, which brings the whole amount back.
-* **E2E-M6-07** `all` (FR-25.6) — **REMOVED by decision**: not built; M6 stays the focused procurement checklist it is.
+* ~~**E2E-M6-07** `all` (FR-25.6)~~ — **REMOVED by decision**: not built; M6 stays the focused procurement checklist
+  it is.
   A shopping list rarely runs to twenty rows, so a filter bar and a search field carry weight M4 already owns; and the
   composer is the *shared* one (FR-25.13), so an M6-only field would be a second template for one rule (invariant 4's
   shape, applied to a screen). The id stays because the traceability matrix and FR-25.11/25.13a reference it. *The
@@ -53,7 +54,8 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   mode, and adding works by tapping it alone — no keyboard involved. Guards the phone case, where relying on Enter
   leaves no reachable way to commit. **M6's half (FR-30):** M6's own field carries the same visible add
   button, and every entry in `shopping/shopping.spec.ts` is committed by tapping it (`addEntry`), never by the keyboard.
-* **E2E-M6-12** `all` (FR-25.13a) — **REMOVED by decision**: not built; M6 stays the focused procurement checklist it
+* ~~**E2E-M6-12** `all` (FR-25.13a)~~ — **REMOVED by decision**: not built; M6 stays the focused procurement
+  checklist it
   is. A shopping list rarely runs to twenty rows, so a filter bar and a search field carry weight M4 already owns; and
   the composer is the *shared* one (FR-25.13), so an M6-only field would be a second template for one rule (invariant
   4's shape, applied to a screen). The id stays because the traceability matrix and FR-25.11/25.13a reference it. *The
@@ -61,7 +63,8 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   produces a row carrying the description inline and the assignee mark. **Enter commits from the description field
   too.** Regression guard: tapping an assignee chip must **not** clear an already-typed description — the failure mode
   of re-rendering the form on selection.
-* **E2E-M6-13** `all` (FR-25.13a) — **REMOVED by decision**: not built; M6 stays the focused procurement checklist it
+* ~~**E2E-M6-13** `all` (FR-25.13a)~~ — **REMOVED by decision**: not built; M6 stays the focused procurement
+  checklist it
   is. A shopping list rarely runs to twenty rows, so a filter bar and a search field carry weight M4 already owns; and
   the composer is the *shared* one (FR-25.13), so an M6-only field would be a second template for one rule (invariant
   4's shape, applied to a screen). The id stays because the traceability matrix and FR-25.11/25.13a reference it. *The
@@ -195,7 +198,8 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   reveals apart. With *Milch* bought, *Vor Ort* has nothing open and folds to its line at the end, *„At destination ·
   nothing open · 1 bought"*, which holds the one bought row, noting it was packed; *Vor der Reise* keeps its open row
   and has no fold — exactly one fold on the page.
-* **E2E-M6-18** `all` (FR-25.11k) — **REMOVED by decision**: not built; M6 stays the focused procurement checklist it
+* ~~**E2E-M6-18** `all` (FR-25.11k)~~ — **REMOVED by decision**: not built; M6 stays the focused procurement
+  checklist it
   is. A shopping list rarely runs to twenty rows, so a filter bar and a search field carry weight M4 already owns; and
   the composer is the *shared* one (FR-25.13), so an M6-only field would be a second template for one rule (invariant
   4's shape, applied to a screen). The id stays because the traceability matrix and FR-25.11/25.13a reference it. *The
@@ -203,7 +207,8 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   typing filters the list, and ✕ **closes** the field rather than merely clearing it. The filter icon sits beside the
   magnifier and carries the active-count badge. Asserts the list regains its full height when the search is closed.
 * **E2E-M6-19** `all` (FR-25.13b) — **M6's half retired (FR-30.2):** M6 carries no inventory composer, so it offers
-  no suggestions, and an entry has no category to adopt. M4-21 carries the rule: typing at least two characters offers
+  no suggestions, and an entry has no category to adopt. E2E-M4-21 carries the rule: typing at least two characters
+  offers
   master-item suggestions; picking one fills the name **and adopts that item's category**, including a category this
   trip has not used yet. Without a pick the category defaults to *Sonstiges*. Regression guard: choosing a suggestion
   must not clear an already-typed description, and the suggestion strip must redraw **without** re-rendering the
@@ -216,7 +221,8 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   tab either — not in the composer's autocomplete, and in the browse-sheet only as the *„schon drin"* state.~~ —
   **retired (FR-30.2): M6 carries no inventory composer**, so there is nothing on M6 that offers an inventory item at
   all. The rule itself is the composer's and is covered where the composer is, on M4 and M8.
-* **E2E-M6-14** `all` (FR-25.11g) — **REMOVED by decision**: not built; M6 stays the focused procurement checklist it
+* ~~**E2E-M6-14** `all` (FR-25.11g)~~ — **REMOVED by decision**: not built; M6 stays the focused procurement
+  checklist it
   is. A shopping list rarely runs to twenty rows, so a filter bar and a search field carry weight M4 already owns; and
   the composer is the *shared* one (FR-25.13), so an M6-only field would be a second template for one rule (invariant
   4's shape, applied to a screen). The id stays because the traceability matrix and FR-25.11/25.13a reference it. *The
