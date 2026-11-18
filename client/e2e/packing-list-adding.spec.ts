@@ -87,6 +87,37 @@ test.describe('M4 — the composer adds through the inventory @local @m4', () =>
   })
 
   /**
+   * E2E-M4-163 (FR-25.13b): a suggestion that is picked brings its category;
+   * a name typed without a pick files under the leftover bucket.
+   *
+   * *Sommer* is a tag no row of the trip carries yet, so its heading can only
+   * come from the pick. Both headings are read once both rows stand, which
+   * makes the *Sonstiges* tally (1) falsifiable: had the pick not adopted,
+   * the bucket would say 2.
+   */
+  test('E2E-M4-163: a picked suggestion adopts its category, a typed name lands in Sonstiges', async ({
+    page,
+  }) => {
+    await page.goto(PATH.items)
+    await createItem(page, 'Badehose', { tags: ['Sommer'] })
+    await backToInventory(page)
+    await createTripViaWizard(page, M4_TRIP)
+    await openQuickAdd(page)
+
+    const list = visible(page)
+    await expect(list.getByTestId('m4-group-Sommer')).toHaveCount(0)
+    await list.getByTestId('quick-add-input').locator('input').fill('Bade')
+    await exactSuggestion(list, 'Badehose').click()
+    await expect(list.getByTestId('m4-row-Badehose')).toBeVisible()
+
+    await addInComposer(page, 'Schlüssel')
+    await expect(list.getByTestId('m4-row-Schlüssel')).toBeVisible()
+
+    await expect(list.getByTestId('m4-group-Sommer')).toContainText('0/1')
+    await expect(list.getByTestId('m4-group-none')).toContainText('0/1')
+  })
+
+  /**
    * E2E-M4-108 (FR-24.11, FR-24.7): the composer finds by M9's rule, so the
    * other umlaut spelling names the item exactly — ✓ adds it without a sheet.
    * Once it is on the list, the same name is reported rather than offered.
