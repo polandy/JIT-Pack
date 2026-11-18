@@ -169,7 +169,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-25.20 | E2E | M4-31 (others' rows hidden by default, reveal bar names count + people, header unfiltered) |
 | FR-25.14 | E2E | M5-18 (the aggregate is M4's cluster head, FR-25.21; M5-06 retired) |
 | FR-25.15 | UNIT+E2E | M5-07 → captureState.spec.ts + ItemDetailSheet.spec.ts (distinct from G-2); M5-11, M11-05 (no save button). Each of these reads the indicator **after** an edit, with its absence before asserted beside it: the lamp is silent until the sheet writes, which is what makes the presence clauses falsifiable. The spoken half is M5-32 + SaveIndicator.spec.ts's second describe (permanent live region, empty until written, lamp `aria-hidden`) |
-| FR-25.13b | E2E | ~~M6-19~~ retired with FR-30.2; no case asserts the category adoption yet (owed, `TODO.md`) |
+| FR-25.13b | E2E | ~~M6-19~~ retired with FR-30.2; E2E-M4-163 asserts the category adoption on M4's composer |
 | FR-27.1 | E2E+UNIT | M8-07 (two-level include rules), M7-07, M21-03; `domain/templates.ts` (one-level expansion, dedup by master item), `internal/portable` + `domain/portable.ts` (the `scope` field round-trips, an unknown scope is rejected, a scope on a trip document is an error) |
 | FR-27.2 | E2E+UNIT | M3-11, M8-08; instantiate.ts (include expansion + named merge) |
 | NFR-4.2a (id minting) | E2E+UNIT | E2E-NFR-SEC-01…04; `lib/__tests__/ids.spec.ts` (v4 shape, insecure-context fallback, version/variant bits, no-randomness refusal, and the guard that `crypto.randomUUID` is called in one file only) |

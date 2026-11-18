@@ -304,6 +304,11 @@
   partial hit; ✓ opens the *„Neuer Artikel"* sheet on „Zelt" and **no row has appeared** — asserted once the sheet is
   visibly open, so the absence is not read before the write could land. *„Anlegen"* puts a *Zelt* row on the list, the
   composer stays open, and M9 lists *Zelt* — the row and the inventory entry are the same event reaching both places.
+* **E2E-M4-163** `local` (FR-25.13b) — **implemented** (`packing-list-adding.spec.ts`): *Badehose* carries the tag
+  *Sommer*, which no row of the trip has yet. „Bade" typed and the suggestion tapped puts the row under a *Sommer*
+  heading that did not exist before; *Schlüssel*, added with no pick, lands in *Sonstiges*. Both tallies read 0/1, so
+  the bucket count is falsifiable. *The description clause of the old M6-19 has no carrier:* M4's composer has no
+  description field, so no case guards it.
 * **E2E-M4-108** `local` (FR-24.11, FR-24.7) — **implemented** (`packing-list-adding.spec.ts`): an
   inventory item typed in the other umlaut spelling („guertel" for *Gürtel*) shows no offer, and ✓ adds it directly — no
   sheet. Typed again once it is on the list, the composer says *„‚Gürtel' ist schon drin"* and ✓ is disabled.

@@ -203,7 +203,7 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   filters the list, and ✕ **closes** the field rather than merely clearing it. The filter icon sits beside the
   magnifier and carries the active-count badge. Asserts the list regains its full height when the search is closed.
 * ~~**E2E-M6-19** `all` (FR-25.13b)~~ — **retired (FR-30.2):** M6 carries no inventory composer, so it offers no
-  suggestions, and an entry has no category to adopt. No case asserts the rule on M4's composer yet (owed, `TODO.md`).
+  suggestions, and an entry has no category to adopt. E2E-M4-163 asserts the rule on M4's composer.
   *The promise as written:* typing at least two characters offers master-item suggestions; picking one fills the name
   **and adopts that item's category**, including a category this trip has not used yet. Without a pick the category
   defaults to *Sonstiges*. Regression guard: choosing a suggestion must not clear an already-typed description, and
