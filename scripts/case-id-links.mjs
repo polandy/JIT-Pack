@@ -5,7 +5,8 @@
  * that carries it. Pure functions, so `case-id-gate.test.mjs` can feed them text.
  */
 
-const LIVE_ENTRY = /^\* \*\*(E2E-[A-Z0-9]+-\d+[a-z]*(?:\/\d+[a-z]*)*)\*\*[ \t]*(~~)?/
+const LIVE_ENTRY = /^\* (~~)?\*\*(E2E-[A-Z0-9]+-\d+[a-z]*(?:\/\d+[a-z]*)*)(?:\*\*|(?= ))[ \t]*(~~)?/
+const TABLE_ROW = /^\| (~~)?(E2E-[A-Z0-9]+-\d+[a-z]*)(?:~~)? \|(.*)$/
 const CARRIER_FILE = /[\w./-]+\.(?:spec|test)\.(?:ts|mjs)/
 const CASE_ID = /E2E-[A-Z0-9]+-\d+[a-z]*/g
 const TRACE_ID = /\b(M\d+|G\d+|FLOW|NFR|VIS|SYNC)-(\d+[a-z]*)((?:\/\d+[a-z]*)*)/g
@@ -17,16 +18,21 @@ export function idsOf(heading) {
   return [head, ...rest.map((suffix) => prefix + suffix)]
 }
 
-/** id → { struck, text } for every top-level bullet entry in the spec text. */
+/** id → { struck, text } for every top-level bullet entry and table row in the spec text. */
 export function parseEntries(specText) {
   const entries = new Map()
   const lines = specText.split('\n')
   lines.forEach((line, i) => {
+    const row = line.match(TABLE_ROW)
+    if (row) {
+      entries.set(row[2], { struck: Boolean(row[1]), text: row[3] })
+      return
+    }
     const m = line.match(LIVE_ENTRY)
     if (!m) return
     let text = line.slice(m[0].length)
     for (let j = i + 1; j < lines.length && /^(?:\s+\S|$)/.test(lines[j]); j++) text += `\n${lines[j]}`
-    for (const id of idsOf(m[1])) entries.set(id, { struck: Boolean(m[2]), text })
+    for (const id of idsOf(m[2])) entries.set(id, { struck: Boolean(m[1] || m[3]), text })
   })
   return entries
 }

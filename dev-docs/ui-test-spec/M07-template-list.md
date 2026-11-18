@@ -8,8 +8,8 @@ the FAB's import menu — and are retired in place with their reason.
   to assert — the same supersession as E2E-M7-02. Its second half, *per-row name + item count*, is **E2E-M7-07**, which
   asserts the name on every row it filters by and the count as well. *The promise as written:* one shared
   instance-wide list; per-row name + item count.
-* **E2E-M7-02** — **superseded by the FR-1.6 MVP simplification:** no publishing, no forking; every
-  template is editable by every account. Returns with the parked FR-1.6 model.
+* ~~**E2E-M7-02**~~ — **retired, superseded by the FR-1.6 MVP simplification:** no publishing, no forking; every
+  template is editable by every account. A new case is written if the parked FR-1.6 model returns.
 * ~~**E2E-M7-03**~~ `all` (FR-1.2) — **retired: the name prompt is rejected by decision, not left unbuilt.** The
   scope chooser carries the name field in the same sheet, so that no row exists before the name does — a `prompt()`
   cannot say what a Gruppe is while you name one. **E2E-M7-08** and **E2E-M7-09** assert that flow, including the write
