@@ -477,15 +477,22 @@ func TestNotifications_WSNotificationCreated(t *testing.T) {
 	srv := newTestWSServer(t)
 	seedItem(t, srv.inner, "item-1", "Zelt")
 
-	// user-b connects (no subscription needed — delivery is by identity).
+	// Delivery is by identity, but the first presence frame is the proof the hub
+	// has registered the connection; a push before it would be delivered to nobody.
 	ws := wsConnectAuth(t, srv, userB)
+	wsSendMsg(t, ws, map[string]any{"subscribe": []string{"trip:" + trip}})
+	if evt := wsReadMsg(t, ws); evt["type"] != "presence" {
+		t.Fatalf("expected initial presence, got %v", evt["type"])
+	}
 
 	pushAs(t, srv.inner, userA, mutation("item-1", "m-delegate", "upsert",
 		map[string]any{"packer_user_id": userB}, "0000000002000-0000-aaaaaaaa"))
 
-	evt := wsReadMsg(t, ws)
-	if evt["type"] != "notification.created" {
-		t.Fatalf("event type = %v, want notification.created", evt["type"])
+	var evt map[string]any
+	for evt = wsReadMsg(t, ws); evt["type"] != "notification.created"; evt = wsReadMsg(t, ws) {
+		if evt["type"] != "trip.changed" && evt["type"] != "item.locked" {
+			t.Fatalf("event type = %v, want notification.created", evt["type"])
+		}
 	}
 	payload, _ := evt["payload"].(map[string]any)
 	if id, _ := payload["notification_id"].(string); id == "" {

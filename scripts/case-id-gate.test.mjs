@@ -63,3 +63,15 @@ test('a traceability id no title or entry backs is refused; a titled or carried 
   const trace = '| FR-3.2 | E2E | M6-01, M6-02, M6-03 |'
   assert.deepEqual(uncarriedTraceIds(trace, entries, titled('E2E-M6-01')), ['E2E-M6-03'])
 })
+
+test('a bullet struck before its bold id is retired, and a heading with trailing words still defines its id', () => {
+  const entries = parseEntries(
+    spec('* ~~**E2E-M5-01** `all`: sections.~~ — retired.', '* **E2E-FLOW-03 Purchase transition** `local`: the journey.'),
+  )
+  assert.deepEqual(uncarriedSpecIds(entries, titled()), ['E2E-FLOW-03'])
+})
+
+test('a table row defines its id; a struck row is retired', () => {
+  const entries = parseEntries(spec('| E2E-G11-01 | G-11 Theming | all | text |', '| ~~E2E-M4-35~~ | ~~x~~ | all | Reversed. |'))
+  assert.deepEqual(uncarriedSpecIds(entries, titled()), ['E2E-G11-01'])
+})

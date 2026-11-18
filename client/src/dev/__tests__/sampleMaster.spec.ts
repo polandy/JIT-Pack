@@ -14,6 +14,7 @@ import { PICKER_SEARCH_MIN_GROUPS, matchGroupsInPositions } from '@/domain/templ
 import { MARK_INDEX } from '@/domain/itemMarks'
 import { DELETION_REMOVE } from '@/domain/masterDeletion'
 
+import { seedSampleData } from '../sampleData'
 import { seedSampleMaster } from '../sampleMaster'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { fixedClock } from '@/__tests__/fixedClock'
@@ -187,7 +188,6 @@ describe('seedSampleMaster (dev)', () => {
  */
 describe('seedSampleData (dev)', () => {
   it('summarises what it created, so the caller can report it', async () => {
-    const { seedSampleData } = await import('../sampleData')
     const orchestrator = useSyncOrchestrator({
       baseUrl: '',
       getToken: () => null,
@@ -270,7 +270,6 @@ describe('seedSampleData (dev)', () => {
   })
 
   it('seeds a *planned* trip that follows the sample Vorlage (FR-27.4)', async () => {
-    const { seedSampleData } = await import('../sampleData')
     const orchestrator = useSyncOrchestrator({
       baseUrl: '',
       getToken: () => null,
@@ -307,7 +306,6 @@ describe('seedSampleData (dev)', () => {
   })
 
   it('rejects rather than resolving quietly when a seed step fails', async () => {
-    const { seedSampleData } = await import('../sampleData')
     const broken = {
       masterData: {
         createTag: () => {
@@ -436,7 +434,6 @@ describe('sample trip, FR-28.7', () => {
   // trip the inventory it may link against lives there, and that is the line
   // the seed button actually runs.
   it('links its rows to the inventory, so a seeded device can see a mark at all', async () => {
-    const { seedSampleData } = await import('../sampleData')
     const orchestrator = useSyncOrchestrator({
       baseUrl: '',
       getToken: () => null,
