@@ -176,6 +176,7 @@ jobs:
       - run: node ../scripts/file-size-gate.mjs
       # Same job, same reason: a UI-Test-Spec id that carries two different
       # promises makes a green test read as coverage of the one nobody wrote.
+      - run: node --test ../scripts/case-id-gate.test.mjs
       - run: node ../scripts/case-id-gate.mjs
       # Same reason, and the file it guards ships in the client image: a
       # reverse proxy that drops the port from Host refuses every WebSocket
