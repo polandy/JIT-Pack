@@ -77,6 +77,7 @@ file-size:
 # coverage of a promise nothing asserts, and every automatic signal moves the
 # reassuring way while it happens.
 case-ids:
+	@$(RUN) node --test scripts/case-id-gate.test.mjs
 	@$(RUN) node scripts/case-id-gate.mjs
 
 # And beside that again: a spec that re-declares a shared e2e helper gets a

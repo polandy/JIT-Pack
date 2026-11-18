@@ -231,6 +231,8 @@ them.
 - **A case id in a title is a coverage claim.** `scripts/case-id-gate.mjs`
   refuses a duplicate definition; when two collided, the loser is struck through
   in the ledger in place and says where its promise went, never renumbered.
+  It also holds each live spec entry and each traceability id to a title id or a named carrier
+  (spec file or carrying case); the known gaps sit in `scripts/case-id-gaps.json` and only shrink.
 - **Tags:** `@smoke`, `@local`, `@single`, `@server`, `@webkit`, plus `@mNN` per
   screen. Run a slice with `scripts/e2e.sh --grep @local`.
 - **`@webkit` marks a case whose subject is an engine difference** — one that
