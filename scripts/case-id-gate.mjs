@@ -32,6 +32,8 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 
+import { idsOf, parseEntries, uncarriedSpecIds, uncarriedTraceIds } from './case-id-links.mjs'
+
 /* Run from the repository root or from `client/`, like the sibling gates. */
 const root = resolve(process.cwd().endsWith('client') ? '..' : '.')
 /**
@@ -65,18 +67,6 @@ const spec = readdirSync(SPEC)
   .sort()
   .map((name) => readFileSync(resolve(SPEC, name), 'utf8'))
   .join('\n')
-
-/**
- * `E2E-M17-07/07b` is one entry defining two ids — the shorthand the file
- * already uses where a case and its sibling share a promise and a paragraph.
- * The suffixes inherit the head's screen, so `07/07b` is M17's, not a
- * separate series.
- */
-function idsOf(heading) {
-  const [head, ...rest] = heading.split('/')
-  const prefix = head.slice(0, head.lastIndexOf('-') + 1)
-  return [head, ...rest.map((suffix) => prefix + suffix)]
-}
 
 const seen = new Map()
 const count = (id) => seen.set(id, (seen.get(id) ?? 0) + 1)
@@ -196,6 +186,41 @@ if (undefinedIds.length > 0) {
   )
   process.exit(1)
 }
+
+/*
+ * The links beyond uniqueness: a live spec entry and a traceability id must
+ * each reach a test title, a named spec file or a carrying case. The known
+ * gaps are a baseline that only shrinks — a gap that closed must leave it.
+ */
+const GAPS = JSON.parse(readFileSync(resolve(root, 'scripts/case-id-gaps.json'), 'utf8'))
+const entries = parseEntries(spec)
+const titledIds = new Set(claimed.keys())
+const traceability = readFileSync(resolve(SPEC, 'traceability.md'), 'utf8')
+const links = [
+  ['spec entries nothing carries', uncarriedSpecIds(entries, titledIds), GAPS.spec],
+  ['traceability ids nothing carries', uncarriedTraceIds(traceability, entries, titledIds), GAPS.traceability],
+]
+let linkFailed = false
+for (const [what, found, known] of links) {
+  const fresh = found.filter((id) => !known.includes(id))
+  const stale = known.filter((id) => !found.includes(id))
+  if (fresh.length > 0) {
+    linkFailed = true
+    console.error(
+      `case-id-gate: ${fresh.length} new ${what}:\n` +
+        fresh.map((id) => `  ${id}`).join('\n') +
+        '\n\nName the id in a test title, or name the spec file or case that carries it in its entry.',
+    )
+  }
+  if (stale.length > 0) {
+    linkFailed = true
+    console.error(
+      `case-id-gate: ${stale.length} ${what} no more — remove from scripts/case-id-gaps.json:\n` +
+        stale.map((id) => `  ${id}`).join('\n'),
+    )
+  }
+}
+if (linkFailed) process.exit(1)
 
 console.log(
   `case-id-gate: ok — ${seen.size} case ids, one definition each; ` +
