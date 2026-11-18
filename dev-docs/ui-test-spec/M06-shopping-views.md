@@ -39,12 +39,12 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   instance in one act — a BUY_LOCAL per-person item leaves the list fully packed for all recipients, and a BUY_BEFORE
   one moves to PACK for all of them. Asserts no instance is left behind — through the **empty state**, because two
   instances left over would still render a row of their own, and through the undo, which brings the whole amount back.
-* **E2E-M6-07** `all` (FR-25.6) — **REMOVED by decision**: not built; M6 stays the focused procurement checklist it is.
-  A shopping list rarely runs to twenty rows, so a filter bar and a search field carry weight M4 already owns; and the
-  composer is the *shared* one (FR-25.13), so an M6-only field would be a second template for one rule (invariant 4's
-  shape, applied to a screen). The id stays because the traceability matrix and FR-25.11/25.13a reference it. *The
-  promise as written:* a per-item note can be added from the row, is shown inline on it, survives a re-render, and can
-  be edited and cleared — without leaving M6.
+* ~~**E2E-M6-07** `all` (FR-25.6)~~ — **REMOVED by decision**: not built; M6 stays the focused procurement checklist
+  it is. A shopping list rarely runs to twenty rows, so a filter bar and a search field carry weight M4 already owns;
+  and the composer is the *shared* one (FR-25.13), so an M6-only field would be a second template for one rule
+  (invariant 4's shape, applied to a screen). The id stays so an old reference finds what became of it. *The promise
+  as written:* a per-item note can be added from the row, is shown inline on it, survives a re-render, and can be
+  edited and cleared — without leaving M6.
 * **E2E-M6-08** `all` (FR-25.10) — **implemented inside E2E-M6-05**: the recipients line carries no control,
   asserted beside a positive count of the row's one checkbox so the absence has something to fail against: the shopping
   row offers **no free-form "for whom" control**; the recipients shown are derived from membership only. Guards against
@@ -53,20 +53,20 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   mode, and adding works by tapping it alone — no keyboard involved. Guards the phone case, where relying on Enter
   leaves no reachable way to commit. **M6's half (FR-30):** M6's own field carries the same visible add
   button, and every entry in `shopping/shopping.spec.ts` is committed by tapping it (`addEntry`), never by the keyboard.
-* **E2E-M6-12** `all` (FR-25.13a) — **REMOVED by decision**: not built; M6 stays the focused procurement checklist it
-  is. A shopping list rarely runs to twenty rows, so a filter bar and a search field carry weight M4 already owns; and
-  the composer is the *shared* one (FR-25.13), so an M6-only field would be a second template for one rule (invariant
-  4's shape, applied to a screen). The id stays because the traceability matrix and FR-25.11/25.13a reference it. *The
-  promise as written:* the quick-add offers name, description and a *Zugewiesen an* chip row. Adding with all three set
+* ~~**E2E-M6-12** `all` (FR-25.13a)~~ — **REMOVED by decision**: not built; M6 stays the focused procurement checklist
+  it is. A shopping list rarely runs to twenty rows, so a filter bar and a search field carry weight M4 already owns;
+  and the composer is the *shared* one (FR-25.13), so an M6-only field would be a second template for one rule
+  (invariant 4's shape, applied to a screen). The id stays so an old reference finds what became of it. *The promise
+  as written:* the quick-add offers name, description and a *Zugewiesen an* chip row. Adding with all three set
   produces a row carrying the description inline and the assignee mark. **Enter commits from the description field
   too.** Regression guard: tapping an assignee chip must **not** clear an already-typed description — the failure mode
   of re-rendering the form on selection.
-* **E2E-M6-13** `all` (FR-25.13a) — **REMOVED by decision**: not built; M6 stays the focused procurement checklist it
-  is. A shopping list rarely runs to twenty rows, so a filter bar and a search field carry weight M4 already owns; and
-  the composer is the *shared* one (FR-25.13), so an M6-only field would be a second template for one rule (invariant
-  4's shape, applied to a screen). The id stays because the traceability matrix and FR-25.11/25.13a reference it. *The
-  promise as written:* after an add, the **assignee stays selected** for the next item while name and description are
-  cleared. Asserts the carry-over is on the assignee only.
+* ~~**E2E-M6-13** `all` (FR-25.13a)~~ — **REMOVED by decision**: not built; M6 stays the focused procurement checklist
+  it is. A shopping list rarely runs to twenty rows, so a filter bar and a search field carry weight M4 already owns;
+  and the composer is the *shared* one (FR-25.13), so an M6-only field would be a second template for one rule
+  (invariant 4's shape, applied to a screen). The id stays so an old reference finds what became of it. *The promise
+  as written:* after an add, the **assignee stays selected** for the next item while name and description are cleared.
+  Asserts the carry-over is on the assignee only.
 * **E2E-M6-17** `all` (FR-25.11i/j, FR-30.11) — **implemented**: checking off a row hides it; the list's own *gekauft*
   reveal — M4's FR-25.2 shape, not a filter sheet, which M6 does not have — states the count and one tap reveals the
   row in a section of its own, whose checkbox restores it to the open list. Covers the **BUY_BEFORE** case
@@ -195,19 +195,19 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   reveals apart. With *Milch* bought, *Vor Ort* has nothing open and folds to its line at the end, *„At destination ·
   nothing open · 1 bought"*, which holds the one bought row, noting it was packed; *Vor der Reise* keeps its open row
   and has no fold — exactly one fold on the page.
-* **E2E-M6-18** `all` (FR-25.11k) — **REMOVED by decision**: not built; M6 stays the focused procurement checklist it
-  is. A shopping list rarely runs to twenty rows, so a filter bar and a search field carry weight M4 already owns; and
-  the composer is the *shared* one (FR-25.13), so an M6-only field would be a second template for one rule (invariant
-  4's shape, applied to a screen). The id stays because the traceability matrix and FR-25.11/25.13a reference it. *The
-  promise as written:* M6 shows **no search field by default**; the magnifier in the tab row reveals and focuses it,
-  typing filters the list, and ✕ **closes** the field rather than merely clearing it. The filter icon sits beside the
+* ~~**E2E-M6-18** `all` (FR-25.11k)~~ — **REMOVED by decision**: not built; M6 stays the focused procurement checklist
+  it is. A shopping list rarely runs to twenty rows, so a filter bar and a search field carry weight M4 already owns;
+  and the composer is the *shared* one (FR-25.13), so an M6-only field would be a second template for one rule
+  (invariant 4's shape, applied to a screen). The id stays so an old reference finds what became of it. *The promise
+  as written:* M6 shows **no search field by default**; the magnifier in the tab row reveals and focuses it, typing
+  filters the list, and ✕ **closes** the field rather than merely clearing it. The filter icon sits beside the
   magnifier and carries the active-count badge. Asserts the list regains its full height when the search is closed.
-* **E2E-M6-19** `all` (FR-25.13b) — **M6's half retired (FR-30.2):** M6 carries no inventory composer, so it offers
-  no suggestions, and an entry has no category to adopt. M4-21 carries the rule: typing at least two characters offers
-  master-item suggestions; picking one fills the name **and adopts that item's category**, including a category this
-  trip has not used yet. Without a pick the category defaults to *Sonstiges*. Regression guard: choosing a suggestion
-  must not clear an already-typed description, and the suggestion strip must redraw **without** re-rendering the
-  form.
+* ~~**E2E-M6-19** `all` (FR-25.13b)~~ — **retired (FR-30.2):** M6 carries no inventory composer, so it offers no
+  suggestions, and an entry has no category to adopt. No case asserts the rule on M4's composer yet (owed, `TODO.md`).
+  *The promise as written:* typing at least two characters offers master-item suggestions; picking one fills the name
+  **and adopts that item's category**, including a category this trip has not used yet. Without a pick the category
+  defaults to *Sonstiges*. Regression guard: choosing a suggestion must not clear an already-typed description, and
+  the suggestion strip must redraw **without** re-rendering the form.
 * **E2E-M6-20** `all` (FR-25.12) — **not implemented; owed by decision**, in its own PR with UI-Spec, e2e and an
   eyeball pass. It is the one of M6's unbuilt promises with a use nothing else covers: *„Andy kauft das"* is the
   multi-user case M6 cannot express, and the description is where *„die grüne Dose, nicht die
@@ -216,14 +216,14 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   tab either — not in the composer's autocomplete, and in the browse-sheet only as the *„schon drin"* state.~~ —
   **retired (FR-30.2): M6 carries no inventory composer**, so there is nothing on M6 that offers an inventory item at
   all. The rule itself is the composer's and is covered where the composer is, on M4 and M8.
-* **E2E-M6-14** `all` (FR-25.11g) — **REMOVED by decision**: not built; M6 stays the focused procurement checklist it
-  is. A shopping list rarely runs to twenty rows, so a filter bar and a search field carry weight M4 already owns; and
-  the composer is the *shared* one (FR-25.13), so an M6-only field would be a second template for one rule (invariant
-  4's shape, applied to a screen). The id stays because the traceability matrix and FR-25.11/25.13a reference it. *The
-  promise as written:* M6 shows the same filter bar as M4; its sheet offers *Zugewiesen an*, *Für wen* and *Kategorie*
-  and — unlike M4's — **no grouping section**. Filtering by an assignee narrows the list and shows the removable chip.
-  The unassigned bucket reads "niemand zugewiesen" and leads the list. M4's and M6's filters are **independent**:
-  setting one must not change the other.
+* ~~**E2E-M6-14** `all` (FR-25.11g)~~ — **REMOVED by decision**: not built; M6 stays the focused procurement checklist
+  it is. A shopping list rarely runs to twenty rows, so a filter bar and a search field carry weight M4 already owns;
+  and the composer is the *shared* one (FR-25.13), so an M6-only field would be a second template for one rule
+  (invariant 4's shape, applied to a screen). The id stays so an old reference finds what became of it. *The promise
+  as written:* M6 shows the same filter bar as M4; its sheet offers *Zugewiesen an*, *Für wen* and *Kategorie* and —
+  unlike M4's — **no grouping section**. Filtering by an assignee narrows the list and shows the removable chip. The
+  unassigned bucket reads "niemand zugewiesen" and leads the list. M4's and M6's filters are **independent**: setting
+  one must not change the other.
 * **E2E-M6-15** `local` (FR-25.11h, FR-30.6) — **implemented** (`shopping/shopping.spec.ts`): with fourteen entries on a
   390 × 700 viewport, the composer closed and the list scrolled to its end, the last row's box does **not** intersect
   the ＋ (checked red with the list's bottom padding removed); one tap on the ＋ opens the composer at the top, its
