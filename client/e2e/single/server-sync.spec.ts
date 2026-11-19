@@ -41,8 +41,8 @@ function tripSyncOf(tripPath: string): string {
  *
  * The completion signal for a case that waits on a pull: armed before the
  * action that starts it, then the screen is asserted at the default deadline,
- * because the rows are on the device by then. A long deadline instead would
- * be a guess at how slow the runner is.
+ * which then only covers applying and painting rows already received. A long
+ * deadline instead would be a guess at how slow the runner is.
  */
 function feedDrained(page: Page, endpoint: string, withChanges = false): Promise<void> {
   return page
