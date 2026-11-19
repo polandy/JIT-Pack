@@ -14,6 +14,7 @@ import {
 import {
   chooseDay,
   dayFromToday,
+  pinPlannerClock,
   dayPlan,
   openDayPlan,
   timelineLines,
@@ -69,8 +70,9 @@ async function backToIdea(page: Page): Promise<Locator> {
 }
 
 test.describe('M28 the bridge to the packing side @local @planner', () => {
-  test.beforeEach(async ({ seedMode }) => {
+  test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
+    await pinPlannerClock(page)
   })
 
   /**
@@ -254,8 +256,9 @@ test.describe('M28 the bridge to the packing side @local @planner', () => {
 })
 
 test.describe('M29 an idea and its excursion on the day plan @local @planner', () => {
-  test.beforeEach(async ({ seedMode }) => {
+  test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
+    await pinPlannerClock(page)
   })
 
   /**

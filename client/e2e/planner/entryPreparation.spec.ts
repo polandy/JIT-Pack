@@ -1,7 +1,14 @@
 import { test, expect, createTripViaWizard, visiblePage, writesLanded } from '../fixtures'
 import { fillIonic, setDateField } from '../helpers/ionic'
 import { openTripView } from '../helpers/trips'
-import { addDayEntry, chooseDay, dayFromToday, openDayPlan, timelineLines } from './helpers/m29'
+import {
+  addDayEntry,
+  chooseDay,
+  dayFromToday,
+  openDayPlan,
+  pinPlannerClock,
+  timelineLines,
+} from './helpers/m29'
 import type { Locator, Page } from '@playwright/test'
 
 /**
@@ -54,8 +61,9 @@ async function addStep(page: Page, sheet: Locator, title: string, lead: number):
 }
 
 test.describe('M29 an entry’s preparation @local @planner', () => {
-  test.beforeEach(async ({ seedMode }) => {
+  test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
+    await pinPlannerClock(page)
   })
 
   /**
