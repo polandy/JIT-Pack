@@ -1,5 +1,5 @@
 /**
- * FR-25.17 / FR-25.12 — the relative-day part of "gepackt von Andy ·
+ * FR-25.17 / FR-30.4 — the relative-day part of "gepackt von Andy ·
  * heute 14:32". `now` is an argument, so none of this depends on when the
  * suite runs.
  */
