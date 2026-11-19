@@ -148,7 +148,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-21.21 | E2E | G12-05, G12-07 (a trip's views are named in the page, read off the trip switcher) |
 | FR-21.22 | E2E | M4-74 (a dashed edge means *not yet*) |
 | FR-21.23 | E2E | M4-75, G12-04 (the packing list draws its own progress) |
-| FR-21.24 | E2E | M4-76, M6-43, M6-11, M8-25, M25-21, M29-21, M31-15 (one door per screen to the quick-add) |
+| FR-21.24 | E2E | M4-76, M6-43, M8-25, M25-21, M29-21, M31-15 (one door per screen to the quick-add) |
 | FR-21.25 | E2E | M5-25 (M5 puts its weight on what it was opened for) |
 | FR-21.26 | E2E | M4-71, G9-20 (one content measure, capped flat on a desktop width) |
 | FR-21.27 | E2E | G9-19 (M1's greeting is its page head, drawn from the frame like every tab root's) |
@@ -239,8 +239,8 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-25.9 | DOC/N-A | retired — per-person quantities in templates were removed; M3-03 asserts that no Adult/Child control and no traveler type exists |
 | FR-25.11a | E2E | M4-15, M4-28, G12-04 (the collapsed state: one filter row carrying the count and the chips) |
 | FR-25.11b | E2E | M4-15, M4-20 (the panel is a bottom sheet with no apply button; a value bites while it is open) |
-| FR-25.11c | E2E | M4-16 (values within a facet OR, facets across AND) |
-| FR-25.11d | E2E | M4-17 (each value's count is computed against the other facets) |
+| FR-25.11c | UNIT | `packingView.spec.ts` (M4-16: values within a facet OR, facets across AND) |
+| FR-25.11d | UNIT | `packingView.spec.ts` (M4-17: each value's count is computed against the other facets) |
 | FR-25.11e | E2E | M4-18 (the empty states are distinguishable: search, filter, both, and everything packed) |
 | FR-25.11f | E2E | M4-19 (shared items in the Person facet as *Gemeinsam*) |
 | FR-25.13e | E2E | M4-59 (the browse-sheet hides what is already in) |
