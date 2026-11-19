@@ -18,8 +18,8 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-2.1 / 2.1a | E2E | M3-01, M2-01/03 (all four parts, the traveller faces included) |
 | FR-2.1c | E2E+UNIT | M3-16 (the dates open, series and attributes folded, the fold stating what is set), M3-25 (a trip dated from step 1 without the fold); `TripWizardPage.spec.ts` (the folded row names only what it holds) |
 | FR-2.1d | E2E+UNIT | M3-20; `lib/__tests__/dateRange.spec.ts` (`tapDay`), `DateRangeField.spec.ts`, `TripEditPage.spec.ts`, `ClonePage.spec.ts`, `TripWizardPage.spec.ts` |
-| FR-2.2 | E2E+UNIT | M3-06, M18-02 + M18-09 (an imported trip carries the status its file names, ADR-024 — the preview branch and the restore branch), FLOW-04 (a group edited between two runs generates differently); instantiate.ts |
-| FR-2.3 / 2.3a | E2E+UNIT | M3-06, M8-03; instantiate.ts |
+| FR-2.2 | E2E+UNIT | M3-06 *(specified, no running case yet)*, M18-02 + M18-09 (an imported trip carries the status its file names, ADR-024 — the preview branch and the restore branch), FLOW-04 (a group edited between two runs generates differently); instantiate.ts |
+| FR-2.3 / 2.3a | E2E+UNIT | M3-06 *(specified, no running case yet)*, M8-03; instantiate.ts |
 | FR-2.4 | E2E | M3-10, M8-05 (the note's wording, in the FR-27.4 model); the M10 usage count is asserted in M10-14/15 (M10-02 retired — its „delete blocked" half is reversed by FR-24.3) |
 | FR-2.5 | E2E | M3-03 |
 | FR-2.5b | E2E+UNIT | M3-21 (the preview names what an empty roster cannot place, and one traveller takes the block away); `domain/__tests__/instantiate.spec.ts` (the report, its falsifier and the two filters), `domain/__tests__/groupAdd.spec.ts` + `lib/__tests__/groupAdditionMessage.spec.ts` (FR-27.10's sixth outcome) |
@@ -27,13 +27,14 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-3.1 | E2E | M5-02 (the control), shopping/shopping.spec.ts (the write, `addBuyRowOnM4`) |
 | FR-3.2 | E2E | M6-01/04, M4-11 |
 | FR-3.3 | E2E | M6-02, M6-17, M6-22, FLOW-03 (M5-09 retired — the buy lives on M6) |
-| FR-4.1 | E2E | M3-04 (share on create) |
+| FR-4.1 | UNIT | `TripWizardPage.spec.ts` (a share made in the wizard reaches the created trip); M3-04 (share on create) *(specified, no running case yet)* |
 | FR-4.2 | E2E | M4-24, M4-30 (the record), M5-18, M5-19 (for whom) — M5-01 retired |
 | FR-4.3 | E2E | FLOW-02, M4-30, M4-31 (M4-06 and the shadowed M5-07 are both retired) |
 | FR-4.4 | E2E | M4-10, FLOW-01, **M1-03** (the delegation reaches the dashboard live, no reload) |
-| FR-4.5 | E2E | M2-05, M3-04, TripMembers |
+| FR-4.5 | E2E | M2-05, M3-04 *(specified, no running case yet)*, TripMembers |
 | FR-4.6 | E2E | G10-01, G10-02 (FR-4.6 is the presence indicator; `members.ts`'s role model is FR-4.5/4.7's) |
-| FR-4.7 | E2E+UNIT | M3-04 (role select); `TripWizardPage.spec.ts` (a share's role reaches the created trip; a share taken back is offered again) |
+| FR-4.7 | E2E+UNIT | M3-04 (role select) *(specified, no running case yet)*; `TripWizardPage.spec.ts` (a share's role reaches the created trip; a share taken back is offered again) |
+| FR-4.9 | E2E | G10-03 (the sheet behind the cloud names who else is packing), G10-04 (a tap on that row lands on the trip's packing list) |
 | FR-5.1 | E2E | M1-06 (the departure-day section), M1-06b (and no other day); `domain/__tests__/dashboardSections.spec.ts` (the rule, with the date as a parameter) |
 | FR-5.2 | E2E | M4-05 |
 | FR-5.3 | E2E | G3-01, FLOW-01 |
@@ -42,6 +43,9 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-5.6 | E2E | M4-04, M6-03 (an entry of the list's own, FR-30.1) |
 | FR-5.7 | E2E | G3-02 (mode gate), M4-49/50 |
 | FR-5.8 | E2E | M4-91 (untouched: at once, undo, reload), M4-92 (asks, names the companion, co-skips it), M4-95 (the open panel closes), M4-113 (the unused item goes once final, ADR-065); `domain/__tests__/rowRemoval.spec.ts` (when it asks, which item is left unused), `composables/__tests__/removalPrune.spec.ts` (Local deletes, a server device asks after the removal) |
+| FR-5.9 | E2E | M4-119, M4-132 (a row is bought at the destination from its own menu) |
+| FR-5.10 | E2E | M4-139…M4-143, M4-145 (finishing the packing), M1-25 (a finished packing recedes on M1), M6-30 |
+| FR-5.11 | E2E | M4-146 (an add on the road is *packed* or *forgotten*) |
 | FR-6.1 | E2E | M1-01 (the aggregation, deliberately unfiltered), M1-03 (the delegation *section* beside it), M1-03b (absent where there is no account), M1-08 (the planned-trips section); `domain/__tests__/dashboardSections.spec.ts`, `local/__tests__/delegationSeen.spec.ts` |
 | FR-6.2 | E2E | FLOW-02, NOTIFY-01, M17-01 |
 | FR-6.3 | E2E | G4-01, FLOW-02 (M1-04's *at the item* is retired — M1 has no per-item link) |
@@ -57,11 +61,20 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-7.11 | E2E+UNIT | M25-13 (set on the sheet, the pill, the order, a reload, M1's due line), M1-30 (the due line, its link, no toast), M1-31 (the link where M1 has no block); `taskDue.spec.ts` (the four states, `byDue`, `pressingFirst`, the due line's tally), `tripTasks.spec.ts` (groups, M4's window, M1's block), `TripTaskSheet.spec.ts`, `TripTaskList.spec.ts`, `useDueLine.spec.ts`, `taskdue_internal_test.go` (schedule, recipients, once a day), `taskdue_test.go` (the store's reads and the claim), `config_test.go` (`JITPACK_TASK_REMINDER_TIME`), `SettingsPage.spec.ts` (the row, and Single-User's section) |
 | FR-7.12 | E2E+UNIT | M4-149 (both kinds of purchase cross under one undo, both *before* places locked, reopening lifts it); `closePacking.spec.ts` (`rowsCrossingToLocal`, `phaseForNewTask`), `tripLifecycle.seam.spec.ts` (the close's write and its undo), `comments.seam.spec.ts` (every writer of a new task, on each fact `beforeIsOver` reads — FR-7.14), `sync.spec.ts` in `shopping/` (the module's crossing), `PackingClosed.spec.ts` (the sheet's line, the undo), `TripTasksPage.spec.ts`, `ShoppingPage.spec.ts`, `ItemDetailSheet.spec.ts` |
 | FR-7.16 | E2E+UNIT | M4-151 (M2's start asks on M4, finish-and-start under one undo, the carried purchase and task where they land), M4-152 (*Start only*), M6-38 (the carried heading, and a later entry outside it); `closePacking.spec.ts` (`tasksToFileAsCarried`, `carriedTaskTag`), `tripLifecycle.seam.spec.ts` (the carried tag, the stamp and its undo), `list.spec.ts` in `shopping/` (the carried section), `PackingListPage.spec.ts` and `TripListPage.spec.ts` (the start variant), `shopping_entries_test.go` (`carried_over_at` set and cleared) |
+| FR-7.7 | E2E | M25-01, M25-02, M25-04, M25-05, M25-06 (when a task is due, and its screen), M4-97, M4-123, M4-132, M4-144 |
+| FR-7.8 | E2E | M25-07, M25-08, M25-09, M25-12, M25-24 (one tag per task and the groups it makes), M6-34 |
+| FR-7.14 | E2E | M25-01, M25-03, M25-06, M25-13…M25-19, M25-21 (M25 arranged for use) |
+| FR-7.15 | E2E | M26-05, M26-06 (a note about an excursion) |
+| FR-7.17 | E2E | M25-20 (a task stands where it was put) |
+| FR-7.18 | E2E | M25-22, M29-24 (the time a due task's reminder comes) |
 | FR-8.1 | E2E | M4-01, M12-01 (packed and planned as two different numbers), M12-07 (the value tile) |
 | FR-8.2 | E2E+UNIT | M12-01 (all three dimensions, Gepäck over a real bag), M12-02/04/05, M12-06 (grouping handoff); analytics.ts (slice keys, bar order) |
 | FR-9.1 | E2E | M5-17, M4-04, FLOW-04 (M5-03 retired as its duplicate) |
 | FR-9.2 | E2E+UNIT | M14-01/02/03, M14-06 (the archive that *skips* the assistant), **FLOW-04** (the harvest read back where it is supposed to arrive — the next trip generated from the group); review.ts (resumability — an applied proposal is not recomputed), ReviewPage.spec.ts (the series-history why line, both directions) |
 | FR-9.3 | E2E | M4-51…55 (the closing pass and its *unused* marks, `closing-pass.spec.ts`), M14-08; M2-34 (its one door, M2's *Reise abschliessen*) |
+| FR-9.4 | E2E | M14-05, M14-07, M14-08 (M14 with real proposals), M22-09 (a bottom toast above the tab bar, measured as geometry) |
+| FR-9.5 | E2E | M4-158, M4-159 (the Forgotten Radar on a planning trip), M22-15 (an archived trip joins a series, the next trip shows what it recorded as *Missing*) |
+| FR-9.6 | E2E | M4-54, M4-123, M4-160, M5-36, M14-09 (three verdicts and a reason) |
 | FR-10.1 | E2E+UNIT | M11-01 (via M11-05/06); ContainerSheet.spec.ts (the carrier is optional — clearing it) |
 | FR-10.2 | E2E | M11-06 (03 folded in, first assignment), M5-22 (re-assignment), M11-09 (each bucket row names its traveller, UX-13) |
 | FR-10.3 | E2E+UNIT | M11-02/04; containers.ts — **the threshold is a fixed 15 %**, with no per-trip override (see the M11 block) |
@@ -70,13 +83,14 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-12.1 | E2E | M2-04 |
 | FR-12.2 | E2E+UNIT | ClonePage toggles; clone.ts |
 | FR-13.1 | E2E+UNIT | M2-02 (the grouping it describes is what the screen does, by decision; see E2E-M2-15), M16-01 (name, defaults, **and the rename refusal**), M16-03 (history, detach/attach); `composables/__tests__/nameCollision.spec.ts` (the rule: a taken series name is refused before the mutation — M3's wizard note still has no e2e case, named in `e2e-ledger/`); `TripWizardPage.spec.ts` (the wizard's note names the taken series and holds *Next*) |
-| FR-13.2 | E2E | M16-03 (history + attach/detach) and M16-04 (both shortcuts); M3-02 |
-| FR-13.3 | E2E+UNIT | M16-02 (**the only test of the checklist editor**, which also guards the field it types into rendering with a width), M3-09 (the wizard's offer, still unwritten), M6-01; `TripWizardPage.spec.ts` (the offer reaches the created trip, and stays behind once unticked) |
-| FR-14.1 | E2E | M3-08 (M5-04 retired — no history on M5, and none owed) |
-| FR-14.2 | E2E+UNIT | M3-08, FLOW-05; suggestions.ts, TripWizardPage.spec.ts |
+| FR-13.2 | E2E | M16-03 (history + attach/detach) and M16-04 (both shortcuts); M3-02 *(specified, no running case yet)* |
+| FR-13.3 | E2E+UNIT | M16-02 (**the only test of the checklist editor**, which also guards the field it types into rendering with a width), M3-09 (the wizard's offer — specified, no running case yet), M6-01; `TripWizardPage.spec.ts` (the offer reaches the created trip, and stays behind once unticked) |
+| FR-13.4 | E2E | M3-26, M16-05, M16-06, M22-16, M25-23 (a series carries tasks for every trip in it) |
+| FR-14.1 | UNIT | `suggestions.ts`, `TripWizardPage.spec.ts`; M3-08 *(specified, no running case yet)* (M5-04 retired — no history on M5, and none owed) |
+| FR-14.2 | E2E+UNIT | M3-08 *(specified, no running case yet)*, FLOW-05; suggestions.ts, TripWizardPage.spec.ts |
 | FR-14.3 | E2E+UNIT | M12-03 (absence half; positive half blocked on an archive path, see M12-03); analytics.ts |
 | FR-15.1 | E2E | M3-01, M16-01 (the defaults are stored), M16-04 (they reach M3 — the prefill chain) |
-| FR-15.2 | E2E+UNIT | M3-06, M8-03 (chips set **and** clear, one value per axis); instantiate.ts |
+| FR-15.2 | E2E+UNIT | M3-06 *(specified, no running case yet)*, M8-03 (chips set **and** clear, one value per axis); instantiate.ts |
 | FR-15.3 | DOC/N-A | void — retired with FR-1.3/1.5 |
 | FR-16.1 | E2E | M15-05, M15-06, M15-07, M15-08, M15-11 (the category-*row* layout), M15-12 (the mapping gate and the include toggle). **M15-01 is retired** — six promises in one sentence, distributed over those cases; its *grid preview* clause is unbuilt and an open decision. |
 | FR-16.2 | E2E | M2-08 (the *„Importiert"* chip, `trips.imported`'s reader), M15-05, M15-11 (archived trips with their original quantities, landed and read back in Local Mode); `domain/trips.ts` (`calendarDate` — the header date is a day that exists, shared with FR-18.4). **M15-04's *target series* half is unbuilt** — the picker is on step 2 and the commit writes `series_id`, but the confirm never names it; open decision. |
@@ -91,6 +105,10 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-18.2 | E2E | M7-04, M7-12, M2-07 |
 | FR-18.3 | E2E | M2-07 |
 | FR-2.3 | E2E | M2-10 (ADR-033: progress on a trip this device never opened) |
+| FR-2.1b | E2E | M3-15 (a trip with no dates at all, the year preselected), M22-12 (the year corrected on M22, read back through M2's list), M15-05 |
+| FR-2.5a | E2E | M3-14 (step 2 opens with the household's default travellers from M17), M17-18; M4-13 |
+| FR-2.6 | E2E | M3-18 (a decision made in the review step lands as *skipped* on the created trip, behind the *Erledigt* reveal) |
+| FR-2.8 | E2E | M2-13, M2-14, M2-18 (M2 opens on the segment where the trips are) |
 | Sync-API §4 (paging) | E2E | SYNC-01 (a partition larger than one page arrives whole) |
 | FR-18.4 | E2E | M18-01 (the template preview, and Import landing it) + M18-02 (a trip in the status the file carries, ADR-024, on the **preview** branch — M18-09 is the restore branch's half), M2-09, M7-05 (the header icon that is the built half — the FAB menu it names is not, open decision), M18-08 (the FR-27.4 sections), M18-10 + M18-11 (ADR-030: what is already here is not imported twice — restore list and merge preview); travelers/containers remapped by name is unit-owned in `composables/__tests__/portableImport.spec.ts` |
 | FR-18.5 | E2E+UNIT | M18-04 (both ends rendered: the refusal with its reason, and the newer-schema warning followed by a best-effort import), M18-01 (the header names the `schema_version`); `domain/__tests__/portable.spec.ts` holds the parser's own rules |
@@ -102,10 +120,12 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-19.5 | E2E | FLOW-07 (backup → restore on a server device → a third device that only ever talked to the server); the *first* step, leaving Local Mode on the same device, is FR-19.8's (M17-14) |
 | FR-19.6 | E2E | G2-02, NFR-03 |
 | FR-19.8 | E2E+UNIT | M17-14 (the move, end to end, read back from the server), M17-14b (the guard, both directions), M17-14c (skip is not restore); the guard's rule and the card's absence outside Local Mode are unit-owned |
+| FR-19.7 | E2E | PWA-05 (a waiting version applied now), PWA-05b (*Später* leaves the old worker in control), PWA-06 (the announcement does not move the page) |
+| FR-19.9 | E2E | M17-15, M17-16 (logging out and resetting the connection) |
 | FR-20.1 | E2E+UNIT | M10-03 (the default mode, the read-only reverse list, and the cycle refused in words), M5-23; dependencies.ts; M10-31 (a name in either list leads to that item) |
 | FR-20.2 | E2E+UNIT | M4-07; dependencies.ts (incl. the anchor rule: a per-person twin or a second main item keeps a companion) |
-| FR-20.3 | E2E+UNIT | M3-07; dependencies.ts |
-| FR-20.4 | E2E+UNIT | M3-07, M4-40 (required), M5-23 (suggested); dependencies.ts (a suggestion carries the item's own fields, so accepting one writes the category and the quantity it names — `ItemDetailSheet.spec.ts` asserts the chip passes both) |
+| FR-20.3 | UNIT | `dependencies.ts`; M3-07 *(specified, no running case yet)* |
+| FR-20.4 | E2E+UNIT | M3-07 *(specified, no running case yet)*, M4-40 (required), M5-23 (suggested); dependencies.ts (a suggestion carries the item's own fields, so accepting one writes the category and the quantity it names — `ItemDetailSheet.spec.ts` asserts the chip passes both) |
 | FR-21.1/21.2 | E2E+UNIT | G11-01 (Nacht default); palette.css (every rgb twin agrees with its hex, in both flavours) |
 | FR-21.3 | E2E | M17-06 |
 | FR-21.4 | E2E | G11-01 (no flash before paint) |
@@ -117,6 +137,22 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-21.11 | E2E+UNIT | M7-13, M8-29 (the head inset by what holds it: each count on its card's right edge, each name on its left, on M7's and M8's page of inset cards); `SectionHead.spec.ts` (no side margin of its own; `cardList` takes `--jp-card-list-inset`) |
 | FR-21.17 | E2E+UNIT | M4-70 (the head yields with the line and holds at the bottom), M4-129 (a list too short to survive the yield keeps its head), M4-135 (a scroll nobody made moves neither the head nor the rows), M4-150 (a focus ends the gesture, so the scroll it brings leaves the head); `headScroll.spec.ts` (the direction, the jitter, the clamp, the short list, the scroll nobody made, which inputs arm the gesture and which end it) |
 | FR-21.29 | E2E+UNIT | G22-01…G22-07; `lib/__tests__/splash.spec.ts` (on unless `off`, once per app start, the flight's transform), `SplashScreen.spec.ts` (phases, tap, key, reduced motion, the landing mark hidden only while in flight) |
+| FR-21.9 | E2E | M9-09, M12-07 (the instance names its currency) |
+| FR-21.12 | E2E | G2-08 (a sheet's state glyph starts on its title's line, measured) |
+| FR-21.13 | E2E | M1-01, M1-09 (the soonest trip is the hero card, the later one a list card), VIS-10 |
+| FR-21.14 | E2E | G13-06 (a row's name is larger than its qualifier, the app's sizes rather than Ionic's) |
+| FR-21.15 | E2E | M2-17 (M2's *Active* segment draws the soonest running trip as the hero), M2-35 (the hero's phase word and day counter equal M1's), VIS-11 |
+| FR-21.16 | E2E | M5-24 (a cluster names its item louder than its people) |
+| FR-21.19 | E2E | M4-72, M4-153 (the lead column is one width) |
+| FR-21.20 | E2E | M4-73 (a cluster head is a line of the list) |
+| FR-21.21 | E2E | G12-05, G12-07 (a trip's views are named in the page, read off the trip switcher) |
+| FR-21.22 | E2E | M4-74 (a dashed edge means *not yet*) |
+| FR-21.23 | E2E | M4-75, G12-04 (the packing list draws its own progress) |
+| FR-21.24 | E2E | M4-76, M6-43, M6-11, M8-25, M25-21, M29-21, M31-15 (one door per screen to the quick-add) |
+| FR-21.25 | E2E | M5-25 (M5 puts its weight on what it was opened for) |
+| FR-21.26 | E2E | M4-71, G9-20 (one content measure, capped flat on a desktop width) |
+| FR-21.27 | E2E | G9-19 (M1's greeting is its page head, drawn from the frame like every tab root's) |
+| FR-21.28 | E2E | M1-07, VIS-12 (M1's cards are the app's card, photographed below the hero) |
 | FR-22.1 | E2E+UNIT | M10-04 (add/replace/remove, rendered and read back), M9-01; the M5 rung in the ItemMark component unit (M5-12 retired) |
 | FR-22.2/22.3 | E2E+UNIT | M10-04 asserts the aspect ratio survives the re-encode; the backoff itself is `imageResize.ts` |
 | FR-22.4 | UNIT+SERVER | the 150 KB cap is `imageResize.spec.ts` and the three server layers (invariant 6) — deliberately **not** M10-04, which would be asserting the encoder through a canvas |
@@ -129,12 +165,22 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-23.5 | E2E | M20-04 |
 | FR-23.6 | SERVER | deactivation side-effects (push purge, notif suppress) — Go test; access-revocation asserted M20-02, and that a re-login does not undo it by M20-06 |
 | FR-23.8 | E2E+UNIT | M17-17 (`single`: an instance that was not asked to check says nothing, with the version line as the positive signal). The other three states need a release feed that answers on demand, which no project has: `views/settings/__tests__/SettingsUpdateCheck.spec.ts` renders all four plus Local Mode, where the assertion is that **no request is made**, and `internal/api/update_test.go` drives the endpoint — the day-long interval and the failed-check rules on an injected clock, the link hardening, and the check outliving the request that triggered it |
+| FR-23.7 | E2E | M17-13 (an API token is created and its value shown once), M17-13b (closing the reveal removes the value) |
 | FR-24.1 | E2E | M10-08 (filter-or-create tag capture); grouping/filtering M9-01/24.2 |
 | FR-24.3 | E2E+UNIT | M10-14 (a referenced item is hidden and still resolves in its group), M10-15 (an unreferenced one is really gone, and its name is free again), M7-11 (the Vorlage confirm states which deletion it is), **M23-01/02/03/04** (the restore, the collision and its rename, that a retired row can still be removed for good, and the Vorlage half — retired by a trip, listed on its own segment, restored); `domain/masterDeletion` + `domain/masterRestore` and `composables/lifecycleDelete` + `composables/lifecycleRestore` (both rules, both branches, and that resolution/export keep seeing retired rows); store-side both branches **and the restore** in Go, including a colliding restore rejected as `constraint_violated` with the row left retired |
 | FR-24.11 | E2E+UNIT | M9-21 (missing name beside partial hits, list survives), M9-22 (filter tag assigned, create-and-open returns to the search), M9-23 (a retired name is restored, not re-created); the composer: M4-107 (offer, sheet, row + inventory), M4-108 (exact match adds directly, already-in rests), M4-109 (retired name restored and added), M8-27; `domain/itemSearch` `searchOffer` + `domain/shared/search` `searchEquals`, `CreateItemSheet.spec.ts` (the write), `ItemInventoryPage.spec.ts` (when the offer appears), `QuickAddItem.spec.ts` (the composer's offer, commit and add) |
 | FR-24.13 | E2E+UNIT | M9-25 (the mark set in the tag manager, on the heading, lent muted to a row under a search), M9-34 (grouped by tag the row stops borrowing, the alphabetical run lends again); `ItemMark.spec.ts`, `ItemInventoryPage.spec.ts` (`headed` per sort, bucket and search) |
 | FR-24.4 | E2E | M9-01 (lean default), M9-05 (property chips in the *Ansicht & Filter* head, device-local) |
 | FR-24.5 | E2E | M10-07 (minimal creation; photo, dependency and delete sections absent), M11-05 (placeholder-name container) |
+| FR-24.2 | E2E | M9-06, M15-09, M4-77 (tag filtering and grouping in the inventory) |
+| FR-24.6 | E2E | M9-10, M9-13, G12-02 (the inventory's tools stay on the screen) |
+| FR-24.7 | E2E | M4-108, M9-11, M9-12 (inventory search reaches name, tags and the rest of the data) |
+| FR-24.8 | E2E | M9-14, M9-15 (choosing a tag without a swipe axis, ADR-101) |
+| FR-24.9 | E2E | M9-16, M9-24, M9-26, M9-27, M9-31, M9-35, M10-21, M10-22, M24-02, M6-32 (acting on several items at once) |
+| FR-24.10 | E2E | M9-17, M9-18, M9-19, M9-33 (managing the tags themselves, ADR-063) |
+| FR-24.12 | E2E | M24-01…M24-04, G9-22, M7-11 (tidying the inventory up on M24) |
+| FR-24.14 | E2E | M9-28, M9-32 (merging several tags in one act) |
+| FR-24.15 | E2E | M9-30 (merging duplicate items, ADR-069) |
 | FR-25.1 | E2E+UNIT | M4-12/13/14; packingView.ts (clustering, flat fallback, full-set decision) |
 | FR-25.2 | E2E+UNIT | M4-14; M4-74 and M4-145 (the reveal bar's word and its two directions, singular and plural); packingView.ts (isDone, hidden counts, full-set headers) |
 | FR-25.4 | E2E+UNIT | mode glyph rules M4-15/16; packingView.ts — the pill strip itself is replaced by FR-25.11 |
@@ -185,7 +231,36 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-27.10 | E2E | M4-26 (group add: dedup, provenance, tasks, no Missing flag), M4-27 (fully-present group, planning-trip propagation) |
 | FR-27.11 | E2E+UNIT | M14-04 (group targets, blast radius), M14-05 (list not card stack, marked rows, per-pair dismissal), FLOW-04 (the shape the write gives the position); review.ts, ReviewPage.spec.ts — the applied-change log is owed with the §3.27 refresh package |
 | FR-27.16 | E2E+UNIT | M4-103 (the ⋮ entry, „Alle", apply, undo, gone after a reload), M4-104 (an archived trip is offered it too), M5-30 (the one-row line); `domain/__tests__/inventoryNames.spec.ts` (which rows, per-person as one choice, deliberate, ledger follows, undo), `app/__tests__/inventoryNames.seam.spec.ts` (the row keeps following its group, the FR-27.4 card keeps its own renames), `components/trips/__tests__/InventoryNamesSheet.spec.ts` (pre-selection, „Alle") |
+| FR-27.13 | E2E | M8-15 (the group picker's search finds a group by an item it carries and says why) |
+| FR-27.15 | E2E | M8-23, M8-28 (recognising a group in loose positions) |
 | FR-25.7 | E2E | M8-12 (one-tap add, "Standard" row, nothing auto-opening on top of it, Mehr-Optionen disclosure) |
+| FR-25.4a | E2E | M4-67 (a dense row draws its mode glyph only where the mode is worth saying: 🛒 and 📍, not 🧳) |
+| FR-25.5 | E2E | M11-06 (assigning an item to a luggage piece is optional and de-emphasized) |
+| FR-25.9 | DOC/N-A | retired — per-person quantities in templates were removed; M3-03 asserts that no Adult/Child control and no traveler type exists |
+| FR-25.11a | E2E | M4-15, M4-28, G12-04 (the collapsed state: one filter row carrying the count and the chips) |
+| FR-25.11b | E2E | M4-15, M4-20 (the panel is a bottom sheet with no apply button; a value bites while it is open) |
+| FR-25.11c | E2E | M4-16 (values within a facet OR, facets across AND) |
+| FR-25.11d | E2E | M4-17 (each value's count is computed against the other facets) |
+| FR-25.11e | E2E | M4-18 (the empty states are distinguishable: search, filter, both, and everything packed) |
+| FR-25.11f | E2E | M4-19 (shared items in the Person facet as *Gemeinsam*) |
+| FR-25.13e | E2E | M4-59 (the browse-sheet hides what is already in) |
+| FR-25.13f | E2E | M4-60, M4-83, M4-161, M4-162, M5-21, M27-13, M27-21 (two verbs in the browse-sheet, one tap each) |
+| FR-25.13g | E2E | M4-78, M4-79, M4-102 (*für alle* in the browse-sheet) |
+| FR-25.13h | E2E | M4-78, M4-80, M4-81 (assign travelers from the browse-sheet) |
+| FR-25.13i | E2E | M4-83, M4-162 (a settled line's way back, and the filter that finds it) |
+| FR-25.13j | E2E | M4-114, M8-22 (the browse-sheet's name search is M9's own) |
+| FR-25.21b | E2E | M5-20 (collapsing back to *Gemeinsam* names the sum before anything is written) |
+| FR-25.21c | E2E | M5-26 (*Alle* in one tap) |
+| FR-25.22 | E2E | M4-69, M4-82, M5-18, M5-19 (one arithmetic for every fraction on M4) |
+| FR-25.23 | E2E | M4-82, M4-88 (a per-person cluster folds and starts shut) |
+| FR-25.24 | E2E | M4-121, M27-10 (a row's planned amount is changed where the row is) |
+| FR-25.25 | E2E | M4-87, M4-89, M4-90, M4-122 (assignment and late-packer are set from the row) |
+| FR-25.26 | E2E | M4-88, M4-117, M4-118, M4-126, M4-132 (a cluster's head acts on every instance at once) |
+| FR-25.27 | E2E | M4-93, M4-94 (what is packed on departure day gets out of the way) |
+| FR-25.29 | E2E | M4-110…M4-113, M27-11 (how far each traveler is) |
+| FR-25.31 | E2E | M4-116, M4-119…M4-123, M4-125, M4-126, M4-132, M25-06, M27-10 (every act on the packing list can be taken back; M4-34 is retired) |
+| FR-25.32 | E2E | M4-69, M4-128 (a search finds what the reveal switches put away) |
+| FR-25.33 | E2E | M4-156, M4-157 (a pack note says what exactly went in) |
 | FR-28.1 | E2E+UNIT | M9-07, G15-01 (mark set, mark absent — absence is a normal row, not an empty state); Go: the column is nullable and capped, and nothing else |
 | FR-28.2 | E2E+UNIT | M10-11 (keyword search, facets), M10-12 (explicit removal, and its absence on an unmarked item), M8-18 (the *same* picker on a template); `MarkPicker.spec.ts` |
 | FR-28.3 | E2E+UNIT | M10-11 (hit / skewed hit / empty, offer never auto-applied); `domain/itemMarks.ts` — compound splitting **only** against the index vocabulary, scoring order, and the empty result as a returned state rather than an exception |
@@ -230,11 +305,16 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-29.14/29.15 | E2E+UNIT+SERVER | M29-01 (the days, arrival and departure), M29-02 (an entry of its own), M29-03 (planned from the pool and from M28, struck through once *Done*), M29-04 (an excursion on its days), M29-13 (an idea and its excursion as one line), M29-14/15 (an entry gains, fills from and loses a connection), M29-19 (whom an entry is for), M29-20 (the plan narrowed to some), M29-22 (each line's trailing shape and its time column), M29-23 (an excursion made from an idea deleted, the idea's day with it), G12-09 (the pill); `planner/domain/__tests__/dayPlan.spec.ts` (`tripDays`, `openingDay`, `unplannedIdeas`, `ideasOutsideTrip`, `dayLines`, `ideasWithExcursion`, whom a line is for, `concerns`, `openingFilter`), `planner/__tests__/dayLineText.spec.ts` (`dayLineTime`), `ProgressRing.spec.ts` (the ring's name), `dayPlanFilter.spec.ts`, `dayPlanSource.spec.ts`, `sync.spec.ts` (planning, the packing side's `ideaPlanWrites`, the entry's writes, whom it is for, the trip's cascade), `app/__tests__/excursions.seam.spec.ts` (deleting an excursion takes its idea's day), `lib/__tests__/whoGoes.spec.ts`, `sync/__tests__/cascade.spec.ts` (a traveller's rows in a module); Go: `TestApplyMutation_DayPlan_PlannedIdeaAndOwnEntry_FR29_15`, `TestStampActor_DayEntryAuthorIsThePusher_FR29_15`, `TestApplyMutation_DayEntryTravelers_GoWithTheEntryAndTheTraveler_FR29_15`, `TestApplyMutation_DayEntryTraveler_StaysInsideItsTrip_FR29_15` |
 | FR-29.18 (excursion link) | E2E+UNIT+SERVER | M29-13 (a connection added from an excursion's line, labelled with it); M27-17 (the way there and back, the time on the spot, M27's line), M27-18 (the timetable search, seeded from the route), M27-19 (the step on the excursion, the ways on the route's map); M29-16 (from where one is), M29-17 (the map), M29-18 (the step without the search); `planner/domain/__tests__/timetable.spec.ts`, `timetableClient.spec.ts`, `lib/__tests__/timetable.spec.ts`, `cmd/jitpackd/config_test.go` (`JITPACK_TIMETABLE`); `planner/domain/__tests__/dayPlan.spec.ts` (`dayLines`), `journey.spec.ts`, `planner/__tests__/journeyText.spec.ts`, `dayLineText.spec.ts`; Go: `TestApplyMutation_ConnectionExcursion_KeepsItOnTheTripsOwn`, `TestApplyMutation_ConnectionExcursionRole_OutOrBackOnly` |
 | FR-29.9 | GATE+UNIT | `module-boundary-gate.mjs`, `domain-purity-gate.mjs`; `sync.spec.ts` (the pull funnel, the trip's cascade) |
+| FR-29.21 | E2E | M28-26, M28-27, M29-25, M29-26, M29-27 (an idea's preparation) |
+| FR-29.22 | E2E | M28-28, M28-29 (an idea's links) |
 | FR-30.3 | GATE+UNIT | `scripts/module-boundary-gate.mjs` (both directions, in `make client`); `sync/__tests__/routing.spec.ts` (a feature table routes to a feature store) |
 | FR-30.4 | E2E+UNIT | M6-29 (`single`: the buyer named, read fresh from the server), M6-17/27 (`local`: the time alone); Go: `purchaserecord_test.go` (stamping), `purchaserecord_push_test.go` (through the push); `rowFacts.spec.ts`, `ShoppingPage.spec.ts` |
 | FR-30.5 | E2E | M1-12 (the card's way onto M6) |
 | FR-30.6 | E2E+UNIT | M6-15 (the ＋ leads to the field, the last row clear of it); `ShoppingPage.spec.ts` |
 | FR-30.7 | E2E+UNIT | M1-12 (the list that is now, the planned rule, no field on a planned card), M1-13 (check off, undo, add; M4/M6 agree); `ShoppingDashboardCard.spec.ts` |
+| FR-30.11 | E2E | M6-01, M6-17, M6-22, M6-24, M6-30, M6-35, M6-36 (M6 reads like M25) |
+| FR-30.12 | E2E | M6-37 (a purchase can be handed to somebody) |
+| FR-30.13 | E2E | M6-39 (a line stands where it was put) |
 | FR-32.1 | E2E+SERVER | M30-01 (the actor stamped, not claimed); Go: `TestActivity_*` in `internal/store` (what is recorded and what is not, the trip a master row belongs to, the names through a foreign key, the side paths, every table's name sources) and `internal/api` (membership, paging, refusals) |
 | FR-32.2 | E2E+UNIT | M30-01 (a run folded and opened), M30-03 (a module's reader bound); `domain/__tests__/activity.spec.ts` (every act, the areas, the folding), the modules' own `activity.spec.ts` and `activityReadersWiring.spec.ts` (every table read by one side), `ActivityLogPage.spec.ts` (Single-User names nobody, the older page, the empty and failed states) |
 | FR-33.1/33.2/33.9 | E2E+UNIT+SERVER | M31-01 (the pill, the days, the slots), M31-02 (planned, changed, deleted, eaten out), M31-16 (UX-08: the slots' short names whole at 360/412 px), M31-17 (UX-08: *Morgen* and *Znüni/Zvieri* whole on M31's rows, the drag chip and M1); `meals/domain/__tests__/mealPlan.spec.ts`, `meals/__tests__/sync.spec.ts`; Go: `TestApplyMutation_DeletingAMealTombstonesItsIngredients_FR33_9`, `TestSchema_MealVocabulary_FR33_1`, `TestApplyMutation_IngredientNamesAMealOfItsTrip_FR33_2` |
