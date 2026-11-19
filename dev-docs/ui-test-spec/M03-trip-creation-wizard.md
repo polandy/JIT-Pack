@@ -20,7 +20,8 @@
   checkboxes.
 * **E2E-M3-08** `all` (FR-14.1/14.2) — **implemented** (`e2e/trip-composition.spec.ts`): step 4 rows show the template
   quantity in an editable field and a one-tap history suggestion ("2024: 5 · 2025: 6 → use 6").
-* **E2E-M3-09** `all` (FR-13.3): step 4 offers the series destination checklist as opt-out extra items.
+* **E2E-M3-09** `all` (FR-13.3) — **implemented** (`e2e/trip-composition.spec.ts`): step 4 offers the series
+  destination checklist as an opt-out extra; ticked it lands on the trip, unticked it stays behind.
 * **E2E-M3-10** `all` (FR-2.4/NFR-4.1): draft persists across steps offline; "Create trip" commits and opens M4; cancel
   leaves no residue.
 * **E2E-M3-11** `all` (FR-27.1/27.2/27.6): step 3 — the list separates *Ferien-Vorlagen* from *Zusätzliche Gruppen* as

@@ -173,7 +173,7 @@ function travelerName(index: number | null): string | null {
     <!-- FR-13.3: destination checklist offer from the series profile -->
     <template v-if="offeredChecklist.length > 0">
       <SectionHead :title="t('wizard.sectionChecklist')" />
-      <IonItem lines="none">
+      <IonItem lines="none" data-testid="wizard-checklist-offer">
         <IonCheckbox
           slot="start"
           :checked="includeChecklist"
@@ -183,7 +183,9 @@ function travelerName(index: number | null): string | null {
           {{ t('wizard.checklistAdd', { n: offeredChecklist.length }) }}
         </IonLabel>
       </IonItem>
-      <IonNote>{{ offeredChecklist.map((c) => c.label).join(', ') }}</IonNote>
+      <IonNote data-testid="wizard-checklist-labels">{{
+        offeredChecklist.map((c) => c.label).join(', ')
+      }}</IonNote>
     </template>
   </section>
 </template>

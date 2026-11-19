@@ -502,6 +502,53 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     await expect(visible(page).getByTestId('m4-row-Socken')).toContainText('5')
   })
 
+  /**
+   * E2E-M3-09 (FR-13.3): step 4 offers the series' destination checklist as an
+   * opt-out extra; ticked it lands on the trip, unticked it stays behind.
+   */
+  test('E2E-M3-09: step 4 offers the series checklist, and an unticked offer stays behind', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, { name: 'Elba 2026', series: 'Elba' })
+    await openSeries(page, 'Elba')
+    await visible(page).getByTestId('m16-checklist-input').locator('input').fill('Sonnencreme')
+    await visible(page).getByTestId('m16-checklist-add').click()
+    await expect(visible(page).getByTestId('m16-checklist-row')).toHaveCount(1)
+
+    /** Walk M3 for a trip of the Elba series, up to step 4. */
+    async function toReview(name: string) {
+      await page.goto(PATH.newTrip)
+      await page.getByTestId('wizard-name').locator('input').fill(name)
+      await page.getByTestId('wizard-more').click()
+      await chooseInSelect(page, 'wizard-series', 'Elba')
+      await page.getByTestId('wizard-next').click()
+      await expect(page.getByTestId('wizard-step-2')).toBeVisible()
+      await page.getByTestId('wizard-next').click()
+      await expect(page.getByTestId('wizard-step-3')).toBeVisible()
+      await page.getByTestId('wizard-next').click()
+      await expect(page.getByTestId('wizard-step-4')).toBeVisible()
+    }
+
+    await toReview('Elba 2027')
+    const offer = visible(page).getByTestId('wizard-checklist-offer')
+    await expect(offer).toContainText('Add 1 item from the destination checklist')
+    await expect(visible(page).getByTestId('wizard-checklist-labels')).toHaveText('Sonnencreme')
+    await expect(offer.locator('ion-checkbox')).toHaveJSProperty('checked', true)
+    await page.getByTestId('wizard-create').click()
+    await expectTripOpen(page, 'Elba 2027')
+    await expect(visible(page).getByTestId('m4-row-Sonnencreme')).toBeVisible()
+    await writesLanded(page)
+
+    await toReview('Elba 2028')
+    await visible(page).getByTestId('wizard-checklist-offer').locator('ion-checkbox').click()
+    await expect(
+      visible(page).getByTestId('wizard-checklist-offer').locator('ion-checkbox'),
+    ).toHaveJSProperty('checked', false)
+    await page.getByTestId('wizard-create').click()
+    await expectTripOpen(page, 'Elba 2028')
+    await expect(visible(page).getByTestId('m4-row-Sonnencreme')).toHaveCount(0)
+  })
+
   // E2E-M3-21 (FR-1.4/FR-2.5): a per-person position on a trip with nobody on
   // it fans out to nothing. Step 2 accepts an empty roster — it says so, and
   // it is the state a fresh device starts the wizard in — so the preview is
