@@ -22,12 +22,38 @@ import {
 import { FOR_WHOM_M5, assignTraveler, row } from '../helpers/m4'
 import { bootPage, packItem, quickAddItem, uniq, watchSubscribed } from '../serverMode'
 import { PATH } from '../routes'
+import { API } from '../../src/api/routes'
 import { openTripView } from '../helpers/trips'
 import { openListComposer } from '../helpers/composer'
 
 // Both sync endpoints, whichever partition: the path leads with its scope
 // (NFR-4.14, ADR-027), so no single prefix covers them.
 const SYNC_PATH = /\/api\/v1\/(?:trips\/[^/]+|master)\/sync/
+
+/** The sync endpoint of the trip at `tripPath`, an app path `/trips/<id>…`. */
+function tripSyncOf(tripPath: string): string {
+  return API.tripSync(tripPath.split('/')[2]!)
+}
+
+/**
+ * The next pull of `endpoint` that ends its feed: a page with `has_more` false
+ * and, when `withChanges`, at least one change in it.
+ *
+ * The completion signal for a case that waits on a pull: armed before the
+ * action that starts it, then the screen is asserted at the default deadline,
+ * because the rows are on the device by then. A long deadline instead would
+ * be a guess at how slow the runner is.
+ */
+function feedDrained(page: Page, endpoint: string, withChanges = false): Promise<void> {
+  return page
+    .waitForResponse(async (r) => {
+      if (r.request().method() !== 'GET' || new URL(r.url()).pathname !== endpoint) return false
+      if (!r.ok()) return false
+      const body = (await r.json()) as { has_more: boolean; changes: unknown[] }
+      return !body.has_more && (!withChanges || body.changes.length > 0)
+    })
+    .then(() => undefined)
+}
 
 /**
  * Backend-backed sync (UI-Test-Spec §2.2, mode `single`) — the first unit
@@ -1136,13 +1162,13 @@ test.describe('Single-User backend sync @single', () => {
       if (r.method() === 'GET' && /\/api\/v1\/master\/sync/.test(r.url())) pulls++
     })
     await seed(page, { mode: 'server' })
+    const drained = feedDrained(page, API.masterSync)
     await page.goto(PATH.items)
+    await drained
 
     // The last row of the feed, on screen. It sits past the first page, so a
     // pull that stops there never reaches it.
-    await expect(visiblePage(page).getByText(last, { exact: true })).toBeVisible({
-      timeout: 30_000,
-    })
+    await expect(visiblePage(page).getByText(last, { exact: true })).toBeVisible()
     // More than one request, or the seed above no longer exceeds a page and
     // this case would be proving nothing.
     expect(pulls).toBeGreaterThan(1)
@@ -1328,13 +1354,15 @@ test.describe('Single-User backend sync @single', () => {
     baseURL,
   }) => {
     test.slow()
-    const tripName = `Progress ${uniq()}`
+    const u = uniq()
+    const tripName = `Progress ${u}`
     const context = await browser.newContext({ baseURL })
     const author = await bootPage(context)
-    await createTripViaWizard(author, { name: tripName, travelers: ['Andy'] })
-    await quickAddItem(author, 'Zelt')
-    await quickAddItem(author, 'Schlafsack')
-    await packItem(author, 'Zelt')
+    const tripPath = await createTripViaWizard(author, { name: tripName, travelers: ['Andy'] })
+    // Unique, because the inventory is the instance's and outlives this case.
+    await quickAddItem(author, `Zelt ${u}`)
+    await quickAddItem(author, `Schlafsack ${u}`)
+    await packItem(author, `Zelt ${u}`)
     await expect(visiblePage(author).getByTestId('m4-progress')).toContainText('1/2')
     await context.close()
 
@@ -1346,10 +1374,13 @@ test.describe('Single-User backend sync @single', () => {
       if (r.method() === 'GET' && /\/api\/v1\/trips\/[^/]+\/sync/.test(r.url())) tripPulls++
     })
     await seed(page, { mode: 'server' })
+    const listDrained = feedDrained(page, API.masterSync)
+    const tripDrained = feedDrained(page, tripSyncOf(tripPath))
     await page.goto(`${PATH.trips}?status=planned`)
+    await listDrained
 
     const row = visiblePage(page).getByTestId(`trip-row-${tripName}`)
-    await expect(row).toBeVisible({ timeout: 30_000 })
+    await expect(row).toBeVisible()
     /*
      * Scrolled to, because that is the rule and not a workaround: ADR-033
      * fetches the partition of a row that is *on screen*, so a row further
@@ -1358,11 +1389,10 @@ test.describe('Single-User backend sync @single', () => {
      * make the case a promise about test isolation rather than about the app.
      */
     await row.scrollIntoViewIfNeeded()
+    await tripDrained
     // The number, on the list, with nothing opened — not "0/0 packed" for
     // ever (ADR-033).
-    await expect(row.getByTestId('trip-item-summary')).toHaveText('1/2 packed', {
-      timeout: 30_000,
-    })
+    await expect(row.getByTestId('trip-item-summary')).toHaveText('1/2 packed')
     // It got there by fetching the row's own partition, which is the whole
     // mechanism — without this the assertion above could pass on a screen
     // that had the rows for some other reason.
@@ -1403,6 +1433,7 @@ test.describe('Single-User backend sync @single', () => {
     const fresh = await browser.newContext({ baseURL })
     const page = await fresh.newPage()
     await seed(page, { mode: 'server' })
+    const tripDrained = feedDrained(page, tripSyncOf(tripPath))
     await page.goto(`${tripPath}/clone`)
     // UX-21: the screen says what it does — a copy of the trip, not a "clone".
     await expect(page.getByTestId('header-title')).toHaveText('Copy trip')
@@ -1410,7 +1441,8 @@ test.describe('Single-User backend sync @single', () => {
     // The preview waits for the partition and then names the real contents.
     // Before the guard this line settled on "0 items, 0 travellers."
     const preview = visiblePage(page).getByTestId('clone-preview')
-    await expect(preview).toHaveText('2 items, 1 traveller.', { timeout: 30_000 })
+    await tripDrained
+    await expect(preview).toHaveText('2 items, 1 traveller.')
 
     await visiblePage(page).getByTestId('clone-name').locator('input').fill(`Clone ${u}`)
     await visiblePage(page).getByRole('button', { name: 'Create copy' }).click()
@@ -1787,9 +1819,11 @@ test.describe('The socket dies and the device still converges (Sync-API P-1) @si
     // fires it — nothing here nudges the app — and the open that follows
     // pulls the gap over (Sync-API P-1).
     const reconnected = socket.nextPresence()
+    const gapPulled = feedDrained(pageB, tripSyncOf(tripPath), true)
     socket.refuse = false
     await reconnected
-    await expect(visiblePage(pageB).getByTestId('m4-done-bar')).toBeVisible({ timeout: 15_000 })
+    await gapPulled
+    await expect(visiblePage(pageB).getByTestId('m4-done-bar')).toBeVisible()
     await expect(visiblePage(pageB).getByTestId(`m4-row-${item}`)).toBeHidden()
 
     await pageB.getByTestId('sync-indicator').click()
