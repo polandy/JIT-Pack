@@ -1120,16 +1120,11 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
   /**
    * E2E-M25-17 (FR-7.14): once the trip's first day has come, a new task is
    * for the road — the composer names no phase, and what is typed lands under
-   * *Während der Reise*. The start is two days back, computed by the case:
-   * „today" is an input here, not a race, and two days clear any time zone.
+   * *Während der Reise*. The start is two days before the case's fixed clock.
    */
   test('E2E-M25-17: a trip under way files a new task for the road', async ({ page }) => {
-    const started = new Date(Date.now() - 2 * 86_400_000)
-    const startDate = [
-      started.getFullYear(),
-      String(started.getMonth() + 1).padStart(2, '0'),
-      String(started.getDate()).padStart(2, '0'),
-    ].join('-')
+    await setClock(page, '2026-10-05T09:00:00+02:00')
+    const startDate = '2026-10-03'
     await createTripViaWizard(page, { name: 'Unterwegs', startDate, travelers: ['Andy'] })
     const during = await openTasks(page, 'during')
 
@@ -1163,12 +1158,8 @@ test.describe('M25 — a trip’s tasks in two phases (FR-7.7) @local @m25', () 
   test('E2E-M25-19: a trip started ahead of its date offers no Vor der Reise on either list @shopping', async ({
     page,
   }) => {
-    const ahead = new Date(Date.now() + 30 * 86_400_000)
-    const startDate = [
-      ahead.getFullYear(),
-      String(ahead.getMonth() + 1).padStart(2, '0'),
-      String(ahead.getDate()).padStart(2, '0'),
-    ].join('-')
+    await setClock(page, '2026-10-05T09:00:00+02:00')
+    const startDate = '2026-11-04'
     await createTripViaWizard(page, { name: 'Früh los', startDate, travelers: ['Andy'] })
     await addOwnTask(page, 'Pass holen')
     await startTrip(page)
