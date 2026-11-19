@@ -18,8 +18,8 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-2.1 / 2.1a | E2E | M3-01, M2-01/03 (all four parts, the traveller faces included) |
 | FR-2.1c | E2E+UNIT | M3-16 (the dates open, series and attributes folded, the fold stating what is set), M3-25 (a trip dated from step 1 without the fold); `TripWizardPage.spec.ts` (the folded row names only what it holds) |
 | FR-2.1d | E2E+UNIT | M3-20; `lib/__tests__/dateRange.spec.ts` (`tapDay`), `DateRangeField.spec.ts`, `TripEditPage.spec.ts`, `ClonePage.spec.ts`, `TripWizardPage.spec.ts` |
-| FR-2.2 | E2E+UNIT | M3-06 *(specified, no running case yet)*, M18-02 + M18-09 (an imported trip carries the status its file names, ADR-024 — the preview branch and the restore branch), FLOW-04 (a group edited between two runs generates differently); instantiate.ts |
-| FR-2.3 / 2.3a | E2E+UNIT | M3-06 *(specified, no running case yet)*, M8-03; instantiate.ts |
+| FR-2.2 | E2E+UNIT | M3-06, M18-02 + M18-09 (an imported trip carries the status its file names, ADR-024 — the preview branch and the restore branch), FLOW-04 (a group edited between two runs generates differently); instantiate.ts |
+| FR-2.3 / 2.3a | E2E+UNIT | M3-06, M8-03; instantiate.ts |
 | FR-2.4 | E2E | M3-10, M8-05 (the note's wording, in the FR-27.4 model); the M10 usage count is asserted in M10-14/15 (M10-02 retired — its „delete blocked" half is reversed by FR-24.3) |
 | FR-2.5 | E2E | M3-03 |
 | FR-2.5b | E2E+UNIT | M3-21 (the preview names what an empty roster cannot place, and one traveller takes the block away); `domain/__tests__/instantiate.spec.ts` (the report, its falsifier and the two filters), `domain/__tests__/groupAdd.spec.ts` + `lib/__tests__/groupAdditionMessage.spec.ts` (FR-27.10's sixth outcome) |
@@ -27,13 +27,13 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-3.1 | E2E | M5-02 (the control), shopping/shopping.spec.ts (the write, `addBuyRowOnM4`) |
 | FR-3.2 | E2E | M6-01/04, M4-11 |
 | FR-3.3 | E2E | M6-02, M6-17, M6-22, FLOW-03 (M5-09 retired — the buy lives on M6) |
-| FR-4.1 | UNIT | `TripWizardPage.spec.ts` (a share made in the wizard reaches the created trip); M3-04 (share on create) *(specified, no running case yet)* |
+| FR-4.1 | E2E+UNIT | `TripWizardPage.spec.ts` (a share made in the wizard reaches the created trip); M3-04 (share on create) |
 | FR-4.2 | E2E | M4-24, M4-30 (the record), M5-18, M5-19 (for whom) — M5-01 retired |
 | FR-4.3 | E2E | FLOW-02, M4-30, M4-31 (M4-06 and the shadowed M5-07 are both retired) |
 | FR-4.4 | E2E | M4-10, FLOW-01, **M1-03** (the delegation reaches the dashboard live, no reload) |
-| FR-4.5 | E2E | M2-05, M3-04 *(specified, no running case yet)*, TripMembers |
+| FR-4.5 | E2E | M2-05, M3-04, TripMembers |
 | FR-4.6 | E2E | G10-01, G10-02 (FR-4.6 is the presence indicator; `members.ts`'s role model is FR-4.5/4.7's) |
-| FR-4.7 | E2E+UNIT | M3-04 (role select) *(specified, no running case yet)*; `TripWizardPage.spec.ts` (a share's role reaches the created trip; a share taken back is offered again) |
+| FR-4.7 | E2E+UNIT | M3-04 (role select); `TripWizardPage.spec.ts` (a share's role reaches the created trip; a share taken back is offered again) |
 | FR-4.9 | E2E | G10-03 (the sheet behind the cloud names who else is packing), G10-04 (a tap on that row lands on the trip's packing list) |
 | FR-5.1 | E2E | M1-06 (the departure-day section), M1-06b (and no other day); `domain/__tests__/dashboardSections.spec.ts` (the rule, with the date as a parameter) |
 | FR-5.2 | E2E | M4-05 |
@@ -90,7 +90,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-14.2 | E2E+UNIT | M3-08, FLOW-05; suggestions.ts, TripWizardPage.spec.ts |
 | FR-14.3 | E2E+UNIT | M12-03 (absence half; positive half blocked on an archive path, see M12-03); analytics.ts |
 | FR-15.1 | E2E | M3-01, M16-01 (the defaults are stored), M16-04 (they reach M3 — the prefill chain) |
-| FR-15.2 | E2E+UNIT | M3-06 *(specified, no running case yet)*, M8-03 (chips set **and** clear, one value per axis); instantiate.ts |
+| FR-15.2 | E2E+UNIT | M3-06, M8-03 (chips set **and** clear, one value per axis); instantiate.ts |
 | FR-15.3 | DOC/N-A | void — retired with FR-1.3/1.5 |
 | FR-16.1 | E2E | M15-05, M15-06, M15-07, M15-08, M15-11 (the category-*row* layout), M15-12 (the mapping gate and the include toggle). **M15-01 is retired** — six promises in one sentence, distributed over those cases; its *grid preview* clause is unbuilt and an open decision. |
 | FR-16.2 | E2E | M2-08 (the *„Importiert"* chip, `trips.imported`'s reader), M15-05, M15-11 (archived trips with their original quantities, landed and read back in Local Mode); `domain/trips.ts` (`calendarDate` — the header date is a day that exists, shared with FR-18.4). **M15-04's *target series* half is unbuilt** — the picker is on step 2 and the commit writes `series_id`, but the confirm never names it; open decision. |
