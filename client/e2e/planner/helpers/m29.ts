@@ -2,7 +2,7 @@ import type { Locator, Page } from '@playwright/test'
 import { expect } from '@playwright/test'
 
 import { fillIonic } from '../../helpers/ionic'
-import { visiblePage } from '../../helpers/page'
+import { setClock, visiblePage } from '../../helpers/page'
 import { openTripView } from '../../helpers/trips'
 
 /**
@@ -40,13 +40,19 @@ export function timelineLines(page: Page): Locator {
   return timeline(page).locator('[data-testid^="m29-line-"]')
 }
 
-/** A calendar day `n` days from today, `YYYY-MM-DD` in local time. */
-export function dayFromToday(n: number): string {
-  const d = new Date()
-  d.setDate(d.getDate() + n)
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
-  return `${d.getFullYear()}-${mm}-${dd}`
+/** The day the planner's cases pin the page clock to; their trips lie after it. */
+export const PLANNER_TODAY = '2026-10-05'
+
+/** Pin the page clock to `PLANNER_TODAY`, so a trip `dayFromToday` dates stays ahead. Before `page.goto`. */
+export async function pinPlannerClock(page: Page): Promise<void> {
+  await setClock(page, `${PLANNER_TODAY}T09:00:00+02:00`)
+}
+
+/** A calendar day `n` days after `today` (`YYYY-MM-DD`), as `YYYY-MM-DD`. */
+export function dayFromToday(n: number, today: string = PLANNER_TODAY): string {
+  const d = new Date(`${today}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
 }
 
 /** Write an entry of the plan's own on the chosen day; ends with its line. */

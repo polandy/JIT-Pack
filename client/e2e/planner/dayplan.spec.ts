@@ -18,6 +18,7 @@ import {
   addDayEntry,
   chooseDay,
   dayFromToday,
+  pinPlannerClock,
   dayPlan,
   openDayPlan,
   timeline,
@@ -45,8 +46,9 @@ const TODAY = '2026-07-14'
 const TOMORROW = '2026-07-15'
 
 test.describe('M29 day plan @local @planner @meals', () => {
-  test.beforeEach(async ({ seedMode }) => {
+  test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
+    await pinPlannerClock(page)
   })
 
   /**
@@ -363,8 +365,9 @@ test.describe('M29 day plan @local @planner @meals', () => {
 })
 
 test.describe('M29 day plan — the ＋ opens the day’s sheet (FR-21.24) @local @planner @meals', () => {
-  test.beforeEach(async ({ seedMode }) => {
+  test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
+    await pinPlannerClock(page)
   })
 
   /**

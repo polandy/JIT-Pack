@@ -8,6 +8,7 @@ import {
   chooseDay,
   connectionTaken,
   dayFromToday,
+  pinPlannerClock,
   openDayPlan,
   timelineLines,
   typeStop,
@@ -67,6 +68,7 @@ function slot(page: Page, role: 'out' | 'back'): Locator {
 test.describe('M27 — an excursion’s way there and back (FR-29.18) @local @m27 @planner', () => {
   test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
+    await pinPlannerClock(page)
     await stubTiles(page)
     await createTripViaWizard(page, {
       name: 'Berner Oberland',
