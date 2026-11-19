@@ -1,6 +1,6 @@
 /**
  * Relative-day timestamps for the "who did this, and how long ago" stamps
- * (FR-25.17 on M4's revealed rows, FR-25.12 on the shopping list) — pure,
+ * (FR-25.17 on M4's revealed rows, FR-30.4 on the shopping list) — pure,
  * with `now` passed in so the result is a function of its arguments alone.
  *
  * The shape is deliberate: a finished row raises the question *how long

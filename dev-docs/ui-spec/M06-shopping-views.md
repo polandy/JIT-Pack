@@ -7,9 +7,8 @@
   fold per list — **no tabs, no filter bar, no search field, no row sheet for a packing line, and no FR-25.13
   composer**. The screen lives in `client/src/shopping/` and renders lines without knowing whose they are
   (`kernel/shoppingSources.ts`); the packing side supplies its rows as lines with their FR-3.3 writes bound in. Not
-  built: FR-25.11g/k, FR-25.13a's two fields and FR-25.6's per-item note; owed: FR-25.12's row sheet (*Zugewiesen an*
-  and
-  *Beschreibung*), which would apply to both kinds of line.
+  built: FR-25.11g/k, FR-25.13a's two fields, FR-25.6's per-item note and FR-25.12's row sheet (*Zugewiesen an* and
+  *Beschreibung*, retired by decision); an own entry's buyer is its seat (FR-30.12).
 * **M25's look and feel.** One look and feel across the two lists, M25's: **no tabs**, because a tab hides one list
   behind the other and a thing due tomorrow on the tab not open is a thing nobody sees; **M25's composer** (a card, with
   list chips and day chips); **two-line rows with no ✕** (an entry is removed from its sheet); **one *gekauft* fold per
@@ -170,8 +169,8 @@
   summed quantity, recipients' names and avatars, one check-off settling every instance. The row is keyed exactly like
   M4's cluster — the shared `perPersonKey` in `domain/packingView.ts` — the bought fold aggregates by the same rule, and
   each list's count counts *rows to buy* rather than `trip_items` rows. A line is not assigned to a traveler from here
-  and carries no per-item note: free-form *Used by* is removed (FR-25.10), and assigning a line belongs to FR-25.12's
-  owed row sheet.
+  and carries no per-item note: free-form *Used by* is removed (FR-25.10), and FR-25.12's row sheet that would
+  have assigned one is retired; only an own entry carries a seat (FR-30.12).
 * **What was bought (FR-25.11j, *built*):** checking a row off takes it off its list — a BUY_BEFORE row by changing its
   mode, a BUY_LOCAL row by being packed — and the row records **which list it left**. A BUY_LOCAL row checked off on the
   **packing list** rather than here records nothing of the kind, and is listed by its packed state instead. The bought

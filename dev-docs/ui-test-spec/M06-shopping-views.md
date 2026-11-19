@@ -208,10 +208,9 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   **and adopts that item's category**, including a category this trip has not used yet. Without a pick the category
   defaults to *Sonstiges*. Regression guard: choosing a suggestion must not clear an already-typed description, and
   the suggestion strip must redraw **without** re-rendering the form.
-* **E2E-M6-20** `all` (FR-25.12) — **not implemented; owed by decision**, in its own PR with UI-Spec, e2e and an
-  eyeball pass. It is the one of M6's unbuilt promises with a use nothing else covers: *„Andy kauft das"* is the
-  multi-user case M6 cannot express, and the description is where *„die grüne Dose, nicht die
-  rote"* goes. *The promise as written:* a row with no assignee shows an **edit glyph**, not a plus.
+* ~~**E2E-M6-20** `all` (FR-25.12)~~ — **REMOVED by decision** (issue #908): not built; M6 stays the focused procurement
+  checklist it is, and *„Andy kauft das"* is an own entry's seat (FR-30.12, E2E-M6-37). The id stays so an old reference
+  finds what became of it. *The promise as written:* a row with no assignee shows an **edit glyph**, not a plus.
 * ~~**E2E-M6-21** `all` (FR-25.13c/25.13d): what the trip already carries is offered on no shopping
   tab either — not in the composer's autocomplete, and in the browse-sheet only as the *„schon drin"* state.~~ —
   **retired (FR-30.2): M6 carries no inventory composer**, so there is nothing on M6 that offers an inventory item at
@@ -239,19 +238,17 @@ added on M4, its mode chosen in M5 (`addBuyRowOnM4`) — because M6 writes no pa
   so. The one own entry already carries *Apotheke*; tagging it with *Apotheke* again raises *„Nothing to change — the
   selection already carries that tag."* and no *Undo* — there is no act to take back. The toast's buttons are read
   while it stands, so the case needs the toast to exist.
-* **E2E-M6-09** `all` (FR-25.12) — **not implemented; owed by decision**, in its own PR with UI-Spec, e2e and an
-  eyeball pass. It is the one of M6's unbuilt promises with a use nothing else covers: *„Andy kauft das"* is the
-  multi-user case M6 cannot express, and the description is where *„die grüne Dose, nicht die
-  rote"* goes. *The promise as written:* tapping a shopping row opens its sheet with *Zugewiesen an* and *Beschreibung*.
-  Assigning a buyer shows that person on the **right** of the row with the 🛒 badge, while derived recipients stay on the
-  **left** — asserts the two are visually distinct even when the buyer is also a recipient. "niemand" clears the
-  assignment.
-* **E2E-M6-10** `all` (FR-25.12) — **not implemented; owed by decision**, in its own PR with UI-Spec, e2e and an
-  eyeball pass. It is the one of M6's unbuilt promises with a use nothing else covers: *„Andy kauft das"* is the
-  multi-user case M6 cannot express, and the description is where *„die grüne Dose, nicht die
-  rote"* goes. *The promise as written:* a description entered in the sheet renders inline on the row, survives closing
-  and reopening, and can be cleared. Both buyer and description are optional — a row with neither renders without either
-  mark.
+* ~~**E2E-M6-09** `all` (FR-25.12)~~ — **REMOVED by decision** (issue #908): not built; M6 stays the focused procurement
+  checklist it is, and *„Andy kauft das"* is an own entry's seat (FR-30.12, E2E-M6-37). The id stays so an old reference
+  finds what became of it. *The promise as written:* tapping a shopping row opens its sheet with *Zugewiesen an* and
+  *Beschreibung*. Assigning a buyer shows that person on the **right** of the row with the 🛒 badge, while derived
+  recipients stay on the **left** — asserts the two are visually distinct even when the buyer is also a recipient.
+  "niemand" clears the assignment.
+* ~~**E2E-M6-10** `all` (FR-25.12)~~ — **REMOVED by decision** (issue #908): not built; M6 stays the focused procurement
+  checklist it is, and *„Andy kauft das"* is an own entry's seat (FR-30.12, E2E-M6-37). The id stays so an old reference
+  finds what became of it. *The promise as written:* a description entered in the sheet renders inline on the row,
+  survives closing and reopening, and can be cleared. Both buyer and description are optional — a row with neither
+  renders without either mark.
 * **E2E-M6-11** `all` (FR-25.13, FR-30.2): M6 has **no permanent "add" row** and no native `prompt()`. It carries no
   shared composer; it has one text field of its own, behind the ＋ (FR-21.24, E2E-M6-43), which adds to the list its
   chip chooses (E2E-M6-26/27); the ＋ FAB is FR-30.6's (E2E-M6-15).
