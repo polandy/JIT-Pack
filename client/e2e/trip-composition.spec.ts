@@ -7,11 +7,12 @@ import {
   visiblePage as visible,
 } from './fixtures'
 import type { Page } from '@playwright/test'
-import { fillIonic } from './helpers/ionic'
+import { chooseInSelect, fillIonic, setDateRange } from './helpers/ionic'
+import { writesLanded } from './helpers/page'
 import { openTasks, openTripTasks } from './helpers/m4'
 import { addSeriesTask, openSeries } from './helpers/m16'
 import { PATH } from './routes'
-import { openGroupFromList } from './helpers/templates'
+import { createMasterItem, openGroupFromList } from './helpers/templates'
 
 /**
  * M3 step 3 — generating a trip from a *composed* template (§3.27).
@@ -27,6 +28,22 @@ import { openGroupFromList } from './helpers/templates'
  * a server is the one where a missing client rule shows up. It is also the
  * strictest check that nothing here quietly needs a round trip.
  */
+
+/** Set a position's dedup strategy or season condition through its Details block. */
+async function setPositionDetails(
+  page: Page,
+  name: string,
+  set: { dedup?: 'max' | 'sum'; condition?: string },
+) {
+  await visible(page).locator('ion-item h2').filter({ hasText: name }).first().click()
+  await expect(page.getByTestId('m8-position-sheet')).toBeVisible()
+  await page.getByTestId('m8-details').click()
+  if (set.dedup) await page.getByTestId(`m8-dedup-${set.dedup}`).click()
+  if (set.condition) await page.getByTestId(`m8-cond-${set.condition}`).click()
+  await page.getByTestId('m8-position-close').click()
+  await expect(page.getByTestId('m8-position-sheet')).toHaveCount(0)
+  await writesLanded(page)
+}
 
 /** One group under one Vorlage — the least composition a case can need. */
 async function seedOneGroup(page: Page) {
@@ -274,6 +291,262 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     // fails as a strict-mode violation depending on which frame it lands in.
     // The row id is unique, and it is also the stronger claim.
     await expect(visible(page).getByTestId('m4-row-Drohne')).toBeVisible()
+  })
+
+  /**
+   * E2E-M3-07 (FR-20.3/20.4): the preview reports the companions a ticked
+   * template pulls in; step 4 names each with its main item, says which one
+   * was already on the list, and offers the suggested one as an opt-in.
+   *
+   * The suggestion is the positive signal for its own absence: it is off until
+   * ticked, and only the tick takes it (and the count) into the trip.
+   */
+  test('E2E-M3-07: companions are pulled in, deduplicated and offered as opt-in suggestions', async ({
+    page,
+  }) => {
+    // Each companion is declared from its own editor, on the main item.
+    await createMasterItem(page, 'Kamera')
+    for (const name of ['Akku', 'Stativplatte', 'Ladegerät']) {
+      await createMasterItem(page, name)
+      await visible(page).getByTestId('m10-add-dependency').click()
+      await visible(page).getByTestId('m10-dependency-main-Kamera').click()
+      await expect(visible(page).getByTestId('m10-dependency-mode-Kamera')).toBeVisible()
+      await writesLanded(page)
+    }
+    // Stativplatte is the one that needs its mode set.
+    await page.goto(PATH.items)
+    await visible(page).getByTestId('m9-row').filter({ hasText: 'Stativplatte' }).click()
+    await visible(page).getByTestId('m10-dependency-mode-Kamera').click()
+    await page.locator('ion-popover ion-select-popover ion-item', { hasText: 'Suggested' }).click()
+    await expect(page.locator('ion-popover ion-select-popover')).toHaveCount(0)
+    await writesLanded(page)
+
+    await page.goto(PATH.templates)
+    await createTemplate(page, 'template', 'Fototag')
+    await addPosition(page, 'Kamera')
+    await addPosition(page, 'Ladegerät')
+    await backToList(page)
+
+    await wizardToStepThree(page, 'Fototour 2026')
+    await visible(page)
+      .getByTestId('wizard-section-templates')
+      .locator('ion-checkbox')
+      .first()
+      .click()
+    // The template's own two positions; Ladegerät is a companion too, but already one of them.
+    await expect(visible(page).getByTestId('wizard-item-count')).toContainText('2 items')
+    await expect(visible(page).getByTestId('wizard-step-3')).toContainText(
+      '+ 1 companion item (Akku)',
+    )
+
+    await page.getByTestId('wizard-next').click()
+    const review = visible(page).getByTestId('wizard-step-4')
+    await expect(review).toBeVisible()
+    await expect(review).toContainText('Akku')
+    await expect(review).toContainText('with Kamera')
+    await expect(review).toContainText('Ladegerät: already on the list, not duplicated')
+    const suggestion = review.locator('[data-testid^="wizard-companion-suggestion-"]')
+    await expect(suggestion).toHaveCount(1)
+    await expect(suggestion).toContainText('Stativplatte')
+    await expect(suggestion).toContainText('suggested with Kamera')
+
+    await suggestion.locator('ion-checkbox').click()
+    await page.getByTestId('wizard-create').click()
+    await expectTripOpen(page, 'Fototour 2026')
+    // The row ids, for the same reason as in E2E-M3-12: the wizard is still fading.
+    for (const name of ['Kamera', 'Akku', 'Stativplatte', 'Ladegerät']) {
+      await expect(visible(page).getByTestId(`m4-row-${name}`)).toHaveCount(1)
+    }
+  })
+
+  /**
+   * E2E-M3-06 (FR-2.2/2.3/15.2): two groups ticked on step 3 — the footer
+   * counts the deduplicated set, names the overlap with its strategy, and
+   * lists what the trip's season excluded, with the reason.
+   *
+   * The two chips are the positive signals: each moves the count, so a footer
+   * that ignored the dedup or the condition would read differently.
+   */
+  test('E2E-M3-06: the footer counts the deduped set, names the overlap and the excluded item', async ({
+    page,
+  }) => {
+    await page.goto(PATH.templates)
+    await createTemplate(page, 'group', 'Sommer')
+    await addPosition(page, 'Kamera')
+    await setPositionDetails(page, 'Kamera', { dedup: 'sum' })
+    await addPosition(page, 'Sonnencreme')
+    await backToList(page)
+
+    await createTemplate(page, 'group', 'Winter')
+    await addPosition(page, 'Kamera')
+    await setPositionDetails(page, 'Kamera', { dedup: 'sum' })
+    await addPosition(page, 'Handschuhe')
+    await setPositionDetails(page, 'Handschuhe', { condition: 'winter' })
+    await backToList(page)
+
+    await page.goto(PATH.newTrip)
+    await page.getByTestId('wizard-name').locator('input').fill('Alpentour 2026')
+    await page.getByTestId('wizard-more').click()
+    await chooseInSelect(page, 'wizard-season', 'Summer')
+    await page.getByTestId('wizard-next').click()
+    await expect(page.getByTestId('wizard-step-2')).toBeVisible()
+    await page.getByTestId('wizard-next').click()
+    await expect(page.getByTestId('wizard-step-3')).toBeVisible()
+
+    const groups = visible(page).getByTestId('wizard-section-groups')
+    await groups.locator('ion-item').filter({ hasText: 'Sommer' }).locator('ion-checkbox').click()
+    await expect(visible(page).getByTestId('wizard-item-count')).toContainText('2 items')
+    await expect(visible(page).getByTestId('wizard-merges')).toHaveCount(0)
+
+    await groups.locator('ion-item').filter({ hasText: 'Winter' }).locator('ion-checkbox').click()
+    // Kamera once (sum), Sonnencreme; Handschuhe is skipped for a summer trip.
+    await expect(visible(page).getByTestId('wizard-item-count')).toContainText('2 items')
+    await expect(visible(page).getByTestId('wizard-merges')).toContainText(
+      'Kamera 2× — sum from Sommer & Winter',
+    )
+    const excluded = visible(page).getByTestId('wizard-step-3').locator('details')
+    await expect(excluded).toContainText('1 excluded by conditions')
+    await expect(excluded).toContainText('Handschuhe — skipped: season ≠ winter')
+  })
+
+  /**
+   * E2E-M3-02 (FR-13.1/13.2): the series picker offers a series made inline
+   * and prefills the *empty* attribute chips from its defaults — a chip the
+   * user already set keeps its value.
+   */
+  test('E2E-M3-02: picking a series prefills empty attribute chips, and never overwrites a set one', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, { name: 'Elba 2025', series: 'Elba' })
+    await openSeries(page, 'Elba')
+    await chooseInSelect(page, 'm16-season', 'Winter')
+
+    await page.goto(PATH.newTrip)
+    await page.getByTestId('wizard-more').click()
+    const summary = visible(page).getByTestId('wizard-more-summary')
+    await chooseInSelect(page, 'wizard-series', 'Elba')
+    await expect(summary).toHaveText('Elba · Winter')
+    await expect(visible(page).getByTestId('wizard-season')).toContainText('Winter')
+
+    // Inline "New series…": the typed name is what the fold states.
+    await chooseInSelect(page, 'wizard-series', 'New series')
+    await visible(page).getByTestId('wizard-series-name').locator('input').fill('Korsika')
+    await expect(summary).toHaveText('Korsika · Winter')
+
+    // A chip set by hand before the pick survives it.
+    await page.goto(PATH.newTrip)
+    await page.getByTestId('wizard-more').click()
+    await chooseInSelect(page, 'wizard-season', 'Summer')
+    await chooseInSelect(page, 'wizard-series', 'Elba')
+    await expect(visible(page).getByTestId('wizard-more-summary')).toHaveText('Elba · Summer')
+  })
+
+  /**
+   * E2E-M3-08 (FR-14.1/14.2): step 4 shows the template's quantity and, on a
+   * trip of a series that has packed the item before, a one-tap history
+   * suggestion that takes the quantity over.
+   *
+   * The first trip is made with a hand-set 5; the second reads "<year>: 5 → use
+   * 5" against the template's 1, and the hint is gone once taken — the
+   * absence is what proves the tap changed the row.
+   */
+  test('E2E-M3-08: step 4 shows the template quantity and a one-tap history suggestion', async ({
+    page,
+  }) => {
+    await setClock(page, '2026-11-19T09:00:00+01:00')
+    await page.goto(PATH.templates)
+    await createTemplate(page, 'group', 'Basis')
+    await addPosition(page, 'Socken')
+    await backToList(page)
+
+    /** Walk M3 for a trip of the Elba series, up to step 4. */
+    async function toReview(name: string, start: string, end: string) {
+      await page.goto(PATH.newTrip)
+      await page.getByTestId('wizard-name').locator('input').fill(name)
+      await setDateRange(page, 'wizard-dates', { start, end })
+      await page.getByTestId('wizard-more').click()
+      await chooseInSelect(page, 'wizard-series', 'Elba')
+      await page.getByTestId('wizard-next').click()
+      await expect(page.getByTestId('wizard-step-2')).toBeVisible()
+      await page.getByTestId('wizard-next').click()
+      await expect(page.getByTestId('wizard-step-3')).toBeVisible()
+      await visible(page)
+        .getByTestId('wizard-section-groups')
+        .locator('ion-checkbox')
+        .first()
+        .click()
+      await page.getByTestId('wizard-next').click()
+      await expect(page.getByTestId('wizard-step-4')).toBeVisible()
+    }
+
+    // The series has to exist before the picker can offer it.
+    await createTripViaWizard(page, { name: 'Elba 2026', series: 'Elba' })
+    await toReview('Elba 2027', '2027-08-01', '2027-08-08')
+    const row = visible(page).getByTestId('wizard-review-row')
+    await expect(visible(page).getByTestId('wizard-review-qty')).toHaveText('1')
+    await expect(visible(page).getByTestId('wizard-history-hint')).toHaveCount(0)
+    await row.locator('ion-input input').fill('5')
+    await expect(visible(page).getByTestId('wizard-review-qty')).toHaveText('5')
+    await page.getByTestId('wizard-create').click()
+    await expectTripOpen(page, 'Elba 2027')
+    await writesLanded(page)
+
+    await toReview('Elba 2028', '2028-08-01', '2028-08-08')
+    await expect(visible(page).getByTestId('wizard-review-qty')).toHaveText('1')
+    await expect(visible(page).getByTestId('wizard-history-hint')).toContainText(': 5 → use 5')
+    await visible(page).getByTestId('wizard-history-hint').click()
+    await expect(visible(page).getByTestId('wizard-review-qty')).toHaveText('5')
+    await expect(visible(page).getByTestId('wizard-history-hint')).toHaveCount(0)
+    await page.getByTestId('wizard-create').click()
+    await expectTripOpen(page, 'Elba 2028')
+    await expect(visible(page).getByTestId('m4-row-Socken')).toContainText('5')
+  })
+
+  /**
+   * E2E-M3-09 (FR-13.3): step 4 offers the series' destination checklist as an
+   * opt-out extra; ticked it lands on the trip, unticked it stays behind.
+   */
+  test('E2E-M3-09: step 4 offers the series checklist, and an unticked offer stays behind', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, { name: 'Elba 2026', series: 'Elba' })
+    await openSeries(page, 'Elba')
+    await visible(page).getByTestId('m16-checklist-input').locator('input').fill('Sonnencreme')
+    await visible(page).getByTestId('m16-checklist-add').click()
+    await expect(visible(page).getByTestId('m16-checklist-row')).toHaveCount(1)
+
+    /** Walk M3 for a trip of the Elba series, up to step 4. */
+    async function toReview(name: string) {
+      await page.goto(PATH.newTrip)
+      await page.getByTestId('wizard-name').locator('input').fill(name)
+      await page.getByTestId('wizard-more').click()
+      await chooseInSelect(page, 'wizard-series', 'Elba')
+      await page.getByTestId('wizard-next').click()
+      await expect(page.getByTestId('wizard-step-2')).toBeVisible()
+      await page.getByTestId('wizard-next').click()
+      await expect(page.getByTestId('wizard-step-3')).toBeVisible()
+      await page.getByTestId('wizard-next').click()
+      await expect(page.getByTestId('wizard-step-4')).toBeVisible()
+    }
+
+    await toReview('Elba 2027')
+    const offer = visible(page).getByTestId('wizard-checklist-offer')
+    await expect(offer).toContainText('Add 1 item from the destination checklist')
+    await expect(visible(page).getByTestId('wizard-checklist-labels')).toHaveText('Sonnencreme')
+    await expect(offer.locator('ion-checkbox')).toHaveJSProperty('checked', true)
+    await page.getByTestId('wizard-create').click()
+    await expectTripOpen(page, 'Elba 2027')
+    await expect(visible(page).getByTestId('m4-row-Sonnencreme')).toBeVisible()
+    await writesLanded(page)
+
+    await toReview('Elba 2028')
+    await visible(page).getByTestId('wizard-checklist-offer').locator('ion-checkbox').click()
+    await expect(
+      visible(page).getByTestId('wizard-checklist-offer').locator('ion-checkbox'),
+    ).toHaveJSProperty('checked', false)
+    await page.getByTestId('wizard-create').click()
+    await expectTripOpen(page, 'Elba 2028')
+    await expect(visible(page).getByTestId('m4-row-Sonnencreme')).toHaveCount(0)
   })
 
   // E2E-M3-21 (FR-1.4/FR-2.5): a per-person position on a trip with nobody on

@@ -12,7 +12,7 @@ import {
   planIdea,
   showSegment,
 } from './helpers/m28'
-import { dayFromToday } from './helpers/m29'
+import { dayFromToday, pinPlannerClock } from './helpers/m29'
 import type { Locator, Page } from '@playwright/test'
 
 /**
@@ -60,8 +60,9 @@ async function addStep(page: Page, detail: Locator, title: string, lead: number)
 }
 
 test.describe('M28 an idea’s preparation @local @planner', () => {
-  test.beforeEach(async ({ seedMode }) => {
+  test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
+    await pinPlannerClock(page)
   })
 
   /**

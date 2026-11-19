@@ -13,6 +13,7 @@ import {
   tripAction,
   expectTripActionOffered,
   visiblePage,
+  setClock,
 } from './fixtures'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
@@ -396,6 +397,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   // and the trip then reads by its year where a date would have stood.
   test('E2E-M3-15: a trip can be created with no dates at all', async ({ page }) => {
     await page.setViewportSize(DESKTOP)
+    await setClock(page, '2026-10-05T09:00:00+02:00')
     await page.goto(PATH.newTrip)
 
     await page.getByTestId('wizard-name').locator('input').fill('Samedan irgendwann')
@@ -417,7 +419,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await page.getByTestId('trips-filter-planned').click()
     const row = page.getByTestId('trip-row-Samedan irgendwann')
     await expect(row).toBeVisible()
-    await expect(row.getByTestId('trip-when')).toHaveText(String(new Date().getFullYear()))
+    await expect(row.getByTestId('trip-when')).toHaveText('2026')
   })
 
   // E2E-M3-16 (FR-2.1c): step 1 shows what it requires and the dates, folds

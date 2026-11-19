@@ -115,6 +115,7 @@ const {
           <IonSelect
             :label="t('wizard.season')"
             interface="popover"
+            data-testid="wizard-season"
             :value="season"
             @ionChange="(e: CustomEvent) => (season = e.detail.value)"
           >

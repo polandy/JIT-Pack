@@ -83,11 +83,11 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-12.1 | E2E | M2-04 |
 | FR-12.2 | E2E+UNIT | ClonePage toggles; clone.ts |
 | FR-13.1 | E2E+UNIT | M2-02 (the grouping it describes is what the screen does, by decision; see E2E-M2-15), M16-01 (name, defaults, **and the rename refusal**), M16-03 (history, detach/attach); `composables/__tests__/nameCollision.spec.ts` (the rule: a taken series name is refused before the mutation — M3's wizard note still has no e2e case, named in `e2e-ledger/`); `TripWizardPage.spec.ts` (the wizard's note names the taken series and holds *Next*) |
-| FR-13.2 | E2E | M16-03 (history + attach/detach) and M16-04 (both shortcuts); M3-02 *(specified, no running case yet)* |
-| FR-13.3 | E2E+UNIT | M16-02 (**the only test of the checklist editor**, which also guards the field it types into rendering with a width), M3-09 (the wizard's offer — specified, no running case yet), M6-01; `TripWizardPage.spec.ts` (the offer reaches the created trip, and stays behind once unticked) |
+| FR-13.2 | E2E | M16-03 (history + attach/detach) and M16-04 (both shortcuts); M3-02 |
+| FR-13.3 | E2E+UNIT | M16-02 (**the only test of the checklist editor**, which also guards the field it types into rendering with a width), M3-09 (the wizard's offer, ticked and unticked), M6-01; `TripWizardPage.spec.ts` (the offer reaches the created trip, and stays behind once unticked) |
 | FR-13.4 | E2E | M3-26, M16-05, M16-06, M22-16, M25-23 (a series carries tasks for every trip in it) |
-| FR-14.1 | UNIT | `suggestions.ts`, `TripWizardPage.spec.ts`; M3-08 *(specified, no running case yet)* (M5-04 retired — no history on M5, and none owed) |
-| FR-14.2 | E2E+UNIT | M3-08 *(specified, no running case yet)*, FLOW-05; suggestions.ts, TripWizardPage.spec.ts |
+| FR-14.1 | E2E | M3-08 (M5-04 retired — no history on M5, and none owed) |
+| FR-14.2 | E2E+UNIT | M3-08, FLOW-05; suggestions.ts, TripWizardPage.spec.ts |
 | FR-14.3 | E2E+UNIT | M12-03 (absence half; positive half blocked on an archive path, see M12-03); analytics.ts |
 | FR-15.1 | E2E | M3-01, M16-01 (the defaults are stored), M16-04 (they reach M3 — the prefill chain) |
 | FR-15.2 | E2E+UNIT | M3-06 *(specified, no running case yet)*, M8-03 (chips set **and** clear, one value per axis); instantiate.ts |
@@ -124,8 +124,8 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-19.9 | E2E | M17-15, M17-16 (logging out and resetting the connection) |
 | FR-20.1 | E2E+UNIT | M10-03 (the default mode, the read-only reverse list, and the cycle refused in words), M5-23; dependencies.ts; M10-31 (a name in either list leads to that item) |
 | FR-20.2 | E2E+UNIT | M4-07; dependencies.ts (incl. the anchor rule: a per-person twin or a second main item keeps a companion) |
-| FR-20.3 | UNIT | `dependencies.ts`; M3-07 *(specified, no running case yet)* |
-| FR-20.4 | E2E+UNIT | M3-07 *(specified, no running case yet)*, M4-40 (required), M5-23 (suggested); dependencies.ts (a suggestion carries the item's own fields, so accepting one writes the category and the quantity it names — `ItemDetailSheet.spec.ts` asserts the chip passes both) |
+| FR-20.3 | E2E+UNIT | M3-07 (`trip-composition.spec.ts`); dependencies.ts |
+| FR-20.4 | E2E+UNIT | M3-07, M4-40 (required), M5-23 (suggested); dependencies.ts (a suggestion carries the item's own fields, so accepting one writes the category and the quantity it names — `ItemDetailSheet.spec.ts` asserts the chip passes both) |
 | FR-21.1/21.2 | E2E+UNIT | G11-01 (Nacht default); palette.css (every rgb twin agrees with its hex, in both flavours) |
 | FR-21.3 | E2E | M17-06 |
 | FR-21.4 | E2E | G11-01 (no flash before paint) |
@@ -190,7 +190,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-25.21 | E2E | M5-18, M5-19, M5-20, M5-21 (the state follows the numbers), G3-04 (M6-05/06 carry the FR-25.6 half) |
 | FR-25.30 | E2E+UNIT | M4-113 (filtered to one traveler, the instance is a plain row ticked without opening; the cluster returns with the filter); packingView.ts (only the person facet shapes, the label drops the one filtered name) |
 | FR-25.28 | E2E | M4-100 (the seat, and a strip that follows its item from row to cluster), M4-101 (the last traveler leaves silently), M4-102 (a browse-sheet add is deaf to the strip), M4-153 (UX-03: the seat is the lead slot, one x for every name, measured at 412 px), M4-154 (UX-03: *For whom …* in the row's and the head's menu), M5-29 (the sheet closes with the row it stood on), M5-33 (UX-08: each toggle as wide as its word, *Gemeinsam* whole at 360/412 px, M5 and quick-add), M5-34 (five travelers scroll the line under G-13's fades); M5-18/-19/-20/-21/-26 and M4-12/-58/-64 run through the strip; G3-04 is its lock |
-| FR-25.12 | E2E | M6-09 (buyer, kept distinct from recipients), M6-10 (description) |
+| FR-25.12 | E2E | ~~M6-09, M6-10~~ retired with FR-25.12, not built |
 | FR-25.13 | E2E | M6-11; M4-04; M8-13 (same quick-add on all three screens, and the two-character autocomplete gate); M8-14 (same edit sheet) |
 | FR-25.13a | E2E | ~~M6-12, M6-13~~ retired, not built; M6-16/M4-21 (visible confirm, no keyboard) |
 | FR-25.13c | E2E | M8-21 (chip rows, recents across scopes); M4-46 (M4 wiring) |

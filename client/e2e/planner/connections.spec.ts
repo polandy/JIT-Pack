@@ -7,6 +7,7 @@ import {
   chooseDay,
   connectionTaken,
   dayFromToday,
+  pinPlannerClock,
   dayPlan,
   openConnectionStep,
   openLinkStep,
@@ -95,8 +96,9 @@ async function tripAhead(page: Page): Promise<Locator> {
 }
 
 test.describe('M29 connections @local @planner', () => {
-  test.beforeEach(async ({ seedMode }) => {
+  test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
+    await pinPlannerClock(page)
   })
 
   /**
