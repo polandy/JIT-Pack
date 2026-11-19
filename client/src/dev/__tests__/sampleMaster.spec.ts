@@ -16,6 +16,8 @@ import { DELETION_REMOVE } from '@/domain/masterDeletion'
 
 import { seedSampleData } from '../sampleData'
 import { seedSampleMaster } from '../sampleMaster'
+// seedSampleData loads this lazily; loading it at collection keeps that cost out of the test's own timeout
+import '../sampleTrip'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { fixedClock } from '@/__tests__/fixedClock'
 import { IndexedDBPersistence } from '@/local/persistence'
