@@ -8,8 +8,9 @@
   attribute chips from its defaults.
 * **E2E-M3-03** `all` (FR-2.5): step 2 adds travelers **by name**; asserts there is **no** Adult/Child control and no
   type on the created traveler records (FR-25.9).
-* **E2E-M3-04** `server` (FR-4.5/4.7): step 2 sharing — user picker (minus self), Editor/Admin role select; grants
-  applied on create.
+* **E2E-M3-04** `server` (FR-4.5/4.7) — **implemented** (`e2e/server/wizard-share.spec.ts`): step 2 sharing — user
+  picker (minus self), Editor/Admin role select; grants applied on create, and afterwards the Admin may manage members
+  where the Editor sees the roster read-only.
 * **E2E-M3-05** `single/local` (FR-17.3/G-8): step 2 sharing/role part hidden; only traveler add/edit remains.
 * **E2E-M3-06** `all` (FR-2.2/2.3/15.2): step 3 template checkboxes; live footer shows resulting count, deduped overlaps
   with strategy, and excluded items with reason ("skipped: season ≠ winter").
