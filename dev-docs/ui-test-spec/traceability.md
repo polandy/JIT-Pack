@@ -104,7 +104,7 @@ Vitest/domain tests; the E2E journey only touches it incidentally · **SERVER** 
 | FR-19.8 | E2E+UNIT | M17-14 (the move, end to end, read back from the server), M17-14b (the guard, both directions), M17-14c (skip is not restore); the guard's rule and the card's absence outside Local Mode are unit-owned |
 | FR-20.1 | E2E+UNIT | M10-03 (the default mode, the read-only reverse list, and the cycle refused in words), M5-23; dependencies.ts; M10-31 (a name in either list leads to that item) |
 | FR-20.2 | E2E+UNIT | M4-07; dependencies.ts (incl. the anchor rule: a per-person twin or a second main item keeps a companion) |
-| FR-20.3 | E2E+UNIT | M3-07; dependencies.ts |
+| FR-20.3 | E2E+UNIT | M3-07 (`trip-composition.spec.ts`); dependencies.ts |
 | FR-20.4 | E2E+UNIT | M3-07, M4-40 (required), M5-23 (suggested); dependencies.ts (a suggestion carries the item's own fields, so accepting one writes the category and the quantity it names — `ItemDetailSheet.spec.ts` asserts the chip passes both) |
 | FR-21.1/21.2 | E2E+UNIT | G11-01 (Nacht default); palette.css (every rgb twin agrees with its hex, in both flavours) |
 | FR-21.3 | E2E | M17-06 |
