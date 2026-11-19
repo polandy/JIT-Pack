@@ -14,8 +14,9 @@
 * **E2E-M3-05** `single/local` (FR-17.3/G-8): step 2 sharing/role part hidden; only traveler add/edit remains.
 * **E2E-M3-06** `all` (FR-2.2/2.3/15.2): step 3 template checkboxes; live footer shows resulting count, deduped overlaps
   with strategy, and excluded items with reason ("skipped: season ≠ winter").
-* **E2E-M3-07** `all` (FR-20.3/20.4): step 3 footer reports auto-pulled companion items; step 4 lists them with their
-  main item, dedup notes, and suggested companions as opt-in checkboxes.
+* **E2E-M3-07** `all` (FR-20.3/20.4) — **implemented** (`e2e/trip-composition.spec.ts`): step 3 footer reports
+  auto-pulled companion items; step 4 lists them with their main item, dedup notes, and suggested companions as opt-in
+  checkboxes.
 * **E2E-M3-08** `all` (FR-14.1/14.2): step 4 rows show the template quantity with a stepper and a one-tap history
   suggestion ("2024: 5 · 2025: 6 → 6").
 * **E2E-M3-09** `all` (FR-13.3): step 4 offers the series destination checklist as opt-out extra items.

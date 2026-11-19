@@ -8,10 +8,11 @@ import {
 } from './fixtures'
 import type { Page } from '@playwright/test'
 import { fillIonic } from './helpers/ionic'
+import { writesLanded } from './helpers/page'
 import { openTasks, openTripTasks } from './helpers/m4'
 import { addSeriesTask, openSeries } from './helpers/m16'
 import { PATH } from './routes'
-import { openGroupFromList } from './helpers/templates'
+import { createMasterItem, openGroupFromList } from './helpers/templates'
 
 /**
  * M3 step 3 — generating a trip from a *composed* template (§3.27).
@@ -274,6 +275,72 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     // fails as a strict-mode violation depending on which frame it lands in.
     // The row id is unique, and it is also the stronger claim.
     await expect(visible(page).getByTestId('m4-row-Drohne')).toBeVisible()
+  })
+
+  /**
+   * E2E-M3-07 (FR-20.3/20.4): the preview reports the companions a ticked
+   * template pulls in; step 4 names each with its main item, says which one
+   * was already on the list, and offers the suggested one as an opt-in.
+   *
+   * The suggestion is the positive signal for its own absence: it is off until
+   * ticked, and only the tick takes it (and the count) into the trip.
+   */
+  test('E2E-M3-07: companions are pulled in, deduplicated and offered as opt-in suggestions', async ({
+    page,
+  }) => {
+    // Each companion is declared from its own editor, on the main item.
+    await createMasterItem(page, 'Kamera')
+    for (const name of ['Akku', 'Stativplatte', 'Ladegerät']) {
+      await createMasterItem(page, name)
+      await visible(page).getByTestId('m10-add-dependency').click()
+      await visible(page).getByTestId('m10-dependency-main-Kamera').click()
+      await expect(visible(page).getByTestId('m10-dependency-mode-Kamera')).toBeVisible()
+      await writesLanded(page)
+    }
+    // Stativplatte is the one that needs its mode set.
+    await page.goto(PATH.items)
+    await visible(page).getByTestId('m9-row').filter({ hasText: 'Stativplatte' }).click()
+    await visible(page).getByTestId('m10-dependency-mode-Kamera').click()
+    await page.locator('ion-popover ion-select-popover ion-item', { hasText: 'Suggested' }).click()
+    await expect(page.locator('ion-popover ion-select-popover')).toHaveCount(0)
+    await writesLanded(page)
+
+    await page.goto(PATH.templates)
+    await createTemplate(page, 'template', 'Fototag')
+    await addPosition(page, 'Kamera')
+    await addPosition(page, 'Ladegerät')
+    await backToList(page)
+
+    await wizardToStepThree(page, 'Fototour 2026')
+    await visible(page)
+      .getByTestId('wizard-section-templates')
+      .locator('ion-checkbox')
+      .first()
+      .click()
+    // The template's own two positions; Ladegerät is a companion too, but already one of them.
+    await expect(visible(page).getByTestId('wizard-item-count')).toContainText('2 items')
+    await expect(visible(page).getByTestId('wizard-step-3')).toContainText(
+      '+ 1 companion item (Akku)',
+    )
+
+    await page.getByTestId('wizard-next').click()
+    const review = visible(page).getByTestId('wizard-step-4')
+    await expect(review).toBeVisible()
+    await expect(review).toContainText('Akku')
+    await expect(review).toContainText('with Kamera')
+    await expect(review).toContainText('Ladegerät: already on the list, not duplicated')
+    const suggestion = review.locator('[data-testid^="wizard-companion-suggestion-"]')
+    await expect(suggestion).toHaveCount(1)
+    await expect(suggestion).toContainText('Stativplatte')
+    await expect(suggestion).toContainText('suggested with Kamera')
+
+    await suggestion.locator('ion-checkbox').click()
+    await page.getByTestId('wizard-create').click()
+    await expectTripOpen(page, 'Fototour 2026')
+    // The row ids, for the same reason as in E2E-M3-12: the wizard is still fading.
+    for (const name of ['Kamera', 'Akku', 'Stativplatte', 'Ladegerät']) {
+      await expect(visible(page).getByTestId(`m4-row-${name}`)).toHaveCount(1)
+    }
   })
 
   // E2E-M3-21 (FR-1.4/FR-2.5): a per-person position on a trip with nobody on
