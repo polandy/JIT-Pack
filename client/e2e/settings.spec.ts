@@ -1,4 +1,12 @@
-import { test, expect, seed, createTripViaWizard, visiblePage, PRESENTED_POPOVER } from './fixtures'
+import {
+  test,
+  expect,
+  seed,
+  createTripViaWizard,
+  visiblePage,
+  PRESENTED_POPOVER,
+  setClock,
+} from './fixtures'
 import { quickAddItem } from './serverMode'
 import type { Page } from '@playwright/test'
 import { PATH } from './routes'
@@ -109,11 +117,13 @@ test.describe('M17 device settings @local @m17', () => {
   })
 
   // E2E-M17-07b (NFR-4.11): a stamp older than the threshold says how old.
-  // The age comes from a seeded stamp rather than a mocked clock — the
+  // The age comes from a seeded stamp against a fixed clock — the
   // decision is pure (`reminderState`) and what is asserted here is that
   // the screen reads the stored value and words it, plural included.
   test('E2E-M17-07b: a stale backup is reported with its age', async ({ page }) => {
-    const fortyDaysAgo = Date.now() - 40 * 86_400_000
+    const now = '2026-10-05T09:00:00+02:00'
+    await setClock(page, now)
+    const fortyDaysAgo = new Date(now).getTime() - 40 * 86_400_000
     await page.addInitScript((stamp: number) => {
       localStorage.setItem('jitpack_last_export', String(stamp))
     }, fortyDaysAgo)

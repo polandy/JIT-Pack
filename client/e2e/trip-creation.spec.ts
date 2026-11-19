@@ -1,4 +1,4 @@
-import { test, expect, expectTripOpen } from './fixtures'
+import { test, expect, expectTripOpen, setClock } from './fixtures'
 import { createTripViaWizard, setDateRange, visiblePage, writesLanded } from './fixtures'
 import type { Locator } from '@playwright/test'
 import { PATH } from './routes'
@@ -41,6 +41,7 @@ test('E2E-M3-01: step 1 gates Next on the name, and derives the duration @local 
   seedMode,
 }) => {
   await seedMode({ mode: 'local' })
+  await setClock(page, '2026-10-05T09:00:00+02:00')
   await page.goto(PATH.newTrip)
 
   await expect(page.getByTestId('wizard-step-1')).toBeVisible()
@@ -49,7 +50,7 @@ test('E2E-M3-01: step 1 gates Next on the name, and derives the duration @local 
   await expectBlocked(page.getByTestId('wizard-next'))
 
   // The year needs no input: it opens on the current one (FR-2.1b).
-  await expect(page.getByTestId('wizard-year')).toContainText(String(new Date().getFullYear()))
+  await expect(page.getByTestId('wizard-year')).toContainText('2026')
 
   // A name is the whole gate — no date is required to leave step 1.
   await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)

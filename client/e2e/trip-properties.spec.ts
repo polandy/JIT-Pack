@@ -567,7 +567,8 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
   // both at creation, so a typo would be permanent — on the one temporal fact
   // FR-2.1b makes required, and the one M2 sorts and groups by.
   test('E2E-M22-12: a trip’s year can be corrected, and M2 moves it', async ({ page }) => {
-    const thisYear = new Date().getFullYear()
+    const thisYear = 2026
+    await setClock(page, '2026-10-05T09:00:00+02:00')
     await createTripViaWizard(page, { name: 'Falsches Jahr' })
     await openTripEdit(page)
 
