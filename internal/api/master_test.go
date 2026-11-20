@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/coder/websocket"
 )
 
 // Master-partition endpoints (Sync-API Spec §4/§5): GET/POST
@@ -144,6 +146,17 @@ func TestWS_MasterChangedNotifiesSameUserOnly(t *testing.T) {
 	srv := newTestWSServer(t)
 	wsA := wsConnectAuth(t, srv, userA)
 	wsB := wsConnectAuth(t, srv, userB)
+	// A presence frame answers a subscribe only once the connection is registered, so
+	// reading it first leaves no push to outrun a connection (B's join reaches A too).
+	for _, ws := range []*websocket.Conn{wsA, wsB} {
+		wsSendMsg(t, ws, map[string]any{"subscribe": []string{"trip:" + trip}})
+		if first := wsReadMsg(t, ws); first["type"] != "presence" {
+			t.Fatalf("first frame = %v, want presence", first["type"])
+		}
+	}
+	if joined := wsReadMsg(t, wsA); joined["type"] != "presence" {
+		t.Fatalf("frame = %v, want B's join as presence", joined["type"])
+	}
 
 	body := map[string]any{"mutations": []any{
 		masterMutation("tags", "cat-ws", "mw-1", "insert",

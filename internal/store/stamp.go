@@ -84,14 +84,15 @@ func stampServerOwned(m *sync.Mutation, row sync.Row, actorID string, now Now) {
 }
 
 // stampedOnInsert owns an actor column that is decided once, by the insert
-// that creates the row: a later op may not move the row to somebody else.
+// that creates the row: a later op — an insert that finds the row there
+// included — may not move the row to somebody else.
 // An upsert that creates such a row is left without the column, and the
 // NOT NULL refuses it — the one shape no client produces.
 func stampedOnInsert(column string) serverOwned {
 	return serverOwned{
 		columns: toSet(column),
 		stamp: func(m *sync.Mutation, in stampInput) {
-			if m.Op == sync.OpInsert {
+			if m.Op == sync.OpInsert && !in.row.Exists {
 				m.Set(column, in.actorID)
 			}
 		},

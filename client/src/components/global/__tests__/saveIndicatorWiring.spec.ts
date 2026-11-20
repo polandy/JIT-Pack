@@ -34,7 +34,7 @@ const callSites = files.filter(
   (f) => f.text.includes('<SaveIndicator') && !f.path.includes('__tests__'),
 )
 
-describe('SaveIndicator wiring (FR-25.15)', () => {
+describe('E2E-M5-07 SaveIndicator wiring (FR-25.15)', () => {
   it('is mounted by the sheets that edit, and this test can see all of them', () => {
     // A guard on the guard: if the scan silently matched nothing, every
     // assertion below would pass while checking no file at all.
