@@ -101,10 +101,10 @@ export function createServerBackend(deps: ServerBackendDeps): SyncBackend {
    * nobody caused, and eight rows appearing at once would flicker it through
    * *syncing* on every visit to the list.
    */
-  async function drainTrip(
+  async function pullTrip(
     tripId: string,
     { background = false }: { background?: boolean } = {},
-  ): Promise<void> {
+  ): Promise<boolean> {
     if (!background) syncStatus.setSyncing()
     try {
       // A trip row may name a master row written just before it — FR-24.11's
@@ -122,12 +122,18 @@ export function createServerBackend(deps: ServerBackendDeps): SyncBackend {
       }
       // Report the new cursor so the server recomputes in_sync (§7).
       ws.sendCursor(tripId, outbox.getCursor('trip', tripId))
+      return true
     } catch {
       if (!background) syncStatus.setOffline()
+      return false
     }
   }
 
-  async function drainMaster(): Promise<void> {
+  async function drainTrip(tripId: string, options?: { background?: boolean }): Promise<void> {
+    await pullTrip(tripId, options)
+  }
+
+  async function pullMaster(): Promise<boolean> {
     syncStatus.setSyncing()
     try {
       await outbox.drain('master', null)
@@ -138,22 +144,25 @@ export function createServerBackend(deps: ServerBackendDeps): SyncBackend {
       // the trips that follow it work out what it would mean for them here —
       // the device does not have to be on any particular screen.
       deps.onMasterPulled()
+      return true
     } catch {
       syncStatus.setOffline()
+      return false
     }
   }
 
+  async function drainMaster(): Promise<void> {
+    await pullMaster()
+  }
+
+  // Synced only when every partition drained; a failed one already said offline.
   async function drainAll(tripIds: string[]): Promise<void> {
     syncStatus.setSyncing()
-    try {
-      await drainMaster()
-      for (const id of tripIds) {
-        await drainTrip(id)
-      }
-      syncStatus.setSynced()
-    } catch {
-      syncStatus.setOffline()
+    let ok = await pullMaster()
+    for (const id of tripIds) {
+      if (!(await pullTrip(id))) ok = false
     }
+    if (ok) syncStatus.setSynced()
   }
 
   /**

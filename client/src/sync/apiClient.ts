@@ -54,6 +54,9 @@ export interface APIClientOptions {
   now: NowMs
 }
 
+/** How long one request may stay unanswered before it counts as a dead radio. */
+export const REQUEST_TIMEOUT_MS = 30_000
+
 export class APIClient {
   private readonly baseUrl: string
   private readonly getToken: TokenProvider
@@ -69,9 +72,13 @@ export class APIClient {
     this.now = options.now
   }
 
-  async get<T = unknown>(path: string, params?: Record<string, string>): Promise<T> {
+  async get<T = unknown>(
+    path: string,
+    params?: Record<string, string>,
+    signal?: AbortSignal,
+  ): Promise<T> {
     const query = params ? '?' + new URLSearchParams(params).toString() : ''
-    return this.request<T>('GET', `${path}${query}`)
+    return this.request<T>('GET', `${path}${query}`, undefined, signal)
   }
 
   async post<T = unknown>(path: string, body?: unknown): Promise<T> {
@@ -141,11 +148,20 @@ export class APIClient {
    * failure that carries no status at all.
    */
   private async send(method: string, path: string, url: string, init: RequestInit) {
+    // A controller and `setTimeout`, not `AbortSignal.timeout`, so specs can drive the clock.
+    const timeout = new AbortController()
+    const timer = setTimeout(
+      () => timeout.abort(new DOMException('Request timed out', 'TimeoutError')),
+      REQUEST_TIMEOUT_MS,
+    )
+    const signal = init.signal ? AbortSignal.any([init.signal, timeout.signal]) : timeout.signal
     try {
-      return await fetch(url, init)
+      return await fetch(url, { ...init, signal })
     } catch (err) {
       this.onFailure?.({ method, path, status: null, at: this.now() })
       throw err
+    } finally {
+      clearTimeout(timer)
     }
   }
 
@@ -160,7 +176,12 @@ export class APIClient {
     return resp
   }
 
-  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  private async request<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+    signal?: AbortSignal,
+  ): Promise<T> {
     const headers: Record<string, string> = {}
     if (body !== undefined) {
       headers['Content-Type'] = 'application/json'
@@ -171,6 +192,7 @@ export class APIClient {
       {
         method,
         body: body !== undefined ? JSON.stringify(body) : undefined,
+        signal,
       },
       headers,
     )

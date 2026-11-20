@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { APIClient, APIRequestError } from '../apiClient'
+import { APIClient, APIRequestError, REQUEST_TIMEOUT_MS } from '../apiClient'
 import { AUTH_EXPIRED_EVENT } from '@/auth/refresh'
 import { saveTokens, loadTokens } from '@/auth/tokens'
 import { fixedClock } from '@/__tests__/fixedClock'
@@ -151,6 +151,64 @@ describe('APIClient', () => {
    * person holding it, not the maintainer reading an instance that keeps no
    * request log — could tell a 401 from a 500 from a dead radio.
    */
+  describe('a request that never answers (C-2)', () => {
+    /** A fetch that hangs until its signal aborts, as a stalled radio does. */
+    function hangUntilAborted() {
+      fetchSpy.mockImplementation(
+        (_url: string, init: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            if (init.signal?.aborted) reject(init.signal.reason)
+            init.signal?.addEventListener('abort', () => reject(init.signal!.reason))
+          }),
+      )
+    }
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('gives up after the request timeout and reports it like a dead radio', async () => {
+      vi.useFakeTimers()
+      hangUntilAborted()
+      const failures: unknown[] = []
+      const client = new APIClient('http://localhost:8080', () => 'jwt', {
+        onFailure: (f) => failures.push(f),
+        now: () => 7,
+      })
+
+      const outcome = client.get('/api/v1/trips').then(
+        () => 'resolved',
+        () => 'rejected',
+      )
+      await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS - 1)
+      expect(failures).toEqual([])
+      await vi.advanceTimersByTimeAsync(1)
+
+      expect(await outcome).toBe('rejected')
+      expect(failures).toEqual([{ method: 'GET', path: '/api/v1/trips', status: null, at: 7 }])
+    })
+
+    it('does not time out a request that answered', async () => {
+      vi.useFakeTimers()
+      fetchSpy.mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }))
+      const client = new APIClient('http://localhost:8080', () => 'jwt', { now: fixedClock })
+
+      expect(await client.get('/api/v1/trips')).toEqual({ ok: true })
+      expect(vi.getTimerCount()).toBe(0)
+    })
+
+    it('still honours the caller signal when one is given', async () => {
+      hangUntilAborted()
+      const client = new APIClient('http://localhost:8080', () => 'jwt', { now: fixedClock })
+      const caller = new AbortController()
+
+      const outcome = client.get('/api/v1/trips', undefined, caller.signal)
+      caller.abort(new Error('caller gave up'))
+
+      await expect(outcome).rejects.toThrow('caller gave up')
+    })
+  })
+
   describe('reporting the request that failed', () => {
     /** The instant every failure case is stamped with. */
     const AT = 1_757_000_000_000
