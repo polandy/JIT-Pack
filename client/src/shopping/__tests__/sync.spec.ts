@@ -239,7 +239,7 @@ describe('Several entries removed at once (FR-30.9)', () => {
     const orch = serverOrch()
     harness.mockDrain()
     const actions = createShoppingActions(orch.moduleHost, useShoppingStore())
-    actions.addEntry('t1', 'buy_local', 'Milch', 'Supermarkt', '2026-07-01')
+    actions.addEntry('t1', 'buy_local', 'Milch', 'Supermarkt', '2026-07-01', 'idea-1')
     actions.addEntry('t1', 'buy_local', 'Brot')
     actions.addEntry('t1', 'buy_local', 'Käse')
     const shoppingStore = useShoppingStore()
@@ -283,6 +283,7 @@ describe('Several entries removed at once (FR-30.9)', () => {
       tag: 'Supermarkt',
       due_date: '2026-07-01',
       assignee_user_id: 'u-sia',
+      idea_id: 'idea-1',
     })
   })
 })

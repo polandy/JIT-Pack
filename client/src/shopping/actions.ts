@@ -14,6 +14,7 @@ import { dbBool } from '@/sync/columns'
 import type { ModuleHost } from '@/sync/featureModule'
 import { ITEM_MODE_BUY_BEFORE, ITEM_MODE_BUY_LOCAL } from '@/types/domain'
 import type { ShoppingMode } from '@/types/domain'
+import { shoppingEntryRow } from './rows'
 import type { ShoppingEntry } from './types'
 import { TABLE } from '@/api/tables'
 
@@ -178,18 +179,8 @@ export function createShoppingActions(host: ModuleHost, places: EntryPlaces) {
    * open entries are ever removed in a batch, so there is none to lose.
    */
   function restoreEntry(entry: ShoppingEntry): void {
-    const mutation = host.mutation('insert', TABLE.shoppingEntries, entry.id, {
-      trip_id: entry.trip_id,
-      name: entry.name,
-      list: entry.list,
-      bought: dbBool(entry.bought),
-      tag: entry.tag,
-      bought_at: entry.bought_at,
-      due_date: entry.due_date,
-      assignee_user_id: entry.assignee_user_id,
-      carried_over_at: entry.carried_over_at ?? null,
-      position: entry.position ?? null,
-    })
+    const { bought_by_user_id: _buyer, ...fields } = shoppingEntryRow(entry)
+    const mutation = host.mutation('insert', TABLE.shoppingEntries, entry.id, fields)
     host.write(mutation)
   }
 
