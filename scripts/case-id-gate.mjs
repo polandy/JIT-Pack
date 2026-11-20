@@ -50,17 +50,17 @@ const SPEC = resolve(root, 'dev-docs/ui-test-spec')
  * the id it names — so it is a tombstone, not a second definition, and only
  * the live ones may collide.
  */
-const DEFINITION = /^\* \*\*(E2E-[A-Z0-9]+-\d+[a-z]*(?:\/\d+[a-z]*)*)/gm
+const DEFINITION = /^\* \*\*(E2E-[A-Z0-9]+(?:-SEC)?-\d+[a-z]*(?:\/\d+[a-z]*)*)/gm
 
 /**
  * A row of §4's or §6's tables: `| E2E-G2-01 | … |`. A struck row reads
  * `| ~~E2E-…`, so the space after the pipe is what separates a definition
  * from a tombstone, exactly as the bold does for a bullet.
  */
-const ROW_DEFINITION = /^\| (E2E-[A-Z0-9]+-\d+[a-z]*)\b/gm
+const ROW_DEFINITION = /^\| (E2E-[A-Z0-9]+(?:-SEC)?-\d+[a-z]*)\b/gm
 
 /** Every id in a test title — one entry per id, so a two-id title counts twice. */
-const TITLE_IDS = /E2E-[A-Z0-9]+-\d+[a-z]*/g
+const TITLE_IDS = /E2E-[A-Z0-9]+(?:-SEC)?-\d+[a-z]*/g
 
 const spec = readdirSync(SPEC)
   .filter((name) => name.endsWith('.md'))

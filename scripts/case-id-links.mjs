@@ -5,11 +5,11 @@
  * that carries it. Pure functions, so `case-id-gate.test.mjs` can feed them text.
  */
 
-const LIVE_ENTRY = /^\* (~~)?\*\*(E2E-[A-Z0-9]+-\d+[a-z]*(?:\/\d+[a-z]*)*)(?:\*\*|(?= ))[ \t]*(~~)?/
-const TABLE_ROW = /^\| (~~)?(E2E-[A-Z0-9]+-\d+[a-z]*)(?:~~)? \|(.*)$/
+const LIVE_ENTRY = /^\* (~~)?\*\*(E2E-[A-Z0-9]+(?:-SEC)?-\d+[a-z]*(?:\/\d+[a-z]*)*)(?:\*\*|(?= ))[ \t]*(~~)?/
+const TABLE_ROW = /^\| (~~)?(E2E-[A-Z0-9]+(?:-SEC)?-\d+[a-z]*)(?:~~)? \|(.*)$/
 const CARRIER_FILE = /[\w./-]+\.(?:spec|test)\.(?:ts|mjs)/
-const CASE_ID = /E2E-[A-Z0-9]+-\d+[a-z]*/g
-const TRACE_ID = /\b(M\d+|G\d+|FLOW|NFR|VIS|SYNC)-(\d+[a-z]*)((?:\/\d+[a-z]*)*)/g
+const CASE_ID = /E2E-[A-Z0-9]+(?:-SEC)?-\d+[a-z]*/g
+const TRACE_ID = /\b(M\d+|G\d+|FLOW|NFR-SEC|NFR|VIS|SYNC|PWA)-(\d+[a-z]*)((?:\/\d+[a-z]*)*)/g
 
 /** `E2E-M17-07/07b` defines two ids; the suffixes inherit the head's series. */
 export function idsOf(heading) {
@@ -21,28 +21,33 @@ export function idsOf(heading) {
 /** id → { struck, text } for every top-level bullet entry and table row in the spec text. */
 export function parseEntries(specText) {
   const entries = new Map()
+  /** A retired entry never displaces a live one, wherever it sits in the text. */
+  const define = (id, entry) => {
+    if (entry.struck && entries.get(id)?.struck === false) return
+    entries.set(id, entry)
+  }
   const lines = specText.split('\n')
   lines.forEach((line, i) => {
     const row = line.match(TABLE_ROW)
     if (row) {
-      entries.set(row[2], { struck: Boolean(row[1]), text: row[3] })
+      define(row[2], { struck: Boolean(row[1]), text: row[3] })
       return
     }
     const m = line.match(LIVE_ENTRY)
     if (!m) return
     let text = line.slice(m[0].length)
     for (let j = i + 1; j < lines.length && /^(?:\s+\S|$)/.test(lines[j]); j++) text += `\n${lines[j]}`
-    for (const id of idsOf(m[2])) entries.set(id, { struck: Boolean(m[1] || m[3]), text })
+    for (const id of idsOf(m[2])) define(id, { struck: Boolean(m[1] || m[3]), text })
   })
   return entries
 }
 
-/** Whether `id` is carried: titled, retired, or carried through a named file or a carrying case. */
+/** Whether `id` is carried: titled, or carried through a named file or a carrying case. */
 export function carried(id, entries, titled, visiting = new Set()) {
   if (titled.has(id)) return true
   const entry = entries.get(id)
   if (!entry) return false
-  if (entry.struck) return true
+  if (entry.struck) return false
   if (CARRIER_FILE.test(entry.text)) return true
   visiting.add(id)
   return (entry.text.match(CASE_ID) ?? []).some(
@@ -52,7 +57,7 @@ export function carried(id, entries, titled, visiting = new Set()) {
 
 /** Live spec entries nothing carries: no title id, no named file, no carrying case. */
 export function uncarriedSpecIds(entries, titled) {
-  return [...entries.keys()].filter((id) => !carried(id, entries, titled))
+  return [...entries].filter(([id, entry]) => !entry.struck && !carried(id, entries, titled)).map(([id]) => id)
 }
 
 /** Ids named by the "E2E" rows of the traceability matrix, retired mentions (`~~…~~`) left out. */

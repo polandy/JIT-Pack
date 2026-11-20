@@ -75,3 +75,32 @@ test('a table row defines its id; a struck row is retired', () => {
   const entries = parseEntries(spec('| E2E-G11-01 | G-11 Theming | all | text |', '| ~~E2E-M4-35~~ | ~~x~~ | all | Reversed. |'))
   assert.deepEqual(uncarriedSpecIds(entries, titled()), ['E2E-G11-01'])
 })
+
+test('a live entry wins over a later struck entry of the same id, in either order', () => {
+  const live = '* **E2E-M5-07** `all` (FR-25.15) — **implemented.**'
+  const tomb = '* ~~**E2E-M5-07 (v1.0 catalogue, shadowed)** `server`: delegate.~~'
+  for (const text of [spec(live, tomb), spec(tomb, live)]) {
+    const entries = parseEntries(text)
+    assert.equal(entries.get('E2E-M5-07').struck, false)
+    assert.deepEqual(uncarriedSpecIds(entries, titled()), ['E2E-M5-07'])
+  }
+})
+
+test('a retired case does not carry a traceability id, and a titled one still does', () => {
+  const entries = parseEntries(spec('* **E2E-M4-05** ~~`all`: swipe right.~~ **Retired**.'))
+  const trace = '| FR-5.2 | E2E | M4-05 |'
+  assert.deepEqual(uncarriedTraceIds(trace, entries, titled()), ['E2E-M4-05'])
+  assert.deepEqual(uncarriedTraceIds(trace, entries, titled('E2E-M4-05')), [])
+})
+
+test('a retired case named by a live case is not a carrier', () => {
+  const entries = parseEntries(spec('* **E2E-M2-09** — covered by E2E-M4-05.', '* ~~**E2E-M4-05**~~ retired.'))
+  assert.deepEqual(uncarriedSpecIds(entries, titled()), ['E2E-M2-09'])
+})
+
+test('PWA and NFR-SEC ids are read from traceability rows and from titles', () => {
+  const trace = ['| FR-19.7 | E2E | PWA-05, PWA-05b |', '| NFR-4.2a | E2E+UNIT | E2E-NFR-SEC-01…04 |'].join('\n')
+  assert.deepEqual(traceIds(trace), ['E2E-PWA-05', 'E2E-PWA-05b', 'E2E-NFR-SEC-01'])
+  const entries = parseEntries(spec('* **E2E-NFR-SEC-01** `local` (NFR-4.2a): ids.'))
+  assert.deepEqual(uncarriedSpecIds(entries, titled()), ['E2E-NFR-SEC-01'])
+})
