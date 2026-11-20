@@ -237,8 +237,7 @@ const verdictLabel = computed(() => {
         <!-- FR-25.33's note, then the stamp: one line, „Jeans" · gepackt von … -->
         <span v-if="notes.packNote" class="pack-note" data-testid="m4-pack-note">{{
           notes.packNote
-        }}</span
-        >{{ notes.packNote ? ' · ' : '' }}{{ notes.packed }}
+        }}</span>{{ notes.packNote ? ' · ' : '' }}{{ notes.packed }}
         <span v-if="notes.responsible" class="muted">· {{ notes.responsible }}</span>
       </p>
       <p v-else-if="notes.packNote" class="stamp">
