@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.28.2](https://github.com/polandy/JIT-Pack/compare/v0.28.1...v0.28.2) (2026-11-20)
+
+
+### Bug Fixes
+
+* an insert onto an existing row keeps its author (invariant 3) ([#930](https://github.com/polandy/JIT-Pack/issues/930)) ([37bef23](https://github.com/polandy/JIT-Pack/commit/37bef2369616ab55e8d22703c675268eb06505a5))
+* honest sync status (failed drain stays offline, 30 s request timeout) ([#932](https://github.com/polandy/JIT-Pack/issues/932)) ([1137e60](https://github.com/polandy/JIT-Pack/commit/1137e606a5eb4eeed53be3ec41c74122c492556e))
+* undo after a bulk delete keeps an entry's idea link (FR-30.9, FR-29.13) ([#933](https://github.com/polandy/JIT-Pack/issues/933)) ([b7846fe](https://github.com/polandy/JIT-Pack/commit/b7846fe8ac0f7784106b58f7802969a9e1575581))
+
 ## [0.28.1](https://github.com/polandy/JIT-Pack/compare/v0.28.0...v0.28.1) (2026-11-06)
 
 
